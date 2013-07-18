@@ -1,0 +1,25 @@
+# Keep the entries sorted to reduce the risk for a merge conflict
+*.[ao]
+*.dll
+*.dll.embed.manifest
+*.dll.embed.manifest.res
+*.dll.intermediate.manifest
+*.dll.resource.txt
+*.dylib
+*.so
+*.so.*
+*.exe
+*.exe.embed.manifest
+*.exe.embed.manifest.res
+*.exe.intermediate.manifest
+*.exe.resource.txt
+*.exp
+*.ilk
+*.lib
+*.pdb
+*~
+/CMakeCache.txt
+/CMakeFiles/
+/CTestTestfile.cmake
+/Makefile
+/cmake_install.cmake
