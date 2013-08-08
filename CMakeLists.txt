@@ -37,6 +37,12 @@ INSTALL (FILES
          include/platform/visibility.h
          DESTINATION include/platform)
 
+IF (WIN32)
+INSTALL (FILES
+         src/getopt.h
+         DESTINATION include)
+ENDIF (WIN32)
+
 INSTALL(TARGETS platform
         RUNTIME DESTINATION bin
         LIBRARY DESTINATION lib
