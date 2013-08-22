@@ -33,12 +33,12 @@ typedef long long int64_t;
 #include <pwd.h>
 #include <sys/time.h>
 #include <signal.h>
+#include <inttypes.h>
 
 #endif
 
 /* Common section */
 #include <stdlib.h>
-#include <inttypes.h>
 #include <sys/types.h>
 
 #include <platform/platform.h>
