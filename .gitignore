@@ -1,4 +1,5 @@
 # Keep the entries sorted to reduce the risk for a merge conflict
+.DS_Store
 *.[ao]
 *.dll
 *.dll.embed.manifest
@@ -23,3 +24,4 @@
 /CTestTestfile.cmake
 /Makefile
 /cmake_install.cmake
+install_manifest.txt
