@@ -31,6 +31,7 @@
 
 static void mach_absolute_difference(uint64_t start, uint64_t end,
                               struct timespec *tp) {
+    uint64_t elapsednano;
     uint64_t difference = end - start;
     static mach_timebase_info_data_t info = {0,0};
 
@@ -38,22 +39,23 @@ static void mach_absolute_difference(uint64_t start, uint64_t end,
         mach_timebase_info(&info);
     }
 
-    uint64_t elapsednano = difference * (info.numer / info.denom);
+    elapsednano = difference * (info.numer / info.denom);
 
     tp->tv_sec = elapsednano * 1e-9;
     tp->tv_nsec = elapsednano - (tp->tv_sec * 1e9);
 }
 
 static int clock_gettime(int which, struct timespec *tp) {
-    assert(which == CLOCK_MONOTONIC);
-
+    uint64_t now;
     static uint64_t epoch = 0;
+
+    assert(which == CLOCK_MONOTONIC);
 
     if (epoch == 0) {
         epoch = mach_absolute_time();
     }
 
-    uint64_t now = mach_absolute_time();
+    now = mach_absolute_time();
 
     mach_absolute_difference(epoch, now, tp);
 
