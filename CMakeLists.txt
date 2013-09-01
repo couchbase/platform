@@ -1,11 +1,5 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
 
-IF (${CMAKE_CURRENT_SOURCE_DIR} STREQUAL ${CMAKE_SOURCE_DIR})
-   # We are being built as a single module
-   SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../tlm/cmake/Modules/")
-   INCLUDE(CouchbaseSingleModuleBuild)
-ENDIF ()
-
 #
 # Set the include path
 #
