@@ -23,7 +23,8 @@ struct thread_execute {
     void *argument;
 };
 
-static DWORD WINAPI platform_thread_wrap(LPVOID arg) {
+static DWORD WINAPI platform_thread_wrap(LPVOID arg)
+{
     struct thread_execute *ctx = arg;
     assert(ctx);
     ctx->func(ctx->argument);
@@ -34,9 +35,10 @@ static DWORD WINAPI platform_thread_wrap(LPVOID arg) {
 
 __declspec(dllexport)
 int cb_create_thread(cb_thread_t *id,
-                     void (*func)(void*arg),
+                     void (*func)(void *arg),
                      void *arg,
-                     int detached) {
+                     int detached)
+{
     HANDLE handle;
     struct thread_execute *ctx = malloc(sizeof(struct thread_execute));
     if (ctx == NULL) {
@@ -60,7 +62,8 @@ int cb_create_thread(cb_thread_t *id,
 }
 
 __declspec(dllexport)
-int cb_join_thread(cb_thread_t id) {
+int cb_join_thread(cb_thread_t id)
+{
     HANDLE handle = OpenThread(SYNCHRONIZE, FALSE, id);
     if (handle == NULL) {
         return -1;
@@ -77,55 +80,61 @@ cb_thread_t cb_thread_self(void)
 }
 
 __declspec(dllexport)
-void cb_mutex_initialize(cb_mutex_t* mutex)
+void cb_mutex_initialize(cb_mutex_t *mutex)
 {
     InitializeCriticalSection(mutex);
 }
 
 __declspec(dllexport)
-void cb_mutex_destroy(cb_mutex_t* mutex)
+void cb_mutex_destroy(cb_mutex_t *mutex)
 {
     DeleteCriticalSection(mutex);
 }
 
 __declspec(dllexport)
-void cb_mutex_enter(cb_mutex_t* mutex)
+void cb_mutex_enter(cb_mutex_t *mutex)
 {
     EnterCriticalSection(mutex);
 }
 
 __declspec(dllexport)
-void cb_mutex_exit(cb_mutex_t* mutex)
+void cb_mutex_exit(cb_mutex_t *mutex)
 {
     LeaveCriticalSection(mutex);
 }
 
 __declspec(dllexport)
-void cb_cond_initialize(cb_cond_t*cond) {
+void cb_cond_initialize(cb_cond_t *cond)
+{
     InitializeConditionVariable(cond);
 }
 
 __declspec(dllexport)
-void cb_cond_destroy(cb_cond_t*cond) {
+void cb_cond_destroy(cb_cond_t *cond)
+{
     (void)cond;
 }
 
 __declspec(dllexport)
-void cb_cond_wait(cb_cond_t *cond, cb_mutex_t *mutex) {
+void cb_cond_wait(cb_cond_t *cond, cb_mutex_t *mutex)
+{
     SleepConditionVariableCS(cond, mutex, INFINITE);
 }
 
 __declspec(dllexport)
-void cb_cond_signal(cb_cond_t *cond) {
+void cb_cond_signal(cb_cond_t *cond)
+{
     WakeConditionVariable(cond);
 }
 
 __declspec(dllexport)
-void cb_cond_broadcast(cb_cond_t *cond) {
+void cb_cond_broadcast(cb_cond_t *cond)
+{
     WakeAllConditionVariable(cond);
 }
 
-static const char *get_dll_name(const char *path, char *buffer) {
+static const char *get_dll_name(const char *path, char *buffer)
+{
     char *ptr = strstr(path, ".dll");
     if (ptr != NULL) {
         return path;
@@ -144,7 +153,8 @@ static const char *get_dll_name(const char *path, char *buffer) {
 }
 
 __declspec(dllexport)
-cb_dlhandle_t cb_dlopen(const char *library, char **errmsg) {
+cb_dlhandle_t cb_dlopen(const char *library, char **errmsg)
+{
     cb_dlhandle_t handle;
     char *buffer;
 
@@ -185,7 +195,8 @@ cb_dlhandle_t cb_dlopen(const char *library, char **errmsg) {
 }
 
 __declspec(dllexport)
-void *cb_dlsym(cb_dlhandle_t handle, const char *symbol, char **errmsg) {
+void *cb_dlsym(cb_dlhandle_t handle, const char *symbol, char **errmsg)
+{
     void *ret = GetProcAddress(handle, symbol);
     if (ret == NULL && errmsg) {
         DWORD err = GetLastError();
@@ -206,6 +217,7 @@ void *cb_dlsym(cb_dlhandle_t handle, const char *symbol, char **errmsg) {
 }
 
 __declspec(dllexport)
-void cb_dlclose(cb_dlhandle_t handle) {
+void cb_dlclose(cb_dlhandle_t handle)
+{
     FreeLibrary(handle);
 }

@@ -21,9 +21,9 @@ __declspec(dllexport)
 void cb_initialize_sockets(void)
 {
     WSADATA wsaData;
-    if (WSAStartup(MAKEWORD(2,0), &wsaData) != 0) {
-       fprintf(stderr, "Socket Initialization Error. Program aborted\r\n");
-       exit(EXIT_FAILURE);
+    if (WSAStartup(MAKEWORD(2, 0), &wsaData) != 0) {
+        fprintf(stderr, "Socket Initialization Error. Program aborted\r\n");
+        exit(EXIT_FAILURE);
     }
 }
 

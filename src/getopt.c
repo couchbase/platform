@@ -111,6 +111,7 @@ int getopt_long(int argc, char **argv, const char *optstring,
     }
 }
 
-int getopt(int argc, char **argv, const char *optstring) {
+int getopt(int argc, char **argv, const char *optstring)
+{
     return getopt_long(argc, argv, optstring, NULL, NULL);
 }

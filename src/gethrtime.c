@@ -30,10 +30,11 @@
 #define CLOCK_MONOTONIC 192996728
 
 static void mach_absolute_difference(uint64_t start, uint64_t end,
-                              struct timespec *tp) {
+                                     struct timespec *tp)
+{
     uint64_t elapsednano;
     uint64_t difference = end - start;
-    static mach_timebase_info_data_t info = {0,0};
+    static mach_timebase_info_data_t info = {0, 0};
 
     if (info.denom == 0) {
         mach_timebase_info(&info);
@@ -45,7 +46,8 @@ static void mach_absolute_difference(uint64_t start, uint64_t end,
     tp->tv_nsec = elapsednano - (tp->tv_sec * 1e9);
 }
 
-static int clock_gettime(int which, struct timespec *tp) {
+static int clock_gettime(int which, struct timespec *tp)
+{
     uint64_t now;
     static uint64_t epoch = 0;
 
@@ -64,7 +66,8 @@ static int clock_gettime(int which, struct timespec *tp) {
 #endif
 
 #if defined(linux) || defined(__APPLE__)
-hrtime_t gethrtime(void) {
+hrtime_t gethrtime(void)
+{
     struct timespec tm;
     if (clock_gettime(CLOCK_MONOTONIC, &tm) == -1) {
         abort();
@@ -72,7 +75,8 @@ hrtime_t gethrtime(void) {
     return (((hrtime_t)tm.tv_sec) * 1000000000) + tm.tv_nsec;
 }
 #elif defined(WIN32)
-hrtime_t gethrtime(void) {
+hrtime_t gethrtime(void)
+{
     double ret;
     /*
     ** To fix the potential race condition for the local static variable,
@@ -106,7 +110,8 @@ hrtime_t gethrtime(void) {
 
 #if 0
 __attribute__((constructor))
-static void init_clock_win32(void) {
+static void init_clock_win32(void)
+{
     gethrtime();
 }
 #endif

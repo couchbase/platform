@@ -11,7 +11,8 @@ struct thread_execute {
     void *argument;
 };
 
-static void* platform_thread_wrap(void *arg) {
+static void *platform_thread_wrap(void *arg)
+{
     struct thread_execute *ctx = arg;
     assert(arg);
     ctx->func(ctx->argument);
@@ -37,7 +38,7 @@ int cb_create_thread(cb_thread_t *id,
         pthread_attr_t attr;
 
         if (pthread_attr_init(&attr) != 0 ||
-            pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED) != 0) {
+                pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED) != 0) {
             return -1;
         }
 
@@ -46,9 +47,9 @@ int cb_create_thread(cb_thread_t *id,
         ret = pthread_create(id, NULL, platform_thread_wrap, ctx);
     }
 
-	if (ret != 0) {
-		free(ctx);
-	}
+    if (ret != 0) {
+        free(ctx);
+    }
 
     return ret;
 }
@@ -63,17 +64,17 @@ cb_thread_t cb_thread_self(void)
     return pthread_self();
 }
 
-void cb_mutex_initialize(cb_mutex_t*mutex)
+void cb_mutex_initialize(cb_mutex_t *mutex)
 {
     pthread_mutex_init(mutex, NULL);
 }
 
-void cb_mutex_destroy(cb_mutex_t*mutex)
+void cb_mutex_destroy(cb_mutex_t *mutex)
 {
     pthread_mutex_destroy(mutex);
 }
 
-void cb_mutex_enter(cb_mutex_t*mutex)
+void cb_mutex_enter(cb_mutex_t *mutex)
 {
     int rv = pthread_mutex_lock(mutex);
     if (rv != 0) {
@@ -83,7 +84,7 @@ void cb_mutex_enter(cb_mutex_t*mutex)
     }
 }
 
-void cb_mutex_exit(cb_mutex_t*mutex)
+void cb_mutex_exit(cb_mutex_t *mutex)
 {
     int rv = pthread_mutex_unlock(mutex);
     if (rv != 0) {
@@ -93,23 +94,28 @@ void cb_mutex_exit(cb_mutex_t*mutex)
     }
 }
 
-void cb_cond_initialize(cb_cond_t*cond) {
+void cb_cond_initialize(cb_cond_t *cond)
+{
     pthread_cond_init(cond, NULL);
 }
 
-void cb_cond_destroy(cb_cond_t*cond) {
+void cb_cond_destroy(cb_cond_t *cond)
+{
     pthread_cond_destroy(cond);
 }
 
-void cb_cond_wait(cb_cond_t *cond, cb_mutex_t *mutex) {
+void cb_cond_wait(cb_cond_t *cond, cb_mutex_t *mutex)
+{
     pthread_cond_wait(cond, mutex);
 }
 
-void cb_cond_signal(cb_cond_t *cond) {
+void cb_cond_signal(cb_cond_t *cond)
+{
     pthread_cond_signal(cond);
 }
 
-void cb_cond_broadcast(cb_cond_t *cond) {
+void cb_cond_broadcast(cb_cond_t *cond)
+{
     pthread_cond_broadcast(cond);
 }
 
@@ -128,7 +134,8 @@ void cb_cond_timedwait(cb_cond_t *cond, cb_mutex_t *mutex, unsigned int ms)
 }
 
 #ifdef __APPLE__
-static const char *get_dll_name(const char *path, char *buffer) {
+static const char *get_dll_name(const char *path, char *buffer)
+{
     char *ptr = strstr(path, ".dylib");
     if (ptr != NULL) {
         return path;
@@ -146,7 +153,8 @@ static const char *get_dll_name(const char *path, char *buffer) {
     return buffer;
 }
 #else
-static const char *get_dll_name(const char *path, char *buffer) {
+static const char *get_dll_name(const char *path, char *buffer)
+{
     char *ptr = strstr(path, ".so");
     if (ptr != NULL) {
         return path;
@@ -158,7 +166,8 @@ static const char *get_dll_name(const char *path, char *buffer) {
 }
 #endif
 
-cb_dlhandle_t cb_dlopen(const char *library, char **errmsg) {
+cb_dlhandle_t cb_dlopen(const char *library, char **errmsg)
+{
     cb_dlhandle_t handle;
     char *buffer = NULL;
 
@@ -188,7 +197,8 @@ cb_dlhandle_t cb_dlopen(const char *library, char **errmsg) {
     return handle;
 }
 
-void *cb_dlsym(cb_dlhandle_t handle, const char *symbol, char **errmsg) {
+void *cb_dlsym(cb_dlhandle_t handle, const char *symbol, char **errmsg)
+{
     void *ret = dlsym(handle, symbol);
     if (ret == NULL && errmsg) {
         *errmsg = strdup(dlerror());
@@ -196,6 +206,7 @@ void *cb_dlsym(cb_dlhandle_t handle, const char *symbol, char **errmsg) {
     return ret;
 }
 
-void cb_dlclose(cb_dlhandle_t handle) {
+void cb_dlclose(cb_dlhandle_t handle)
+{
     dlclose(handle);
 }

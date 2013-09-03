@@ -32,18 +32,18 @@ extern "C" {
 #endif
 
 #ifdef WIN32
-typedef DWORD cb_thread_t;
-typedef CRITICAL_SECTION cb_mutex_t;
-typedef CONDITION_VARIABLE cb_cond_t;
-typedef unsigned __int64 hrtime_t;
+    typedef DWORD cb_thread_t;
+    typedef CRITICAL_SECTION cb_mutex_t;
+    typedef CONDITION_VARIABLE cb_cond_t;
+    typedef unsigned __int64 hrtime_t;
 
 #else
-typedef pthread_t cb_thread_t;
-typedef pthread_mutex_t cb_mutex_t;
-typedef pthread_cond_t cb_cond_t;
+    typedef pthread_t cb_thread_t;
+    typedef pthread_mutex_t cb_mutex_t;
+    typedef pthread_cond_t cb_cond_t;
 
 #ifndef __sun
-typedef uint64_t hrtime_t;
+    typedef uint64_t hrtime_t;
 #endif
 
 #endif
@@ -101,7 +101,7 @@ typedef uint64_t hrtime_t;
      * @param mutex the mutex object to initialize
      */
     PLATFORM_PUBLIC_API
-    void cb_mutex_initialize(cb_mutex_t* mutex);
+    void cb_mutex_initialize(cb_mutex_t *mutex);
 
     /**
      * Destroy (and release all allocated resources) a mutex.
@@ -109,7 +109,7 @@ typedef uint64_t hrtime_t;
      * @param mutex the mutex object to destroy
      */
     PLATFORM_PUBLIC_API
-    void cb_mutex_destroy(cb_mutex_t* mutex);
+    void cb_mutex_destroy(cb_mutex_t *mutex);
 
     /**
      * Enter a locked section
@@ -117,7 +117,7 @@ typedef uint64_t hrtime_t;
      * @param mutex the mutex protecting this section
      */
     PLATFORM_PUBLIC_API
-    void cb_mutex_enter(cb_mutex_t*mutex);
+    void cb_mutex_enter(cb_mutex_t *mutex);
 
     /**
      * Exit a locked section
@@ -125,7 +125,7 @@ typedef uint64_t hrtime_t;
      * @param mutex the mutex protecting this section
      */
     PLATFORM_PUBLIC_API
-    void cb_mutex_exit(cb_mutex_t*mutex);
+    void cb_mutex_exit(cb_mutex_t *mutex);
 
     /***********************************************************************
      *                 Condition variable related functions                *
@@ -135,14 +135,14 @@ typedef uint64_t hrtime_t;
      * @param cond the condition variable to initialize
      */
     PLATFORM_PUBLIC_API
-    void cb_cond_initialize(cb_cond_t*cond);
+    void cb_cond_initialize(cb_cond_t *cond);
 
     /**
      * Destroy and release all allocated resources for a condition variable
      * @param cond the condition variable to destroy
      */
     PLATFORM_PUBLIC_API
-    void cb_cond_destroy(cb_cond_t*cond);
+    void cb_cond_destroy(cb_cond_t *cond);
 
     /**
      * Wait for a condition variable to be signaled.
@@ -203,7 +203,7 @@ typedef uint64_t hrtime_t;
     hrtime_t gethrtime(void);
 #endif
 
-    typedef void* cb_dlhandle_t;
+    typedef void *cb_dlhandle_t;
 
     PLATFORM_PUBLIC_API
     cb_dlhandle_t cb_dlopen(const char *library, char **errmsg);
@@ -217,7 +217,7 @@ typedef uint64_t hrtime_t;
 #ifdef WIN32
     struct iovec {
         size_t iov_len;
-        void* iov_base;
+        void *iov_base;
     };
 
     struct msghdr {
