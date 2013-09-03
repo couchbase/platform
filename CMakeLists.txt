@@ -46,3 +46,7 @@ INSTALL(TARGETS platform
         RUNTIME DESTINATION bin
         LIBRARY DESTINATION lib
         ARCHIVE DESTINATION lib)
+
+ADD_CUSTOM_TARGET(reformat-platform-source
+                  COMMAND astyle ${ASTYLE_CFLAGS}
+                  VERBATIM)
