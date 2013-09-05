@@ -201,6 +201,12 @@ extern "C" {
      */
     PLATFORM_PUBLIC_API
     hrtime_t gethrtime(void);
+
+    PLATFORM_PUBLIC_API
+    uint64_t ntohll(uint64_t);
+
+    PLATFORM_PUBLIC_API
+    uint64_t htonll(uint64_t);
 #endif
 
     typedef void *cb_dlhandle_t;
