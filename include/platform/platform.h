@@ -37,6 +37,18 @@ extern "C" {
     typedef CONDITION_VARIABLE cb_cond_t;
     typedef unsigned __int64 hrtime_t;
 
+    /* Unfortunately we don't have stdint.h on windows.. Let's just
+     * typedef them here for now.. we need to find a better solution for
+     * this!
+     */
+    typedef __int8 int8_t;
+    typedef __int16 int16_t;
+    typedef __int32 int32_t;
+    typedef __int64 int64_t;
+    typedef unsigned __int8 uint8_t;
+    typedef unsigned __int16 uint16_t;
+    typedef unsigned __int32 uint32_t;
+    typedef unsigned __int64 uint64_t;
 #else
     typedef pthread_t cb_thread_t;
     typedef pthread_mutex_t cb_mutex_t;
