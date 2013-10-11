@@ -34,13 +34,22 @@ extern "C" {
 #ifdef WIN32
     typedef DWORD cb_thread_t;
     typedef CRITICAL_SECTION cb_mutex_t;
+
+#ifdef _MSC_VER
     typedef CONDITION_VARIABLE cb_cond_t;
+#else
+    /* @TODO make sure that this buffer is big enough!!! */
+    typedef struct {
+        __int64 blob[64];
+    } cb_cond_t;
+#endif
     typedef unsigned __int64 hrtime_t;
 
     /* Unfortunately we don't have stdint.h on windows.. Let's just
      * typedef them here for now.. we need to find a better solution for
      * this!
      */
+#ifdef _MSC_VER
     typedef __int8 int8_t;
     typedef __int16 int16_t;
     typedef __int32 int32_t;
@@ -49,6 +58,10 @@ extern "C" {
     typedef unsigned __int16 uint16_t;
     typedef unsigned __int32 uint32_t;
     typedef unsigned __int64 uint64_t;
+#else
+#include <stdint.h>
+#endif
+
 #else
     typedef pthread_t cb_thread_t;
     typedef pthread_mutex_t cb_mutex_t;
