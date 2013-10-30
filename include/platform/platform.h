@@ -50,13 +50,6 @@ extern "C" {
      * this!
      */
 #ifdef _MSC_VER
-
-#if _MSC_VER > 1700
-#define HAVE_NTOHLL 1
-#define HAVE_HTONLL 1
-#include <stdint.h>
-
-#else
     typedef __int8 int8_t;
     typedef __int16 int16_t;
     typedef __int32 int32_t;
@@ -65,8 +58,6 @@ extern "C" {
     typedef unsigned __int16 uint16_t;
     typedef unsigned __int32 uint32_t;
     typedef unsigned __int64 uint64_t;
-#endif
-
 #else
 #include <stdint.h>
 #endif
@@ -235,16 +226,10 @@ extern "C" {
      */
     PLATFORM_PUBLIC_API
     hrtime_t gethrtime(void);
-#define HAVE_NTOHLL 1
-#define HAVE_HTONLL 1
-#endif
 
-#ifndef HAVE_NTOHLL
     PLATFORM_PUBLIC_API
     uint64_t ntohll(uint64_t);
-#endif
 
-#ifndef HAVE_HTONLL
     PLATFORM_PUBLIC_API
     uint64_t htonll(uint64_t);
 #endif

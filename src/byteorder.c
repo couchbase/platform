@@ -1,7 +1,7 @@
 /* -*- Mode: C; tab-width: 4; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 #include "config.h"
 
-#if !defined(HAVE_NTOHLL) || !defined(HAVE_NTOHLL)
+#ifndef __sun
 static uint64_t swap64(uint64_t in) {
 #ifndef WORDS_BIGENDIAN
     /* Little endian, flip the bytes around until someone makes a faster/better
@@ -18,18 +18,15 @@ static uint64_t swap64(uint64_t in) {
     return in;
 #endif
 }
-#endif
 
-#ifndef HAVE_NTOHLL
 PLATFORM_PUBLIC_API
 uint64_t ntohll(uint64_t val) {
-    return swap64(val);
+   return swap64(val);
 }
-#endif
 
-#ifndef HAVE_HTONLL
 PLATFORM_PUBLIC_API
 uint64_t htonll(uint64_t val) {
-    return swap64(val);
+   return swap64(val);
 }
+
 #endif
