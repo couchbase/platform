@@ -129,12 +129,15 @@ void cb_cond_timedwait(cb_cond_t *cond, cb_mutex_t *mutex, unsigned int ms)
 {
     struct timespec ts;
     struct timeval tp;
-    /* @todo TROND FIXME */
+    unsigned int usec;
 
+    /* close enough ;-) */
     gettimeofday(&tp, NULL);
+    usec = tp.tv_usec + (ms * 1000);
     memset(&ts, 0, sizeof(ts));
-    ts.tv_sec = tp.tv_sec + (ms / 1000);
-    ts.tv_nsec = (tp.tv_usec * 1000) + ((ms % 1000) * 1000000);
+    ts.tv_sec = tp.tv_sec + usec / 1000000;
+    usec /= 1000000;
+    ts.tv_nsec = usec * 1000;
     pthread_cond_timedwait(cond, mutex, &ts);
 }
 
