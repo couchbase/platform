@@ -114,6 +114,16 @@ extern "C" {
     PLATFORM_PUBLIC_API
     cb_thread_t cb_thread_self(void);
 
+    /**
+     * Check if two cb_thread_t objects represent the same thread
+     *
+     * @param a the first thread
+     * @param b the second thread
+     * @return nonzero if the two objects represent the same object, 0 otherwise
+     */
+    PLATFORM_PUBLIC_API
+    int cb_thread_equal(const cb_thread_t a, const cb_thread_t b);
+
     /***********************************************************************
      *                      Mutex related functions                        *
      **********************************************************************/
