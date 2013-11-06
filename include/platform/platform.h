@@ -21,6 +21,8 @@
 #include <pthread.h>
 #include <stdint.h>
 #ifdef __sun
+#define CB_DONT_NEED_BYTEORDER 1
+#define CB_DONT_NEED_GETHRTIME 1
 #include <sys/time.h> /* for hrtime_t */
 #endif
 #endif
@@ -49,7 +51,7 @@ extern "C" {
      * typedef them here for now.. we need to find a better solution for
      * this!
      */
-#ifdef _MSC_VER
+#if defined(_MSC_VER) && _MSC_VER < 1800
     typedef __int8 int8_t;
     typedef __int16 int16_t;
     typedef __int32 int32_t;
@@ -59,6 +61,7 @@ extern "C" {
     typedef unsigned __int32 uint32_t;
     typedef unsigned __int64 uint64_t;
 #else
+#define CB_DONT_NEED_BYTEORDER 1
 #include <stdint.h>
 #endif
 
@@ -228,7 +231,7 @@ extern "C" {
     void cb_cond_broadcast(cb_cond_t *cond);
 
 
-#ifndef __sun
+#ifndef CB_DONT_NEED_GETHRTIME
     /**
      * Get a high resolution time
      *
@@ -236,7 +239,9 @@ extern "C" {
      */
     PLATFORM_PUBLIC_API
     hrtime_t gethrtime(void);
+#endif
 
+#ifndef CB_DONT_NEED_BYTEORDER
     PLATFORM_PUBLIC_API
     uint64_t ntohll(uint64_t);
 

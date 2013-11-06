@@ -1,7 +1,7 @@
 /* -*- Mode: C; tab-width: 4; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 #include "config.h"
 
-#ifndef __sun
+#ifndef CB_DONT_NEED_BYTEORDER
 static uint64_t swap64(uint64_t in) {
 #ifndef WORDS_BIGENDIAN
     /* Little endian, flip the bytes around until someone makes a faster/better

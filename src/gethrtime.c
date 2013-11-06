@@ -116,6 +116,6 @@ static void init_clock_win32(void)
 }
 #endif
 
-#elif !defined(__sun)
+#elif !defined(CB_DONT_NEED_GETHRTIME)
 #error "I don't know how to build a highres clock..."
 #endif
