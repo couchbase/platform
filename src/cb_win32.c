@@ -80,6 +80,12 @@ cb_thread_t cb_thread_self(void)
 }
 
 __declspec(dllexport)
+int cb_thread_equal(const cb_thread_t a, const cb_thread_t b)
+{
+    return a == b;
+}
+
+__declspec(dllexport)
 void cb_mutex_initialize(cb_mutex_t *mutex)
 {
     InitializeCriticalSection(mutex);
