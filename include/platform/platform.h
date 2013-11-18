@@ -16,6 +16,8 @@
  */
 #pragma once
 #ifdef WIN32
+/* Include winsock2.h before windows.h to avoid winsock.h to be included */
+#include <winsock2.h>
 #include <windows.h>
 #else
 #include <pthread.h>
@@ -39,6 +41,7 @@ extern "C" {
 
 #ifdef _MSC_VER
     typedef CONDITION_VARIABLE cb_cond_t;
+    typedef long ssize_t;
 #else
     /* @TODO make sure that this buffer is big enough!!! */
     typedef struct {
