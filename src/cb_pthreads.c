@@ -5,6 +5,7 @@
 #include <string.h>
 #include <sys/time.h>
 #include <dlfcn.h>
+#include <errno.h>
 
 struct thread_execute {
     cb_thread_main_func func;
@@ -124,21 +125,40 @@ void cb_cond_broadcast(cb_cond_t *cond)
     pthread_cond_broadcast(cond);
 }
 
-
 void cb_cond_timedwait(cb_cond_t *cond, cb_mutex_t *mutex, unsigned int ms)
 {
     struct timespec ts;
     struct timeval tp;
-    unsigned int usec;
+    int ret;
+    uint64_t wakeup;
 
-    /* close enough ;-) */
-    gettimeofday(&tp, NULL);
-    usec = tp.tv_usec + (ms * 1000);
     memset(&ts, 0, sizeof(ts));
-    ts.tv_sec = tp.tv_sec + usec / 1000000;
-    usec /= 1000000;
-    ts.tv_nsec = usec * 1000;
-    pthread_cond_timedwait(cond, mutex, &ts);
+
+    /*
+     * Unfortunately pthreads don't support relative sleeps so we need
+     * to convert back to an absolute time...
+     */
+    gettimeofday(&tp, NULL);
+    wakeup = (tp.tv_sec * 1000) + (tp.tv_usec / 1000) + ms;
+    /* Round up for sub ms */
+    if ((tp.tv_usec % 1000) > 499) {
+        ++wakeup;
+    }
+
+    ts.tv_sec = wakeup / 1000;
+    wakeup %= 1000;
+    ts.tv_nsec = wakeup * 1000000;
+
+    ret = pthread_cond_timedwait(cond, mutex, &ts);
+    switch (ret) {
+    case EINVAL:
+    case EPERM:
+        fprintf(stderr, "FATAL: pthread_cond_timewait: %s\n",
+                strerror(ret));
+        abort();
+    default:
+        ;
+    }
 }
 
 #ifdef __APPLE__
