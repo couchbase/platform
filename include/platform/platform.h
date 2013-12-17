@@ -284,6 +284,9 @@ extern "C" {
      */
     PLATFORM_PUBLIC_API
     void cb_initialize_sockets(void);
+
+    PLATFORM_PUBLIC_API
+    void usleep(unsigned int useconds);
 #else
 
 #define cb_initialize_sockets()

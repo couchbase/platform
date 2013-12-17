@@ -227,3 +227,13 @@ void cb_dlclose(cb_dlhandle_t handle)
 {
     FreeLibrary(handle);
 }
+
+__declspec(dllexport)
+void usleep(unsigned int useconds)
+{
+    unsigned int msec = useconds / 1000;
+    if (msec == 0) {
+        msec = 1;
+    }
+    Sleep(msec);
+}
