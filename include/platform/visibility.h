@@ -17,7 +17,7 @@
 #ifndef PLATFORM_VISIBILITY_H
 #define PLATFORM_VISIBILITY_H 1
 
-#ifdef BUILDING_LIBPLATFORM
+#if defined(platform_EXPORTS) || defined(dirutils_EXPORTS)
 
 #if (defined(__SUNPRO_C) && (__SUNPRO_C >= 0x550)) || (defined(__SUNPRO_CC) && (__SUNPRO_CC >= 0x550))
 #define PLATFORM_PUBLIC_API __global

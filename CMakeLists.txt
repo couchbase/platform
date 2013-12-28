@@ -21,8 +21,6 @@ ENDIF(NOT APPLE)
 
 ENDIF (WIN32)
 
-ADD_DEFINITIONS(-DBUILDING_LIBPLATFORM=1)
-
 #
 # Add all of the libraries
 #
@@ -31,8 +29,15 @@ TARGET_LINK_LIBRARIES(platform ${THREAD_LIBS} ${COUCHBASE_NETWORK_LIBS} ${DLOPEN
 SET_TARGET_PROPERTIES(platform PROPERTIES SOVERSION 0.1.0)
 SET_TARGET_PROPERTIES(platform PROPERTIES INSTALL_NAME_DIR ${CMAKE_INSTALL_PREFIX}/lib)
 
+ADD_LIBRARY(dirutils SHARED src/dirutils.cc)
+SET_TARGET_PROPERTIES(dirutils PROPERTIES SOVERSION 0.1.0)
+SET_TARGET_PROPERTIES(dirutils PROPERTIES INSTALL_NAME_DIR ${CMAKE_INSTALL_PREFIX}/lib)
+
+ADD_EXECUTABLE(platform-dirutils-test tests/dirutils_test.cc)
+TARGET_LINK_LIBRARIES(platform-dirutils-test dirutils)
 
 INSTALL (FILES
+         include/platform/dirutils.h
          include/platform/platform.h
          include/platform/visibility.h
          DESTINATION include/platform)
@@ -43,7 +48,7 @@ INSTALL (FILES
          DESTINATION include)
 ENDIF (WIN32)
 
-INSTALL(TARGETS platform
+INSTALL(TARGETS platform dirutils
         RUNTIME DESTINATION bin
         LIBRARY DESTINATION lib
         ARCHIVE DESTINATION lib)
@@ -51,3 +56,5 @@ INSTALL(TARGETS platform
 ADD_CUSTOM_TARGET(reformat-platform-source
                   COMMAND astyle ${ASTYLE_CFLAGS}
                   VERBATIM)
+
+ADD_TEST(platform-dirutils-test platform-dirutils-test)
