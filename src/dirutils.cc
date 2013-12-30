@@ -197,7 +197,7 @@ namespace CouchbaseDirectoryUtilities
         }
 
         if ((st.st_mode & S_IFDIR) != S_IFDIR) {
-            return std::remove(path.c_str()) == 0;
+            return ::remove(path.c_str()) == 0;
         }
 
         if (rmdir(path.c_str()) == 0) {
@@ -221,7 +221,7 @@ namespace CouchbaseDirectoryUtilities
                     if (rmdir(ii->c_str()) != 0) {
                         directories.push_back(*ii);
                     }
-                } else if (std::remove(ii->c_str()) != 0) {
+                } else if (::remove(ii->c_str()) != 0) {
                     return false;
                 }
             }
