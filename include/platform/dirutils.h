@@ -62,7 +62,7 @@ namespace CouchbaseDirectoryUtilities
      * Delete a file or directory (including subdirectories)
      */
     PLATFORM_PUBLIC_API
-    bool remove(const std::string &path);
+    bool rmrf(const std::string &path);
 }
 
 #endif  // PLATFORM_DIRUTILS_H_

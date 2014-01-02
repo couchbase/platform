@@ -155,14 +155,14 @@ static void testFindFilesContaining(void) {
 
 static void testRemove(void) {
    fclose(fopen("test-file", "w"));
-   if (!CouchbaseDirectoryUtilities::remove("test-file")) {
+   if (!CouchbaseDirectoryUtilities::rmrf("test-file")) {
       std::cerr << "expected to delete existing file" << std::endl;
    }
-   if (CouchbaseDirectoryUtilities::remove("test-file")) {
+   if (CouchbaseDirectoryUtilities::rmrf("test-file")) {
       std::cerr << "Didn't expected to delete non-existing file" << std::endl;
    }
 
-   if (!CouchbaseDirectoryUtilities::remove("fs")) {
+   if (!CouchbaseDirectoryUtilities::rmrf("fs")) {
       std::cerr << "Expected to nuke the entire fs directory recursively" << std::endl;
    }
 }

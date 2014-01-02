@@ -190,14 +190,14 @@ namespace CouchbaseDirectoryUtilities
 #endif
 
     PLATFORM_PUBLIC_API
-    bool remove(const std::string &path) {
+    bool rmrf(const std::string &path) {
         struct stat st;
         if (stat(path.c_str(), &st) == -1) {
             return false;
         }
 
         if ((st.st_mode & S_IFDIR) != S_IFDIR) {
-            return ::remove(path.c_str()) == 0;
+            return remove(path.c_str()) == 0;
         }
 
         if (rmdir(path.c_str()) == 0) {
@@ -221,7 +221,7 @@ namespace CouchbaseDirectoryUtilities
                     if (rmdir(ii->c_str()) != 0) {
                         directories.push_back(*ii);
                     }
-                } else if (::remove(ii->c_str()) != 0) {
+                } else if (remove(ii->c_str()) != 0) {
                     return false;
                 }
             }
