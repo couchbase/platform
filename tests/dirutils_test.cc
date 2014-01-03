@@ -7,6 +7,7 @@
 #include <cstring>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <stdio.h>
 
 #ifdef WIN32
 #include <windows.h>
