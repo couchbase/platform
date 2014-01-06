@@ -128,6 +128,11 @@ void cb_cond_wait(cb_cond_t *cond, cb_mutex_t *mutex)
 }
 
 __declspec(dllexport)
+void cb_cond_timedwait(cb_cond_t *cond, cb_mutex_t *mutex, unsigned int msec) {
+    SleepConditionVariableCS(cond, mutex, msec);
+}
+
+__declspec(dllexport)
 void cb_cond_signal(cb_cond_t *cond)
 {
     WakeConditionVariable(cond);
