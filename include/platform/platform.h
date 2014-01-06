@@ -287,6 +287,9 @@ extern "C" {
 
     PLATFORM_PUBLIC_API
     void usleep(unsigned int useconds);
+
+    PLATFORM_PUBLIC_API
+    int gettimeofday(struct timeval *tv, void *tz);
 #else
 
 #define cb_initialize_sockets()

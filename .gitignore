@@ -25,5 +25,6 @@
 /Makefile
 /cmake_install.cmake
 /platform-dirutils-test
+/platform-gettimeofday-test
 /Testing/
 install_manifest.txt

@@ -36,6 +36,9 @@ SET_TARGET_PROPERTIES(dirutils PROPERTIES INSTALL_NAME_DIR ${CMAKE_INSTALL_PREFI
 ADD_EXECUTABLE(platform-dirutils-test tests/dirutils_test.cc)
 TARGET_LINK_LIBRARIES(platform-dirutils-test dirutils)
 
+ADD_EXECUTABLE(platform-gettimeofday-test tests/gettimeofday_test.cc)
+TARGET_LINK_LIBRARIES(platform-gettimeofday-test platform)
+
 INSTALL (FILES
          include/platform/dirutils.h
          include/platform/platform.h
@@ -58,3 +61,4 @@ ADD_CUSTOM_TARGET(reformat-platform-source
                   VERBATIM)
 
 ADD_TEST(platform-dirutils-test platform-dirutils-test)
+ADD_TEST(platform-gettimeofday-test platform-gettimeofday-test)
