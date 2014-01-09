@@ -23,8 +23,10 @@
 /CMakeFiles/
 /CTestTestfile.cmake
 /Makefile
+/Testing/
 /cmake_install.cmake
 /platform-dirutils-test
+/platform-gethrtime-test
 /platform-gettimeofday-test
-/Testing/
-install_manifest.txt
+/src/config.h
+/install_manifest.txt
