@@ -74,6 +74,15 @@ ADD_CUSTOM_TARGET(reformat-platform-source
 ADD_EXECUTABLE(platform-gethrtime-test tests/gethrtime_test.c)
 TARGET_LINK_LIBRARIES(platform-gethrtime-test platform)
 
+ADD_EXECUTABLE(platform-getopt-test tests/getopt_test.cc)
+TARGET_LINK_LIBRARIES(platform-getopt-test platform)
+IF (WIN32)
+SET_TARGET_PROPERTIES(platform-getopt-test PROPERTIES COMPILE_FLAGS -I${CMAKE_CURRENT_SOURCE_DIR}/src)
+ENDIF (WIN32)
+
 ADD_TEST(platform-dirutils-test platform-dirutils-test)
 ADD_TEST(platform-gettimeofday-test platform-gettimeofday-test)
 ADD_TEST(platform-gethrtime-test platform-gethrtime-test)
+ADD_TEST(platform-getopt-test-0 platform-getopt-test 0)
+ADD_TEST(platform-getopt-test-1 platform-getopt-test 1)
+ADD_TEST(platform-getopt-test-2 platform-getopt-test 2)

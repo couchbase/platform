@@ -72,7 +72,7 @@ int getopt_long(int argc, char **argv, const char *optstring,
                 const struct option *longopts, int *longindex)
 {
     ++optind;
-    if (optind + 1 >= argc) {
+    if (optind + 1 > argc) {
         // EOF
         return -1;
     }
