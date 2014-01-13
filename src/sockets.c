@@ -36,7 +36,7 @@ int sendmsg(SOCKET sock, const struct msghdr *msg, int flags)
 
     for (ii = 0; ii < msg->msg_iovlen; ++ii) {
         if (msg->msg_iov[ii].iov_len > 0) {
-            int nw = send(sock, msg->msg_iov[ii].iov_base, msg->msg_iov[ii].iov_len, flags);
+            int nw = send(sock, msg->msg_iov[ii].iov_base, (int)msg->msg_iov[ii].iov_len, flags);
             if (nw > 0) {
                 ret += nw;
                 if (nw != msg->msg_iov[ii].iov_len) {
