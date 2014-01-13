@@ -1,5 +1,6 @@
 #include <iostream>
 #include <cstdlib>
+#include <string.h>
 #include <getopt.h>
 #include <cassert>
 #include <vector>
@@ -94,7 +95,7 @@ static void getopt_test_2(void) {
 int main(int argc, char **argv)
 {
     if (argc != 2) {
-        fprintf(stderr, "Usage: %s [testcase]\n", argv[0]);
+        std::cerr << "Usage: " << argv[0] << " [testcase]" << std::endl;
         return 1;
     }
 
@@ -109,7 +110,7 @@ int main(int argc, char **argv)
         getopt_test_2();
         break;
     default:
-        fprintf(stderr, "Unknown test case\n");
+        std::cerr << "Unknown test case" << std::endl;
         return 1;
     }
 
