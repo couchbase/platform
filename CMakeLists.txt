@@ -13,9 +13,10 @@ INCLUDE_DIRECTORIES(BEFORE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 IF (WIN32)
    SET(PLATFORM_FILES src/getopt.c
                       src/sockets.c
-                      src/cb_win32.c)
+                      src/cb_win32.c
+                      src/winrandom.c)
 ELSE (WIN32)
-   SET(PLATFORM_FILES src/cb_pthreads.c)
+   SET(PLATFORM_FILES src/cb_pthreads.c src/urandom.c)
    SET(MATH_LIBS "m")
    SET(THREAD_LIBS "pthread")
    SET(DLOPENLIB "dl")
@@ -80,9 +81,14 @@ IF (WIN32)
 SET_TARGET_PROPERTIES(platform-getopt-test PROPERTIES COMPILE_FLAGS -I${CMAKE_CURRENT_SOURCE_DIR}/src)
 ENDIF (WIN32)
 
+ADD_EXECUTABLE(platform-random-test tests/random_test.c)
+TARGET_LINK_LIBRARIES(platform-random-test platform)
+
+
 ADD_TEST(platform-dirutils-test platform-dirutils-test)
 ADD_TEST(platform-gettimeofday-test platform-gettimeofday-test)
 ADD_TEST(platform-gethrtime-test platform-gethrtime-test)
 ADD_TEST(platform-getopt-test-0 platform-getopt-test 0)
 ADD_TEST(platform-getopt-test-1 platform-getopt-test 1)
 ADD_TEST(platform-getopt-test-2 platform-getopt-test 2)
+ADD_TEST(platform-random-test platform-random-test)
