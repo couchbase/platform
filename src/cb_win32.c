@@ -104,6 +104,12 @@ void cb_mutex_enter(cb_mutex_t *mutex)
 }
 
 __declspec(dllexport)
+int cb_mutex_try_enter(cb_mutex_t *mutex)
+{
+    return TryEnterCriticalSection(mutex) ? 0 : -1;
+}
+
+__declspec(dllexport)
 void cb_mutex_exit(cb_mutex_t *mutex)
 {
     LeaveCriticalSection(mutex);

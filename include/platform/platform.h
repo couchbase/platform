@@ -161,6 +161,15 @@ extern "C" {
     void cb_mutex_enter(cb_mutex_t *mutex);
 
     /**
+     * Try to enter a locked section
+     *
+     * @param mutex the mutex protecting this section
+     * @return 0 if the mutex was obtained, -1 otherwise
+     */
+    PLATFORM_PUBLIC_API
+    int cb_mutex_try_enter(cb_mutex_t *mutex);
+
+    /**
      * Exit a locked section
      *
      * @param mutex the mutex protecting this section

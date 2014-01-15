@@ -90,6 +90,10 @@ void cb_mutex_enter(cb_mutex_t *mutex)
     }
 }
 
+int cb_mutex_try_enter(cb_mutex_t *mutex) {
+    return pthread_mutex_trylock(mutex) == 0 ? 0 : -1;
+}
+
 void cb_mutex_exit(cb_mutex_t *mutex)
 {
     int rv = pthread_mutex_unlock(mutex);
