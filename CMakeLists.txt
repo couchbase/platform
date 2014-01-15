@@ -11,6 +11,8 @@ CONFIGURE_FILE (${CMAKE_CURRENT_SOURCE_DIR}/src/config.cmake.h
 INCLUDE_DIRECTORIES(BEFORE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 IF (WIN32)
+   INCLUDE_DIRECTORIES(AFTER ${CMAKE_CURRENT_SOURCE_DIR}/include/win32)
+
    SET(PLATFORM_FILES src/getopt.c
                       src/sockets.c
                       src/cb_win32.c
@@ -59,7 +61,7 @@ INSTALL (FILES
 
 IF (WIN32)
 INSTALL (FILES
-         src/getopt.h
+         include/win32/getopt.h
          DESTINATION include)
 ENDIF (WIN32)
 
@@ -77,9 +79,6 @@ TARGET_LINK_LIBRARIES(platform-gethrtime-test platform)
 
 ADD_EXECUTABLE(platform-getopt-test tests/getopt_test.cc)
 TARGET_LINK_LIBRARIES(platform-getopt-test platform)
-IF (WIN32)
-SET_TARGET_PROPERTIES(platform-getopt-test PROPERTIES COMPILE_FLAGS -I${CMAKE_CURRENT_SOURCE_DIR}/src)
-ENDIF (WIN32)
 
 ADD_EXECUTABLE(platform-random-test tests/random_test.c)
 TARGET_LINK_LIBRARIES(platform-random-test platform)
