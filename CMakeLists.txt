@@ -62,6 +62,8 @@ INSTALL (FILES
 IF (WIN32)
 INSTALL (FILES
          include/win32/getopt.h
+		 include/win32/strings.h
+		 include/win32/unistd.h
          DESTINATION include)
 ENDIF (WIN32)
 
