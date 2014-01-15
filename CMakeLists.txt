@@ -53,6 +53,7 @@ TARGET_LINK_LIBRARIES(platform-dirutils-test dirutils)
 ADD_EXECUTABLE(platform-gettimeofday-test tests/gettimeofday_test.cc)
 TARGET_LINK_LIBRARIES(platform-gettimeofday-test platform)
 
+IF (INSTALL_HEADER_FILES)
 INSTALL (FILES
          include/platform/dirutils.h
          include/platform/platform.h
@@ -62,10 +63,11 @@ INSTALL (FILES
 IF (WIN32)
 INSTALL (FILES
          include/win32/getopt.h
-		 include/win32/strings.h
-		 include/win32/unistd.h
+	 include/win32/strings.h
+	 include/win32/unistd.h
          DESTINATION include)
 ENDIF (WIN32)
+ENDIF (INSTALL_HEADER_FILES)
 
 INSTALL(TARGETS platform dirutils
         RUNTIME DESTINATION bin
