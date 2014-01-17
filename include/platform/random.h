@@ -1,4 +1,4 @@
-/* -*- Mode: C; tab-width: 4; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+/* -*- Mode: C++; tab-width: 4; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /*
  *     Copyright 2014 Couchbase, Inc
  *
@@ -67,4 +67,31 @@ extern "C" {
 
 #ifdef __cplusplus
 }
+
+namespace Couchbase {
+    class RandomGeneratorProvider;
+
+    class RandomGenerator {
+    public:
+        PLATFORM_PUBLIC_API
+        RandomGenerator(bool);
+
+        PLATFORM_PUBLIC_API
+        ~RandomGenerator();
+
+        PLATFORM_PUBLIC_API
+        uint64_t next(void);
+
+        PLATFORM_PUBLIC_API
+        bool getBytes(void *dest, size_t size);
+
+        PLATFORM_PUBLIC_API
+        const RandomGeneratorProvider *getProvider(void) const;
+
+    private:
+        bool shared;
+        RandomGeneratorProvider *provider;
+    };
+}
+
 #endif

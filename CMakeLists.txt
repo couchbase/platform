@@ -38,7 +38,7 @@ ENDIF(HAVE_CHRONO)
 #
 # Add all of the libraries
 #
-ADD_LIBRARY(platform SHARED ${PLATFORM_FILES} src/byteorder.c)
+ADD_LIBRARY(platform SHARED ${PLATFORM_FILES} src/random.cc src/byteorder.c)
 TARGET_LINK_LIBRARIES(platform ${THREAD_LIBS} ${COUCHBASE_NETWORK_LIBS} ${DLOPENLIB} ${RTLIB})
 SET_TARGET_PROPERTIES(platform PROPERTIES SOVERSION 0.1.0)
 SET_TARGET_PROPERTIES(platform PROPERTIES INSTALL_NAME_DIR ${CMAKE_INSTALL_PREFIX}/lib)
@@ -84,7 +84,7 @@ TARGET_LINK_LIBRARIES(platform-gethrtime-test platform)
 ADD_EXECUTABLE(platform-getopt-test tests/getopt_test.cc)
 TARGET_LINK_LIBRARIES(platform-getopt-test platform)
 
-ADD_EXECUTABLE(platform-random-test tests/random_test.c)
+ADD_EXECUTABLE(platform-random-test tests/random_test.cc)
 TARGET_LINK_LIBRARIES(platform-random-test platform)
 
 
