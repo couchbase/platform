@@ -17,6 +17,7 @@
 #include "config.h"
 
 #include <errno.h>
+#include <cstring>
 #include <platform/platform.h>
 #include <platform/random.h>
 #include <sstream>
