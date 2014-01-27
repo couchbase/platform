@@ -19,7 +19,6 @@ IF (WIN32)
                       src/winrandom.c)
 ELSE (WIN32)
    SET(PLATFORM_FILES src/cb_pthreads.c src/urandom.c)
-   SET(MATH_LIBS "m")
    SET(THREAD_LIBS "pthread")
    SET(DLOPENLIB "dl")
 
