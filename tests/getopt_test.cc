@@ -12,14 +12,14 @@
 
 char **vec2array(const std::vector<std::string> &vec) {
     char **arr = new char*[vec.size()];
-    for (int ii = 0; ii < vec.size(); ++ii) {
+    for (unsigned int ii = 0; ii < (unsigned int)vec.size(); ++ii) {
         arr[ii] = strdup(vec[ii].c_str());
     }
     return arr;
 }
 
 static void release(char **arr, size_t size) {
-    for (int ii = 0; ii < size; ++ii) {
+    for (size_t ii = 0; ii < size; ++ii) {
         free(arr[ii]);
     }
     delete []arr;
