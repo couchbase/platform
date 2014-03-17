@@ -72,6 +72,7 @@ TARGET_LINK_LIBRARIES(platform-gettimeofday-test platform)
 
 IF (INSTALL_HEADER_FILES)
 INSTALL (FILES
+         include/platform/cbassert.h
          include/platform/dirutils.h
          include/platform/platform.h
          include/platform/random.h

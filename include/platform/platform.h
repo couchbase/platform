@@ -15,6 +15,9 @@
  *   limitations under the License.
  */
 #pragma once
+
+#include <platform/cbassert.h>
+
 #ifdef WIN32
 /* Include winsock2.h before windows.h to avoid winsock.h to be included */
 #include <winsock2.h>
