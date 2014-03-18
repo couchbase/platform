@@ -11,6 +11,11 @@ CONFIGURE_FILE (${CMAKE_CURRENT_SOURCE_DIR}/src/config.cmake.h
 INCLUDE_DIRECTORIES(BEFORE ${CMAKE_CURRENT_SOURCE_DIR}/include
                            ${CMAKE_CURRENT_BINARY_DIR}/src)
 
+ADD_LIBRARY(cJSON SHARED src/cJSON.c include/cJSON.h)
+SET_TARGET_PROPERTIES(cJSON PROPERTIES SOVERSION 1.0.0)
+SET_TARGET_PROPERTIES(cJSON PROPERTIES COMPILE_FLAGS -DBUILDING_CJSON=1)
+SET_TARGET_PROPERTIES(cJSON PROPERTIES INSTALL_NAME_DIR ${CMAKE_INSTALL_PREFIX}/lib)
+
 IF (WIN32)
    INCLUDE_DIRECTORIES(AFTER ${CMAKE_CURRENT_SOURCE_DIR}/include/win32)
    ADD_DEFINITIONS(-D_CRT_SECURE_NO_WARNINGS)
@@ -29,6 +34,8 @@ ELSE (WIN32)
    IF (NOT APPLE)
       SET(RTLIB "rt")
    ENDIF(NOT APPLE)
+
+   TARGET_LINK_LIBRARIES(cJSON m)
 ENDIF (WIN32)
 
 IF (NOT DEFINED COUCHBASE_NETWORK_LIBS)
@@ -71,22 +78,24 @@ ADD_EXECUTABLE(platform-gettimeofday-test tests/gettimeofday_test.cc)
 TARGET_LINK_LIBRARIES(platform-gettimeofday-test platform)
 
 IF (INSTALL_HEADER_FILES)
-INSTALL (FILES
-         include/platform/cbassert.h
-         include/platform/dirutils.h
-         include/platform/platform.h
-         include/platform/random.h
-         include/platform/visibility.h
-         include/platform/dirutils.h
-         DESTINATION include/platform)
+   INSTALL (FILES
+            include/platform/cbassert.h
+            include/platform/dirutils.h
+            include/platform/platform.h
+            include/platform/random.h
+            include/platform/visibility.h
+            include/platform/dirutils.h
+            DESTINATION include/platform)
 
-IF (WIN32)
-INSTALL (FILES
-         include/win32/getopt.h
-         include/win32/strings.h
-         include/win32/unistd.h
-         DESTINATION include)
-ENDIF (WIN32)
+   INSTALL(FILES include/cJSON.h DESTINATION include)
+
+   IF (WIN32)
+      INSTALL(FILES
+             include/win32/getopt.h
+             include/win32/strings.h
+             include/win32/unistd.h
+             DESTINATION include)
+   ENDIF (WIN32)
 ENDIF (INSTALL_HEADER_FILES)
 
 INSTALL(TARGETS platform dirutils
@@ -121,3 +130,7 @@ ADD_TEST(platform-getopt-test-0 platform-getopt-test 0)
 ADD_TEST(platform-getopt-test-1 platform-getopt-test 1)
 ADD_TEST(platform-getopt-test-2 platform-getopt-test 2)
 ADD_TEST(platform-random-test platform-random-test)
+
+ADD_EXECUTABLE(platform_cjson_test include/cJSON.h tests/cjson_test.c)
+TARGET_LINK_LIBRARIES(platform_cjson_test cJSON)
+ADD_TEST(platform-cjson-test platform_cjson_test)
