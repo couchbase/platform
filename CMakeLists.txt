@@ -135,3 +135,7 @@ ADD_TEST(platform-random-test platform-random-test)
 ADD_EXECUTABLE(platform_cjson_test include/cJSON.h tests/cjson_test.c)
 TARGET_LINK_LIBRARIES(platform_cjson_test cJSON)
 ADD_TEST(platform-cjson-test platform_cjson_test)
+
+ADD_EXECUTABLE(platform_cjson_parse_test include/cJSON.h tests/cjson_parse_test.c)
+TARGET_LINK_LIBRARIES(platform_cjson_parse_test cJSON platform)
+ADD_TEST(platform-cjson-test platform_cjson_parse_test -f ${PROJECT_SOURCE_DIR}/tests/testdata.json -n 1)
