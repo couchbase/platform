@@ -1,3 +1,4 @@
+/* -*- Mode: C; tab-width: 4; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /*
   Copyright (c) 2009 Dave Gamble
 
@@ -178,11 +179,16 @@ extern void cJSON_ReplaceItemInArray(cJSON *array,int which,cJSON *newitem);
 CJSON_PUBLIC_API
 extern void cJSON_ReplaceItemInObject(cJSON *object,const char *string,cJSON *newitem);
 
-#define cJSON_AddNullToObject(object,name)      cJSON_AddItemToObject(object, name, cJSON_CreateNull())
-#define cJSON_AddTrueToObject(object,name)      cJSON_AddItemToObject(object, name, cJSON_CreateTrue())
-#define cJSON_AddFalseToObject(object,name)             cJSON_AddItemToObject(object, name, cJSON_CreateFalse())
-#define cJSON_AddNumberToObject(object,name,n)  cJSON_AddItemToObject(object, name, cJSON_CreateNumber(n))
-#define cJSON_AddStringToObject(object,name,s)  cJSON_AddItemToObject(object, name, cJSON_CreateString(s))
+#define cJSON_AddNullToObject(object,name) \
+        cJSON_AddItemToObject(object, name, cJSON_CreateNull())
+#define cJSON_AddTrueToObject(object,name) \
+        cJSON_AddItemToObject(object, name, cJSON_CreateTrue())
+#define cJSON_AddFalseToObject(object,name) \
+        cJSON_AddItemToObject(object, name, cJSON_CreateFalse())
+#define cJSON_AddNumberToObject(object,name,n) \
+        cJSON_AddItemToObject(object, name, cJSON_CreateNumber(n))
+#define cJSON_AddStringToObject(object,name,s) \
+        cJSON_AddItemToObject(object, name, cJSON_CreateString(s))
 
 #ifdef __cplusplus
 }
