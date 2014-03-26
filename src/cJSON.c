@@ -50,41 +50,30 @@ static int cJSON_strcasecmp(const char *s1, const char *s2)
 }
 
 static void *(*cJSON_malloc)(size_t sz) = malloc;
+static void *(*cJSON_calloc)(size_t nmemb, size_t size) = calloc;
 static void (*cJSON_free)(void *ptr) = free;
-
-static char *cJSON_strdup(const char *str)
-{
-    size_t len;
-    char *copy;
-
-    len = strlen(str) + 1;
-    if (!(copy = (char *)cJSON_malloc(len))) {
-        return 0;
-    }
-    memcpy(copy, str, len);
-    return copy;
-}
+static char *(*cJSON_strdup)(const char *str) = strdup;
 
 void cJSON_InitHooks(cJSON_Hooks *hooks)
 {
     if (!hooks) { /* Reset hooks */
         cJSON_malloc = malloc;
         cJSON_free = free;
+        cJSON_calloc = calloc;
+        cJSON_strdup = strdup;
         return;
     }
 
     cJSON_malloc = (hooks->malloc_fn) ? hooks->malloc_fn : malloc;
     cJSON_free = (hooks->free_fn) ? hooks->free_fn : free;
+    cJSON_calloc = (hooks->calloc_fn) ? hooks->calloc_fn : calloc;
+    cJSON_strdup = (hooks->strdup_fn) ? hooks->strdup_fn : strdup;
 }
 
 /* Internal constructor. */
 static cJSON *cJSON_New_Item(void)
 {
-    cJSON *node = (cJSON *)cJSON_malloc(sizeof(cJSON));
-    if (node) {
-        memset(node, 0, sizeof(cJSON));
-    }
-    return node;
+    return cJSON_calloc(1, sizeof(cJSON));
 }
 
 /* Delete a cJSON structure. */
@@ -157,10 +146,10 @@ static char *print_number(cJSON *item)
     char *str;
     double d = item->valuedouble;
     if (fabs(((double)item->valueint) - d) <= DBL_EPSILON && d <= INT_MAX && d >= INT_MIN) {
-        str = (char *)cJSON_malloc(21); /* 2^64+1 can be represented in 21 chars. */
+        str = cJSON_malloc(21); /* 2^64+1 can be represented in 21 chars. */
         sprintf(str, "%d", item->valueint);
     } else {
-        str = (char *)cJSON_malloc(64); /* This is a nice tradeoff. */
+        str = cJSON_malloc(64); /* This is a nice tradeoff. */
         if (fabs(floor(d) - d) <= DBL_EPSILON) {
             sprintf(str, "%.0f", d);
         } else if (fabs(d) < 1.0e-6 || fabs(d) > 1.0e9) {
@@ -191,7 +180,7 @@ static const char *parse_string(cJSON *item, const char *str)
         }
     }
 
-    out = (char *)cJSON_malloc(len + 1); /* This is how long we need for the string, roughly. */
+    out = cJSON_malloc(len + 1); /* This is how long we need for the string, roughly. */
     if (!out) {
         return NULL;
     }
@@ -276,7 +265,7 @@ static char *print_string_ptr(const char *str)
         ptr++;
     }
 
-    out = (char *)cJSON_malloc(len + 3);
+    out = cJSON_malloc(len + 3);
     ptr2 = out;
     ptr = str;
     *ptr2++ = '\"';
@@ -496,11 +485,10 @@ static char *print_array(cJSON *item, int depth, int fmt)
         numentries++, child = child->next;
     }
     /* Allocate an array to hold the values for each */
-    entries = (char **)cJSON_malloc(numentries * sizeof(char *));
+    entries = cJSON_calloc(numentries, sizeof(char *));
     if (!entries) {
         return NULL;
     }
-    memset(entries, 0, numentries * sizeof(char *));
     /* Retrieve all the results: */
     child = item->child;
     while (child && !fail) {
@@ -627,17 +615,15 @@ static char *print_object(cJSON *item, int depth, int fmt)
         numentries++, child = child->next;
     }
     /* Allocate space for the names and the objects */
-    entries = (char **)cJSON_malloc(numentries * sizeof(char *));
+    entries = cJSON_calloc(numentries, sizeof(char *));
     if (!entries) {
         return NULL;
     }
-    names = (char **)cJSON_malloc(numentries * sizeof(char *));
+    names = cJSON_calloc(numentries, sizeof(char *));
     if (!names) {
         cJSON_free(entries);
         return NULL;
     }
-    memset(entries, 0, sizeof(char *)*numentries);
-    memset(names, 0, sizeof(char *)*numentries);
 
     /* Collect all the results into our arrays: */
     child = item->child;
@@ -658,7 +644,7 @@ static char *print_object(cJSON *item, int depth, int fmt)
 
     /* Try to allocate the output string */
     if (!fail) {
-        out = (char *)cJSON_malloc(len);
+        out = cJSON_malloc(len);
     }
     if (!out) {
         fail = 1;
