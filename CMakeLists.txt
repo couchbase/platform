@@ -132,10 +132,14 @@ ADD_TEST(platform-getopt-test-1 platform-getopt-test 1)
 ADD_TEST(platform-getopt-test-2 platform-getopt-test 2)
 ADD_TEST(platform-random-test platform-random-test)
 
-ADD_EXECUTABLE(platform_cjson_test include/cJSON.h tests/cjson_test.c)
-TARGET_LINK_LIBRARIES(platform_cjson_test cJSON)
-ADD_TEST(platform-cjson-test platform_cjson_test)
+ADD_EXECUTABLE(platform-cjson-test include/cJSON.h tests/cjson_test.c)
+TARGET_LINK_LIBRARIES(platform-cjson-test cJSON)
+ADD_TEST(platform-cjson-test platform-cjson-test)
 
-ADD_EXECUTABLE(platform_cjson_parse_test include/cJSON.h tests/cjson_parse_test.c)
-TARGET_LINK_LIBRARIES(platform_cjson_parse_test cJSON platform)
-ADD_TEST(platform-cjson-test platform_cjson_parse_test -f ${PROJECT_SOURCE_DIR}/tests/testdata.json -n 1)
+ADD_EXECUTABLE(platform-cjson-parse-test
+               include/cJSON.h
+               tests/cjson_parse_test.c)
+TARGET_LINK_LIBRARIES(platform-cjson-parse-test cJSON platform)
+ADD_TEST(platform-cjson-parse-test
+         platform-cjson-parse-test -f ${PROJECT_SOURCE_DIR}/tests/testdata.json
+                                   -n 1)
