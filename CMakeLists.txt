@@ -17,6 +17,10 @@ SET_TARGET_PROPERTIES(cJSON PROPERTIES SOVERSION 1.0.0)
 SET_TARGET_PROPERTIES(cJSON PROPERTIES COMPILE_FLAGS -DBUILDING_CJSON=1)
 SET_TARGET_PROPERTIES(cJSON PROPERTIES INSTALL_NAME_DIR ${CMAKE_INSTALL_PREFIX}/lib)
 
+ADD_LIBRARY(JSON_checker SHARED src/JSON_checker.c include/JSON_checker.h)
+SET_TARGET_PROPERTIES(cJSON PROPERTIES SOVERSION 1.0.0)
+SET_TARGET_PROPERTIES(cJSON PROPERTIES INSTALL_NAME_DIR ${CMAKE_INSTALL_PREFIX}/lib)
+
 IF (WIN32)
    INCLUDE_DIRECTORIES(AFTER ${CMAKE_CURRENT_SOURCE_DIR}/include/win32)
    ADD_DEFINITIONS(-D_CRT_SECURE_NO_WARNINGS)
@@ -88,7 +92,7 @@ IF (INSTALL_HEADER_FILES)
             include/platform/dirutils.h
             DESTINATION include/platform)
 
-   INSTALL(FILES include/cJSON.h DESTINATION include)
+   INSTALL(FILES include/cJSON.h include/JSON_checker.h DESTINATION include)
 
    IF (WIN32)
       INSTALL(FILES
@@ -99,7 +103,7 @@ IF (INSTALL_HEADER_FILES)
    ENDIF (WIN32)
 ENDIF (INSTALL_HEADER_FILES)
 
-INSTALL(TARGETS cJSON platform dirutils
+INSTALL(TARGETS cJSON JSON_checker platform dirutils
         RUNTIME DESTINATION bin
         LIBRARY DESTINATION lib
         ARCHIVE DESTINATION lib)
@@ -143,3 +147,7 @@ TARGET_LINK_LIBRARIES(platform-cjson-parse-test cJSON platform)
 ADD_TEST(platform-cjson-parse-test
          platform-cjson-parse-test -f ${PROJECT_SOURCE_DIR}/tests/testdata.json
                                    -n 1)
+
+ADD_EXECUTABLE(platform-json-checker-test tests/json_checker_test.cc)
+TARGET_LINK_LIBRARIES(platform-json-checker-test JSON_checker)
+ADD_TEST(platform-json-checker-test platform-json-checker-test)
