@@ -143,7 +143,7 @@ void cb_cond_timedwait(cb_cond_t *cond, cb_mutex_t *mutex, unsigned int ms)
      * to convert back to an absolute time...
      */
     gettimeofday(&tp, NULL);
-    wakeup = (tp.tv_sec * 1000) + (tp.tv_usec / 1000) + ms;
+    wakeup = ((uint64_t)(tp.tv_sec) * 1000) + (tp.tv_usec / 1000) + ms;
     /* Round up for sub ms */
     if ((tp.tv_usec % 1000) > 499) {
         ++wakeup;
