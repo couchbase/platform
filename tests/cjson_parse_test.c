@@ -56,6 +56,7 @@ static void *load_file(const char *file)
         fclose(fp);
         fprintf(stderr, "Failed to open test file %s: %s", file,
                 strerror(errno));
+        exit(EXIT_FAILURE);
     }
 
     fclose(fp);
