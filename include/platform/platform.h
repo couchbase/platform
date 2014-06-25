@@ -32,6 +32,7 @@
 #endif
 #endif
 
+#include <stdio.h>
 #include <platform/visibility.h>
 
 #ifdef __cplusplus
@@ -307,6 +308,12 @@ extern "C" {
 #define cb_initialize_sockets()
 
 #endif
+
+    /*
+     * Set mode to binary
+     */
+    PLATFORM_PUBLIC_API
+    int platform_set_binary_mode(FILE *fp);
 
 #ifdef __cplusplus
 }

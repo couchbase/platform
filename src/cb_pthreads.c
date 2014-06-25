@@ -242,3 +242,9 @@ void cb_dlclose(cb_dlhandle_t handle)
 {
     dlclose(handle);
 }
+
+int platform_set_binary_mode(FILE *fp)
+{
+    (void)fp;
+    return 0;
+}

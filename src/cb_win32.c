@@ -17,6 +17,8 @@
 #include "config.h"
 #include <assert.h>
 #include <stdio.h>
+#include <fcntl.h>
+#include <io.h>
 
 struct thread_execute {
     cb_thread_main_func func;
@@ -278,4 +280,10 @@ int gettimeofday(struct timeval *tv, void *tz)
     tv->tv_sec = (unsigned long)secs;
 
     return 0;
+}
+
+__declspec(dllexport)
+int platform_set_binary_mode(FILE *fp)
+{
+    return _setmode(_fileno(fp), _O_BINARY);
 }
