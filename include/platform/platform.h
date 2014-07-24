@@ -35,6 +35,10 @@
 #include <stdio.h>
 #include <platform/visibility.h>
 
+#ifdef __APPLE__
+#include <sys/time.h>
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -314,6 +318,25 @@ extern "C" {
      */
     PLATFORM_PUBLIC_API
     int platform_set_binary_mode(FILE *fp);
+
+    /*
+        return a monotonically increasing value with a seconds frequency.
+    */
+    PLATFORM_PUBLIC_API
+    uint64_t cb_get_monotonic_seconds(void);
+
+    /*
+        obtain a timeval structure containing the current time since EPOCH.
+    */
+    PLATFORM_PUBLIC_API
+    int cb_get_timeofday(struct timeval *tv);
+
+    /*
+        set an offset so that cb_get_timeofday returns an offsetted time.
+        This is intended for testing of time jumps.
+    */
+    PLATFORM_PUBLIC_API
+    void cb_set_timeofday_offset(uint64_t offset);
 
 #ifdef __cplusplus
 }

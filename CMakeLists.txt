@@ -64,6 +64,7 @@ ADD_LIBRARY(platform SHARED ${PLATFORM_FILES}
                             ${CMAKE_CURRENT_BINARY_DIR}/src/config.h
                             src/random.cc
                             src/byteorder.c
+                            src/cb_time.c
                             include/platform/platform.h
                             include/platform/random.h
                             include/platform/visibility.h)
