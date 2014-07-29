@@ -23,7 +23,7 @@
 
 #if defined(WIN32)
 #include <Windows.h>
-#include "platform.h" /* use our win32 gettimeofday */
+#include <platform/platform.h> /* use our win32 gettimeofday */
 #endif
 
 #if defined(__linux__) || defined(__sun)
