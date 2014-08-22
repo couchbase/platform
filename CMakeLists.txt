@@ -26,6 +26,7 @@ IF (WIN32)
    ADD_DEFINITIONS(-D_CRT_SECURE_NO_WARNINGS)
    SET(PLATFORM_FILES src/getopt.c
                       src/sockets.c
+                      src/strings.c
                       src/cb_win32.c
                       src/winrandom.c
                       include/win32/getopt.h
@@ -152,3 +153,7 @@ ADD_TEST(platform-cjson-parse-test
 ADD_EXECUTABLE(platform-json-checker-test tests/json_checker_test.cc)
 TARGET_LINK_LIBRARIES(platform-json-checker-test JSON_checker)
 ADD_TEST(platform-json-checker-test platform-json-checker-test)
+
+ADD_EXECUTABLE(platform-strings-test tests/strings_test.c)
+TARGET_LINK_LIBRARIES(platform-strings-test platform)
+ADD_TEST(platform-strings-test platform-strings-test)
