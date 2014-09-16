@@ -25,10 +25,10 @@
 #else
 #include <pthread.h>
 #include <stdint.h>
+#include <sys/time.h>
 #ifdef __sun
 #define CB_DONT_NEED_BYTEORDER 1
 #define CB_DONT_NEED_GETHRTIME 1
-#include <sys/time.h> /* for hrtime_t */
 #endif
 #endif
 
