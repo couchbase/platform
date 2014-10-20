@@ -36,6 +36,11 @@
 #include <platform/visibility.h>
 
 #ifdef __APPLE__
+
+#if __apple_build_version__ >= 6000054
+#define CB_DONT_NEED_BYTEORDER 1
+#endif
+
 #include <sys/time.h>
 #endif
 
