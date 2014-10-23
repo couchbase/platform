@@ -1,10 +1,17 @@
 PROJECT(Platform)
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
 INCLUDE(CheckIncludeFileCXX)
+INCLUDE(CheckSymbolExists)
 
-CHECK_INCLUDE_FILE_CXX("chrono" HAVE_CHRONO)
+CHECK_INCLUDE_FILE_CXX(chrono HAVE_CHRONO)
+CHECK_SYMBOL_EXISTS(gethrtime sys/time.h CB_DONT_NEED_GETHRTIME)
+CHECK_SYMBOL_EXISTS(htonll arpa/inet.h CB_DONT_NEED_BYTEORDER)
+
 CONFIGURE_FILE (${CMAKE_CURRENT_SOURCE_DIR}/src/config.cmake.h
                 ${CMAKE_CURRENT_BINARY_DIR}/src/config.h)
+
+CONFIGURE_FILE (${CMAKE_CURRENT_SOURCE_DIR}/include/platform/dynamic.in.h
+                ${CMAKE_CURRENT_BINARY_DIR}/include/platform/dynamic.h)
 
 #
 # Set the include path

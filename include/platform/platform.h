@@ -17,6 +17,7 @@
 #pragma once
 
 #include <platform/cbassert.h>
+#include <platform/dynamic.h>
 
 #ifdef WIN32
 /* Include winsock2.h before windows.h to avoid winsock.h to be included */
@@ -26,23 +27,10 @@
 #include <pthread.h>
 #include <stdint.h>
 #include <sys/time.h>
-#ifdef __sun
-#define CB_DONT_NEED_BYTEORDER 1
-#define CB_DONT_NEED_GETHRTIME 1
-#endif
 #endif
 
 #include <stdio.h>
 #include <platform/visibility.h>
-
-#ifdef __APPLE__
-
-#if __apple_build_version__ >= 6000054
-#define CB_DONT_NEED_BYTEORDER 1
-#endif
-
-#include <sys/time.h>
-#endif
 
 #ifdef __cplusplus
 extern "C" {
