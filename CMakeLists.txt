@@ -73,6 +73,7 @@ ADD_LIBRARY(platform SHARED ${PLATFORM_FILES}
                             src/random.cc
                             src/byteorder.c
                             src/cb_time.c
+                            src/cb_mktemp.c
                             include/platform/platform.h
                             include/platform/random.h
                             include/platform/visibility.h)
@@ -137,6 +138,11 @@ ADD_EXECUTABLE(platform-random-test
                include/platform/random.h)
 TARGET_LINK_LIBRARIES(platform-random-test platform)
 
+ADD_EXECUTABLE(platform-mktemp-test
+               tests/cb_mktemp_test.c
+               include/platform/platform.h)
+TARGET_LINK_LIBRARIES(platform-mktemp-test platform)
+
 ADD_TEST(platform-dirutils-test platform-dirutils-test)
 ADD_TEST(platform-gettimeofday-test platform-gettimeofday-test)
 ADD_TEST(platform-gethrtime-test platform-gethrtime-test)
@@ -144,6 +150,7 @@ ADD_TEST(platform-getopt-test-0 platform-getopt-test 0)
 ADD_TEST(platform-getopt-test-1 platform-getopt-test 1)
 ADD_TEST(platform-getopt-test-2 platform-getopt-test 2)
 ADD_TEST(platform-random-test platform-random-test)
+ADD_TEST(platform-mktemp-test platform-mktemp-test)
 
 ADD_EXECUTABLE(platform-cjson-test include/cJSON.h tests/cjson_test.c)
 TARGET_LINK_LIBRARIES(platform-cjson-test cJSON)
