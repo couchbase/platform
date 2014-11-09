@@ -1,10 +1,12 @@
+/* -*- Mode: C++; tab-width: 4; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 #include <iostream>
 #include <cstdlib>
 #include <string.h>
 #include <getopt.h>
-#include <cassert>
 #include <vector>
 #include <string>
+#include <platform/cbassert.h>
+
 
 #ifdef _MSC_VER
 #define strdup _strdup
@@ -35,9 +37,9 @@ static void getopt_test_0(void) {
     int argc = (int)vec.size();
     char **argv = vec2array(vec);
 
-    assert('a' == getopt(argc, argv, "a"));
-    assert('?' == getopt(argc, argv, "a"));
-    assert(optind = 2);
+    cb_assert('a' == getopt(argc, argv, "a"));
+    cb_assert('?' == getopt(argc, argv, "a"));
+    cb_assert(optind = 2);
 
     release(argv, vec.size());
 }
@@ -50,9 +52,9 @@ static void getopt_test_1(void) {
     vec.push_back("-b");
     int argc = (int)vec.size();
     char **argv = vec2array(vec);
-    assert('a' == getopt(argc, argv, "a"));
-    assert(-1 == getopt(argc, argv, "a"));
-    assert(optind = 3);
+    cb_assert('a' == getopt(argc, argv, "a"));
+    cb_assert(-1 == getopt(argc, argv, "a"));
+    cb_assert(optind = 3);
 
     release(argv, vec.size());
 }
@@ -76,18 +78,18 @@ static void getopt_test_2(void) {
     int argc = (int)vec.size();
     char **argv = vec2array(vec);
 
-    assert('E' == getopt(argc, argv, "E:T:e:vC:s"));
-    assert(strcmp(argv[2], optarg) == 0);
-    assert('T' == getopt(argc, argv, "E:T:e:vC:s"));
-    assert(strcmp(argv[4], optarg) == 0);
-    assert('e' == getopt(argc, argv, "E:T:e:vC:s"));
-    assert(strcmp(argv[6], optarg) == 0);
-    assert('v' == getopt(argc, argv, "E:T:e:vC:s"));
-    assert('C' == getopt(argc, argv, "E:T:e:vC:s"));
-    assert(strcmp(argv[9], optarg) == 0);
-    assert('s' == getopt(argc, argv, "E:T:e:vC:s"));
-    assert(-1 == getopt(argc, argv, "E:T:e:vC:s"));
-    assert(optind == 11);
+    cb_assert('E' == getopt(argc, argv, "E:T:e:vC:s"));
+    cb_assert(strcmp(argv[2], optarg) == 0);
+    cb_assert('T' == getopt(argc, argv, "E:T:e:vC:s"));
+    cb_assert(strcmp(argv[4], optarg) == 0);
+    cb_assert('e' == getopt(argc, argv, "E:T:e:vC:s"));
+    cb_assert(strcmp(argv[6], optarg) == 0);
+    cb_assert('v' == getopt(argc, argv, "E:T:e:vC:s"));
+    cb_assert('C' == getopt(argc, argv, "E:T:e:vC:s"));
+    cb_assert(strcmp(argv[9], optarg) == 0);
+    cb_assert('s' == getopt(argc, argv, "E:T:e:vC:s"));
+    cb_assert(-1 == getopt(argc, argv, "E:T:e:vC:s"));
+    cb_assert(optind == 11);
 
     release(argv, vec.size());
 }
