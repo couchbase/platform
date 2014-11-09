@@ -7,15 +7,15 @@
 
 static void test_asprintf(void) {
     char *result = 0;
-    asprintf(&result, "test 1");
+    (void)asprintf(&result, "test 1");
     cb_assert(strcmp(result, "test 1") == 0);
     free(result);
 
-    asprintf(&result, "test %d", 2);
+    (void)asprintf(&result, "test %d", 2);
     cb_assert(strcmp(result, "test 2") == 0);
     free(result);
 
-    asprintf(&result, "%c%c%c%c %d", 't', 'e', 's', 't', 3);
+    (void)asprintf(&result, "%c%c%c%c %d", 't', 'e', 's', 't', 3);
     cb_assert(strcmp(result, "test 3") == 0);
     free(result);
 }
