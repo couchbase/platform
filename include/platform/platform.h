@@ -29,6 +29,7 @@
 #include <sys/time.h>
 #endif
 
+#include <time.h>
 #include <stdio.h>
 #include <platform/visibility.h>
 
@@ -344,6 +345,27 @@ extern "C" {
      */
     PLATFORM_PUBLIC_API
     char *cb_mktemp(char *pattern);
+
+    /**
+     * Convert time_t to a structure
+     *
+     * @param clock the input value
+     * @param result the output value
+     * @return 0 for success, -1 on failure
+     */
+    PLATFORM_PUBLIC_API
+    int cb_gmtime_r(const time_t *clock, struct tm *result);
+
+
+    /**
+     * Convert a time value with adjustments for the local time zone
+     *
+     * @param clock the input value
+     * @param result the output value
+     * @return 0 for success, -1 on failure
+     */
+    PLATFORM_PUBLIC_API
+    int cb_localtime_r(const time_t *clock, struct tm *result);
 
 #ifdef __cplusplus
 }
