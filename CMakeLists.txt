@@ -118,10 +118,6 @@ INSTALL(TARGETS cJSON JSON_checker platform dirutils
         LIBRARY DESTINATION lib
         ARCHIVE DESTINATION lib)
 
-ADD_CUSTOM_TARGET(reformat-platform-source
-                  COMMAND astyle ${ASTYLE_CFLAGS}
-                  VERBATIM)
-
 #
 # Test targets
 #
