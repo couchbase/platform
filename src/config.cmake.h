@@ -2,8 +2,6 @@
 #ifndef CONFIG_H
 #define CONFIG_H 1
 
-#cmakedefine HAVE_CHRONO ${HAVE_CHRONO}
-
 #ifdef WIN32
 #include <winsock2.h>
 #include <ws2tcpip.h>
