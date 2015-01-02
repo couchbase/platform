@@ -255,6 +255,14 @@ extern "C" {
     hrtime_t gethrtime(void);
 #endif
 
+    /**
+     * Get the period of the high resolution time clock.
+     *
+     * @return Period of the clock in nanoseconds.
+     */
+    PLATFORM_PUBLIC_API
+    hrtime_t gethrtime_period(void);
+
 #ifndef CB_DONT_NEED_BYTEORDER
     PLATFORM_PUBLIC_API
     uint64_t ntohll(uint64_t);

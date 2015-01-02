@@ -1,6 +1,6 @@
 /* -*- Mode: C; tab-width: 4; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /*
- *     Copyright 2014 Couchbase, Inc
+ *     Copyright 2015 Couchbase, Inc
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -15,16 +15,15 @@
  *   limitations under the License.
  */
 #include "config.h"
-#include <chrono>
 
-extern "C" hrtime_t gethrtime(void)
+hrtime_t gethrtime_period(void)
 {
-    auto now = std::chrono::high_resolution_clock::now();
-    return std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch()).count();
-}
+    /* this isn't actually completely accurate, but who cares ;-) */
+    hrtime_t start = gethrtime();
+    hrtime_t end = gethrtime() - start;
+    if (end == 0) {
+       end = 1;
+    }
 
-extern "C" hrtime_t gethrtime_period(void)
-{
-    std::chrono::nanoseconds ns = std::chrono::high_resolution_clock::duration(1);
-    return ns.count();
+    return end;
 }
