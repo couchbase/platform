@@ -41,6 +41,8 @@ extern "C" {
     typedef DWORD cb_thread_t;
     typedef CRITICAL_SECTION cb_mutex_t;
 
+#define DIRECTORY_SEPARATOR_CHARACTER '\\'
+
 #ifdef _MSC_VER
     typedef CONDITION_VARIABLE cb_cond_t;
     typedef long ssize_t;
@@ -71,6 +73,9 @@ extern "C" {
 #endif
 
 #else
+
+#define DIRECTORY_SEPARATOR_CHARACTER '/'
+
     typedef pthread_t cb_thread_t;
     typedef pthread_mutex_t cb_mutex_t;
     typedef pthread_cond_t cb_cond_t;
