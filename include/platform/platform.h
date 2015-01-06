@@ -25,12 +25,12 @@
 #include <windows.h>
 #else
 #include <pthread.h>
-#include <stdint.h>
 #include <sys/time.h>
 #endif
 
 #include <time.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <platform/visibility.h>
 
 #ifdef __cplusplus
@@ -40,37 +40,11 @@ extern "C" {
 #ifdef WIN32
     typedef DWORD cb_thread_t;
     typedef CRITICAL_SECTION cb_mutex_t;
-
-#define DIRECTORY_SEPARATOR_CHARACTER '\\'
-
-#ifdef _MSC_VER
     typedef CONDITION_VARIABLE cb_cond_t;
     typedef long ssize_t;
-#else
-    /* @TODO make sure that this buffer is big enough!!! */
-    typedef struct {
-        __int64 blob[64];
-    } cb_cond_t;
-#endif
     typedef unsigned __int64 hrtime_t;
-
-    /* Unfortunately we don't have stdint.h on windows.. Let's just
-     * typedef them here for now.. we need to find a better solution for
-     * this!
-     */
-#if defined(_MSC_VER) && _MSC_VER < 1800
-    typedef __int8 int8_t;
-    typedef __int16 int16_t;
-    typedef __int32 int32_t;
-    typedef __int64 int64_t;
-    typedef unsigned __int8 uint8_t;
-    typedef unsigned __int16 uint16_t;
-    typedef unsigned __int32 uint32_t;
-    typedef unsigned __int64 uint64_t;
-#else
 #define CB_DONT_NEED_BYTEORDER 1
-#include <stdint.h>
-#endif
+#define DIRECTORY_SEPARATOR_CHARACTER '\\'
 
 #else
 
