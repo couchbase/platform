@@ -63,6 +63,13 @@ namespace CouchbaseDirectoryUtilities
      */
     PLATFORM_PUBLIC_API
     bool rmrf(const std::string &path);
+
+
+    /**
+     * Check if a directory exists or not
+     */
+    PLATFORM_PUBLIC_API
+    bool isDirectory(const std::string &directory);
 }
 
 #endif  // PLATFORM_DIRUTILS_H_

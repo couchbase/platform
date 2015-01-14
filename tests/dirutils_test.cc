@@ -38,6 +38,13 @@ static bool CreateDirectory(const std::string &dir) {
 
 int exit_value = EXIT_SUCCESS;
 
+static void expect(const bool exp, const bool val) {
+    if (exp != val) {
+        std::cerr << "Expected " << exp << " got [" << val << "]" << std::endl;
+        exit_value = EXIT_FAILURE;
+    }
+}
+
 static void expect(const std::string &exp, const std::string &val) {
    if (exp != val) {
       std::cerr << "Expected " << exp << " got [" << val << "]" << std::endl;
@@ -168,6 +175,27 @@ static void testRemove(void) {
    }
 }
 
+static void testIsDirectory(void) {
+    using namespace CouchbaseDirectoryUtilities;
+#ifdef WIN32
+    expect(true, isDirectory("c:\\"));
+#else
+    expect(true, isDirectory("/"));
+#endif
+    expect(true, isDirectory("."));
+    expect(false, isDirectory("/it/would/suck/if/this/exists"));
+    FILE *fp = fopen("isDirectoryTest", "w");
+    if (fp == NULL) {
+        std::cerr << "Failed to create test file" << std::endl;
+        exit_value = EXIT_FAILURE;
+    } else {
+        using namespace std;
+        fclose(fp);
+        expect(false, isDirectory("isDirectoryTest"));
+        remove("isDirectoryTest");
+    }
+}
+
 int main(int argc, char **argv)
 {
    testDirname();
@@ -201,6 +229,8 @@ int main(int argc, char **argv)
    testFindFilesWithPrefix();
    testFindFilesContaining();
    testRemove();
+
+   testIsDirectory();
 
    return exit_value;
 }

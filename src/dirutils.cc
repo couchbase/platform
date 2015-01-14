@@ -230,4 +230,21 @@ namespace CouchbaseDirectoryUtilities
 
         return rmdir(path.c_str()) == 0;
     }
+
+    PLATFORM_PUBLIC_API
+    bool isDirectory(const std::string &directory) {
+#ifdef WIN32
+        DWORD dwAttrib = GetFileAttributes(directory.c_str());
+        if (dwAttrib == INVALID_FILE_ATTRIBUTES) {
+            return false;
+        }
+        return (dwAttrib & FILE_ATTRIBUTE_DIRECTORY);
+#else
+        struct stat st;
+        if (stat(directory.c_str(), &st) == -1) {
+            return false;
+        }
+        return (S_ISDIR(st.st_mode));
+#endif
+    }
 }
