@@ -51,7 +51,7 @@ int cb_create_thread(cb_thread_t *id,
     ctx->argument = arg;
 
     handle = CreateThread(NULL, 0, platform_thread_wrap, ctx, 0, id);
-    if (handle == INVALID_HANDLE_VALUE) {
+    if (handle == NULL) {
         free(ctx);
         return -1;
     } else {
