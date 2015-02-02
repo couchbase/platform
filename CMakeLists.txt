@@ -1,10 +1,6 @@
 PROJECT(Platform)
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
 
-IF (${CMAKE_MAJOR_VERSION} GREATER 2)
-    CMAKE_POLICY(SET CMP0042 NEW)
-ENDIF (${CMAKE_MAJOR_VERSION} GREATER 2)
-
 INCLUDE(CheckIncludeFileCXX)
 INCLUDE(CheckSymbolExists)
 
@@ -171,15 +167,3 @@ ADD_TEST(platform-json-checker-test platform-json-checker-test)
 ADD_EXECUTABLE(platform-strings-test tests/strings_test.c)
 TARGET_LINK_LIBRARIES(platform-strings-test platform)
 ADD_TEST(platform-strings-test platform-strings-test)
-
-
-IF (${CMAKE_MAJOR_VERSION} LESS 3)
-   SET_TARGET_PROPERTIES(cJSON PROPERTIES INSTALL_NAME_DIR
-                         ${CMAKE_INSTALL_PREFIX}/lib)
-   SET_TARGET_PROPERTIES(JSON_checker PROPERTIES INSTALL_NAME_DIR
-                         ${CMAKE_INSTALL_PREFIX}/lib)
-   SET_TARGET_PROPERTIES(platform PROPERTIES INSTALL_NAME_DIR
-                         ${CMAKE_INSTALL_PREFIX}/lib)
-   SET_TARGET_PROPERTIES(dirutils PROPERTIES INSTALL_NAME_DIR
-                         ${CMAKE_INSTALL_PREFIX}/lib)
-ENDIF (${CMAKE_MAJOR_VERSION} LESS 3)
