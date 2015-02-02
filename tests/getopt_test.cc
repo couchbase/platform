@@ -39,7 +39,7 @@ static void getopt_test_0(void) {
 
     cb_assert('a' == getopt(argc, argv, "a"));
     cb_assert('?' == getopt(argc, argv, "a"));
-    cb_assert(optind = 2);
+    cb_assert(optind == 3);
 
     release(argv, vec.size());
 }
@@ -54,7 +54,7 @@ static void getopt_test_1(void) {
     char **argv = vec2array(vec);
     cb_assert('a' == getopt(argc, argv, "a"));
     cb_assert(-1 == getopt(argc, argv, "a"));
-    cb_assert(optind = 3);
+    cb_assert(optind == 3);
 
     release(argv, vec.size());
 }

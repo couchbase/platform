@@ -257,12 +257,14 @@ new_JSON_checker(int depth)
     JSON_checker_char will delete the JSON_checker object if it sees an error.
 */
     JSON_checker jc = (JSON_checker)malloc(sizeof(struct JSON_checker_struct));
-    /* Modified- we want to accept JSON values, not just JSON-Texts */
-    jc->state = VA;
-    jc->depth = depth;
-    jc->top = -1;
-    jc->stack = (int*)calloc(depth, sizeof(int));
-    push(jc, MODE_DONE);
+    if (jc != NULL) {
+        /* Modified- we want to accept JSON values, not just JSON-Texts */
+        jc->state = VA;
+        jc->depth = depth;
+        jc->top = -1;
+        jc->stack = (int*)calloc(depth, sizeof(int));
+        push(jc, MODE_DONE);
+    }
     return jc;
 }
 

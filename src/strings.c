@@ -38,6 +38,10 @@ int vasprintf(char **ret, const char *format, va_list ap) {
     if (res >= 0) {
         /* valid format, malloc buffer and do for real */
         char *buffer = malloc(res + 1); /* +1 for \0 */
+        if (buffer == NULL) {
+            va_end(copy);
+            return -1;
+        }
         res = vsnprintf(buffer, res + 1, format, ap);
         if (res < 0) {
             free(buffer);
