@@ -8,11 +8,22 @@ ENDIF (${CMAKE_MAJOR_VERSION} GREATER 2)
 INCLUDE(CheckIncludeFileCXX)
 INCLUDE(CheckSymbolExists)
 
+CHECK_SYMBOL_EXISTS(backtrace execinfo.h HAVE_BACKTRACE)
+
+CMAKE_PUSH_CHECK_STATE(RESET)
+SET(CMAKE_REQUIRED_DEFINITIONS "-D_GNU_SOURCE")
+SET(CMAKE_REQUIRED_LIBRARIES "dl")
+CHECK_SYMBOL_EXISTS(dladdr dlfcn.h HAVE_DLADDR)
+CMAKE_POP_CHECK_STATE()
+
 CHECK_SYMBOL_EXISTS(gethrtime sys/time.h CB_DONT_NEED_GETHRTIME)
 CHECK_SYMBOL_EXISTS(htonll arpa/inet.h CB_DONT_NEED_BYTEORDER)
 
 CONFIGURE_FILE (${CMAKE_CURRENT_SOURCE_DIR}/src/config.cmake.h
                 ${CMAKE_CURRENT_BINARY_DIR}/src/config.h)
+
+CONFIGURE_FILE (${CMAKE_CURRENT_SOURCE_DIR}/include/platform/internal_config.cmake.h
+                ${CMAKE_CURRENT_BINARY_DIR}/include/platform/internal_config.h)
 
 CONFIGURE_FILE (${CMAKE_CURRENT_SOURCE_DIR}/include/platform/dynamic.in.h
                 ${CMAKE_CURRENT_BINARY_DIR}/include/platform/dynamic.h)
@@ -41,6 +52,7 @@ IF (WIN32)
                       include/win32/getopt.h
                       include/win32/strings.h
                       include/win32/unistd.h)
+   SET(BACKTRACE_LIBS "Dbghelp")
 ELSE (WIN32)
    SET(PLATFORM_FILES src/cb_pthreads.c src/urandom.c)
    SET(THREAD_LIBS "pthread")
@@ -77,6 +89,7 @@ ENDIF (CB_DONT_NEED_GETHRTIME)
 ADD_LIBRARY(platform SHARED ${PLATFORM_FILES}
                             ${CMAKE_CURRENT_BINARY_DIR}/src/config.h
                             src/random.cc
+                            src/backtrace.c
                             src/byteorder.c
                             src/cb_time.c
                             src/cb_mktemp.c
@@ -84,7 +97,7 @@ ADD_LIBRARY(platform SHARED ${PLATFORM_FILES}
                             include/platform/random.h
                             include/platform/visibility.h)
 
-TARGET_LINK_LIBRARIES(platform ${THREAD_LIBS} ${COUCHBASE_NETWORK_LIBS} ${DLOPENLIB} ${RTLIB})
+TARGET_LINK_LIBRARIES(platform ${THREAD_LIBS} ${COUCHBASE_NETWORK_LIBS} ${DLOPENLIB} ${RTLIB} ${BACKTRACE_LIBS})
 SET_TARGET_PROPERTIES(platform PROPERTIES SOVERSION 0.1.0)
 
 ADD_LIBRARY(dirutils SHARED src/dirutils.cc include/platform/dirutils.h)
@@ -171,6 +184,10 @@ ADD_TEST(platform-json-checker-test platform-json-checker-test)
 ADD_EXECUTABLE(platform-strings-test tests/strings_test.c)
 TARGET_LINK_LIBRARIES(platform-strings-test platform)
 ADD_TEST(platform-strings-test platform-strings-test)
+
+ADD_EXECUTABLE(platform-backtrace-test tests/backtrace_test.c)
+TARGET_LINK_LIBRARIES(platform-backtrace-test platform)
+ADD_TEST(platform-backtrace-test platform-backtrace-test)
 
 
 IF (${CMAKE_MAJOR_VERSION} LESS 3)
