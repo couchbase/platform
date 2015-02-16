@@ -22,7 +22,7 @@
 
 char *optarg;
 int opterr;
-int optind;
+int optind = 1;
 int optopt;
 
 static int parse_longopt(int argc, char **argv,
@@ -71,7 +71,6 @@ static int parse_longopt(int argc, char **argv,
 int getopt_long(int argc, char **argv, const char *optstring,
                 const struct option *longopts, int *longindex)
 {
-    ++optind;
     if (optind + 1 > argc) {
         // EOF
         return -1;
@@ -91,15 +90,17 @@ int getopt_long(int argc, char **argv, const char *optstring,
         // this is a short option
         const char *p = strchr(optstring, argv[optind][1]);
         int idx = optind;
+        optind++;
 
         if (p == NULL) {
             return '?';
         }
 
         if (*(p + 1) == ':') {
-            optind++;
             optarg = argv[optind];
-            if (optarg == NULL || optind >= argc) {
+            optind++;
+            if (optarg == NULL || optind > argc)
+            {
                 fprintf(stderr, "%s: option requires an argument -- %s\n",
                         argv[0], argv[idx] + 1);
                 return '?';
