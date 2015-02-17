@@ -52,7 +52,9 @@ IF (WIN32)
                       include/win32/getopt.h
                       include/win32/strings.h
                       include/win32/unistd.h)
-   SET(BACKTRACE_LIBS "Dbghelp")
+   INCLUDE(FindCouchbaseDbgHelp)
+   SET(BACKTRACE_LIBS ${DBGHELP_LIBRARY})
+   INSTALL(FILES ${DBGHELP_DLL} DESTINATION bin)
 ELSE (WIN32)
    SET(PLATFORM_FILES src/cb_pthreads.c src/urandom.c)
    SET(THREAD_LIBS "pthread")
