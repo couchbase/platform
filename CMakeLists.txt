@@ -49,12 +49,13 @@ IF (WIN32)
                       src/strings.c
                       src/cb_win32.c
                       src/winrandom.c
+                      src/memorymap_win32.cc
                       include/win32/getopt.h
                       include/win32/strings.h
                       include/win32/unistd.h)
    SET(BACKTRACE_LIBS "Dbghelp")
 ELSE (WIN32)
-   SET(PLATFORM_FILES src/cb_pthreads.c src/urandom.c)
+   SET(PLATFORM_FILES src/cb_pthreads.c src/urandom.c src/memorymap_posix.cc)
    SET(THREAD_LIBS "pthread")
    SET(DLOPENLIB "dl")
 
@@ -93,6 +94,7 @@ ADD_LIBRARY(platform SHARED ${PLATFORM_FILES}
                             src/byteorder.c
                             src/cb_time.c
                             src/cb_mktemp.c
+                            include/platform/memorymap.h
                             include/platform/platform.h
                             include/platform/random.h
                             include/platform/visibility.h)
@@ -189,6 +191,9 @@ ADD_EXECUTABLE(platform-backtrace-test tests/backtrace_test.c)
 TARGET_LINK_LIBRARIES(platform-backtrace-test platform)
 ADD_TEST(platform-backtrace-test platform-backtrace-test)
 
+ADD_EXECUTABLE(platform-memorymap-test tests/memorymap_test.cc)
+TARGET_LINK_LIBRARIES(platform-memorymap-test platform)
+ADD_TEST(platform-memorymap-test platform-memorymap-test)
 
 IF (${CMAKE_MAJOR_VERSION} LESS 3)
    SET_TARGET_PROPERTIES(cJSON PROPERTIES INSTALL_NAME_DIR
