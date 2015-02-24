@@ -65,7 +65,13 @@ uint64_t cb_get_monotonic_seconds() {
 */
 int cb_get_timeofday(struct timeval *tv) {
     int rv = gettimeofday(tv, NULL);
+#if defined(WIN32)
+    // WIN32: tv_sec is less precise than normal (it's a long); so explicitly
+    // downcast to silence implicit downcast warning.
+    tv->tv_sec += (long)timeofday_offset;
+#else
     tv->tv_sec += timeofday_offset;
+#endif
     return rv;
 }
 
