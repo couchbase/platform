@@ -37,7 +37,9 @@ static void getopt_test_0(void) {
     int argc = (int)vec.size();
     char **argv = vec2array(vec);
 
+    cb_assert(optind == 1);
     cb_assert('a' == getopt(argc, argv, "a"));
+    cb_assert(optind == 2);
     cb_assert('?' == getopt(argc, argv, "a"));
     cb_assert(optind == 3);
 

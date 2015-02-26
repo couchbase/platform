@@ -22,7 +22,7 @@
 #include "config.h"
 
 #include <stdio.h>
-
+#include <string.h>
 #include <platform/backtrace.h>
 
 

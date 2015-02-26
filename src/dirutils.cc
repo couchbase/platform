@@ -238,7 +238,7 @@ namespace CouchbaseDirectoryUtilities
         if (dwAttrib == INVALID_FILE_ATTRIBUTES) {
             return false;
         }
-        return (dwAttrib & FILE_ATTRIBUTE_DIRECTORY) ? true : false;
+        return (dwAttrib & FILE_ATTRIBUTE_DIRECTORY) == FILE_ATTRIBUTE_DIRECTORY;
 #else
         struct stat st;
         if (stat(directory.c_str(), &st) == -1) {
