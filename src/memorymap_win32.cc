@@ -78,8 +78,12 @@ void Couchbase::MemoryMappedFile::close(void) {
 }
 
 void Couchbase::MemoryMappedFile::open(void) {
+    if (sharedMapping && readonly) {
+        throw std::string("Invalid mode: shared and readonly don't make sense");
+    }
+
     WIN32_FILE_ATTRIBUTE_DATA fad;
-    if (!GetFileAttributesEx(filename.c_str(), GetFileExInfoStandard,
+    if (GetFileAttributesEx(filename.c_str(), GetFileExInfoStandard,
             &fad) == 0) {
         std::stringstream ss;
         ss << "failed to determine file size: " << GetError();

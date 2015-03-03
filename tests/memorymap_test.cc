@@ -14,7 +14,7 @@
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
  */
-
+#include "config.h"
 #include <stdlib.h>
 #include <sstream>
 #include <unistd.h>
@@ -25,6 +25,11 @@
 #include <platform/random.h>
 #include <platform/memorymap.h>
 #include <platform/cbassert.h>
+
+#ifdef WIN32
+#include <process.h>
+#define getpid() _getpid()
+#endif
 
 using namespace Couchbase;
 std::string filename;
@@ -122,7 +127,9 @@ int main(void) {
     createFile();
     testInvalidMapOptions();
     testReadonlyMapping();
+#ifndef WIN32
     testPrivateMapping();
+#endif
     testSharedMapping();
     remove(filename.c_str());
     exit(EXIT_SUCCESS);
