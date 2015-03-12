@@ -70,6 +70,16 @@ namespace CouchbaseDirectoryUtilities
      */
     PLATFORM_PUBLIC_API
     bool isDirectory(const std::string &directory);
+
+    /**
+     * Try to create directory including all of the parent directories
+     *
+     * @param directory the directory to create
+     * @return true if success, false otherwise
+     */
+    PLATFORM_PUBLIC_API
+    bool mkdirp(const std::string &directory);
+
 }
 
 #endif  // PLATFORM_DIRUTILS_H_

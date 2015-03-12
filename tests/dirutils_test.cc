@@ -196,11 +196,23 @@ static void testIsDirectory(void) {
     }
 }
 
+static void testMkdirp(void) {
+    using namespace CouchbaseDirectoryUtilities;
+
+#ifndef WIN32
+    expect(false, mkdirp("/it/would/suck/if/I/could/create/this"));
+#endif
+    expect(true, mkdirp("."));
+    expect(true, mkdirp("/"));
+    expect(true, mkdirp("foo/bar"));
+    expect(true, isDirectory("foo/bar"));
+    rmrf("foo");
+}
+
 int main(int argc, char **argv)
 {
    testDirname();
    testBasename();
-
 
    vfs.push_back("fs");
    vfs.push_back("fs/d1");
@@ -231,6 +243,7 @@ int main(int argc, char **argv)
    testRemove();
 
    testIsDirectory();
+   testMkdirp();
 
    return exit_value;
 }

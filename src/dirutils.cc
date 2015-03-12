@@ -20,6 +20,7 @@
 #ifdef _MSC_VER
 #include <direct.h>
 #define rmdir _rmdir
+#define mkdir(a, b) _mkdir(a)
 #else
 #include <dirent.h>
 #include <unistd.h>
@@ -246,5 +247,32 @@ namespace CouchbaseDirectoryUtilities
         }
         return (S_ISDIR(st.st_mode));
 #endif
+    }
+
+    PLATFORM_PUBLIC_API
+    bool mkdirp(const std::string &directory) {
+        struct stat st;
+        if (stat(directory.c_str(), &st) == 0) {
+            if ((st.st_mode & S_IFDIR) == S_IFDIR) {
+                // It exists and is a directory!
+                return true;
+            }
+
+            // It exists but is a file!
+            return false;
+        }
+
+        std::string parent = dirname(directory);
+
+        if (!mkdirp(parent)) {
+            // failed to create parent directory
+            return false;
+        }
+
+        if (mkdir(directory.c_str(), S_IREAD | S_IWRITE | S_IEXEC) != 0) {
+            return false;
+        }
+
+        return true;
     }
 }
