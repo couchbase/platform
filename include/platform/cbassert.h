@@ -27,7 +27,7 @@
     ((void)((e) ? (void)0 : cb_assert_die(#e, __FILE__, __LINE__)))
 
 #define cb_assert_die(e, file, line) \
-    ((void)fprintf(stderr, "asssertion failed [%s] at %s:%u\n", \
+    ((void)fprintf(stderr, "assertion failed [%s] at %s:%u\n", \
                    e, file, line), abort())
 
 #else
