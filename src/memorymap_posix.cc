@@ -16,6 +16,9 @@
  */
 
 #include <sys/mman.h>
+#ifdef __sun
+const int MAP_FILE = 0;
+#endif
 
 #include <sstream>
 #include <cerrno>

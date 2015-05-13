@@ -34,6 +34,10 @@
 #include <stdint.h>
 #include <platform/visibility.h>
 
+#ifdef __sun
+#include <arpa/inet.h>
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
