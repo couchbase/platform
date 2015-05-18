@@ -27,3 +27,18 @@ hrtime_t gethrtime_period(void)
 
     return end;
 }
+
+#ifndef __sun
+hrtime_t gethrtime(void)
+{
+    struct timespec tp;
+    clock_gettime(CLOCK_REALTIME_FAST, &tp);
+    hrtime_t ret = tp.tv_sec;
+    ret *= 1000; // ms
+    ret *= 1000; // us
+    ret *= 1000; // ns
+    ret += tp.tv_nsec;
+
+    return ret;
+}
+#endif
