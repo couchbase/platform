@@ -64,6 +64,15 @@ int cb_create_thread(cb_thread_t *id,
 }
 
 __declspec(dllexport)
+int cb_create_named_thread(cb_thread_t *id, void (*func)(void *arg), void *arg,
+                     int detached, const char* name)
+{
+    // Thread naming not supported on WIN32, just call down to non-named
+    // variant.
+    return cb_create_thread(id, func, arg, detached);
+}
+
+__declspec(dllexport)
 int cb_join_thread(cb_thread_t id)
 {
     HANDLE handle = OpenThread(SYNCHRONIZE, FALSE, id);
@@ -85,6 +94,13 @@ __declspec(dllexport)
 int cb_thread_equal(const cb_thread_t a, const cb_thread_t b)
 {
     return a == b;
+}
+
+__declspec(dllexport)
+void cb_set_thread_name(const char* name)
+{
+    // Not implemented on WIN32
+    (void)name;
 }
 
 __declspec(dllexport)

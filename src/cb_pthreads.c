@@ -9,6 +9,7 @@
 
 struct thread_execute {
     cb_thread_main_func func;
+    const char* name;
     void *argument;
 };
 
@@ -16,7 +17,11 @@ static void *platform_thread_wrap(void *arg)
 {
     struct thread_execute *ctx = arg;
     assert(arg);
+    if (ctx->name != NULL) {
+        cb_set_thread_name(ctx->name);
+    }
     ctx->func(ctx->argument);
+    free((void*)ctx->name);
     free(ctx);
     return NULL;
 }
@@ -26,6 +31,13 @@ int cb_create_thread(cb_thread_t *id,
                      void *arg,
                      int detached)
 {
+    // Implemented in terms of cb_create_named_thread; with a NULL name.
+    return cb_create_named_thread(id, func, arg, detached, NULL);
+}
+
+int cb_create_named_thread(cb_thread_t *id, cb_thread_main_func func, void *arg,
+                           int detached, const char* name)
+{
     int ret;
     struct thread_execute *ctx = malloc(sizeof(struct thread_execute));
     if (ctx == NULL) {
@@ -34,6 +46,14 @@ int cb_create_thread(cb_thread_t *id,
 
     ctx->func = func;
     ctx->argument = arg;
+    if (name != NULL) {
+        if (strlen(name) > 15) {
+            return 0;
+        }
+        ctx->name = strdup(name);
+    } else {
+        ctx->name = NULL;
+    }
 
     if (detached) {
         pthread_attr_t attr;
@@ -68,6 +88,16 @@ cb_thread_t cb_thread_self(void)
 int cb_thread_equal(const cb_thread_t a, const cb_thread_t b)
 {
     return pthread_equal(a, b);
+}
+
+void cb_set_thread_name(const char* name)
+{
+#if defined(__APPLE__)
+        // No thread argument (implicit current thread).
+        pthread_setname_np(name);
+#else
+        pthread_setname_np(pthread_self(), name);
+#endif
 }
 
 void cb_mutex_initialize(cb_mutex_t *mutex)
