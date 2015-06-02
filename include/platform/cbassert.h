@@ -14,24 +14,19 @@
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
  */
-#ifndef PLATFORM_CBASSERT_H
-#define PLATFORM_CBASSERT_H 1
+#pragma once
 
 #include <assert.h>
+#include <platform/visibility.h>
 
-#ifdef NDEBUG
-#include <stdio.h>
-#include <stdlib.h>
+#ifdef __cplusplus
+extern "C" {
+#endif
+    PLATFORM_PUBLIC_API
+    void cb_assert_die(const char *expression, const char *file, int line);
+#ifdef __cplusplus
+}
+#endif
 
 #define cb_assert(e)  \
     ((void)((e) ? (void)0 : cb_assert_die(#e, __FILE__, __LINE__)))
-
-#define cb_assert_die(e, file, line) \
-    ((void)fprintf(stderr, "assertion failed [%s] at %s:%u\n", \
-                   e, file, line), abort())
-
-#else
-#define cb_assert(a) assert(a)
-#endif
-
-#endif

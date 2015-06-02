@@ -95,6 +95,7 @@ ADD_LIBRARY(platform SHARED ${PLATFORM_FILES}
                             src/byteorder.c
                             src/cb_time.c
                             src/cb_mktemp.c
+                            src/cbassert.c
                             include/platform/platform.h
                             include/platform/random.h
                             include/platform/visibility.h)
