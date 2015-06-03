@@ -3,3 +3,4 @@
 
 #cmakedefine HAVE_BACKTRACE 1
 #cmakedefine HAVE_DLADDR 1
+#cmakedefine HAVE_PTHREAD_SETNAME_NP 1

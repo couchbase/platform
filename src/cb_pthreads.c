@@ -93,10 +93,10 @@ int cb_thread_equal(const cb_thread_t a, const cb_thread_t b)
 void cb_set_thread_name(const char* name)
 {
 #if defined(__APPLE__)
-        // No thread argument (implicit current thread).
-        pthread_setname_np(name);
-#else
-        pthread_setname_np(pthread_self(), name);
+    // No thread argument (implicit current thread).
+    pthread_setname_np(name);
+#elif defined(HAVE_PTHREAD_SETNAME_NP)
+    pthread_setname_np(pthread_self(), name);
 #endif
 }
 
