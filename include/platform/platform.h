@@ -91,6 +91,22 @@ extern "C" {
                          int detached);
 
     /**
+     * Create a new thread (in a running state), with a name.
+     *
+     * @param id The thread identifier (returned)
+     * @param func The entry point for the newly created thread
+     * @param arg Arguments passed to the newly created thread
+     * @param detached Set to non-null if the thread should be
+     *                 created in a detached state (which you
+     *                 can't call cb_join_thread on).
+     * @param name Name of the thread. Maximum of 16 characters in length,
+     *             including terminating '\0'. (Note: name ignored on Windows).
+     */
+    PLATFORM_PUBLIC_API
+    int cb_create_named_thread(cb_thread_t *id, cb_thread_main_func func,
+                               void *arg, int detached, const char* name);
+
+    /**
      * Wait for a thread to complete
      *
      * @param id The thread identifier to wait for
@@ -115,6 +131,15 @@ extern "C" {
      */
     PLATFORM_PUBLIC_API
     int cb_thread_equal(const cb_thread_t a, const cb_thread_t b);
+
+    /**
+     * Sets the current threads' name.
+     *
+     * @param name New value for the current threads' name. If non-NULL,
+     *             maximum of 16 characters in length.
+     */
+    PLATFORM_PUBLIC_API
+    void cb_set_thread_name(const char* name);
 
     /***********************************************************************
      *                      Mutex related functions                        *

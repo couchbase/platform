@@ -27,6 +27,18 @@ CMAKE_PUSH_CHECK_STATE(RESET)
   CHECK_SYMBOL_EXISTS(dladdr dlfcn.h HAVE_DLADDR)
 CMAKE_POP_CHECK_STATE()
 
+CMAKE_PUSH_CHECK_STATE(RESET)
+SET(CMAKE_REQUIRED_DEFINITIONS "-D_GNU_SOURCE")
+SET(CMAKE_REQUIRED_LIBRARIES "pthread")
+CHECK_SYMBOL_EXISTS(pthread_setname_np pthread.h HAVE_PTHREAD_SETNAME_NP)
+IF (HAVE_PTHREAD_SETNAME_NP)
+  MESSAGE(STATUS "pthread_setname_np is available")
+ELSE (HAVE_PTHREAD_SETNAME_NP)
+  MESSAGE(STATUS "pthread_setname_np is not available")
+ENDIF (HAVE_PTHREAD_SETNAME_NP)
+CMAKE_POP_CHECK_STATE()
+
+
 CHECK_SYMBOL_EXISTS(gethrtime sys/time.h CB_DONT_NEED_GETHRTIME)
 CHECK_SYMBOL_EXISTS(htonll arpa/inet.h CB_DONT_NEED_BYTEORDER)
 
@@ -113,6 +125,7 @@ ADD_LIBRARY(platform SHARED ${PLATFORM_FILES}
                             src/cb_time.c
                             src/cb_mktemp.c
                             include/platform/memorymap.h
+                            src/cbassert.c
                             include/platform/platform.h
                             include/platform/random.h
                             include/platform/visibility.h)

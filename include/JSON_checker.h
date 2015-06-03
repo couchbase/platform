@@ -1,5 +1,7 @@
 /* JSON_checker.h */
 
+#pragma once
+
 #ifdef JSON_checker_EXPORTS
 
 #if defined (__SUNPRO_C) && (__SUNPRO_C >= 0x550)
