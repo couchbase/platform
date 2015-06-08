@@ -78,7 +78,7 @@ static void report(hrtime_t time) {
 
    assert(extensions[id] != NULL);
    fprintf(stderr, "Parsing took an average of %"PRIu64"%s\n",
-           time, extensions[id]);
+           (uint64_t)time, extensions[id]);
 }
 
 int main(int argc, char **argv) {
