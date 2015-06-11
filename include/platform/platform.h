@@ -384,6 +384,18 @@ extern "C" {
     PLATFORM_PUBLIC_API
     int cb_localtime_r(const time_t *clock, struct tm *result);
 
+    /**
+     * Definition of a process identifier
+     */
+    typedef int cb_pid_t;
+
+    /**
+     * Get the process identifier for the running process
+     */
+    PLATFORM_PUBLIC_API
+    cb_pid_t cb_getpid(void);
+
+
 #ifdef __cplusplus
 }
 #endif

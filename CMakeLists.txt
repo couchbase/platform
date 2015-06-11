@@ -119,6 +119,7 @@ ENDIF (CB_DONT_NEED_GETHRTIME OR HAVE_DEAD_SLOW_CHRONO)
 #
 ADD_LIBRARY(platform SHARED ${PLATFORM_FILES}
                             ${CMAKE_CURRENT_BINARY_DIR}/src/config.h
+                            src/getpid.c
                             src/random.cc
                             src/backtrace.c
                             src/byteorder.c
