@@ -88,45 +88,13 @@ namespace Couchbase {
    private:
       cb_mutex_t mutex;
    };
-
-   /*
-    * I don't want all processes that link with platform to open a
-    * random generator, so let's use the runtime linker to create
-    * a class that initialize the mutex so that I can have a safe
-    * way of just creating one (and only one) instance of the
-    * the shared generator
-    */
-   class SharedRandomGeneratorSingleton {
-   public:
-      SharedRandomGeneratorSingleton() : instance(NULL) {
-         cb_mutex_initialize(&mutex);
-      }
-
-      ~SharedRandomGeneratorSingleton() {
-         cb_mutex_destroy(&mutex);
-      }
-
-      SharedRandomGeneratorProvider *get() {
-         cb_mutex_enter(&mutex);
-         if (instance == NULL) {
-            instance = new SharedRandomGeneratorProvider();
-         }
-         cb_mutex_exit(&mutex);
-         return instance;
-      }
-
-   private:
-      cb_mutex_t mutex;
-      SharedRandomGeneratorProvider *instance;
-   };
 }
-
-static Couchbase::SharedRandomGeneratorSingleton shrgen;
 
 PLATFORM_PUBLIC_API
 Couchbase::RandomGenerator::RandomGenerator(bool s) : shared(s) {
    if (shared) {
-      provider = shrgen.get();
+      static SharedRandomGeneratorProvider singleton_provider;
+      provider = &singleton_provider;
    } else {
       provider = new RandomGeneratorProvider();
    }
