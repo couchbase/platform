@@ -15,29 +15,9 @@
  *   limitations under the License.
  */
 #include <windows.h>
-
 #include <sstream>
+#include <platform/strerror.h>
 #include "platform/memorymap.h"
-
-static std::string GetError(void) {
-    DWORD err = GetLastError();
-    LPVOID error_msg;
-    std::string ret;
-
-    if (FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER |
-                    FORMAT_MESSAGE_FROM_SYSTEM |
-                    FORMAT_MESSAGE_IGNORE_INSERTS,
-            NULL, err, 0, (LPTSTR) & error_msg, 0, NULL) != 0) {
-        ret.assign((const char*)error_msg);
-        LocalFree(error_msg);
-    } else {
-        std::stringstream ss;
-        ss << err;
-        ret = ss.str();
-    }
-
-    return ret;
-}
 
 Couchbase::MemoryMappedFile::MemoryMappedFile(const char *fname, bool share, bool rdonly)
         :
@@ -62,7 +42,7 @@ void Couchbase::MemoryMappedFile::close(void) {
     std::stringstream ss;
 
     if (!UnmapViewOfFile(root)) {
-        ss << "UnmapViewOfFile() failed: " << GetError();
+        ss << "UnmapViewOfFile() failed: " << cb_strerror();
     }
     CloseHandle(maphandle);
     maphandle = INVALID_HANDLE_VALUE;
@@ -86,7 +66,7 @@ void Couchbase::MemoryMappedFile::open(void) {
     if (GetFileAttributesEx(filename.c_str(), GetFileExInfoStandard,
             &fad) == 0) {
         std::stringstream ss;
-        ss << "failed to determine file size: " << GetError();
+        ss << "failed to determine file size: " << cb_strerror();
         throw ss.str();
     }
     LARGE_INTEGER sz;
@@ -115,7 +95,7 @@ void Couchbase::MemoryMappedFile::open(void) {
 
     if (filehandle == INVALID_HANDLE_VALUE) {
         std::stringstream ss;
-        ss << "failed to open file: " << GetError();
+        ss << "failed to open file: " << cb_strerror();
         size = 0;
         throw ss.str();
     }
@@ -125,7 +105,7 @@ void Couchbase::MemoryMappedFile::open(void) {
             0, 0, NULL);
     if (maphandle == INVALID_HANDLE_VALUE) {
         std::stringstream ss;
-        ss << "failed to create file mapping: " << GetError();
+        ss << "failed to create file mapping: " << cb_strerror();
         CloseHandle(filehandle);
         size = 0;
         throw ss.str();
@@ -134,7 +114,7 @@ void Couchbase::MemoryMappedFile::open(void) {
     root = MapViewOfFile(maphandle, access, 0, 0, 0);
     if (root == NULL) {
         std::stringstream ss;
-        ss << "mapviewoffile failed: " << GetError();
+        ss << "mapviewoffile failed: " << cb_strerror();
         CloseHandle(maphandle);
         CloseHandle(filehandle);
         size = 0;

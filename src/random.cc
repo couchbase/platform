@@ -16,10 +16,10 @@
  */
 #include "config.h"
 
-#include <errno.h>
-#include <cstring>
 #include <platform/platform.h>
+#include <platform/strerror.h>
 #include <platform/random.h>
+
 #include <sstream>
 #include <stdexcept>
 #include <mutex>
@@ -31,26 +31,7 @@ namespace Couchbase {
       RandomGeneratorProvider() {
          if (cb_rand_open(&provider) == -1) {
             std::stringstream ss;
-            std::string reason;
-
-#ifdef WIN32
-            DWORD err = GetLastError();
-            char* win_msg = NULL;
-            if (FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER |
-                               FORMAT_MESSAGE_FROM_SYSTEM |
-                               FORMAT_MESSAGE_IGNORE_INSERTS,
-                               NULL, err,
-                               MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-                               (LPTSTR)&win_msg,
-                               0, NULL) > 0) {
-                reason.assign(win_msg);
-                LocalFree(win_msg);
-            } else {
-                reason.assign("Failed to determine error cause");
-            }
-#else
-            reason.assign(strerror(errno));
-#endif
+            std::string reason = cb_strerror();
             ss << "Failed to initialize random generator: " << reason;
             throw std::runtime_error(ss.str());
          }

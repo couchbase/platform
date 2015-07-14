@@ -67,7 +67,7 @@ IF (WIN32)
    SET(PLATFORM_FILES src/getopt.c
                       src/sockets.c
                       src/strings.c
-                      src/cb_win32.c
+                      src/cb_win32.cc
                       src/winrandom.c
                       src/memorymap_win32.cc
                       include/win32/getopt.h
@@ -124,8 +124,10 @@ ADD_LIBRARY(platform SHARED ${PLATFORM_FILES}
                             src/cb_mktemp.c
                             include/platform/memorymap.h
                             src/cbassert.c
+                            src/strerror.cc
                             include/platform/platform.h
                             include/platform/random.h
+                            include/platform/strerror.h
                             include/platform/visibility.h)
 
 LIST(REMOVE_DUPLICATES PLATFORM_LIBRARIES)

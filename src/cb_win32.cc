@@ -1,6 +1,6 @@
 /* -*- Mode: C; tab-width: 4; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /*
- *     Copyright 2013 Couchbase, Inc.
+ *     Copyright 2015 Couchbase, Inc.
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -15,10 +15,13 @@
  *   limitations under the License.
  */
 #include "config.h"
+
+#include <platform/strerror.h>
 #include <assert.h>
 #include <stdio.h>
 #include <fcntl.h>
 #include <io.h>
+#include <vector>
 
 struct thread_execute {
     cb_thread_main_func func;
@@ -27,10 +30,10 @@ struct thread_execute {
 
 static DWORD WINAPI platform_thread_wrap(LPVOID arg)
 {
-    struct thread_execute *ctx = arg;
+    auto *ctx = reinterpret_cast<struct thread_execute*>(arg);
     assert(ctx);
     ctx->func(ctx->argument);
-    free(ctx);
+    delete ctx;
     return 0;
 }
 
@@ -42,8 +45,11 @@ int cb_create_thread(cb_thread_t *id,
                      int detached)
 {
     HANDLE handle;
-    struct thread_execute *ctx = malloc(sizeof(struct thread_execute));
-    if (ctx == NULL) {
+
+    struct thread_execute *ctx;
+    try {
+        ctx = new struct thread_execute;
+    } catch (std::bad_alloc) {
         return -1;
     }
 
@@ -52,7 +58,7 @@ int cb_create_thread(cb_thread_t *id,
 
     handle = CreateThread(NULL, 0, platform_thread_wrap, ctx, 0, id);
     if (handle == NULL) {
-        free(ctx);
+        delete ctx;
         return -1;
     } else {
         if (detached) {
@@ -170,14 +176,12 @@ void cb_cond_broadcast(cb_cond_t *cond)
 
 static const char *get_dll_name(const char *path, char *buffer)
 {
-    char *ptr = strstr(path, ".dll");
-    if (ptr != NULL) {
+    if (strstr(path, ".dll") != nullptr) {
         return path;
     }
 
     strcpy(buffer, path);
-
-    ptr = strstr(buffer, ".so");
+    char *ptr = strstr(buffer, ".so");
     if (ptr != NULL) {
         sprintf(ptr, ".dll");
         return buffer;
@@ -191,7 +195,6 @@ __declspec(dllexport)
 cb_dlhandle_t cb_dlopen(const char *library, char **errmsg)
 {
     cb_dlhandle_t handle;
-    char *buffer;
 
     if (library == NULL) {
         if (errmsg != NULL) {
@@ -200,31 +203,13 @@ cb_dlhandle_t cb_dlopen(const char *library, char **errmsg)
         return NULL;
     }
 
-    buffer = malloc(strlen(library) + 20);
-    if (buffer == NULL) {
-        if (*errmsg) {
-            *errmsg = _strdup("Failed to allocate memory");
-        }
-        return NULL;
-    }
+    std::vector<char> buffer(strlen(library) + 20, 0);
 
-    handle = LoadLibrary(get_dll_name(library, buffer));
+    handle = LoadLibrary(get_dll_name(library, buffer.data()));
     if (handle == NULL && errmsg != NULL) {
-        DWORD err = GetLastError();
-        LPVOID error_msg;
-
-        if (FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER |
-                          FORMAT_MESSAGE_FROM_SYSTEM |
-                          FORMAT_MESSAGE_IGNORE_INSERTS,
-                          NULL, err, 0, (LPTSTR)&error_msg, 0, NULL) != 0) {
-            *errmsg = _strdup(error_msg);
-            LocalFree(error_msg);
-        } else {
-            *errmsg = _strdup("Failed to get error message");
-        }
+        std::string reason = cb_strerror();
+        *errmsg = _strdup(reason.c_str());
     }
-
-    free(buffer);
 
     return handle;
 }
@@ -232,20 +217,10 @@ cb_dlhandle_t cb_dlopen(const char *library, char **errmsg)
 __declspec(dllexport)
 void *cb_dlsym(cb_dlhandle_t handle, const char *symbol, char **errmsg)
 {
-    void *ret = GetProcAddress(handle, symbol);
+    void *ret = GetProcAddress(reinterpret_cast<HMODULE>(handle), symbol);
     if (ret == NULL && errmsg) {
-        DWORD err = GetLastError();
-        LPVOID error_msg;
-
-        if (FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER |
-                          FORMAT_MESSAGE_FROM_SYSTEM |
-                          FORMAT_MESSAGE_IGNORE_INSERTS,
-                          NULL, err, 0, (LPTSTR)&error_msg, 0, NULL) != 0) {
-            *errmsg = _strdup(error_msg);
-            LocalFree(error_msg);
-        } else {
-            *errmsg = _strdup("Failed to get error message");
-        }
+        std::string reason = cb_strerror();
+        *errmsg = _strdup(reason.c_str());
     }
 
     return ret;
@@ -254,7 +229,7 @@ void *cb_dlsym(cb_dlhandle_t handle, const char *symbol, char **errmsg)
 __declspec(dllexport)
 void cb_dlclose(cb_dlhandle_t handle)
 {
-    FreeLibrary(handle);
+    FreeLibrary(reinterpret_cast<HMODULE>(handle));
 }
 
 __declspec(dllexport)
