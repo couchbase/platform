@@ -22,6 +22,7 @@
 #include <platform/random.h>
 #include <sstream>
 #include <stdexcept>
+#include <mutex>
 
 namespace Couchbase {
    class RandomGeneratorProvider {
@@ -69,24 +70,13 @@ namespace Couchbase {
 
    class SharedRandomGeneratorProvider : public RandomGeneratorProvider {
    public:
-      SharedRandomGeneratorProvider() {
-         cb_mutex_initialize(&mutex);
-      }
-
-      ~SharedRandomGeneratorProvider() {
-         cb_mutex_destroy(&mutex);
-      }
-
       virtual bool getBytes(void *dest, size_t size) {
-         bool ret;
-         cb_mutex_enter(&mutex);
-         ret = RandomGeneratorProvider::getBytes(dest, size);
-         cb_mutex_exit(&mutex);
-         return ret;
+         std::lock_guard<std::mutex> lock(mutex);
+         return RandomGeneratorProvider::getBytes(dest, size);
       }
 
    private:
-      cb_mutex_t mutex;
+      std::mutex mutex;
    };
 }
 
