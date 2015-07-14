@@ -16,6 +16,7 @@
  */
 #pragma once
 
+#include <platform/visibility.h>
 #include <string>
 
 /**
