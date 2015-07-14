@@ -45,9 +45,6 @@ CHECK_SYMBOL_EXISTS(htonll arpa/inet.h CB_DONT_NEED_BYTEORDER)
 CONFIGURE_FILE (${CMAKE_CURRENT_SOURCE_DIR}/src/config.cmake.h
                 ${CMAKE_CURRENT_BINARY_DIR}/src/config.h)
 
-CONFIGURE_FILE (${CMAKE_CURRENT_SOURCE_DIR}/include/platform/internal_config.cmake.h
-                ${CMAKE_CURRENT_BINARY_DIR}/include/platform/internal_config.h)
-
 CONFIGURE_FILE (${CMAKE_CURRENT_SOURCE_DIR}/include/platform/dynamic.in.h
                 ${CMAKE_CURRENT_BINARY_DIR}/include/platform/dynamic.h)
 

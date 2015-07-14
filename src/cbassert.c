@@ -17,8 +17,6 @@
 
 #include "config.h"
 
-#include "platform/internal_config.h"
-
 #include <platform/backtrace.h>
 #include <platform/cbassert.h>
 #include <stdlib.h>
