@@ -28,8 +28,17 @@
 PLATFORM_PUBLIC_API
 std::string cb_strerror() {
 #ifdef WIN32
+    return cb_strerror(GetLastError());
+#else
+    return cb_strerror(errno);
+#endif
+}
+
+PLATFORM_PUBLIC_API
+std::string cb_strerror(cb_os_error_t error)
+{
+#ifdef WIN32
     std::string reason;
-    DWORD error = GetLastError();
     char *win_msg = NULL;
     if (FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER |
                       FORMAT_MESSAGE_FROM_SYSTEM |
@@ -45,6 +54,6 @@ std::string cb_strerror() {
     }
     return reason;
 #else
-    return std::string(strerror(errno));
+    return std::string(strerror(error));
 #endif
 }
