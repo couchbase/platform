@@ -81,6 +81,7 @@ IF (WIN32)
    INSTALL(FILES ${DBGHELP_DLL} DESTINATION bin)
 ELSE (WIN32)
    SET(PLATFORM_FILES src/cb_pthreads.c src/urandom.c src/memorymap_posix.cc)
+   SET_SOURCE_FILES_PROPERTIES(src/crc32c.cc PROPERTIES COMPILE_FLAGS -msse4.2)
    LIST(APPEND PLATFORM_LIBRARIES "pthread")
 
    IF (NOT APPLE)
@@ -125,13 +126,16 @@ ADD_LIBRARY(platform SHARED ${PLATFORM_FILES}
                             src/byteorder.c
                             src/cb_time.c
                             src/cb_mktemp.c
-                            include/platform/memorymap.h
                             src/cbassert.c
+                            src/crc32c.cc
                             src/strerror.cc
+                            include/platform/crc32c.h
+                            include/platform/memorymap.h
                             include/platform/platform.h
                             include/platform/random.h
                             include/platform/strerror.h
                             include/platform/visibility.h)
+
 
 LIST(REMOVE_DUPLICATES PLATFORM_LIBRARIES)
 TARGET_LINK_LIBRARIES(platform ${COUCHBASE_NETWORK_LIBS} ${PLATFORM_LIBRARIES})
@@ -146,9 +150,23 @@ TARGET_LINK_LIBRARIES(platform-dirutils-test dirutils)
 ADD_EXECUTABLE(platform-gettimeofday-test tests/gettimeofday_test.cc)
 TARGET_LINK_LIBRARIES(platform-gettimeofday-test platform)
 
+ADD_EXECUTABLE(platform-crc32c-test tests/crc32c_test.cc)
+TARGET_LINK_LIBRARIES(platform-crc32c-test platform)
+
+ADD_EXECUTABLE(platform-crc32c-sw_hw-test tests/crc32c_test.cc
+                                          src/crc32c.cc)
+SET_TARGET_PROPERTIES(platform-crc32c-sw_hw-test PROPERTIES COMPILE_FLAGS "-DCRC32C_UNIT_TEST")
+TARGET_LINK_LIBRARIES(platform-crc32c-sw_hw-test ${PLATFORM_LIBRARIES})
+
+ADD_EXECUTABLE(platform-crc32c-bench tests/crc32c_bench.cc
+                                     src/crc32c.cc)
+SET_TARGET_PROPERTIES(platform-crc32c-bench PROPERTIES COMPILE_FLAGS "-DCRC32C_UNIT_TEST")
+TARGET_LINK_LIBRARIES(platform-crc32c-bench platform)
+
 IF (INSTALL_HEADER_FILES)
    INSTALL (FILES
             include/platform/cbassert.h
+            include/platform/crc32c.h
             include/platform/dirutils.h
             include/platform/platform.h
             include/platform/random.h
@@ -201,6 +219,8 @@ ADD_TEST(platform-getopt-test-1 platform-getopt-test 1)
 ADD_TEST(platform-getopt-test-2 platform-getopt-test 2)
 ADD_TEST(platform-random-test platform-random-test)
 ADD_TEST(platform-mktemp-test platform-mktemp-test)
+ADD_TEST(platform-crc32c-test platform-crc32c-test)
+ADD_TEST(platform-crc32c-sw_hw-test platform-crc32c-sw_hw-test)
 
 ADD_EXECUTABLE(platform-cjson-test include/cJSON.h tests/cjson_test.c)
 TARGET_LINK_LIBRARIES(platform-cjson-test cJSON)
