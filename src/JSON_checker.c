@@ -448,7 +448,10 @@ checkUTF8JSON(const unsigned char* data, size_t size) {
             if(*data & 0x20) expect++;
             if((*data & 0x10) && expect == 2) expect++;
             /* Verify zero bit separates count bits and codepoint bits */
-            if(expect == 3 && (*data & 0x8)) return false;
+            if(expect == 3 && (*data & 0x8)) {
+                badutf = 1;
+                break;
+            }
             continue;
         }
 
