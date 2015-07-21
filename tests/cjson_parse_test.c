@@ -112,5 +112,6 @@ int main(int argc, char **argv) {
 
     report(delta / (hrtime_t)num);
 
+    free(data);
     exit(EXIT_SUCCESS);
 }
