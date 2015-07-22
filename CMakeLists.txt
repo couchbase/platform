@@ -81,7 +81,7 @@ IF (WIN32)
    INSTALL(FILES ${DBGHELP_DLL} DESTINATION bin)
 ELSE (WIN32)
    SET(PLATFORM_FILES src/cb_pthreads.c src/urandom.c src/memorymap_posix.cc)
-   SET_SOURCE_FILES_PROPERTIES(src/crc32c.cc PROPERTIES COMPILE_FLAGS -msse4.2)
+   SET_SOURCE_FILES_PROPERTIES(src/crc32c_sse4_2.cc PROPERTIES COMPILE_FLAGS -msse4.2)
    LIST(APPEND PLATFORM_LIBRARIES "pthread")
 
    IF (NOT APPLE)
@@ -128,6 +128,8 @@ ADD_LIBRARY(platform SHARED ${PLATFORM_FILES}
                             src/cb_mktemp.c
                             src/cbassert.c
                             src/crc32c.cc
+                            src/crc32c_sse4_2.cc
+                            src/crc32c_private.h
                             src/strerror.cc
                             include/platform/crc32c.h
                             include/platform/memorymap.h
@@ -154,12 +156,15 @@ ADD_EXECUTABLE(platform-crc32c-test tests/crc32c_test.cc)
 TARGET_LINK_LIBRARIES(platform-crc32c-test platform)
 
 ADD_EXECUTABLE(platform-crc32c-sw_hw-test tests/crc32c_test.cc
-                                          src/crc32c.cc)
+                                          src/crc32c.cc
+                                          src/crc32c_sse4_2.cc)
 SET_TARGET_PROPERTIES(platform-crc32c-sw_hw-test PROPERTIES COMPILE_FLAGS "-DCRC32C_UNIT_TEST")
 TARGET_LINK_LIBRARIES(platform-crc32c-sw_hw-test ${PLATFORM_LIBRARIES})
 
 ADD_EXECUTABLE(platform-crc32c-bench tests/crc32c_bench.cc
-                                     src/crc32c.cc)
+                                     src/crc32c.cc
+                                     src/crc32c_sse4_2.cc)
+
 SET_TARGET_PROPERTIES(platform-crc32c-bench PROPERTIES COMPILE_FLAGS "-DCRC32C_UNIT_TEST")
 TARGET_LINK_LIBRARIES(platform-crc32c-bench platform)
 

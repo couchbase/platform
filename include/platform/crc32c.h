@@ -39,10 +39,8 @@
 // To fix will require refactoring to hide the X86 dependencies when
 // built on another platform.
 //
-// The code is also x64 optimised.
-//
-#if !defined(__x86_64__) && !defined(_M_X64)
-#error "crc32c requires X86 for hardware acceleration"
+#if !defined(__x86_64__) && !defined(_M_X64) && !defined(_M_IX86)
+#error "crc32c requires X86 SSE4.2 for hardware acceleration"
 #endif
 
 #ifdef CRC32C_UNIT_TEST

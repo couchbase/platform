@@ -28,8 +28,10 @@
 // Software and Hardware Assisted CRC32-C function.
 //
 // This is an altered/adapted version of Mark Adler's crc32c.c
-//  - see http://stackoverflow.com/a/17646775
-//  - see above license.
+//  - See http://stackoverflow.com/a/17646775
+//  - See above license.
+//  - This module provides a software only crc32c
+//    and cpuid code to enable HW assist.
 //
 // Changes from orginal version include.
 //  a) Compiler intrinsics instead of inline asm.
@@ -50,19 +52,15 @@
 //
 
 #include "platform/crc32c.h"
+#include "crc32c_private.h"
 
 #include <stdint.h>
 #include <stddef.h>
 
-// select header file for cpuid and crc instructions.
+// select header file for cpuid.
 #if defined(WIN32)
-#include <nmmintrin.h>
 #include <intrin.h>
-#elif defined(__clang__)
-#include <cpuid.h>
-#include <smmintrin.h>
-#elif defined(__GNUC__)
-#include <smmintrin.h>
+#elif defined(__clang__) || defined(__GNUC__)
 #include <cpuid.h>
 #endif
 
@@ -75,28 +73,20 @@ typedef uint32_t (*crc32c_function) (const uint8_t* buf, size_t len, uint32_t cr
 #define CRC32C_SW  __attribute__ ((target ("default"))) \
                    uint32_t crc32c (const uint8_t* buf, size_t len, uint32_t crc_in)
 
-#define CRC32C_HW  __attribute__ ((target ("sse4.2"))) \
-                   uint32_t crc32c (const uint8_t* buf, size_t len, uint32_t crc_in)
 #else
 #define CRC32C_SW uint32_t crc32c_sw (const uint8_t* buf, size_t len, uint32_t crc_in)
-#define CRC32C_HW uint32_t crc32c_hw (const uint8_t* buf, size_t len, uint32_t crc_in)
+extern uint32_t crc32c_hw (const uint8_t* buf, size_t len, uint32_t crc_in);
 #endif
 
 static bool setup_tables();
 static bool tables_setup = setup_tables();
 
 const uint32_t CRC32C_POLYNOMIAL_REV = 0x82F63B78;
-const uintptr_t ALIGN64_MASK = sizeof(uint64_t)-1;
-const int TABLE_X = 8, TABLE_Y = 256, SHIFT_TABLE_X = 4, SHIFT_TABLE_Y = 256;
+const int TABLE_X = 8, TABLE_Y = 256;
 static uint32_t crc32c_sw_lookup_table[TABLE_X][TABLE_Y];
 /* Tables for hardware crc that shift a crc by LONG and SHORT zeros. */
-static uint32_t crc32c_long[SHIFT_TABLE_X][SHIFT_TABLE_Y];
-static uint32_t crc32c_short[SHIFT_TABLE_X][SHIFT_TABLE_Y];
-/* Block sizes for three-way parallel crc computation.  LONG and SHORT must
-   both be powers of two.  The associated string constants must be set
-   accordingly, for use in constructing the assembler instructions. */
-const int LONG_BLOCK = 8192;
-const int SHORT_BLOCK = 256;
+uint32_t crc32c_long[SHIFT_TABLE_X][SHIFT_TABLE_Y];
+uint32_t crc32c_short[SHIFT_TABLE_X][SHIFT_TABLE_Y];
 
 /* Multiply a matrix times a vector over the Galois field of two elements,
    GF(2).  Each element is a bit in an unsigned integer.  mat must have at
@@ -180,13 +170,6 @@ static void crc32c_zeros(uint32_t zeros[SHIFT_TABLE_X][SHIFT_TABLE_Y], size_t le
         zeros[2][n] = gf2_matrix_times(op, n << 16);
         zeros[3][n] = gf2_matrix_times(op, n << 24);
     }
-}
-
-/* Apply the zeros operator table to crc. */
-static inline uint32_t crc32c_shift(uint32_t zeros[SHIFT_TABLE_X][SHIFT_TABLE_Y],
-                                    uint32_t crc) {
-    return zeros[0][crc & 0xff] ^ zeros[1][(crc >> 8) & 0xff] ^
-           zeros[2][(crc >> 16) & 0xff] ^ zeros[3][crc >> 24];
 }
 
 // single CRC in software
@@ -354,169 +337,7 @@ CRC32C_SW {
     return static_cast<uint32_t>(crc ^ std::numeric_limits<uint32_t>::max());
 }
 
-//
-// CRC32-C implementation using SSE4.2 acceleration
-// no pipeline optimisation.
-//
-uint32_t crc32c_hw_1way (const uint8_t* buf, size_t len, uint32_t crc_in) {
-    uint64_t crc = static_cast<uint64_t>(~crc_in);
-    // use crc32-byte instruction until the buf pointer is 8-byte aligned
-    while ((reinterpret_cast<uintptr_t>(buf) & ALIGN64_MASK) != 0 && len > 0) {
-        crc = _mm_crc32_u8(static_cast<uint32_t>(crc), *buf);
-        buf += sizeof(uint8_t);
-        len -= sizeof(uint8_t);
-    }
 
-    // use crc32-64 instruction until there's no more 64-bits to eat
-    while (len >= sizeof(uint64_t)) {
-        crc = _mm_crc32_u64(crc, *reinterpret_cast<const uint64_t*>(buf));
-        buf += sizeof(uint64_t);
-        len -= sizeof(uint64_t);
-    }
-
-    // finish the rest using the byte instruction
-    while (len > 0) {
-        crc = _mm_crc32_u8(static_cast<uint32_t>(crc), *buf);
-        buf += sizeof(uint8_t);
-        len -= sizeof(uint8_t);
-    }
-
-    return static_cast<uint32_t>(crc ^ std::numeric_limits<uint32_t>::max());
-}
-
-//
-// HW assisted crc32c that processes as much data in parallel using 3xSHORT_BLOCKs
-//
-uint32_t crc32c_hw_short_block (const uint8_t* buf, size_t len, uint32_t crc_in) {
-
-    // If len is less the 3xSHORT_BLOCK just use the 1-way hw version
-    if (len < (3*SHORT_BLOCK)) {
-        return crc32c_hw_1way(buf, len, crc_in);
-    }
-
-    uint64_t crc0 = static_cast<uint64_t>(~crc_in), crc1 = 0, crc2 = 0;
-
-    // use crc32-byte instruction until the buf pointer is 8-byte aligned
-    while ((reinterpret_cast<uintptr_t>(buf) & ALIGN64_MASK) != 0 && len > 0) {
-
-        crc0 = _mm_crc32_u8(static_cast<uint32_t>(crc0), *buf);
-        buf += sizeof(uint8_t);
-        len -= sizeof(uint8_t);
-    }
-
-    // process the data using 3 pipelined crc working on 3 blocks of SHORT_BLOCK
-    while (len >= (3 * SHORT_BLOCK)) {
-        crc1 = 0;
-        crc2 = 0;
-        const uint8_t* end = buf + SHORT_BLOCK;
-        do
-        {
-            crc0 = _mm_crc32_u64(crc0, *reinterpret_cast<const uint64_t*>(buf));
-            crc1 = _mm_crc32_u64(crc1, *reinterpret_cast<const uint64_t*>(buf + SHORT_BLOCK));
-            crc2 = _mm_crc32_u64(crc2, *reinterpret_cast<const uint64_t*>(buf + (2 * SHORT_BLOCK)));
-            buf += sizeof(uint64_t);
-        } while (buf < end);
-        crc0 = crc32c_shift(crc32c_short, static_cast<uint32_t>(crc0)) ^ crc1;
-        crc0 = crc32c_shift(crc32c_short, static_cast<uint32_t>(crc0)) ^ crc2;
-        buf += 2 * SHORT_BLOCK;
-        len -= 3 * SHORT_BLOCK;
-    }
-
-    // use crc32-64 instruction until there's no more 64-bits to eat
-    while (len >= sizeof(uint64_t)) {
-        crc0 = _mm_crc32_u64(crc0, *reinterpret_cast<const uint64_t*>(buf));
-        buf += sizeof(uint64_t);
-        len -= sizeof(uint64_t);
-    }
-
-    // finish the rest using the byte instruction
-    while (len > 0) {
-        crc0 = _mm_crc32_u8(static_cast<uint32_t>(crc0), *buf);
-        buf += sizeof(uint8_t);
-        len -= sizeof(uint8_t);
-    }
-
-    return static_cast<uint32_t>(crc0 ^ std::numeric_limits<uint32_t>::max());
-}
-
-
-//
-// A parallelised crc32c issuing 3 crc at once.
-// Generally 3 crc instructions can be issued at once.
-//
-CRC32C_HW {
-
-    // if len is less than the long block it's faster to just process using 3way short-block
-    if (len < 3*LONG_BLOCK) {
-        return crc32c_hw_short_block(buf, len, crc_in);
-    }
-
-    uint64_t crc0 = static_cast<uint64_t>(~crc_in), crc1 = 0, crc2 = 0;
-
-    // use crc32-byte instruction until the buf pointer is 8-byte aligned
-    while ((reinterpret_cast<uintptr_t>(buf) & ALIGN64_MASK) != 0 && len > 0) {
-
-        crc0 = _mm_crc32_u8(static_cast<uint32_t>(crc0), *buf);
-        buf += sizeof(uint8_t);
-        len -= sizeof(uint8_t);
-    }
-
-    /* compute the crc on sets of LONG_BLOCK*3 bytes, executing three independent crc
-       instructions, each on LONG_BLOCK bytes -- this is optimized for the Nehalem,
-       Westmere, Sandy Bridge, and Ivy Bridge architectures, which have a
-       throughput of one crc per cycle, but a latency of three cycles */
-    while (len >= (3 * LONG_BLOCK)) {
-        crc1 = 0;
-        crc2 = 0;
-        const uint8_t* end = buf + LONG_BLOCK;
-        do
-        {
-            crc0 = _mm_crc32_u64(crc0, *reinterpret_cast<const uint64_t*>(buf));
-            crc1 = _mm_crc32_u64(crc1, *reinterpret_cast<const uint64_t*>(buf + LONG_BLOCK));
-            crc2 = _mm_crc32_u64(crc2, *reinterpret_cast<const uint64_t*>(buf + (2 * LONG_BLOCK)));
-            buf += sizeof(uint64_t);
-        } while (buf < end);
-        crc0 = crc32c_shift(crc32c_long, static_cast<uint32_t>(crc0)) ^ crc1;
-        crc0 = crc32c_shift(crc32c_long, static_cast<uint32_t>(crc0)) ^ crc2;
-        buf += 2 * LONG_BLOCK;
-        len -= 3 * LONG_BLOCK;
-    }
-
-    /* do the same thing, but now on SHORT_BLOCK*3 blocks for the remaining data less
-       than a LONG_BLOCK*3 block */
-    while (len >= (3 * SHORT_BLOCK)) {
-        crc1 = 0;
-        crc2 = 0;
-        const uint8_t* end = buf + SHORT_BLOCK;
-        do
-        {
-            crc0 = _mm_crc32_u64(crc0, *reinterpret_cast<const uint64_t*>(buf));
-            crc1 = _mm_crc32_u64(crc1, *reinterpret_cast<const uint64_t*>(buf + SHORT_BLOCK));
-            crc2 = _mm_crc32_u64(crc2, *reinterpret_cast<const uint64_t*>(buf + (2 * SHORT_BLOCK)));
-            buf += sizeof(uint64_t);
-        } while (buf < end);
-        crc0 = crc32c_shift(crc32c_short, static_cast<uint32_t>(crc0)) ^ crc1;
-        crc0 = crc32c_shift(crc32c_short, static_cast<uint32_t>(crc0)) ^ crc2;
-        buf += 2 * SHORT_BLOCK;
-        len -= 3 * SHORT_BLOCK;
-    }
-
-    // use crc32-64 instruction until there's no more 64-bits to eat
-    while (len >= sizeof(uint64_t)) {
-        crc0 = _mm_crc32_u64(crc0, *reinterpret_cast<const uint64_t*>(buf));
-        buf += sizeof(uint64_t);
-        len -= sizeof(uint64_t);
-    }
-
-    // finish the rest using the byte instruction
-    while (len > 0) {
-        crc0 = _mm_crc32_u8(static_cast<uint32_t>(crc0), *buf);
-        buf += sizeof(uint8_t);
-        len -= sizeof(uint8_t);
-    }
-
-    return static_cast<uint32_t>(crc0 ^ std::numeric_limits<uint32_t>::max());
-}
 
 //
 // Initialise tables for software and hardware functions.
