@@ -20,7 +20,7 @@
 #include <wincrypt.h>
 #endif
 
-#include <platform/visibility.h>
+#include <platform/platform.h>
 
 #ifdef __cplusplus
 extern "C" {

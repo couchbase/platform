@@ -17,7 +17,7 @@
 
 #pragma once
 
-#include <platform/visibility.h>
+#include <platform/platform.h>
 
 #include <inttypes.h>
 #include <stddef.h>

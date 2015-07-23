@@ -65,20 +65,20 @@ namespace CouchbaseDirectoryUtilities
         }
     }
 
-    PLATFORM_PUBLIC_API
+    DIRUTILS_PUBLIC_API
     string dirname(const string &dir)
     {
         return split(dir, true);
     }
 
-    PLATFORM_PUBLIC_API
+    DIRUTILS_PUBLIC_API
     string basename(const string &name)
     {
         return split(name, false);
     }
 
 #ifdef _MSC_VER
-    PLATFORM_PUBLIC_API
+    DIRUTILS_PUBLIC_API
     vector<string> findFilesWithPrefix(const string &dir, const string &name)
     {
         vector<string> files;
@@ -105,7 +105,7 @@ namespace CouchbaseDirectoryUtilities
         return files;
     }
 #else
-    PLATFORM_PUBLIC_API
+    DIRUTILS_PUBLIC_API
     vector<string> findFilesWithPrefix(const string &dir, const string &name)
     {
         vector<string> files;
@@ -131,14 +131,14 @@ namespace CouchbaseDirectoryUtilities
     }
 #endif
 
-    PLATFORM_PUBLIC_API
+    DIRUTILS_PUBLIC_API
     vector<string> findFilesWithPrefix(const string &name)
     {
         return findFilesWithPrefix(dirname(name), basename(name));
     }
 
 #ifdef _MSC_VER
-    PLATFORM_PUBLIC_API
+    DIRUTILS_PUBLIC_API
     vector<string> findFilesContaining(const string &dir, const string &name)
     {
         vector<string> files;
@@ -165,7 +165,7 @@ namespace CouchbaseDirectoryUtilities
         return files;
     }
 #else
-    PLATFORM_PUBLIC_API
+    DIRUTILS_PUBLIC_API
     vector<string> findFilesContaining(const string &dir, const string &name)
     {
         vector<string> files;
@@ -191,7 +191,7 @@ namespace CouchbaseDirectoryUtilities
     }
 #endif
 
-    PLATFORM_PUBLIC_API
+    DIRUTILS_PUBLIC_API
     bool rmrf(const std::string &path) {
         struct stat st;
         if (stat(path.c_str(), &st) == -1) {
@@ -232,7 +232,7 @@ namespace CouchbaseDirectoryUtilities
         return rmdir(path.c_str()) == 0;
     }
 
-    PLATFORM_PUBLIC_API
+    DIRUTILS_PUBLIC_API
     bool isDirectory(const std::string &directory) {
 #ifdef WIN32
         DWORD dwAttrib = GetFileAttributes(directory.c_str());
@@ -249,7 +249,7 @@ namespace CouchbaseDirectoryUtilities
 #endif
     }
 
-    PLATFORM_PUBLIC_API
+    DIRUTILS_PUBLIC_API
     bool mkdirp(const std::string &directory) {
         struct stat st;
         if (stat(directory.c_str(), &st) == 0) {

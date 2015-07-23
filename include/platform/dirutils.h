@@ -23,52 +23,58 @@
 #include <string>
 #include <vector>
 
+#if defined(dirutils_EXPORTS)
+#define DIRUTILS_PUBLIC_API EXPORT_SYMBOL
+#else
+#define DIRUTILS_PUBLIC_API IMPORT_SYMBOL
+#endif
+
 namespace CouchbaseDirectoryUtilities
 {
     /**
      * Return the directory part of an absolute path
      */
-    PLATFORM_PUBLIC_API
+    DIRUTILS_PUBLIC_API
     std::string dirname(const std::string &dir);
 
     /**
      * Return the filename part of an absolute path
      */
-    PLATFORM_PUBLIC_API
+    DIRUTILS_PUBLIC_API
     std::string basename(const std::string &name);
 
     /**
      * Return a vector containing all of the files starting with a given
      * name stored in a given directory
      */
-    PLATFORM_PUBLIC_API
+    DIRUTILS_PUBLIC_API
     std::vector<std::string> findFilesWithPrefix(const std::string &dir, const std::string &name);
 
     /**
      * Return a vector containing all of the files starting with a given
      * name specified with this absolute path
      */
-    PLATFORM_PUBLIC_API
+    DIRUTILS_PUBLIC_API
     std::vector<std::string> findFilesWithPrefix(const std::string &name);
 
     /**
      * Return a vector containing all of the files containing a given substring
      * located in a given directory
      */
-    PLATFORM_PUBLIC_API
+    DIRUTILS_PUBLIC_API
     std::vector<std::string> findFilesContaining(const std::string &dir, const std::string &name);
 
     /**
      * Delete a file or directory (including subdirectories)
      */
-    PLATFORM_PUBLIC_API
+    DIRUTILS_PUBLIC_API
     bool rmrf(const std::string &path);
 
 
     /**
      * Check if a directory exists or not
      */
-    PLATFORM_PUBLIC_API
+    DIRUTILS_PUBLIC_API
     bool isDirectory(const std::string &directory);
 
     /**
@@ -77,7 +83,7 @@ namespace CouchbaseDirectoryUtilities
      * @param directory the directory to create
      * @return true if success, false otherwise
      */
-    PLATFORM_PUBLIC_API
+    DIRUTILS_PUBLIC_API
     bool mkdirp(const std::string &directory);
 
 }

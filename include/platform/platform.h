@@ -16,8 +16,24 @@
  */
 #pragma once
 
-#include <platform/cbassert.h>
 #include <platform/dynamic.h>
+#include <platform/visibility.h>
+
+/* PLATFORM_PUBLIC_API
+ *
+ * Used for functions which are part of the public API of platform.
+ * "Inside" platform (i.e. when compiling platform.so) they will export the
+ * symbol
+ * "Outside" platform (i.e. when compiling code which wants to link to
+ * platform.so) they will allow the symbol to be imported from platform.so
+ */
+#if defined(platform_EXPORTS)
+#define PLATFORM_PUBLIC_API EXPORT_SYMBOL
+#else
+#define PLATFORM_PUBLIC_API IMPORT_SYMBOL
+#endif
+
+#include <platform/cbassert.h>
 
 #ifdef WIN32
 /* Include winsock2.h before windows.h to avoid winsock.h to be included */
@@ -32,7 +48,6 @@
 #include <time.h>
 #include <stdio.h>
 #include <stdint.h>
-#include <platform/visibility.h>
 
 #ifdef __sun
 #include <arpa/inet.h>

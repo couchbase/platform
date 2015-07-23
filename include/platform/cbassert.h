@@ -17,8 +17,7 @@
 #pragma once
 
 #include <assert.h>
-#include <platform/visibility.h>
-#include <platform/dynamic.h>
+#include <platform/platform.h>
 
 #ifdef __cplusplus
 extern "C" {

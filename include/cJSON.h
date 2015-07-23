@@ -24,27 +24,12 @@
 #ifndef cJSON__h
 #define cJSON__h
 
+#include <platform/visibility.h>
+
 #ifdef BUILDING_CJSON
-
-#if defined (__SUNPRO_C) && (__SUNPRO_C >= 0x550)
-#define CJSON_PUBLIC_API __global
-#elif defined __GNUC__
-#define CJSON_PUBLIC_API __attribute__ ((visibility("default")))
-#elif defined(_MSC_VER)
-#define CJSON_PUBLIC_API __declspec(dllexport)
+#define CJSON_PUBLIC_API EXPORT_SYMBOL
 #else
-/* unknown compiler */
-#define CJSON_PUBLIC_API
-#endif
-
-#else
-
-#if defined(_MSC_VER)
-#define CJSON_PUBLIC_API __declspec(dllimport)
-#else
-#define CJSON_PUBLIC_API
-#endif
-
+#define CJSON_PUBLIC_API IMPORT_SYMBOL
 #endif
 
 #ifdef __cplusplus

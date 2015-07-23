@@ -30,7 +30,7 @@
 #pragma once
 #include <stdint.h>
 #include <stddef.h>
-#include <platform/visibility.h>
+#include <platform/platform.h>
 
 //
 // This module requires X86 for the HW assisted version of the function.
