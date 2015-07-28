@@ -48,21 +48,13 @@
 #define PLATFORM_PUBLIC_API
 #endif
 
-// If GCC 4.8 or higher use compiler attributes to select the
-// correct function at runtime. If running the CRC32C unit test
-// disable this as we want individually visible hw/sw versions.
-#if (__GNUC__ > 3) && (__GNUC_MINOR__ > 7) && !defined(CRC32C_UNIT_TEST)
-#define USE_GCC_SSE4_ATTRIBUTE 1
-
-PLATFORM_PUBLIC_API __attribute__ ((target ("default")))
-uint32_t crc32c (const uint8_t* buf, size_t len, uint32_t crc_in);
-
-PLATFORM_PUBLIC_API __attribute__ ((target ("sse4.2")))
-uint32_t crc32c (const uint8_t* buf, size_t len, uint32_t crc_in);
-
-#else
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 PLATFORM_PUBLIC_API
 uint32_t crc32c (const uint8_t* buf, size_t len, uint32_t crc_in);
 
+#ifdef __cplusplus
+}
 #endif

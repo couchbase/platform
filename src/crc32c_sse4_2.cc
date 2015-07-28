@@ -66,13 +66,6 @@
 
 #include <limits>
 
-#ifdef USE_GCC_SSE4_ATTRIBUTE
-#define CRC32C_HW  __attribute__ ((target ("sse4.2"))) \
-                   uint32_t crc32c(const uint8_t* buf, size_t len, uint32_t crc_in)
-#else
-#define CRC32C_HW uint32_t crc32c_hw(const uint8_t* buf, size_t len, uint32_t crc_in)
-#endif
-
 #if defined(__i386) || defined(_M_IX86)
 typedef uint32_t crc_max_size_t;
 #define _mm_crc32_max_size _mm_crc32_u32
@@ -170,7 +163,7 @@ uint32_t crc32c_hw_short_block(const uint8_t* buf, size_t len, uint32_t crc_in) 
 // A parallelised crc32c issuing 3 crc at once.
 // Generally 3 crc instructions can be issued at once.
 //
-CRC32C_HW {
+uint32_t crc32c_hw(const uint8_t* buf, size_t len, uint32_t crc_in) {
     // if len is less than the long block it's faster to just process using 3way short-block
     if (len < 3*LONG_BLOCK) {
         return crc32c_hw_short_block(buf, len, crc_in);
