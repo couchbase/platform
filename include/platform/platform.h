@@ -38,16 +38,6 @@
 #include <arpa/inet.h>
 #endif
 
-/* Function attribute to be used where the return value should not be
- * ignored by the caller. For example: allocation functions where the
- * caller should free the result after use.
- */
-#if HAVE_ATTR_WARN_UNUSED_RESULT
-#define CB_MUST_USE_RESULT __attribute__((warn_unused_result))
-#else
-#define CB_MUST_USE_RESULT
-#endif
-
 #ifdef __cplusplus
 extern "C" {
 #endif
