@@ -20,16 +20,9 @@
 
 PLATFORM_PUBLIC_API
 int cb_rand_open(cb_rand_t *handle) {
-    if (!CryptAcquireContext(handle, "Couchbase", NULL, PROV_RSA_FULL, 0)) {
-        if (GetLastError() != NTE_BAD_KEYSET) {
-            return -1;
-        }
-
-        /* Try to create a new keyset */
-        if (!CryptAcquireContext(handle, "Couchbase", NULL,
-                                 PROV_RSA_FULL, CRYPT_NEWKEYSET)) {
-            return -1;
-        }
+    if (!CryptAcquireContext(handle, NULL, NULL, PROV_RSA_FULL,
+                             CRYPT_VERIFYCONTEXT | CRYPT_SILENT)) {
+        return -1;
     }
 
     return 0;
