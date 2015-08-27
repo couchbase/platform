@@ -118,6 +118,29 @@ SET_TARGET_PROPERTIES(platform PROPERTIES SOVERSION 0.1.0)
 ADD_LIBRARY(dirutils SHARED src/dirutils.cc include/platform/dirutils.h)
 SET_TARGET_PROPERTIES(dirutils PROPERTIES SOVERSION 0.1.0)
 
+IF (BREAKPAD_FOUND)
+   ADD_DEFINITIONS(-DHAVE_BREAKPAD)
+   INCLUDE_DIRECTORIES(AFTER ${BREAKPAD_INCLUDE_DIR})
+   # Breakpad has headers (which are dependencies for our breakpad integration
+   # code) that don't compile cleanly as C++11, so the GNU standard is
+   # used instead.
+   IF (UNIX)
+      set_source_files_properties(src/breakpad_wrapper.cc PROPERTIES COMPILE_FLAGS ${CB_GNU_CXX11_OPTION})
+   ENDIF (UNIX)
+
+   ADD_LIBRARY(breakpad_wrapper SHARED
+               src/breakpad_wrapper.cc
+               include/breakpad_wrapper/breakpad_wrapper.h)
+
+   TARGET_LINK_LIBRARIES(breakpad_wrapper
+                         ${BREAKPAD_LIBRARIES})
+
+   INSTALL(TARGETS breakpad_wrapper
+           RUNTIME DESTINATION bin
+           LIBRARY DESTINATION lib
+           ARCHIVE DESTINATION lib)
+ENDIF (BREAKPAD_FOUND)
+
 ADD_EXECUTABLE(platform-dirutils-test tests/dirutils_test.cc)
 TARGET_LINK_LIBRARIES(platform-dirutils-test dirutils)
 
