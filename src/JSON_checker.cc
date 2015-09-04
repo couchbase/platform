@@ -29,14 +29,6 @@ SOFTWARE.
 #include <stdlib.h>
 #include "JSON_checker.h"
 
-typedef struct JSON_checker_struct {
-    int state;
-    int depth;
-    int top;
-    int* stack;
-} * JSON_checker;
-
-
 #define true  1
 #define false 0
 #define __   -1     /* the universal error code */
@@ -189,88 +181,7 @@ static int state_transition_table[NR_STATES][NR_CLASSES] = {
 };
 
 
-/*
-    These modes can be pushed on the stack.
-*/
-enum modes {
-    MODE_ARRAY,
-    MODE_DONE,
-    MODE_KEY,
-    MODE_OBJECT
-};
-
-static int
-reject(JSON_checker jc)
-{
-/*
-    Delete the JSON_checker object.
-*/
-    free((void*)jc->stack);
-    free((void*)jc);
-    return false;
-}
-
-
-static int
-push(JSON_checker jc, int mode)
-{
-/*
-    Push a mode onto the stack. Return false if there is overflow.
-*/
-    jc->top += 1;
-    if (jc->top >= jc->depth) {
-        return false;
-    }
-    jc->stack[jc->top] = mode;
-    return true;
-}
-
-
-static int
-pop(JSON_checker jc, int mode)
-{
-/*
-    Pop the stack, assuring that the current mode matches the expectation.
-    Return false if there is underflow or if the modes mismatch.
-*/
-    if (jc->top < 0 || jc->stack[jc->top] != mode) {
-        return false;
-    }
-    jc->top -= 1;
-    return true;
-}
-
-
-static JSON_checker
-new_JSON_checker(int depth)
-{
-/*
-    new_JSON_checker starts the checking process by constructing a JSON_checker
-    object. It takes a depth parameter that restricts the level of maximum
-    nesting.
-
-    To continue the process, call JSON_checker_char for each character in the
-    JSON text, and then call JSON_checker_done to obtain the final result.
-    These functions are fully reentrant.
-
-    The JSON_checker object will be deleted by JSON_checker_done.
-    JSON_checker_char will delete the JSON_checker object if it sees an error.
-*/
-    JSON_checker jc = (JSON_checker)malloc(sizeof(struct JSON_checker_struct));
-    if (jc != NULL) {
-        /* Modified- we want to accept JSON values, not just JSON-Texts */
-        jc->state = VA;
-        jc->depth = depth;
-        jc->top = -1;
-        jc->stack = (int*)calloc(depth, sizeof(int));
-        push(jc, MODE_DONE);
-    }
-    return jc;
-}
-
-
-static int
-JSON_checker_char(JSON_checker jc, int next_char)
+static int JSON_checker_char(JSON_checker::Instance &jc, int next_char)
 {
 /*
     After calling new_JSON_checker, call this function for each character (or
@@ -283,25 +194,25 @@ JSON_checker_char(JSON_checker jc, int next_char)
     Determine the character's class.
 */
     if (next_char < 0) {
-        return reject(jc);
+        return false;
     }
     if (next_char >= 128) {
         next_class = C_ETC;
     } else {
         next_class = ascii_class[next_char];
         if (next_class <= __) {
-            return reject(jc);
+            return false;
         }
     }
 /*
     Get the next state from the state transition table.
 */
-    next_state = state_transition_table[jc->state][next_class];
+    next_state = state_transition_table[jc.state][next_class];
     if (next_state >= 0) {
 /*
     Change the state.
 */
-        jc->state = next_state;
+        jc.state = next_state;
     } else {
 /*
     Or perform one of the actions.
@@ -309,75 +220,75 @@ JSON_checker_char(JSON_checker jc, int next_char)
         switch (next_state) {
 /* empty } */
         case -9:
-            if (!pop(jc, MODE_KEY)) {
-                return reject(jc);
+            if (!jc.pop(JSON_checker::Modes::KEY)) {
+                return false;
             }
-            jc->state = OK;
+            jc.state = OK;
             break;
 
 /* } */ case -8:
-            if (!pop(jc, MODE_OBJECT)) {
-                return reject(jc);
+            if (!jc.pop(JSON_checker::Modes::OBJECT)) {
+                return false;
             }
-            jc->state = OK;
+            jc.state = OK;
             break;
 
 /* ] */ case -7:
-            if (!pop(jc, MODE_ARRAY)) {
-                return reject(jc);
+            if (!jc.pop(JSON_checker::Modes::ARRAY)) {
+                return false;
             }
-            jc->state = OK;
+            jc.state = OK;
             break;
 
 /* { */ case -6:
-            if (!push(jc, MODE_KEY)) {
-                return reject(jc);
+            if (!jc.push(JSON_checker::Modes::KEY)) {
+                return false;
             }
-            jc->state = OB;
+            jc.state = OB;
             break;
 
 /* [ */ case -5:
-            if (!push(jc, MODE_ARRAY)) {
-                return reject(jc);
+            if (!jc.push(JSON_checker::Modes::ARRAY)) {
+                return false;
             }
-            jc->state = AR;
+            jc.state = AR;
             break;
 
 /* " */ case -4:
-            switch (jc->stack[jc->top]) {
-            case MODE_KEY:
-                jc->state = CO;
+            switch (jc.stack.top()) {
+            case JSON_checker::Modes::KEY:
+                jc.state = CO;
                 break;
-            case MODE_ARRAY:
-            case MODE_OBJECT:
+            case JSON_checker::Modes::ARRAY:
+            case JSON_checker::Modes::OBJECT:
             /*
               Modified- we want to accept JSON values, not just JSON-Texts, this
               allows us to accept bare strings.
             */
-            case MODE_DONE:
-                jc->state = OK;
+            case JSON_checker::Modes::DONE:
+                jc.state = OK;
                 break;
             default:
-                return reject(jc);
+                return false;
             }
             break;
 
 /* , */ case -3:
-            switch (jc->stack[jc->top]) {
-            case MODE_OBJECT:
+            switch (jc.stack.top()) {
+            case JSON_checker::Modes::OBJECT:
 /*
     A comma causes a flip from object mode to key mode.
 */
-                if (!pop(jc, MODE_OBJECT) || !push(jc, MODE_KEY)) {
-                    return reject(jc);
+                if (!jc.pop(JSON_checker::Modes::OBJECT) || !jc.push(JSON_checker::Modes::KEY)) {
+                    return false;
                 }
-                jc->state = KE;
+                jc.state = KE;
                 break;
-            case MODE_ARRAY:
-                jc->state = VA;
+            case JSON_checker::Modes::ARRAY:
+                jc.state = VA;
                 break;
             default:
-                return reject(jc);
+                return false;
             }
             break;
 
@@ -385,24 +296,22 @@ JSON_checker_char(JSON_checker jc, int next_char)
 /*
     A colon causes a flip from key mode to object mode.
 */
-            if (!pop(jc, MODE_KEY) || !push(jc, MODE_OBJECT)) {
-                return reject(jc);
+            if (!jc.pop(JSON_checker::Modes::KEY) || !jc.push(JSON_checker::Modes::OBJECT)) {
+                return false;
             }
-            jc->state = VA;
+            jc.state = VA;
             break;
 /*
     Bad action.
 */
         default:
-            return reject(jc);
+            return false;
         }
     }
     return true;
 }
 
-
-static int
-JSON_checker_done(JSON_checker jc)
+static bool JSON_checker_done(JSON_checker::Instance &jc)
 {
 /*
     The JSON_checker_done function should be called after all of the characters
@@ -410,19 +319,18 @@ JSON_checker_done(JSON_checker jc)
     true. This function deletes the JSON_checker and returns true if the JSON
     text was accepted.
 */
-    int result = (jc->state == OK) && pop(jc, MODE_DONE);
-    reject(jc);
-    return result;
+    return (jc.state == OK) && jc.pop(JSON_checker::Modes::DONE);
 }
 
 /* Check for both UTF-8ness and JSONness in one pass */
-int
-checkUTF8JSON(const unsigned char* data, size_t size) {
+static bool checkUTF8JSON(JSON_checker::Instance &jc,
+                          const unsigned char* data,
+                          size_t size) {
     int expect = 0; /* Expect UTF code point to extend this many bytes */
     int badjson = 0;
     int badutf = 0;
     const unsigned char *end = data + size;
-    JSON_checker jc = new_JSON_checker((int)(size/2) + 1);
+    jc.reset();
     for(;data < end; data++) {
         if(!JSON_checker_char(jc, *data)) {
             badjson = 1;
@@ -466,7 +374,7 @@ checkUTF8JSON(const unsigned char* data, size_t size) {
     if(!badjson) {
         /* Feed fake space to the validator to force it to finish validating */
         /* numerical values, iff it hasn't marked the current stream as valid */
-        if(jc->state != OK) {
+        if(jc.state != OK) {
             badjson = !JSON_checker_char(jc, 32);
         }
         if(!badjson) {
@@ -474,4 +382,66 @@ checkUTF8JSON(const unsigned char* data, size_t size) {
         }
     }
     return (!badjson && !badutf);
+}
+
+// Backwards compatible to avoid build breaks..
+bool checkUTF8JSON(const unsigned char* data, size_t size)
+{
+    JSON_checker::Instance instance;
+    try {
+        return checkUTF8JSON(instance, data, size);
+    } catch (std::bad_alloc&) {
+        return false;
+    }
+}
+
+JSON_checker::Validator::Validator() {
+    // empty
+}
+
+bool JSON_checker::Validator::validate(const uint8_t* data, size_t size) {
+    return checkUTF8JSON(instance, data, size);
+}
+
+bool JSON_checker::Validator::validate(const std::vector<uint8_t>& data) {
+    return validate(data.data(), static_cast<size_t>(data.size()));
+}
+
+bool JSON_checker::Validator::validate(const std::string& data) {
+    return validate(reinterpret_cast<const uint8_t*>(data.data()),
+                    static_cast<size_t>(data.length()));
+}
+
+JSON_checker::Instance::Instance() {
+    reset();
+}
+
+void JSON_checker::Instance::reset() {
+    state = VA;
+    std::stack<Modes> empty;
+    stack.swap(empty);
+    push(Modes::DONE);
+}
+
+bool JSON_checker::Instance::push(Modes mode) {
+    stack.push(mode);
+    return true;
+}
+
+bool JSON_checker::Instance::pop(Modes mode)
+{
+    if (stack.empty()) {
+        // stack underflow
+        return false;
+    }
+
+    Modes val = stack.top();
+    stack.pop();
+
+    if (val != mode) {
+        // unexpected element on the stack!!
+        return false;
+    }
+
+    return true;
 }

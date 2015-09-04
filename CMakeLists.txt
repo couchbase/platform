@@ -61,7 +61,7 @@ ADD_LIBRARY(cJSON SHARED src/cJSON.c include/cJSON.h)
 SET_TARGET_PROPERTIES(cJSON PROPERTIES SOVERSION 1.0.0)
 SET_TARGET_PROPERTIES(cJSON PROPERTIES COMPILE_FLAGS -DBUILDING_CJSON=1)
 
-ADD_LIBRARY(JSON_checker SHARED src/JSON_checker.c include/JSON_checker.h)
+ADD_LIBRARY(JSON_checker SHARED src/JSON_checker.cc include/JSON_checker.h)
 SET_TARGET_PROPERTIES(JSON_checker PROPERTIES SOVERSION 1.0.0)
 
 IF (WIN32)
@@ -239,11 +239,6 @@ TARGET_LINK_LIBRARIES(platform-cjson-parse-test cJSON platform)
 ADD_TEST(platform-cjson-parse-test
          platform-cjson-parse-test -f ${PROJECT_SOURCE_DIR}/tests/testdata.json
                                    -n 1)
-
-ADD_EXECUTABLE(platform-json-checker-test tests/json_checker_test.cc)
-TARGET_LINK_LIBRARIES(platform-json-checker-test JSON_checker)
-ADD_TEST(platform-json-checker-test platform-json-checker-test)
-
 ADD_EXECUTABLE(platform-strings-test tests/strings_test.c)
 TARGET_LINK_LIBRARIES(platform-strings-test platform)
 ADD_TEST(platform-strings-test platform-strings-test)
@@ -255,6 +250,8 @@ ADD_TEST(platform-backtrace-test platform-backtrace-test)
 ADD_EXECUTABLE(platform-memorymap-test tests/memorymap_test.cc)
 TARGET_LINK_LIBRARIES(platform-memorymap-test platform)
 ADD_TEST(platform-memorymap-test platform-memorymap-test)
+
+ADD_SUBDIRECTORY(tests)
 
 IF (${CMAKE_MAJOR_VERSION} LESS 3)
    SET_TARGET_PROPERTIES(cJSON PROPERTIES INSTALL_NAME_DIR
