@@ -129,3 +129,12 @@ void print_backtrace(write_cb_t write_cb, void* context) {
 }
 
 #endif // defined(HAVE_BACKTRACE_SUPPORT)
+
+static void print_to_file_cb(void* ctx, const char* frame) {
+    fprintf(ctx, "\t%s\n", frame);
+}
+
+PLATFORM_PUBLIC_API
+void print_backtrace_to_file(FILE* stream) {
+    print_backtrace(print_to_file_cb, stream);
+}

@@ -29,6 +29,12 @@ typedef void (*write_cb_t)(void *ctx, const char *frame);
 PLATFORM_PUBLIC_API
 void print_backtrace(write_cb_t write_cb, void* context);
 
+/**
+ * Convenience function - prints a backtrace to the specified FILE.
+ */
+PLATFORM_PUBLIC_API
+void print_backtrace_to_file(FILE* stream);
+
 #ifdef __cplusplus
 } // extern "C"
 #endif
