@@ -191,28 +191,6 @@ ADD_EXECUTABLE(platform-crc32c-bench tests/crc32c_bench.cc
 SET_TARGET_PROPERTIES(platform-crc32c-bench PROPERTIES COMPILE_FLAGS "-DCRC32C_UNIT_TEST")
 TARGET_LINK_LIBRARIES(platform-crc32c-bench platform)
 
-IF (INSTALL_HEADER_FILES)
-   INSTALL (FILES
-            include/platform/cbassert.h
-            include/platform/crc32c.h
-            include/platform/dirutils.h
-            include/platform/platform.h
-            include/platform/random.h
-            include/platform/visibility.h
-            include/platform/dirutils.h
-            DESTINATION include/platform)
-
-   INSTALL(FILES include/cJSON.h include/JSON_checker.h DESTINATION include)
-
-   IF (WIN32)
-      INSTALL(FILES
-             include/win32/getopt.h
-             include/win32/strings.h
-             include/win32/unistd.h
-             DESTINATION include)
-   ENDIF (WIN32)
-ENDIF (INSTALL_HEADER_FILES)
-
 INSTALL(TARGETS cJSON JSON_checker platform dirutils
         RUNTIME DESTINATION bin
         LIBRARY DESTINATION lib
