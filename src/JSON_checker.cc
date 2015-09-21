@@ -29,8 +29,6 @@ SOFTWARE.
 #include <stdlib.h>
 #include "JSON_checker.h"
 
-#define true  1
-#define false 0
 #define __   -1     /* the universal error code */
 
 /*
@@ -181,7 +179,7 @@ static int state_transition_table[NR_STATES][NR_CLASSES] = {
 };
 
 
-static int JSON_checker_char(JSON_checker::Instance &jc, int next_char)
+static bool JSON_checker_char(JSON_checker::Instance &jc, int next_char)
 {
 /*
     After calling new_JSON_checker, call this function for each character (or
