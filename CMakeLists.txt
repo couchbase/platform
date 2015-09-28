@@ -155,19 +155,16 @@ IF (BREAKPAD_FOUND)
    IF (UNIX)
       set_source_files_properties(src/breakpad_wrapper.cc PROPERTIES COMPILE_FLAGS ${CB_GNU_CXX11_OPTION})
    ENDIF (UNIX)
-
-   ADD_LIBRARY(breakpad_wrapper SHARED
-               src/breakpad_wrapper.cc
-               include/breakpad_wrapper/breakpad_wrapper.h)
-
-   TARGET_LINK_LIBRARIES(breakpad_wrapper
-                         ${BREAKPAD_LIBRARIES})
-
-   INSTALL(TARGETS breakpad_wrapper
-           RUNTIME DESTINATION bin
-           LIBRARY DESTINATION lib
-           ARCHIVE DESTINATION lib)
 ENDIF (BREAKPAD_FOUND)
+
+# To simplify usage we always build breakpad_wrapper; it'll just
+# do nothing on targets which don't have Breakpad.
+ADD_LIBRARY(breakpad_wrapper SHARED
+            src/breakpad_wrapper.cc
+            include/breakpad_wrapper/breakpad_wrapper.h)
+
+TARGET_LINK_LIBRARIES(breakpad_wrapper
+                      ${BREAKPAD_LIBRARIES})
 
 ADD_EXECUTABLE(platform-dirutils-test tests/dirutils_test.cc)
 TARGET_LINK_LIBRARIES(platform-dirutils-test dirutils)
@@ -191,7 +188,7 @@ ADD_EXECUTABLE(platform-crc32c-bench tests/crc32c_bench.cc
 SET_TARGET_PROPERTIES(platform-crc32c-bench PROPERTIES COMPILE_FLAGS "-DCRC32C_UNIT_TEST")
 TARGET_LINK_LIBRARIES(platform-crc32c-bench platform)
 
-INSTALL(TARGETS cJSON JSON_checker platform dirutils
+INSTALL(TARGETS breakpad_wrapper cJSON JSON_checker platform dirutils
         RUNTIME DESTINATION bin
         LIBRARY DESTINATION lib
         ARCHIVE DESTINATION lib)

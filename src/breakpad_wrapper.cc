@@ -113,7 +113,7 @@ void breakpad_initialize(const char* minidump_dir) {
 
 PLATFORM_PUBLIC_API
 bool breakpad_write_minidump(void) {
-    // do nothing
+    return false;
 }
 
 PLATFORM_PUBLIC_API
