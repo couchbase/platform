@@ -46,6 +46,7 @@ extern "C" {
 #ifdef WIN32
     typedef DWORD cb_thread_t;
     typedef CRITICAL_SECTION cb_mutex_t;
+    typedef SRWLOCK cb_rwlock_t;
 
 #ifdef _MSC_VER
     typedef CONDITION_VARIABLE cb_cond_t;
@@ -80,6 +81,7 @@ extern "C" {
     typedef pthread_t cb_thread_t;
     typedef pthread_mutex_t cb_mutex_t;
     typedef pthread_cond_t cb_cond_t;
+    typedef pthread_rwlock_t cb_rwlock_t;
 
 #ifndef __sun
     typedef uint64_t hrtime_t;
@@ -250,6 +252,49 @@ extern "C" {
     PLATFORM_PUBLIC_API
     void cb_cond_broadcast(cb_cond_t *cond);
 
+    /***********************************************************************
+     *                 Reader/Writer lock  related functions               *
+     **********************************************************************/
+
+    /**
+     * Initialize a read/write lock
+     */
+    PLATFORM_PUBLIC_API
+    void cb_rw_lock_initialize(cb_rwlock_t *rw);
+
+    /**
+     * Destroy a read/write lock
+     */
+    PLATFORM_PUBLIC_API
+    void cb_rw_lock_destroy(cb_rwlock_t *rw);
+
+    /*
+     * Obtain reader access to the rw_lock
+     * Return 0 if succesfully entered the critical section.
+     */
+    PLATFORM_PUBLIC_API
+    int cb_rw_reader_enter(cb_rwlock_t *rw);
+
+    /*
+     * Exit the lock if previously entered as a reader.
+     * Return 0 if succesfully exited the critical section.
+     */
+    PLATFORM_PUBLIC_API
+    int cb_rw_reader_exit(cb_rwlock_t *rw);
+
+    /*
+     * Obtain writer access to the rw_lock
+     * Return 0 if succesfully entered the critical section.
+     */
+    PLATFORM_PUBLIC_API
+    int cb_rw_writer_enter(cb_rwlock_t *rw);
+
+    /*
+     * Exit the lock if previously entered as a writer.
+     * Return 0 if succesfully exited the critical section.
+     */
+    PLATFORM_PUBLIC_API
+    int cb_rw_writer_exit(cb_rwlock_t *rw);
 
 #ifndef CB_DONT_NEED_GETHRTIME
     /**
