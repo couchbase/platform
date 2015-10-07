@@ -17,6 +17,8 @@
 
 #ifdef __cplusplus
 extern "C" {
+#else
+#include <stdbool.h>
 #endif
 
 typedef void (*write_cb_t)(void *ctx, const char *frame);
@@ -34,6 +36,17 @@ void print_backtrace(write_cb_t write_cb, void* context);
  */
 PLATFORM_PUBLIC_API
 void print_backtrace_to_file(FILE* stream);
+
+/**
+ * print a backtrace to a buffer
+ *
+ * @param indent the indent used for each entry in the callstack
+ * @param buffer the buffer to populate with the backtrace
+ * @param size the size of the input buffer
+ */
+PLATFORM_PUBLIC_API
+bool print_backtrace_to_buffer(const char *indent, char *buffer, size_t size);
+
 
 #ifdef __cplusplus
 } // extern "C"

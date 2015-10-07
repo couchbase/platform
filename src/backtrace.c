@@ -138,3 +138,39 @@ PLATFORM_PUBLIC_API
 void print_backtrace_to_file(FILE* stream) {
     print_backtrace(print_to_file_cb, stream);
 }
+
+struct context {
+    const char *indent;
+    char *buffer;
+    size_t size;
+    size_t offset;
+    bool error;
+};
+
+static void memory_cb(void* ctx, const char* frame) {
+    struct context *c = ctx;
+
+
+    if (!c->error) {
+        int length = snprintf(c->buffer + c->offset, c->size - c->offset - 1,
+                              "%s%s\n", c->indent, frame);
+
+        if (length < 0) {
+            c->error = true;
+        } else {
+            c->offset += length;
+        }
+    }
+}
+
+PLATFORM_PUBLIC_API
+bool print_backtrace_to_buffer(const char *indent, char *buffer, size_t size) {
+    struct context c = {
+        .indent = indent,
+        .buffer = buffer,
+        .size = size,
+        .offset = 0,
+        .error = false};
+    print_backtrace(memory_cb, &c);
+    return !c.error;
+}
