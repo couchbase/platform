@@ -31,7 +31,11 @@ namespace Couchbase {
             value.store(0, std::memory_order_relaxed);
         }
 
-        RelaxedAtomic(const RelaxedAtomic& other) {
+        explicit RelaxedAtomic(const T& initial) {
+            value.store(initial, std::memory_order_relaxed);
+        }
+
+        explicit RelaxedAtomic(const RelaxedAtomic& other) {
             value.store(other.value.load(std::memory_order_relaxed),
                         std::memory_order_relaxed);
         }
