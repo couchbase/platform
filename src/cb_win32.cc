@@ -278,3 +278,44 @@ int platform_set_binary_mode(FILE *fp)
 {
     return _setmode(_fileno(fp), _O_BINARY);
 }
+
+__declspec(dllexport)
+void cb_rw_lock_initialize(cb_rwlock_t *rw)
+{
+    InitializeSRWLock(rw);
+}
+
+__declspec(dllexport)
+void cb_rw_lock_destroy(cb_rwlock_t *rw)
+{
+    (void)rw;
+    // Nothing todo on windows
+}
+
+__declspec(dllexport)
+int cb_rw_reader_enter(cb_rwlock_t *rw)
+{
+    AcquireSRWLockShared(rw);
+    return 0;
+}
+
+__declspec(dllexport)
+int cb_rw_reader_exit(cb_rwlock_t *rw)
+{
+    ReleaseSRWLockShared(rw);
+    return 0;
+}
+
+__declspec(dllexport)
+int cb_rw_writer_enter(cb_rwlock_t *rw)
+{
+    AcquireSRWLockExclusive(rw);
+    return 0;
+}
+
+__declspec(dllexport)
+int cb_rw_writer_exit(cb_rwlock_t *rw)
+{
+    ReleaseSRWLockExclusive(rw);
+    return 0;
+}
