@@ -48,7 +48,7 @@ int cb_create_named_thread(cb_thread_t *id, cb_thread_main_func func, void *arg,
     ctx->argument = arg;
     if (name != NULL) {
         if (strlen(name) > 15) {
-            return 0;
+            return -1;
         }
         ctx->name = strdup(name);
     } else {
