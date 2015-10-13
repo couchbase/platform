@@ -90,15 +90,48 @@ int cb_thread_equal(const cb_thread_t a, const cb_thread_t b)
     return pthread_equal(a, b);
 }
 
-void cb_set_thread_name(const char* name)
+int cb_set_thread_name(const char* name)
 {
 #if defined(__APPLE__)
     // No thread argument (implicit current thread).
-    pthread_setname_np(name);
+    int ret = pthread_setname_np(name);
+    if (ret == 0) {
+        return 0;
+    } else if (errno == ENAMETOOLONG) {
+        return 1;
+    }
 #elif defined(HAVE_PTHREAD_SETNAME_NP)
-    pthread_setname_np(pthread_self(), name);
+    errno = 0;
+    int ret = pthread_setname_np(pthread_self(), name);
+    if (ret == 0) {
+        return 0;
+    } else if (errno == ERANGE || ret == ERANGE) {
+        return 1;
+    }
+#endif
+
+    return -1;
+}
+
+int cb_get_thread_name(char* name, size_t size)
+{
+#if defined(HAVE_PTHREAD_GETNAME_NP)
+    return pthread_getname_np(pthread_self(), name, size);
+#else
+    return - 1;
 #endif
 }
+
+
+bool is_thread_name_supported(void)
+{
+#ifdef HAVE_PTHREAD_SETNAME_NP
+    return true;
+#else
+    return false;
+#endif
+}
+
 
 void cb_mutex_initialize(cb_mutex_t *mutex)
 {

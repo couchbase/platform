@@ -103,10 +103,22 @@ int cb_thread_equal(const cb_thread_t a, const cb_thread_t b)
 }
 
 __declspec(dllexport)
-void cb_set_thread_name(const char* name)
+int cb_set_thread_name(const char*)
 {
     // Not implemented on WIN32
-    (void)name;
+    return -1;
+}
+
+__declspec(dllexport)
+int cb_get_thread_name(char*, size_t)
+{
+    return -1;
+}
+
+__declspec(dllexport)
+bool is_thread_name_supported(void)
+{
+    return false;
 }
 
 __declspec(dllexport)

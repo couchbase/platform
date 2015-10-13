@@ -5,6 +5,7 @@
 #cmakedefine HAVE_BACKTRACE 1
 #cmakedefine HAVE_DLADDR 1
 #cmakedefine HAVE_PTHREAD_SETNAME_NP 1
+#cmakedefine HAVE_PTHREAD_GETNAME_NP 1
 
 #ifdef WIN32
 #include <winsock2.h>

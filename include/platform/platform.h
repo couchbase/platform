@@ -16,6 +16,8 @@
  */
 #pragma once
 
+#include <stdbool.h>
+
 #include <platform/dynamic.h>
 #include <platform/visibility.h>
 
@@ -152,11 +154,33 @@ extern "C" {
     /**
      * Sets the current threads' name.
      *
-     * @param name New value for the current threads' name. If non-NULL,
-     *             maximum of 16 characters in length.
+     * This method tries to set the current threads name by using
+     * pthread_setname_np (which means that it is not implemented
+     * on windows)
+     *
+     * @param name New value for the current threads' name
+     * @return 0 for success, 1 if the specified name is too long and
+     *         -1 if an error occurred
      */
     PLATFORM_PUBLIC_API
-    void cb_set_thread_name(const char* name);
+    int cb_set_thread_name(const char* name);
+
+    /**
+     * Try to get the name of the current thread
+     *
+     * @param name destination buffer
+     * @param size size of destination buffer
+     * @return 0 for success
+     *         -1 if an error occurred
+     */
+    PLATFORM_PUBLIC_API
+    int cb_get_thread_name(char* name, size_t size);
+
+    /**
+     * Does the underlying platform support setting thread names
+     */
+    PLATFORM_PUBLIC_API
+    bool is_thread_name_supported(void);
 
     /***********************************************************************
      *                      Mutex related functions                        *
