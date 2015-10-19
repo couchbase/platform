@@ -81,7 +81,7 @@ IF (WIN32)
    LIST(APPEND PLATFORM_LIBRARIES "${DBGHELP_LIBRARY}")
    INSTALL(FILES ${DBGHELP_DLL} DESTINATION bin)
 ELSE (WIN32)
-   SET(PLATFORM_FILES src/cb_pthreads.c src/urandom.c src/memorymap_posix.cc)
+   SET(PLATFORM_FILES src/cb_pthreads.cc src/urandom.c src/memorymap_posix.cc)
    SET_SOURCE_FILES_PROPERTIES(src/crc32c_sse4_2.cc PROPERTIES COMPILE_FLAGS -msse4.2)
    LIST(APPEND PLATFORM_LIBRARIES "pthread")
 

@@ -1,28 +1,52 @@
 #include "config.h"
-#include <assert.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/time.h>
+#include <cerrno>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <dlfcn.h>
-#include <errno.h>
+#include <memory>
+#include <new>
+#include <stdexcept>
+#include <string>
+#include <sys/time.h>
+#include <system_error>
 
-struct thread_execute {
+/**
+ * The CouchbaseThread class is used to pass information between a thread
+ * and the newly created thread.
+ */
+class CouchbaseThread {
+public:
+    CouchbaseThread(cb_thread_main_func func_,
+                    void* argument_,
+                    const char* name_)
+        : func(func_),
+          argument(argument_) {
+        if (name_) {
+            name.assign(name_);
+            if (name.length() > 15) {
+                throw std::logic_error("name exceeds 15 characters");
+            }
+        }
+    }
+
+    void run() {
+        if (!name.empty()) {
+            cb_set_thread_name(name.c_str());
+        }
+        func(argument);
+    }
+
+private:
     cb_thread_main_func func;
-    const char* name;
-    void *argument;
+    std::string name;
+    void* argument;
 };
 
 static void *platform_thread_wrap(void *arg)
 {
-    struct thread_execute *ctx = arg;
-    assert(arg);
-    if (ctx->name != NULL) {
-        cb_set_thread_name(ctx->name);
-    }
-    ctx->func(ctx->argument);
-    free((void*)ctx->name);
-    free(ctx);
+    std::unique_ptr<CouchbaseThread> context(reinterpret_cast<CouchbaseThread*>(arg));
+    context->run();
     return NULL;
 }
 
@@ -31,7 +55,7 @@ int cb_create_thread(cb_thread_t *id,
                      void *arg,
                      int detached)
 {
-    // Implemented in terms of cb_create_named_thread; with a NULL name.
+    // Implemented in terms of cb_create_named_thread; without a name.
     return cb_create_named_thread(id, func, arg, detached, NULL);
 }
 
@@ -39,37 +63,30 @@ int cb_create_named_thread(cb_thread_t *id, cb_thread_main_func func, void *arg,
                            int detached, const char* name)
 {
     int ret;
-    struct thread_execute *ctx = malloc(sizeof(struct thread_execute));
-    if (ctx == NULL) {
+    CouchbaseThread* ctx;
+    try {
+        ctx = new CouchbaseThread(func, arg, name);
+    } catch (std::bad_alloc&) {
+        return -1;
+    } catch (std::logic_error&) {
         return -1;
     }
 
-    ctx->func = func;
-    ctx->argument = arg;
-    if (name != NULL) {
-        if (strlen(name) > 15) {
-            return -1;
-        }
-        ctx->name = strdup(name);
-    } else {
-        ctx->name = NULL;
+    pthread_attr_t attr;
+    if (pthread_attr_init(&attr) != 0) {
+        return -1;
     }
 
-    if (detached) {
-        pthread_attr_t attr;
-
-        if (pthread_attr_init(&attr) != 0 ||
-                pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED) != 0) {
-            return -1;
-        }
-
-        ret = pthread_create(id, &attr, platform_thread_wrap, ctx);
-    } else {
-        ret = pthread_create(id, NULL, platform_thread_wrap, ctx);
+    if (detached &&
+        pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED) != 0) {
+        return -1;
     }
+
+    ret = pthread_create(id, &attr, platform_thread_wrap, ctx);
+    pthread_attr_destroy(&attr);
 
     if (ret != 0) {
-        free(ctx);
+        delete ctx;
     }
 
     return ret;
@@ -250,8 +267,8 @@ static const char *get_dll_name(const char *path, char *buffer)
 #else
 static const char *get_dll_name(const char *path, char *buffer)
 {
-    char *ptr = strstr(path, ".so");
-    if (ptr != NULL) {
+    auto* ptr = strstr(path, ".so");
+    if (ptr != nullptr) {
         return path;
     }
 
@@ -271,7 +288,7 @@ cb_dlhandle_t cb_dlopen(const char *library, char **errmsg)
     } else {
         handle = dlopen(library, RTLD_NOW | RTLD_LOCAL);
         if (handle == NULL) {
-            buffer = malloc(strlen(library) + 20);
+            buffer = reinterpret_cast<char*>(malloc(strlen(library) + 20));
             if (buffer == NULL) {
                 if (*errmsg) {
                     *errmsg = strdup("Failed to allocate memory");
