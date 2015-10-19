@@ -1,3 +1,19 @@
+/* -*- Mode: C++; tab-width: 4; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+/*
+ *     Copyright 2015 Couchbase, Inc
+ *
+ *   Licensed under the Apache License, Version 2.0 (the "License");
+ *   you may not use this file except in compliance with the License.
+ *   You may obtain a copy of the License at
+ *
+ *       http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *   Unless required by applicable law or agreed to in writing, software
+ *   distributed under the License is distributed on an "AS IS" BASIS,
+ *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   See the License for the specific language governing permissions and
+ *   limitations under the License.
+ */
 #include "config.h"
 #include <cerrno>
 #include <cstdio>
@@ -152,21 +168,28 @@ bool is_thread_name_supported(void)
 
 void cb_mutex_initialize(cb_mutex_t *mutex)
 {
-    pthread_mutex_init(mutex, NULL);
+    int rv = pthread_mutex_init(mutex, NULL);
+    if (rv != 0) {
+        throw std::system_error(rv, std::system_category(),
+                                "Failed to initialize mutex");
+    }
 }
 
 void cb_mutex_destroy(cb_mutex_t *mutex)
 {
-    pthread_mutex_destroy(mutex);
+    int rv = pthread_mutex_destroy(mutex);
+    if (rv != 0) {
+        throw std::system_error(rv, std::system_category(),
+                                "Failed to destroy mutex");
+    }
 }
 
 void cb_mutex_enter(cb_mutex_t *mutex)
 {
     int rv = pthread_mutex_lock(mutex);
     if (rv != 0) {
-        fprintf(stderr, "FATAL: Failed to lock mutex: %d %s",
-                rv, strerror(rv));
-        abort();
+        throw std::system_error(rv, std::system_category(),
+                                "Failed to lock mutex");
     }
 }
 
@@ -178,42 +201,60 @@ void cb_mutex_exit(cb_mutex_t *mutex)
 {
     int rv = pthread_mutex_unlock(mutex);
     if (rv != 0) {
-        fprintf(stderr, "FATAL: Failed to release mutex: %d %s",
-                rv, strerror(rv));
-        abort();
+        throw std::system_error(rv, std::system_category(),
+                                "Failed to release mutex");
     }
 }
 
 void cb_cond_initialize(cb_cond_t *cond)
 {
-    pthread_cond_init(cond, NULL);
+    int rv = pthread_cond_init(cond, NULL);
+    if (rv != 0) {
+        throw std::system_error(rv, std::system_category(),
+                                "Failed to initialize condition variable");
+    }
 }
 
 void cb_cond_destroy(cb_cond_t *cond)
 {
-    pthread_cond_destroy(cond);
+    int rv = pthread_cond_destroy(cond);
+    if (rv != 0) {
+        throw std::system_error(rv, std::system_category(),
+                                "Failed to destroy condition variable");
+    }
 }
 
 void cb_cond_wait(cb_cond_t *cond, cb_mutex_t *mutex)
 {
-    pthread_cond_wait(cond, mutex);
+    int rv = pthread_cond_wait(cond, mutex);
+    if (rv != 0) {
+        throw std::system_error(rv, std::system_category(),
+                                "Failed to wait on condition variable");
+    }
 }
 
 void cb_cond_signal(cb_cond_t *cond)
 {
-    pthread_cond_signal(cond);
+    int rv = pthread_cond_signal(cond);
+    if (rv != 0) {
+        throw std::system_error(rv, std::system_category(),
+                                "Failed to signal condition variable");
+    }
 }
 
 void cb_cond_broadcast(cb_cond_t *cond)
 {
-    pthread_cond_broadcast(cond);
+    int rv = pthread_cond_broadcast(cond);
+    if (rv != 0) {
+        throw std::system_error(rv, std::system_category(),
+                                "Failed to broadcast condition variable");
+    }
 }
 
 void cb_cond_timedwait(cb_cond_t *cond, cb_mutex_t *mutex, unsigned int ms)
 {
     struct timespec ts;
     struct timeval tp;
-    int ret;
     uint64_t wakeup;
 
     memset(&ts, 0, sizeof(ts));
@@ -233,15 +274,10 @@ void cb_cond_timedwait(cb_cond_t *cond, cb_mutex_t *mutex, unsigned int ms)
     wakeup %= 1000;
     ts.tv_nsec = wakeup * 1000000;
 
-    ret = pthread_cond_timedwait(cond, mutex, &ts);
-    switch (ret) {
-    case EINVAL:
-    case EPERM:
-        fprintf(stderr, "FATAL: pthread_cond_timewait: %s\n",
-                strerror(ret));
-        abort();
-    default:
-        ;
+    int rv = pthread_cond_timedwait(cond, mutex, &ts);
+    if (rv != 0 && rv != ETIMEDOUT) {
+        throw std::system_error(rv, std::system_category(),
+                                "Failed to do timed wait on condition variable");
     }
 }
 
@@ -331,12 +367,20 @@ int platform_set_binary_mode(FILE *fp)
 
 void cb_rw_lock_initialize(cb_rwlock_t *rw)
 {
-    pthread_rwlock_init(rw, NULL);
+    int rv = pthread_rwlock_init(rw, NULL);
+    if (rv != 0) {
+        throw std::system_error(rv, std::system_category(),
+                                "Failed to initialize rw lock");
+    }
 }
 
 void cb_rw_lock_destroy(cb_rwlock_t *rw)
 {
-    pthread_rwlock_destroy(rw);
+    int rv = pthread_rwlock_destroy(rw);
+    if (rv != 0) {
+        throw std::system_error(rv, std::system_category(),
+                                "Failed to destroy rw lock");
+    }
 }
 
 int cb_rw_reader_enter(cb_rwlock_t *rw)
