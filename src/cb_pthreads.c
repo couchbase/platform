@@ -1,4 +1,7 @@
 #include "config.h"
+
+#include "platform/internal_config.h"
+
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
