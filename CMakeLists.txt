@@ -135,9 +135,18 @@ ADD_LIBRARY(platform SHARED ${PLATFORM_FILES}
                             include/platform/strerror.h
                             include/platform/visibility.h)
 
-
 LIST(REMOVE_DUPLICATES PLATFORM_LIBRARIES)
 TARGET_LINK_LIBRARIES(platform ${COUCHBASE_NETWORK_LIBS} ${PLATFORM_LIBRARIES})
+
+# On OS X 10.11 we need to remove the default rpath settings in order to all
+# us to load the platform library from Python scripts that are run out of
+# /usr/bin/python. We can remove this once we ship our own Python.
+IF (APPLE)
+    SET_TARGET_PROPERTIES(platform
+                          PROPERTIES
+                          INSTALL_RPATH "")
+ENDIF ()
+
 SET_TARGET_PROPERTIES(platform PROPERTIES SOVERSION 0.1.0)
 
 ADD_LIBRARY(dirutils SHARED src/dirutils.cc include/platform/dirutils.h)
