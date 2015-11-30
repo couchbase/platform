@@ -1,6 +1,6 @@
 /* -*- Mode: C; tab-width: 4; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /*
- *     Copyright 2014 Couchbase, Inc
+ *     Copyright 2015 Couchbase, Inc
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -24,6 +24,9 @@
 #if defined(WIN32)
 #include <Windows.h>
 #endif
+
+#include <errno.h>
+#include <string.h>
 
 #include <platform/platform.h>
 
@@ -50,6 +53,9 @@ uint64_t cb_get_monotonic_seconds() {
     /* Linux and Solaris can use clock_gettime */
     struct timespec tm;
     if (clock_gettime(CLOCK_MONOTONIC, &tm) == -1) {
+        fprintf(stderr, "clock_gettime failed, aborting program: %s",
+                strerror(errno));
+        fflush(stderr);
         abort();
     }
     seconds = tm.tv_sec;
