@@ -1,4 +1,5 @@
 ADD_SUBDIRECTORY(json_checker)
+ADD_SUBDIRECTORY(thread)
 
 INCLUDE_DIRECTORIES(AFTER ${gtest_SOURCE_DIR}/include)
 ADD_EXECUTABLE(platform-relaxed_atomic-test relaxed_atomic_test.cc)
