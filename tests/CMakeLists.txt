@@ -9,3 +9,8 @@ ADD_TEST(platform-relaxed_atomic-test platform-relaxed_atomic-test)
 ADD_EXECUTABLE(platform-threadname-test threadname_test.cc)
 TARGET_LINK_LIBRARIES(platform-threadname-test platform gtest gtest_main)
 ADD_TEST(platform-threadname-test platform-threadname-test)
+
+ADD_EXECUTABLE(platform-histo-test
+               histo_test.cc)
+TARGET_LINK_LIBRARIES(platform-histo-test platform gtest gtest_main)
+ADD_TEST(platform-histo-test platform-histo-test)
