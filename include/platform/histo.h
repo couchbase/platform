@@ -31,20 +31,23 @@
 #include <vector>
 
 // Forward declaration.
-template <typename T>
+template<typename T>
 class Histogram;
 
 /**
  * An individual bin of histogram data.
  */
-template <typename T>
+template<typename T>
 class HistogramBin {
 public:
 
     /**
      * Get a HistogramBin covering [s, e)
      */
-    HistogramBin(T s, T e) : _count(0), _start(s), _end(e) {}
+    HistogramBin(T s, T e)
+        : _count(0),
+          _start(s),
+          _end(e) { }
 
     HistogramBin(const HistogramBin& other) = delete;
 
@@ -88,29 +91,32 @@ private:
      */
     bool accepts(T value) {
         return value >= _start &&
-            (value < _end || value == std::numeric_limits<T>::max());
+               (value < _end || value == std::numeric_limits<T>::max());
     }
 
     std::atomic<size_t> _count;
-    T              _start;
-    T              _end;
+    T _start;
+    T _end;
 };
 
 /**
  * Helper function object to sum sample.
  */
-template <typename T>
+template<typename T>
 class HistogramBinSampleAdder {
 public:
-    HistogramBinSampleAdder() {}
-    size_t operator() (size_t n, const HistogramBin<T> *b) { return n + b->count(); }
+    HistogramBinSampleAdder() { }
+
+    size_t operator()(size_t n, const HistogramBin<T>* b) {
+        return n + b->count();
+    }
 };
 
 /**
  * A bin generator that generates buckets of a width that may increase
  * in size a fixed growth amount over iterations.
  */
-template <typename T>
+template<typename T>
 class GrowingWidthGenerator {
 public:
 
@@ -121,15 +127,18 @@ public:
      * @param width the starting width for this generator
      * @param growth how far the width should increase each time
      */
-    GrowingWidthGenerator(T start, T width, double growth=1.0)
-        : _growth(growth), _start(start), _width(static_cast<double>(width)) {}
+    GrowingWidthGenerator(T start, T width, double growth = 1.0)
+        : _growth(growth),
+          _start(start),
+          _width(static_cast<double>(width)) { }
 
     /**
      * Generate the next bin.
      */
-    HistogramBin<T>* operator () () {
+    HistogramBin<T>* operator()() {
         HistogramBin<T>* rv = new HistogramBin<T>(_start,
-                                                  _start + static_cast<T>(_width));
+                                                  _start +
+                                                  static_cast<T>(_width));
         _start += static_cast<T>(_width);
         _width = _width * _growth;
         return rv;
@@ -137,7 +146,7 @@ public:
 
 private:
     double _growth;
-    T      _start;
+    T _start;
     double _width;
 };
 
@@ -145,26 +154,28 @@ private:
  * A bin generator that generates buckets from a sequence of T where
  * each bin is from [v[n], v[n+1]).
  */
-template <typename T>
+template<typename T>
 class FixedInputGenerator {
 public:
 
     /**
      * Get a FixedInputGenerator with the given sequence of bin starts.
      */
-    FixedInputGenerator(std::vector<T> &input)
-        : it(input.begin()), end(input.end()) {}
+    FixedInputGenerator(std::vector<T>& input)
+        : it(input.begin()),
+          end(input.end()) { }
 
-    HistogramBin<T>* operator () () {
+    HistogramBin<T>* operator()() {
         if (it + 1 >= end) {
             throw std::overflow_error("FixedInputGenerator::operator() "
-                    "would overflow input sequence");
+                                          "would overflow input sequence");
         }
         T current = *it;
         ++it;
         T next = *it;
         return new HistogramBin<T>(current, next);
     }
+
 private:
     typename std::vector<T>::iterator it;
     const typename std::vector<T>::iterator end;
@@ -173,7 +184,7 @@ private:
 /**
  * A bin generator that [n^i, n^(i+1)).
  */
-template <typename T>
+template<typename T>
 class ExponentialGenerator {
 public:
 
@@ -181,28 +192,30 @@ public:
      * Get a FixedInputGenerator with the given sequence of bin starts.
      */
     ExponentialGenerator(uint64_t start, double power)
-        : _start(start), _power(power) {}
+        : _start(start),
+          _power(power) { }
 
-    HistogramBin<T>* operator () () {
+    HistogramBin<T>* operator()() {
         T start = static_cast<T>(std::pow(_power, static_cast<double>(_start)));
         T end = static_cast<T>(std::pow(_power, static_cast<double>(++_start)));
         return new HistogramBin<T>(start, end);
     }
+
 private:
     uint64_t _start;
-    double   _power;
+    double _power;
 };
 
 /**
  * Comparator for finding a histogram bin to hold a value.
  */
-template <typename T>
+template<typename T>
 class BinCompare {
 public:
 
-    BinCompare() {}
+    BinCompare() { }
 
-    bool operator() (T t, HistogramBin<T> *b) {
+    bool operator()(T t, HistogramBin<T>* b) {
         return t < b->end();
     }
 };
@@ -210,7 +223,7 @@ public:
 /**
  * A Histogram.
  */
-template <typename T>
+template<typename T>
 class Histogram {
 public:
 
@@ -220,8 +233,9 @@ public:
      * @param generator a generator for the bins within this bucket
      * @param n how many bins this histogram should contain
      */
-    template <typename G>
-    Histogram(const G &generator, size_t n=30) : bins(n) {
+    template<typename G>
+    Histogram(const G& generator, size_t n = 30)
+        : bins(n) {
         fill(generator);
     }
 
@@ -230,7 +244,8 @@ public:
      *
      * @param n how many bins this histogram should contain.
      */
-    Histogram(size_t n=30) : bins(n) {
+    Histogram(size_t n = 30)
+        : bins(n) {
         ExponentialGenerator<T> generator(0, 2.0);
         fill(generator);
     }
@@ -250,7 +265,7 @@ public:
      * @param amount the size of the thing being added
      * @param count the quantity at this size being added
      */
-    void add(T amount, size_t count=1) {
+    void add(T amount, size_t count = 1) {
         findBin(amount)->incr(count);
     }
 
@@ -282,18 +297,35 @@ public:
     /**
      * A HistogramBin iterator.
      */
-    class iterator  : public std::iterator<std::forward_iterator_tag,
-                                           const Histogram<T>*> {
+    class iterator : public std::iterator<std::forward_iterator_tag,
+        const Histogram<T>*> {
     public:
-        iterator(typename std::vector<HistogramBin<T>*>::iterator x) :p(x) {}
-        iterator(const iterator& mit) : p(mit.p) {}
-        iterator& operator++() {++p;return *this;}
-        iterator& operator++(int) {iterator tmp(*this); operator++(); return tmp;}
-        bool operator==(const iterator& rhs) {return p==rhs.p;}
-        bool operator!=(const iterator& rhs) {return p!=rhs.p;}
-        const HistogramBin<T>* operator*() {return *p;}
+        iterator(typename std::vector<HistogramBin<T>*>::iterator x)
+            : p(x) { }
+
+        iterator(const iterator& mit)
+            : p(mit.p) { }
+
+        iterator& operator++() {
+            ++p;
+            return *this;
+        }
+
+        iterator& operator++(int) {
+            iterator tmp(*this);
+            operator++();
+            return tmp;
+        }
+
+        bool operator==(const iterator& rhs) { return p == rhs.p; }
+
+        bool operator!=(const iterator& rhs) { return p != rhs.p; }
+
+        const HistogramBin<T>* operator*() { return *p; }
+
     private:
         typename std::vector<HistogramBin<T>*>::iterator p;
+
         friend class Histogram<T>;
     };
 
@@ -313,8 +345,8 @@ public:
 
 private:
 
-    template <typename G>
-    void fill(G &generator) {
+    template<typename G>
+    void fill(G& generator) {
         std::generate(bins.begin(), bins.end(), generator);
 
         // If there will not naturally be one, create a bin for the
@@ -361,8 +393,8 @@ private:
     /* Finds the bin containing the specified amount. Returns NULL if the amount
      * could not be found.
      */
-    HistogramBin<T> *findBin(T amount) {
-        HistogramBin<T> *rv(NULL);
+    HistogramBin<T>* findBin(T amount) {
+        HistogramBin<T>* rv(NULL);
         if (amount == std::numeric_limits<T>::max()) {
             rv = bins.back();
         } else {
@@ -380,9 +412,9 @@ private:
         return rv;
     }
 
-    template <typename Ttype>
-    friend std::ostream& operator<< (std::ostream& out,
-                                     const Histogram<Ttype> &b);
+    template<typename Ttype>
+    friend std::ostream& operator<<(std::ostream& out,
+                                    const Histogram<Ttype>& b);
 
     std::vector<HistogramBin<T>*> bins;
 };
@@ -394,8 +426,8 @@ private:
  * THRESHOLD_MS to execute will be reported to stderr.
  * Note this requires that a name is specified for the BlockTimer.
  */
-template <typename HISTOGRAM,
-          uint64_t THRESHOLD_MS>
+template<typename HISTOGRAM,
+    uint64_t THRESHOLD_MS>
 class GenericBlockTimer {
 public:
 
@@ -407,12 +439,12 @@ public:
      * @param n the name to give the histogram, used when logging slow block
      *        execution to the log.
      */
-    GenericBlockTimer(HISTOGRAM *d, const char* n = nullptr,
+    GenericBlockTimer(HISTOGRAM* d, const char* n = nullptr,
                       std::ostream* o = nullptr)
         : dest(d),
           start(gethrtime()),
           name(n),
-          out(o) {}
+          out(o) { }
 
     ~GenericBlockTimer() {
         hrtime_t spent(gethrtime() - start);
@@ -420,7 +452,7 @@ public:
         log(spent, name, out);
     }
 
-    static void log(hrtime_t spent, const char *name, std::ostream *o) {
+    static void log(hrtime_t spent, const char* name, std::ostream* o) {
         if (o && name) {
             *o << name << "\t" << spent << "\n";
         }
@@ -434,10 +466,10 @@ public:
     }
 
 private:
-    HISTOGRAM           *dest;
-    hrtime_t             start;
-    const char          *name;
-    std::ostream        *out;
+    HISTOGRAM* dest;
+    hrtime_t start;
+    const char* name;
+    std::ostream* out;
 };
 
 /* Convenience specialization which only records in a Histogram<hrtime_t>;
@@ -446,15 +478,16 @@ private:
 typedef GenericBlockTimer<Histogram<hrtime_t>, 0> BlockTimer;
 
 // How to print a bin.
-template <typename T>
-std::ostream& operator <<(std::ostream &out, const HistogramBin<T> &b) {
+template<typename T>
+std::ostream& operator<<(std::ostream& out, const HistogramBin<T>& b) {
     out << "[" << b.start() << ", " << b.end() << ") = " << b.count();
     return out;
 }
 
 // How to print a vector histogram bin pointers
-template <typename T>
-std::ostream& operator <<(std::ostream &out, const std::vector<HistogramBin<T>*> &b) {
+template<typename T>
+std::ostream& operator<<(std::ostream& out,
+                         const std::vector<HistogramBin<T>*>& b) {
     bool needComma(false);
     for (typename std::vector<HistogramBin<T>*>::const_iterator it = b.begin();
          it != b.end(); ++it) {
@@ -468,8 +501,8 @@ std::ostream& operator <<(std::ostream &out, const std::vector<HistogramBin<T>*>
 }
 
 // How to print a histogram.
-template <typename T>
-std::ostream& operator <<(std::ostream &out, const Histogram<T> &b) {
+template<typename T>
+std::ostream& operator<<(std::ostream& out, const Histogram<T>& b) {
     out << "{Histogram: " << b.bins << "}";
     return out;
 }
