@@ -126,7 +126,7 @@ TEST(BlockTimerTest, ThresholdTest) {
     Histogram<hrtime_t> histo;
     ASSERT_EQ(0, histo.total());
     {
-        GenericBlockTimer<1> timer(&histo, "thresholdTest");
+        GenericBlockTimer<Histogram<hrtime_t>, 1> timer(&histo, "thresholdTest");
         std::this_thread::sleep_for(std::chrono::milliseconds(2));
     }
     EXPECT_EQ(1, histo.total());

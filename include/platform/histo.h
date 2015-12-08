@@ -394,7 +394,8 @@ private:
  * THRESHOLD_MS to execute will be reported to stderr.
  * Note this requires that a name is specified for the BlockTimer.
  */
-template <uint64_t THRESHOLD_MS>
+template <typename HISTOGRAM,
+          uint64_t THRESHOLD_MS>
 class GenericBlockTimer {
 public:
 
@@ -406,7 +407,7 @@ public:
      * @param n the name to give the histogram, used when logging slow block
      *        execution to the log.
      */
-    GenericBlockTimer(Histogram<hrtime_t> *d, const char* n = nullptr,
+    GenericBlockTimer(HISTOGRAM *d, const char* n = nullptr,
                       std::ostream* o = nullptr)
         : dest(d),
           start(gethrtime()),
@@ -433,16 +434,16 @@ public:
     }
 
 private:
-    Histogram<hrtime_t> *dest;
+    HISTOGRAM           *dest;
     hrtime_t             start;
     const char          *name;
     std::ostream        *out;
 };
 
-/* Convenience specialization which only records in a histogram; doesn't log
- * slow blocks.
+/* Convenience specialization which only records in a Histogram<hrtime_t>;
+ * doesn't log slow blocks.
  */
-typedef GenericBlockTimer<0> BlockTimer;
+typedef GenericBlockTimer<Histogram<hrtime_t>, 0> BlockTimer;
 
 // How to print a bin.
 template <typename T>
