@@ -47,3 +47,25 @@ TEST_F(ThreadTest, SimpleThreadTest) {
     EXPECT_NE((cb_thread_t)0, worker.tid);
     EXPECT_NE(cb_thread_self(), worker.tid);
 }
+
+TEST(ThreadnameTest, ThreadName) {
+    if (!is_thread_name_supported()) {
+        return;
+    }
+
+    EXPECT_EQ(0, cb_set_thread_name("test"));
+    char buffer[80];
+    EXPECT_EQ(0, cb_get_thread_name(buffer, sizeof(buffer)));
+    EXPECT_EQ(std::string("test"), std::string(buffer));
+
+    memset(buffer, 'a', sizeof(buffer));
+    buffer[79] ='\0';
+    EXPECT_EQ(1, cb_set_thread_name(buffer)) << " errno " << errno << " "
+                                             << strerror(errno);
+
+    memset(buffer, 0, sizeof(buffer));
+
+    // Check that a failing set thread name didn't mess up the value
+    EXPECT_EQ(0, cb_get_thread_name(buffer, sizeof(buffer)));
+    EXPECT_EQ(std::string("test"), std::string(buffer));
+}

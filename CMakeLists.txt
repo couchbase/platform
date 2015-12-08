@@ -174,27 +174,6 @@ ADD_LIBRARY(breakpad_wrapper SHARED
 TARGET_LINK_LIBRARIES(breakpad_wrapper
                       ${BREAKPAD_LIBRARIES})
 
-ADD_EXECUTABLE(platform-dirutils-test tests/dirutils_test.cc)
-TARGET_LINK_LIBRARIES(platform-dirutils-test dirutils)
-
-ADD_EXECUTABLE(platform-gettimeofday-test tests/gettimeofday_test.cc)
-TARGET_LINK_LIBRARIES(platform-gettimeofday-test platform)
-
-ADD_EXECUTABLE(platform-crc32c-test tests/crc32c_test.cc)
-TARGET_LINK_LIBRARIES(platform-crc32c-test platform)
-
-ADD_EXECUTABLE(platform-crc32c-sw_hw-test tests/crc32c_test.cc
-                                          src/crc32c.cc
-                                          src/crc32c_sse4_2.cc)
-SET_TARGET_PROPERTIES(platform-crc32c-sw_hw-test PROPERTIES COMPILE_FLAGS "-DCRC32C_UNIT_TEST")
-TARGET_LINK_LIBRARIES(platform-crc32c-sw_hw-test ${PLATFORM_LIBRARIES})
-
-ADD_EXECUTABLE(platform-crc32c-bench tests/crc32c_bench.cc
-                                     src/crc32c.cc
-                                     src/crc32c_sse4_2.cc)
-
-SET_TARGET_PROPERTIES(platform-crc32c-bench PROPERTIES COMPILE_FLAGS "-DCRC32C_UNIT_TEST")
-TARGET_LINK_LIBRARIES(platform-crc32c-bench platform)
 
 INSTALL(TARGETS breakpad_wrapper cJSON JSON_checker platform dirutils
         RUNTIME DESTINATION bin
@@ -204,58 +183,6 @@ INSTALL(TARGETS breakpad_wrapper cJSON JSON_checker platform dirutils
 #
 # Test targets
 #
-ADD_EXECUTABLE(platform-gethrtime-test
-               tests/gethrtime_test.c
-               include/platform/platform.h)
-TARGET_LINK_LIBRARIES(platform-gethrtime-test platform)
-
-ADD_EXECUTABLE(platform-getopt-test tests/getopt_test.cc)
-TARGET_LINK_LIBRARIES(platform-getopt-test platform)
-
-ADD_EXECUTABLE(platform-random-test
-               tests/random_test.cc
-               include/platform/random.h)
-TARGET_LINK_LIBRARIES(platform-random-test platform)
-
-ADD_EXECUTABLE(platform-mktemp-test
-               tests/cb_mktemp_test.c
-               include/platform/platform.h)
-TARGET_LINK_LIBRARIES(platform-mktemp-test platform)
-
-ADD_TEST(platform-dirutils-test platform-dirutils-test)
-ADD_TEST(platform-gettimeofday-test platform-gettimeofday-test)
-ADD_TEST(platform-gethrtime-test platform-gethrtime-test)
-ADD_TEST(platform-getopt-test-0 platform-getopt-test 0)
-ADD_TEST(platform-getopt-test-1 platform-getopt-test 1)
-ADD_TEST(platform-getopt-test-2 platform-getopt-test 2)
-ADD_TEST(platform-random-test platform-random-test)
-ADD_TEST(platform-mktemp-test platform-mktemp-test)
-ADD_TEST(platform-crc32c-test platform-crc32c-test)
-ADD_TEST(platform-crc32c-sw_hw-test platform-crc32c-sw_hw-test)
-
-ADD_EXECUTABLE(platform-cjson-test include/cJSON.h tests/cjson_test.c)
-TARGET_LINK_LIBRARIES(platform-cjson-test cJSON)
-ADD_TEST(platform-cjson-test platform-cjson-test)
-
-ADD_EXECUTABLE(platform-cjson-parse-test
-               include/cJSON.h
-               tests/cjson_parse_test.c)
-TARGET_LINK_LIBRARIES(platform-cjson-parse-test cJSON platform)
-ADD_TEST(platform-cjson-parse-test
-         platform-cjson-parse-test -f ${PROJECT_SOURCE_DIR}/tests/testdata.json
-                                   -n 1)
-ADD_EXECUTABLE(platform-strings-test tests/strings_test.c)
-TARGET_LINK_LIBRARIES(platform-strings-test platform)
-ADD_TEST(platform-strings-test platform-strings-test)
-
-ADD_EXECUTABLE(platform-backtrace-test tests/backtrace_test.c)
-TARGET_LINK_LIBRARIES(platform-backtrace-test platform)
-ADD_TEST(platform-backtrace-test platform-backtrace-test)
-
-ADD_EXECUTABLE(platform-memorymap-test tests/memorymap_test.cc)
-TARGET_LINK_LIBRARIES(platform-memorymap-test platform)
-ADD_TEST(platform-memorymap-test platform-memorymap-test)
-
 ADD_SUBDIRECTORY(tests)
 
 IF (${CMAKE_MAJOR_VERSION} LESS 3)

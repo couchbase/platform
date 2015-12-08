@@ -1,16 +1,19 @@
+# The unit tests use gtest
+INCLUDE_DIRECTORIES(AFTER ${gtest_SOURCE_DIR}/include)
+
+ADD_SUBDIRECTORY(atomic)
+ADD_SUBDIRECTORY(backtrace)
+ADD_SUBDIRECTORY(cjson)
+ADD_SUBDIRECTORY(crc32)
+ADD_SUBDIRECTORY(dirutils)
+ADD_SUBDIRECTORY(gethrtime)
+ADD_SUBDIRECTORY(gettimeofday)
+ADD_SUBDIRECTORY(getopt)
+ADD_SUBDIRECTORY(histogram)
 ADD_SUBDIRECTORY(json_checker)
+ADD_SUBDIRECTORY(memorymap)
+ADD_SUBDIRECTORY(mktemp)
+ADD_SUBDIRECTORY(random)
+ADD_SUBDIRECTORY(strings)
 ADD_SUBDIRECTORY(thread)
 
-INCLUDE_DIRECTORIES(AFTER ${gtest_SOURCE_DIR}/include)
-ADD_EXECUTABLE(platform-relaxed_atomic-test relaxed_atomic_test.cc)
-TARGET_LINK_LIBRARIES(platform-relaxed_atomic-test gtest gtest_main)
-ADD_TEST(platform-relaxed_atomic-test platform-relaxed_atomic-test)
-
-ADD_EXECUTABLE(platform-threadname-test threadname_test.cc)
-TARGET_LINK_LIBRARIES(platform-threadname-test platform gtest gtest_main)
-ADD_TEST(platform-threadname-test platform-threadname-test)
-
-ADD_EXECUTABLE(platform-histo-test
-               histo_test.cc)
-TARGET_LINK_LIBRARIES(platform-histo-test platform gtest gtest_main)
-ADD_TEST(platform-histo-test platform-histo-test)
