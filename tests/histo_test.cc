@@ -15,7 +15,11 @@
  *   limitations under the License.
  */
 
+// See https://msdn.microsoft.com/en-us/library/4hwaceh6.aspx
 #define _USE_MATH_DEFINES
+
+// Include the histogram header first to ensure that it is standalone
+#include <platform/histogram.h>
 
 #include <cmath>
 #include <algorithm>
@@ -24,10 +28,8 @@
 #include <thread>
 
 #include "config.h"
-
 #include <gtest/gtest.h>
 
-#include <platform/histogram.h>
 
 class PopulatedSamples {
 public:

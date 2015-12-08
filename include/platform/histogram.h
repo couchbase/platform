@@ -17,8 +17,6 @@
 
 #pragma once
 
-#include "config.h"
-
 #include <algorithm>
 #include <atomic>
 #include <cmath>
@@ -27,6 +25,7 @@
 #include <iterator>
 #include <limits>
 #include <numeric>
+#include <platform/platform.h>
 #include <iostream>
 #include <vector>
 
