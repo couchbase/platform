@@ -27,7 +27,7 @@
 
 #include <gtest/gtest.h>
 
-#include <platform/histo.h>
+#include <platform/histogram.h>
 
 class PopulatedSamples {
 public:
