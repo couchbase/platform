@@ -459,8 +459,8 @@ public:
         if (THRESHOLD_MS > 0) {
             const uint64_t msec = spent / 1000000;
             if (name != nullptr && msec > THRESHOLD_MS) {
-                fprintf(stderr, "BlockTimer<%s> Took too long: %" PRIu64 "ms",
-                        name, msec);
+                std::cerr << "BlockTimer<" << name << "> Took too long: "
+                          << msec << "ms" << std::endl;
             }
         }
     }
