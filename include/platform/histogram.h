@@ -26,6 +26,7 @@
 #include <limits>
 #include <numeric>
 #include <platform/platform.h>
+#include <stdexcept>
 #include <iostream>
 #include <vector>
 
