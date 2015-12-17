@@ -129,12 +129,14 @@ ADD_LIBRARY(platform SHARED ${PLATFORM_FILES}
                             src/crc32c_private.h
                             src/strerror.cc
                             src/thread.cc
+                            src/timeutils.cc
                             include/platform/crc32c.h
                             include/platform/memorymap.h
                             include/platform/platform.h
                             include/platform/random.h
                             include/platform/strerror.h
                             include/platform/thread.h
+                            include/platform/timeutils.h
                             include/platform/visibility.h)
 
 LIST(REMOVE_DUPLICATES PLATFORM_LIBRARIES)
