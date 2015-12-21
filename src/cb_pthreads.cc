@@ -91,11 +91,13 @@ int cb_create_named_thread(cb_thread_t *id, cb_thread_main_func func, void *arg,
 
     pthread_attr_t attr;
     if (pthread_attr_init(&attr) != 0) {
+        delete ctx;
         return -1;
     }
 
     if (detached &&
         pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED) != 0) {
+        delete ctx;
         return -1;
     }
 
