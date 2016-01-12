@@ -16,6 +16,7 @@
  */
 #pragma once
 
+#include <atomic>
 #include <platform/platform.h>
 #include <condition_variable>
 #include <mutex>
@@ -26,6 +27,13 @@ namespace Couchbase {
     // forward declaration of the delegator class used to access the private
     // parts of the Thread
     class StartThreadDelegator;
+
+    enum class ThreadState {
+        Stopped,
+        Starting,
+        Running,
+        Zombie
+    };
 
     /**
      * A Thread is a thread used to run a task. It has a mandatory name
@@ -49,6 +57,13 @@ namespace Couchbase {
          */
         void start();
 
+        /**
+         * Get the current state of the thread
+         */
+        const ThreadState getState() const {
+            return state.load();
+        }
+
     protected:
         /**
          * Initialize a new Thread object
@@ -65,8 +80,20 @@ namespace Couchbase {
         /**
          * This is the work the thread should be doing. If you want to be able
          * to stop your thread you need to provide the mechanisms to do so.
+         *
+         * In your subclass you must start by calling setRunning() so that
+         * the client users of your subclass can utilize your class.
+         * Failing to do so will cause start() to block until the run
+         * method completes.
          */
         virtual void run() = 0;
+
+        /**
+         * The subclass needs to call setRunning as the first method inside
+         * it's run method so that the thread object knows that the thread
+         * is indeed running
+         */
+        void setRunning();
 
     private:
         friend class StartThreadDelegator;
@@ -92,13 +119,13 @@ namespace Couchbase {
         std::string name;
 
         /**
-         * Is the thread running or not
-         */
-        bool running;
-
-        /**
          * The thread id for the thread
          */
         cb_thread_t thread_id;
+
+        /**
+         * The state of the thread
+         */
+        std::atomic<ThreadState> state;
     };
 }

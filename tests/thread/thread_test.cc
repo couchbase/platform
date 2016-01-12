@@ -28,6 +28,7 @@ public:
 
 protected:
     virtual void run() override {
+        setRunning();
         std::lock_guard<std::mutex> guard(mutex);
         tid = cb_thread_self();
         cond.notify_all();
