@@ -16,6 +16,7 @@
  */
 #pragma once
 
+#include <atomic>
 #include <platform/platform.h>
 #include <condition_variable>
 #include <mutex>
@@ -26,6 +27,34 @@ namespace Couchbase {
     // forward declaration of the delegator class used to access the private
     // parts of the Thread
     class StartThreadDelegator;
+
+    /**
+     * The various states the Thread Object may be in.
+     *
+     * As a client of the library you should <b>not</b> depend on the
+     * enum values meaning anything.
+     *
+     * Do <b>NOT</b> change the values for each state, the internals of
+     * the Thread class depend on internal order between the values.
+     */
+    enum class ThreadState {
+        /** The thread is not running (and have never been started) */
+        Stopped = 0,
+        /**
+         * The thread is starting, but the threads metod run() have not
+         * called setRunning() yet (the start() method has not yet returned)
+         */
+        Starting = 1,
+        /**
+         * The thread is running in the subclass run() method
+         */
+        Running = 2,
+        /**
+         * The subclass run() method returned, and the thread is stopped
+         * (but not reaped yet by joining the return code from the thread)
+         */
+        Zombie = 3
+    };
 
     /**
      * A Thread is a thread used to run a task. It has a mandatory name
@@ -49,6 +78,25 @@ namespace Couchbase {
          */
         void start();
 
+        /**
+         * Get the current state of the thread
+         */
+        const ThreadState getState() const {
+            return state.load();
+        }
+
+        /**
+         * Wait for the thread to enter a certain state.
+         *
+         * The wait is terminated if the thread enters a state which would
+         * cause it to never reach the requested state (so you have to check
+         * the state when the method returns)
+         *
+         * @param state the requested state
+         * @return the state we ended up in
+         */
+        const ThreadState waitForState(const ThreadState& state);
+
     protected:
         /**
          * Initialize a new Thread object
@@ -65,10 +113,39 @@ namespace Couchbase {
         /**
          * This is the work the thread should be doing. If you want to be able
          * to stop your thread you need to provide the mechanisms to do so.
+         *
+         * In your subclass you must start by calling setRunning() so that
+         * the client users of your subclass can utilize your class.
+         * Failing to do so will cause start() to block until the run
+         * method completes.
+         *
+         * ex:
+         *     void MyThread::run() override {
+         *         ... my local initialization ..
+         *
+         *         // Unblock the Thread::start() method.
+         *         setRunning();
+         *
+         *         ... my thread code ...
+         *     }
          */
         virtual void run() = 0;
 
+        /**
+         * The subclass needs to call setRunning as the first method inside
+         * it's run method so that the thread object knows that the thread
+         * is indeed running
+         */
+        void setRunning();
+
     private:
+
+        void setState(const ThreadState& st) {
+            std::lock_guard<std::mutex> lock(synchronization.mutex);
+            state = st;
+            synchronization.cond.notify_all();
+        }
+
         friend class StartThreadDelegator;
 
         /**
@@ -92,13 +169,13 @@ namespace Couchbase {
         std::string name;
 
         /**
-         * Is the thread running or not
-         */
-        bool running;
-
-        /**
          * The thread id for the thread
          */
         cb_thread_t thread_id;
+
+        /**
+         * The state of the thread
+         */
+        std::atomic<ThreadState> state;
     };
 }

@@ -26,8 +26,13 @@ public:
     std::mutex mutex;
     cb_thread_t tid;
 
+    ~TestThread() {
+        waitForState(Couchbase::ThreadState::Zombie);
+    }
+
 protected:
     virtual void run() override {
+        setRunning();
         std::lock_guard<std::mutex> guard(mutex);
         tid = cb_thread_self();
         cond.notify_all();
