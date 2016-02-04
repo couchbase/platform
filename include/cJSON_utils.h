@@ -16,8 +16,10 @@
  */
 #pragma once
 
+#include <cstddef>
 #include <cJSON.h>
 #include <memory>
+#include <string>
 
 // helper class for use with std::unique_ptr in managing cJSON* objects.
 struct cJSONDeleter {
@@ -25,3 +27,18 @@ struct cJSONDeleter {
 };
 
 typedef std::unique_ptr<cJSON, cJSONDeleter> unique_cJSON_ptr;
+
+/**
+ * Convert a cJSON structure to a string representation.
+ *
+ * @param json pointer to the JSON representation of the data
+ * @param formatted should the string representation be formatted or
+ *                  compact.
+ * @throws std::bad_alloc for memory allocation issues
+ * @throws std::invalid_argument for invalid parameters
+ */
+CJSON_PUBLIC_API
+std::string to_string(const cJSON* json, bool formatted = true);
+
+CJSON_PUBLIC_API
+std::string to_string(const unique_cJSON_ptr& json, bool formatted = true);
