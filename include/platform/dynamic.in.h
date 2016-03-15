@@ -55,3 +55,12 @@
 #else
 #define CB_ATTR_DEPRECATED
 #endif
+
+/* Workaround for C++ compilers which don't support the `noexcept` keyword
+ */
+#cmakedefine HAVE_NOEXCEPT
+#if defined(HAVE_NOEXCEPT)
+#define NOEXCEPT noexcept
+#else
+#define NOEXCEPT
+#endif
