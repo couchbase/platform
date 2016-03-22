@@ -987,3 +987,12 @@ cJSON *cJSON_CreateStringArray(const char **strings, int count)
     }
     return a;
 }
+
+extern void cJSON_AddBoolToObject(cJSON* object, const char* string, bool value)
+{
+    if (value) {
+        cJSON_AddTrueToObject(object, string);
+    } else {
+        cJSON_AddFalseToObject(object, string);
+    }
+}
