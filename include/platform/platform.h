@@ -426,12 +426,33 @@ extern "C" {
     PLATFORM_PUBLIC_API
     int cb_get_timeofday(struct timeval *tv);
 
-    /*
-        set an offset so that cb_get_timeofday returns an offsetted time.
-        This is intended for testing of time jumps.
-    */
+    /**
+     * Set an offset (in seconds) added to cb_get_timeofday before returned
+     * to the caller.
+     *
+     * This is intended for testing of time jumps.
+     *
+     * @param offset the number of seconds to add (a negative value results in
+     *               jumping back in time)
+     */
     PLATFORM_PUBLIC_API
-    void cb_set_timeofday_offset(uint64_t offset);
+    void cb_set_timeofday_offset(int offset);
+
+    /**
+     * Get the offset being added to the cb_get_timeofday()
+     */
+    PLATFORM_PUBLIC_API
+    int cb_get_timeofday_offset(void);
+
+    /**
+     * Travel in time by updating the timeofday_offset with a relative
+     * value
+     *
+     * @param secs the number of seconds to travel
+     */
+    PLATFORM_PUBLIC_API
+    void cb_timeofday_timetravel(int offset);
+
 
     /**
      * Some of our platforms complain on not using mkstemp. Instead of

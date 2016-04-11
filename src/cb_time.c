@@ -30,7 +30,7 @@
 
 #include <platform/platform.h>
 
-static uint64_t timeofday_offset = 0;
+static int timeofday_offset = 0;
 
 /*
     return a monotonically increasing value with a seconds frequency.
@@ -71,24 +71,21 @@ uint64_t cb_get_monotonic_seconds() {
 */
 int cb_get_timeofday(struct timeval *tv) {
     int rv = gettimeofday(tv, NULL);
-#if defined(WIN32)
-    // WIN32: tv_sec is less precise than normal (it's a long); so explicitly
-    // downcast to silence implicit downcast warning.
-    tv->tv_sec += (long)timeofday_offset;
-#else
     tv->tv_sec += timeofday_offset;
-#endif
     return rv;
 }
 
-/*
-    set an offset so that cb_get_timeofday returns an offsetted time.
-    This is intended for testing of time jumps.
-*/
-void cb_set_timeofday_offset(uint64_t offset) {
+void cb_set_timeofday_offset(int offset) {
     timeofday_offset = offset;
 }
 
+int cb_get_timeofday_offset(void) {
+    return timeofday_offset;
+}
+
+void cb_timeofday_timetravel(int offset) {
+    timeofday_offset += offset;
+}
 
 int cb_gmtime_r(const time_t *clock, struct tm *result)
 {
