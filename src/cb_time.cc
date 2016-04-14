@@ -17,6 +17,7 @@
 
 #include "config.h"
 
+#include <atomic>
 #if defined(__APPLE__)
 #include <mach/mach_time.h>
 #endif
@@ -30,7 +31,7 @@
 
 #include <platform/platform.h>
 
-static int timeofday_offset = 0;
+static std::atomic_int timeofday_offset { 0 };
 
 /*
     return a monotonically increasing value with a seconds frequency.
@@ -71,20 +72,20 @@ uint64_t cb_get_monotonic_seconds() {
 */
 int cb_get_timeofday(struct timeval *tv) {
     int rv = gettimeofday(tv, NULL);
-    tv->tv_sec += timeofday_offset;
+    tv->tv_sec += timeofday_offset.load(std::memory_order_relaxed);
     return rv;
 }
 
 void cb_set_timeofday_offset(int offset) {
-    timeofday_offset = offset;
+    timeofday_offset.store(offset, std::memory_order_relaxed);
 }
 
 int cb_get_timeofday_offset(void) {
-    return timeofday_offset;
+    return timeofday_offset.load(std::memory_order_relaxed);
 }
 
 void cb_timeofday_timetravel(int offset) {
-    timeofday_offset += offset;
+    timeofday_offset.fetch_add(offset, std::memory_order_relaxed);
 }
 
 int cb_gmtime_r(const time_t *clock, struct tm *result)

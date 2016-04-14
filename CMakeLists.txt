@@ -129,8 +129,8 @@ ADD_LIBRARY(platform SHARED ${PLATFORM_FILES}
                             src/random.cc
                             src/backtrace.c
                             src/byteorder.c
-                            src/cb_time.c
                             src/cb_mktemp.c
+                            src/cb_time.cc
                             src/cbassert.c
                             src/crc32c.cc
                             src/crc32c_sse4_2.cc
