@@ -25,7 +25,7 @@ static int spool(FILE *fp, char *dest, size_t size)
     return 0;
 }
 
-static void *load_file(const char *file)
+static char *load_file(const char *file)
 {
     FILE *fp;
     struct stat st;
@@ -44,7 +44,7 @@ static void *load_file(const char *file)
         exit(EXIT_FAILURE);
     }
 
-    data = malloc(st.st_size + 1);
+    data = reinterpret_cast<char*>(malloc(st.st_size + 1));
     if (data == NULL) {
         fclose(fp);
         fprintf(stderr, "Failed to allocate memory\n");
@@ -77,7 +77,7 @@ static void report(hrtime_t time) {
    }
 
    assert(extensions[id] != NULL);
-   fprintf(stderr, "Parsing took an average of %"PRIu64"%s\n",
+   fprintf(stderr, "Parsing took an average of %" PRIu64 "%s\n",
            (uint64_t)time, extensions[id]);
 }
 

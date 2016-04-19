@@ -1,4 +1,4 @@
-/* -*- Mode: C; tab-width: 4; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+/* -*- Mode: C++; tab-width: 4; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /*
   Copyright (c) 2009 Dave Gamble
 
@@ -20,9 +20,21 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
   THE SOFTWARE.
 */
-
-/* cJSON */
-/* JSON parser in C. */
+/*
+ *     Copyright 2016 Couchbase, Inc
+ *
+ *   Licensed under the Apache License, Version 2.0 (the "License");
+ *   you may not use this file except in compliance with the License.
+ *   You may obtain a copy of the License at
+ *
+ *       http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *   Unless required by applicable law or agreed to in writing, software
+ *   distributed under the License is distributed on an "AS IS" BASIS,
+ *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   See the License for the specific language governing permissions and
+ *   limitations under the License.
+ */
 
 #include <string.h>
 #include <stdio.h>
@@ -73,7 +85,7 @@ void cJSON_InitHooks(cJSON_Hooks *hooks)
 /* Internal constructor. */
 static cJSON *cJSON_New_Item(void)
 {
-    return cJSON_calloc(1, sizeof(cJSON));
+    return reinterpret_cast<cJSON*>(cJSON_calloc(1, sizeof(cJSON)));
 }
 
 /* Delete a cJSON structure. */
@@ -146,10 +158,10 @@ static char *print_number(cJSON *item)
     char *str;
     double d = item->valuedouble;
     if (fabs(((double)item->valueint) - d) <= DBL_EPSILON && d <= INT_MAX && d >= INT_MIN) {
-        str = cJSON_malloc(21); /* 2^64+1 can be represented in 21 chars. */
+        str = reinterpret_cast<char*>(cJSON_malloc(21)); /* 2^64+1 can be represented in 21 chars. */
         sprintf(str, "%d", item->valueint);
     } else {
-        str = cJSON_malloc(64); /* This is a nice tradeoff. */
+        str = reinterpret_cast<char*>(cJSON_malloc(64)); /* This is a nice tradeoff. */
         if (fabs(floor(d) - d) <= DBL_EPSILON) {
             sprintf(str, "%.0f", d);
         } else if (fabs(d) < 1.0e-6 || fabs(d) > 1.0e9) {
@@ -180,7 +192,7 @@ static const char *parse_string(cJSON *item, const char *str)
         }
     }
 
-    out = cJSON_malloc(len + 1); /* This is how long we need for the string, roughly. */
+    out = reinterpret_cast<char*>(cJSON_malloc(len + 1)); /* This is how long we need for the string, roughly. */
     if (!out) {
         return NULL;
     }
@@ -265,7 +277,7 @@ static char *print_string_ptr(const char *str)
         ptr++;
     }
 
-    out = cJSON_malloc(len + 3);
+    out = reinterpret_cast<char*>(cJSON_malloc(len + 3));
     ptr2 = out;
     ptr = str;
     *ptr2++ = '\"';
@@ -485,7 +497,7 @@ static char *print_array(cJSON *item, int depth, int fmt)
         numentries++, child = child->next;
     }
     /* Allocate an array to hold the values for each */
-    entries = cJSON_calloc(numentries, sizeof(char *));
+    entries = reinterpret_cast<char**>(cJSON_calloc(numentries, sizeof(char *)));
     if (!entries) {
         return NULL;
     }
@@ -504,7 +516,7 @@ static char *print_array(cJSON *item, int depth, int fmt)
 
     /* If we didn't fail, try to malloc the output string */
     if (!fail) {
-        out = cJSON_malloc(len);
+        out = reinterpret_cast<char*>(cJSON_malloc(len));
     }
     /* If that fails, we fail. */
     if (!out) {
@@ -616,11 +628,11 @@ static char *print_object(cJSON *item, int depth, int fmt)
         numentries++, child = child->next;
     }
     /* Allocate space for the names and the objects */
-    entries = cJSON_calloc(numentries, sizeof(char *));
+    entries = reinterpret_cast<char**>(cJSON_calloc(numentries, sizeof(char *)));
     if (!entries) {
         return NULL;
     }
-    names = cJSON_calloc(numentries, sizeof(char *));
+    names = reinterpret_cast<char**>(cJSON_calloc(numentries, sizeof(char *)));
     if (!names) {
         cJSON_free(entries);
         return NULL;
@@ -645,7 +657,7 @@ static char *print_object(cJSON *item, int depth, int fmt)
 
     /* Try to allocate the output string */
     if (!fail) {
-        out = cJSON_malloc(len);
+        out = reinterpret_cast<char*>(cJSON_malloc(len));
     }
     if (!out) {
         fail = 1;
