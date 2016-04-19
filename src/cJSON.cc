@@ -43,6 +43,7 @@
 #include <float.h>
 #include <limits.h>
 #include <ctype.h>
+#include <new>
 #include "cJSON.h"
 
 static int cJSON_strcasecmp(const char *s1, const char *s2)
@@ -61,25 +62,34 @@ static int cJSON_strcasecmp(const char *s1, const char *s2)
     return tolower(*(const unsigned char *)s1) - tolower(*(const unsigned char *)s2);
 }
 
-static void *(*cJSON_malloc)(size_t sz) = malloc;
-static void *(*cJSON_calloc)(size_t nmemb, size_t size) = calloc;
-static void (*cJSON_free)(void *ptr) = free;
-static char *(*cJSON_strdup)(const char *str) = strdup;
-
-void cJSON_InitHooks(cJSON_Hooks *hooks)
-{
-    if (!hooks) { /* Reset hooks */
-        cJSON_malloc = malloc;
-        cJSON_free = free;
-        cJSON_calloc = calloc;
-        cJSON_strdup = strdup;
-        return;
+static void *cJSON_malloc(size_t sz) {
+    auto* ret = malloc(sz);
+    if (ret == nullptr) {
+        throw std::bad_alloc();
     }
 
-    cJSON_malloc = (hooks->malloc_fn) ? hooks->malloc_fn : malloc;
-    cJSON_free = (hooks->free_fn) ? hooks->free_fn : free;
-    cJSON_calloc = (hooks->calloc_fn) ? hooks->calloc_fn : calloc;
-    cJSON_strdup = (hooks->strdup_fn) ? hooks->strdup_fn : strdup;
+    return ret;
+}
+
+static void *cJSON_calloc(size_t nmemb, size_t size) {
+    auto* ret = calloc(nmemb, size);
+    if (ret == nullptr) {
+        throw std::bad_alloc();
+    }
+
+    return ret;
+}
+
+static void cJSON_free(void *ptr) {
+    free(ptr);
+}
+
+static char *cJSON_strdup(const char *str) {
+    auto* ret = strdup(str);
+    if (ret == nullptr) {
+        throw std::bad_alloc();
+    }
+    return ret;
 }
 
 /* Internal constructor. */
@@ -486,6 +496,26 @@ static const char *parse_array(cJSON *item, const char *value)
 /* Render an array to text */
 static char *print_array(const cJSON *item, int depth, int fmt)
 {
+    if (item->child == nullptr) {
+        // special case where the object don't have any children
+        // 4 == "[\n]\0"
+        auto* out = reinterpret_cast<char*>(cJSON_malloc(4 + depth));
+        auto* ptr = out;
+        *ptr++ = '[';
+        if (fmt) {
+            *ptr++ = '\n';
+        }
+
+        if (fmt) {
+            for (int ii = 0; ii < depth - 1; ii++) {
+                *ptr++ = '\t';
+            }
+        }
+        *ptr++ = ']';
+        *ptr = 0;
+        return out;
+    }
+
     char **entries;
     char *out = 0, *ptr, *ret;
     size_t len = 5;
@@ -617,6 +647,26 @@ static const char *parse_object(cJSON *item, const char *value)
 /* Render an object to text. */
 static char *print_object(const cJSON *item, int depth, int fmt)
 {
+    if (item->child == nullptr) {
+        // special case where the object don't have any children
+        // 4 == "{\n}\0"
+        auto* out = reinterpret_cast<char*>(cJSON_malloc(4 + depth));
+        auto* ptr = out;
+        *ptr++ = '{';
+        if (fmt) {
+            *ptr++ = '\n';
+        }
+
+        if (fmt) {
+            for (int ii = 0; ii < depth - 1; ii++) {
+                *ptr++ = '\t';
+            }
+        }
+        *ptr++ = '}';
+        *ptr = 0;
+        return out;
+    }
+
     char **entries = 0, **names = 0;
     char *out = 0, *ptr, *ret, *str;
     size_t len = 7;

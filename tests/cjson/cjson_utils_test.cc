@@ -49,3 +49,47 @@ TEST(cJSON, ToStringUnformatted) {
     EXPECT_EQ(expected, to_string(ptr, false));
     EXPECT_EQ(expected, to_string(ptr.get(), false));
 }
+
+TEST(cJSON, ToStringEmptyObject) {
+    unique_cJSON_ptr ptr(cJSON_CreateObject());
+    EXPECT_EQ("{\n}", to_string(ptr));
+}
+
+TEST(cJSON, ToStringEmptyObjectUnFormatted) {
+    unique_cJSON_ptr ptr(cJSON_CreateObject());
+    EXPECT_EQ("{}", to_string(ptr, false));
+}
+
+TEST(cJSON, ToStringEmptyObjectAsField) {
+    unique_cJSON_ptr ptr(cJSON_CreateObject());
+    cJSON_AddItemToObject(ptr.get(), "foo", cJSON_CreateObject());
+    EXPECT_EQ("{\n\t\"foo\":\t{\n}\n}", to_string(ptr));
+}
+
+TEST(cJSON, ToStringEmptyObjectAsFieldUnformatted) {
+    unique_cJSON_ptr ptr(cJSON_CreateObject());
+    cJSON_AddItemToObject(ptr.get(), "foo", cJSON_CreateObject());
+    EXPECT_EQ("{\"foo\":{}}", to_string(ptr, false));
+}
+
+TEST(cJSON, ToStringEmptyArray) {
+    unique_cJSON_ptr ptr(cJSON_CreateArray());
+    EXPECT_EQ("[\n]", to_string(ptr));
+}
+
+TEST(cJSON, ToStringEmptyArrayUnFormatted) {
+    unique_cJSON_ptr ptr(cJSON_CreateArray());
+    EXPECT_EQ("[]", to_string(ptr, false));
+}
+
+TEST(cJSON, ToStringEmptyArrayAsField) {
+    unique_cJSON_ptr ptr(cJSON_CreateObject());
+    cJSON_AddItemToObject(ptr.get(), "foo", cJSON_CreateArray());
+    EXPECT_EQ("{\n\t\"foo\":\t[\n]\n}", to_string(ptr));
+}
+
+TEST(cJSON, ToStringEmptyArrayAsFieldUnformatted) {
+    unique_cJSON_ptr ptr(cJSON_CreateObject());
+    cJSON_AddItemToObject(ptr.get(), "foo", cJSON_CreateArray());
+    EXPECT_EQ("{\"foo\":[]}", to_string(ptr, false));
+}
