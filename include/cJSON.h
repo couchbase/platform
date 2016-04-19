@@ -103,11 +103,11 @@ extern cJSON *cJSON_Parse(const char *value);
 /* Render a cJSON entity to text for transfer/storage. Free the char*
    when finished. */
 CJSON_PUBLIC_API
-extern char  *cJSON_Print(cJSON *item);
+extern char  *cJSON_Print(const cJSON *item);
 /* Render a cJSON entity to text for transfer/storage without any
    formatting. Free the char* when finished. */
 CJSON_PUBLIC_API
-extern char  *cJSON_PrintUnformatted(cJSON *item);
+extern char  *cJSON_PrintUnformatted(const cJSON *item);
 /* Release the memory returned by cJSON_Print and cJSON_PrintUnformatted */
 CJSON_PUBLIC_API
 extern void   cJSON_Free(char *ptr);

@@ -27,9 +27,9 @@ std::string to_string(const cJSON* json, bool formatted) {
 
     char* ptr;
     if (formatted) {
-        ptr = cJSON_Print(const_cast<cJSON*>(json));
+        ptr = cJSON_Print(json);
     } else {
-        ptr = cJSON_PrintUnformatted(const_cast<cJSON*>(json));
+        ptr = cJSON_PrintUnformatted(json);
     }
 
     if (ptr == nullptr) {

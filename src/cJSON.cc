@@ -153,7 +153,7 @@ static const char *parse_number(cJSON *item, const char *num)
 }
 
 /* Render the number nicely from the given item into a string. */
-static char *print_number(cJSON *item)
+static char *print_number(const cJSON *item)
 {
     char *str;
     double d = item->valuedouble;
@@ -319,18 +319,18 @@ static char *print_string_ptr(const char *str)
     return out;
 }
 /* Invote print_string_ptr (which is useful) on an item. */
-static char *print_string(cJSON *item)
+static char *print_string(const cJSON *item)
 {
     return print_string_ptr(item->valuestring);
 }
 
 /* Predeclare these prototypes. */
 static const char *parse_value(cJSON *item, const char *value);
-static char *print_value(cJSON *item, int depth, int fmt);
+static char *print_value(const cJSON *item, int depth, int fmt);
 static const char *parse_array(cJSON *item, const char *value);
-static char *print_array(cJSON *item, int depth, int fmt);
+static char *print_array(const cJSON *item, int depth, int fmt);
 static const char *parse_object(cJSON *item, const char *value);
-static char *print_object(cJSON *item, int depth, int fmt);
+static char *print_object(const cJSON *item, int depth, int fmt);
 
 /* Utility to jump whitespace and cr/lf */
 static const char *skip(const char *in)
@@ -357,12 +357,12 @@ cJSON *cJSON_Parse(const char *value)
 }
 
 /* Render a cJSON item/entity/structure to text. */
-char *cJSON_Print(cJSON *item)
+char *cJSON_Print(const cJSON *item)
 {
     return print_value(item, 0, 1);
 }
 
-char *cJSON_PrintUnformatted(cJSON *item)
+char *cJSON_PrintUnformatted(const cJSON *item)
 {
     return print_value(item, 0, 0);
 }
@@ -408,7 +408,7 @@ static const char *parse_value(cJSON *item, const char *value)
 }
 
 /* Render a value to text. */
-static char *print_value(cJSON *item, int depth, int fmt)
+static char *print_value(const cJSON *item, int depth, int fmt)
 {
     char *out = 0;
     if (!item) {
@@ -484,7 +484,7 @@ static const char *parse_array(cJSON *item, const char *value)
 }
 
 /* Render an array to text */
-static char *print_array(cJSON *item, int depth, int fmt)
+static char *print_array(const cJSON *item, int depth, int fmt)
 {
     char **entries;
     char *out = 0, *ptr, *ret;
@@ -615,7 +615,7 @@ static const char *parse_object(cJSON *item, const char *value)
 }
 
 /* Render an object to text. */
-static char *print_object(cJSON *item, int depth, int fmt)
+static char *print_object(const cJSON *item, int depth, int fmt)
 {
     char **entries = 0, **names = 0;
     char *out = 0, *ptr, *ret, *str;
