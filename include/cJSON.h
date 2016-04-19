@@ -142,16 +142,6 @@ extern cJSON *cJSON_CreateArray(void);
 CJSON_PUBLIC_API
 extern cJSON *cJSON_CreateObject(void);
 
-/* These utilities create an Array of count items. */
-CJSON_PUBLIC_API
-extern cJSON *cJSON_CreateIntArray(int *numbers,int count);
-CJSON_PUBLIC_API
-extern cJSON *cJSON_CreateFloatArray(float *numbers,int count);
-CJSON_PUBLIC_API
-extern cJSON *cJSON_CreateDoubleArray(double *numbers,int count);
-CJSON_PUBLIC_API
-extern cJSON *cJSON_CreateStringArray(const char **strings,int count);
-
 /* Append item to the specified array/object. */
 CJSON_PUBLIC_API
 extern void cJSON_AddItemToArray(cJSON *array, cJSON *item);
