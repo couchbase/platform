@@ -196,6 +196,20 @@ static void testIsDirectory(void) {
     }
 }
 
+static void testIsFile(void) {
+   using namespace CouchbaseDirectoryUtilities;
+   expect(false, isFile("."));
+   FILE* fp = fopen("plainfile", "w");
+   if (fp == nullptr) {
+      std::cerr << "Failed to create test file" << std::endl;
+      exit_value = EXIT_FAILURE;
+   } else {
+      fclose(fp);
+      expect(true, isFile("plainfile"));
+      rmrf("plainfile");
+   }
+}
+
 static void testMkdirp(void) {
     using namespace CouchbaseDirectoryUtilities;
 
@@ -243,6 +257,7 @@ int main(int argc, char **argv)
    testRemove();
 
    testIsDirectory();
+   testIsFile();
    testMkdirp();
 
    return exit_value;
