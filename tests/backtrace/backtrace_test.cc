@@ -1,4 +1,4 @@
-/* -*- Mode: C; tab-width: 4; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+/* -*- Mode: C++; tab-width: 4; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /*
  *     Copyright 2015 Couchbase, Inc
  *
@@ -25,6 +25,7 @@
 #include <string.h>
 #include <platform/backtrace.h>
 
+#include <gtest/gtest.h>
 
 #ifdef WIN32
     #define NOINLINE __declspec(noinline)
@@ -67,7 +68,8 @@ static int outer() {
     return dummy++;
 }
 
-int main(void) {
+// Test the print_backtrace() function
+TEST(BacktraceTest, PrintBacktrace) {
     outer();
-    cb_assert(frames >= 3);
+    EXPECT_GE(frames, 3);
 }
