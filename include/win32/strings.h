@@ -14,7 +14,8 @@
 *   See the License for the specific language governing permissions and
 *   limitations under the License.
 */
-#pragma once
+#ifndef STRINGS_H
+#define STRINGS_H
 
 #include <stdarg.h>
 
@@ -44,4 +45,6 @@ int vasprintf(char **ret, const char *format, va_list ap);
 
 #ifndef snprintf
 #define snprintf _snprintf
+#endif
+
 #endif
