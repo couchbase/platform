@@ -31,6 +31,7 @@
 #include <float.h>
 #include <limits.h>
 #include <ctype.h>
+#include <platform/cb_malloc.h>
 #include "cJSON.h"
 
 static int cJSON_strcasecmp(const char *s1, const char *s2)
@@ -49,25 +50,25 @@ static int cJSON_strcasecmp(const char *s1, const char *s2)
     return tolower(*(const unsigned char *)s1) - tolower(*(const unsigned char *)s2);
 }
 
-static void *(*cJSON_malloc)(size_t sz) = malloc;
-static void *(*cJSON_calloc)(size_t nmemb, size_t size) = calloc;
-static void (*cJSON_free)(void *ptr) = free;
-static char *(*cJSON_strdup)(const char *str) = strdup;
+static void *(*cJSON_malloc)(size_t sz) = cb_malloc;
+static void *(*cJSON_calloc)(size_t nmemb, size_t size) = cb_calloc;
+static void (*cJSON_free)(void *ptr) = cb_free;
+static char *(*cJSON_strdup)(const char *str) = cb_strdup;
 
 void cJSON_InitHooks(cJSON_Hooks *hooks)
 {
     if (!hooks) { /* Reset hooks */
-        cJSON_malloc = malloc;
-        cJSON_free = free;
-        cJSON_calloc = calloc;
-        cJSON_strdup = strdup;
+        cJSON_malloc = cb_malloc;
+        cJSON_free = cb_free;
+        cJSON_calloc = cb_calloc;
+        cJSON_strdup = cb_strdup;
         return;
     }
 
-    cJSON_malloc = (hooks->malloc_fn) ? hooks->malloc_fn : malloc;
-    cJSON_free = (hooks->free_fn) ? hooks->free_fn : free;
-    cJSON_calloc = (hooks->calloc_fn) ? hooks->calloc_fn : calloc;
-    cJSON_strdup = (hooks->strdup_fn) ? hooks->strdup_fn : strdup;
+    cJSON_malloc = (hooks->malloc_fn) ? hooks->malloc_fn : cb_malloc;
+    cJSON_free = (hooks->free_fn) ? hooks->free_fn : cb_free;
+    cJSON_calloc = (hooks->calloc_fn) ? hooks->calloc_fn : cb_calloc;
+    cJSON_strdup = (hooks->strdup_fn) ? hooks->strdup_fn : cb_strdup;
 }
 
 /* Internal constructor. */
@@ -357,7 +358,7 @@ char *cJSON_PrintUnformatted(cJSON *item)
 
 void cJSON_Free(char *ptr)
 {
-    free(ptr);
+    cJSON_free(ptr);
 }
 
 /* Parser core - when encountering text, process appropriately. */
@@ -655,14 +656,14 @@ static char *print_object(cJSON *item, int depth, int fmt)
     if (fail) {
         for (i = 0; i < numentries; i++) {
             if (names[i]) {
-                free(names[i]);
+                cJSON_free(names[i]);
             }
             if (entries[i]) {
-                free(entries[i]);
+                cJSON_free(entries[i]);
             }
         }
-        free(names);
-        free(entries);
+        cJSON_free(names);
+        cJSON_free(entries);
         return NULL;
     }
 
