@@ -57,6 +57,10 @@ CONFIGURE_FILE (${CMAKE_CURRENT_SOURCE_DIR}/include/platform/dynamic.in.h
 INCLUDE_DIRECTORIES(BEFORE ${CMAKE_CURRENT_SOURCE_DIR}/include
                            ${CMAKE_CURRENT_BINARY_DIR}/src)
 
+IF (MEMORY_ALLOCATOR)
+  INCLUDE_DIRECTORIES(AFTER ${MALLOC_INCLUDE_DIR})
+ENDIF (MEMORY_ALLOCATOR)
+
 ADD_LIBRARY(cJSON SHARED
             include/cJSON.h
             include/cJSON_utils.h
@@ -130,6 +134,7 @@ ADD_LIBRARY(platform SHARED ${PLATFORM_FILES}
                             src/backtrace.c
                             src/byteorder.c
                             src/cb_time.c
+                            src/cb_malloc.cc
                             src/cb_mktemp.c
                             src/cbassert.c
                             src/checked_snprintf.cc
@@ -150,7 +155,7 @@ ADD_LIBRARY(platform SHARED ${PLATFORM_FILES}
                             include/platform/visibility.h)
 
 LIST(REMOVE_DUPLICATES PLATFORM_LIBRARIES)
-TARGET_LINK_LIBRARIES(platform ${COUCHBASE_NETWORK_LIBS} ${PLATFORM_LIBRARIES})
+TARGET_LINK_LIBRARIES(platform ${COUCHBASE_NETWORK_LIBS} ${MALLOC_LIBRARIES} ${PLATFORM_LIBRARIES})
 
 # On OS X 10.11 we need to remove the default rpath settings in order to all
 # us to load the platform library from Python scripts that are run out of
