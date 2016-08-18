@@ -58,6 +58,10 @@ INCLUDE_DIRECTORIES(BEFORE ${CMAKE_CURRENT_SOURCE_DIR}/include
                            ${CMAKE_CURRENT_BINARY_DIR}/src
                            ${phosphor_SOURCE_DIR}/include)
 
+IF (MEMORY_ALLOCATOR)
+  INCLUDE_DIRECTORIES(AFTER ${MALLOC_INCLUDE_DIR})
+ENDIF (MEMORY_ALLOCATOR)
+
 ADD_LIBRARY(cJSON SHARED
             include/cJSON.h
             include/cJSON_utils.h
@@ -130,6 +134,7 @@ ADD_LIBRARY(platform SHARED ${PLATFORM_FILES}
                             src/random.cc
                             src/backtrace.c
                             src/byteorder.c
+                            src/cb_malloc.cc
                             src/cb_mktemp.c
                             src/cb_time.cc
                             src/cbassert.c
@@ -152,7 +157,7 @@ ADD_LIBRARY(platform SHARED ${PLATFORM_FILES}
 
 LIST(APPEND PLATFORM_LIBRARIES "phosphor")
 LIST(REMOVE_DUPLICATES PLATFORM_LIBRARIES)
-TARGET_LINK_LIBRARIES(platform ${COUCHBASE_NETWORK_LIBS} ${PLATFORM_LIBRARIES})
+TARGET_LINK_LIBRARIES(platform ${COUCHBASE_NETWORK_LIBS} ${MALLOC_LIBRARIES} ${PLATFORM_LIBRARIES})
 
 # On OS X 10.11 we need to remove the default rpath settings in order to all
 # us to load the platform library from Python scripts that are run out of
