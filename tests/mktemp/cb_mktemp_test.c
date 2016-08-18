@@ -20,12 +20,13 @@
 
 #include <platform/platform.h>
 #include <platform/cbassert.h>
+#include <platform/cb_malloc.h>
 
 const char *original = "mktemp_test_XXXXXX";
 
 int main(void) {
     for (int ii = 0; ii < 100; ++ii) {
-        char *pattern = strdup(original);
+        char *pattern = cb_strdup(original);
         cb_assert(pattern);
 
         char *file = cb_mktemp(pattern);
@@ -42,13 +43,13 @@ int main(void) {
         fclose(fp);
 
         remove(pattern);
-        free(pattern);
+        cb_free(pattern);
     }
 
-    char *pattern = strdup("foo");
+    char *pattern = cb_strdup("foo");
     cb_assert(pattern);
     cb_assert(cb_mktemp(pattern) == NULL);
-    free(pattern);
+    cb_free(pattern);
 
     return 0;
 }
