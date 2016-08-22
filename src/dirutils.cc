@@ -250,6 +250,23 @@ namespace CouchbaseDirectoryUtilities
     }
 
     DIRUTILS_PUBLIC_API
+    bool isFile(const std::string& file) {
+#ifdef WIN32
+        DWORD dwAttrib = GetFileAttributes(file.c_str());
+        if (dwAttrib == INVALID_FILE_ATTRIBUTES) {
+            return false;
+        }
+        return (dwAttrib & FILE_ATTRIBUTE_DIRECTORY) == 0;
+#else
+        struct stat st;
+        if (stat(file.c_str(), &st) == -1) {
+            return false;
+        }
+        return (S_ISREG(st.st_mode) || S_ISLNK(st.st_mode));
+#endif
+    }
+
+    DIRUTILS_PUBLIC_API
     bool mkdirp(const std::string &directory) {
         struct stat st;
         if (stat(directory.c_str(), &st) == 0) {

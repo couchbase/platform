@@ -78,6 +78,12 @@ namespace CouchbaseDirectoryUtilities
     bool isDirectory(const std::string &directory);
 
     /**
+     * Check if a path exists and is a file
+     */
+    DIRUTILS_PUBLIC_API
+    bool isFile(const std::string &file);
+
+    /**
      * Try to create directory including all of the parent directories
      *
      * @param directory the directory to create
