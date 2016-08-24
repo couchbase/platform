@@ -44,7 +44,7 @@ inline
 typename __unique_if<_Tp>::__unique_single
 make_unique(_Args&&... __args)
 {
-    return std::unique_ptr<_Tp>(new _Tp(_VSTD::forward<_Args>(__args)...));
+    return std::unique_ptr<_Tp>(new _Tp(std::forward<_Args>(__args)...));
 }
 
 template<class _Tp>
