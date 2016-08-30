@@ -21,20 +21,7 @@
 
 // Which underlying memory allocator should we use?
 #if defined(HAVE_JEMALLOC)
-/* TODO: jemalloc has no new/delete hooks itself, and we instead rely
- * on either our own custom zone (OS X; darwin_zone.c) or our
- * own malloc/free symbols (alloc_hooks_jemalloc.cc) to intercept
- * malloc/realloc etc and call the memory hook (before chaining to the
- * real allocator).
- * This means that during the transition to cbmalloc, we still need to
- * call the 'normal' malloc function to ensure that the current
- * allocator-specific memory tracking hooks (memcached
- * MallocHooks::add_new_hook) are invoked. When we subsequently flip
- * MallocHooks::add_new_hook to instead call cbmalloc's memory
- * tracking cb_add_new_hook), we will change the MALLOC_PREFIX to
- * 'je_' and remove our own custom zone & own malloc/free symbols.
- */
-#    define MALLOC_PREFIX
+#  define MALLOC_PREFIX je_
 /* Irrespective of how jemalloc was configured on this platform,
  * don't rename je_FOO to FOO.
  */
