@@ -40,7 +40,6 @@ Couchbase::Thread::~Thread() {
 }
 
 void Couchbase::Thread::thread_entry() {
-    cb_set_thread_name(name.c_str());
 
     // Call the subclass run() method
     run();
@@ -70,7 +69,8 @@ void Couchbase::Thread::start() {
     std::unique_lock<std::mutex> lock(synchronization.mutex);
     state = ThreadState::Starting;
 
-    if (cb_create_thread(&thread_id, task_thread_main, this, 0) != 0) {
+    if (cb_create_named_thread(&thread_id, task_thread_main, this,
+                               0, name.c_str()) != 0) {
         state = ThreadState::Stopped;
         throw std::bad_alloc();
     }

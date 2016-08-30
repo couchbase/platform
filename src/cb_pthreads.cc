@@ -28,6 +28,8 @@
 #include <sys/time.h>
 #include <system_error>
 
+#include <phosphor/phosphor.h>
+
 /**
  * The CouchbaseThread class is used to pass information between a thread
  * and the newly created thread.
@@ -48,10 +50,12 @@ public:
     }
 
     void run() {
+        PHOSPHOR_INSTANCE.registerThread(name);
         if (!name.empty()) {
             cb_set_thread_name(name.c_str());
         }
         func(argument);
+        PHOSPHOR_INSTANCE.deregisterThread();
     }
 
 private:
