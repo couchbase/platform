@@ -21,18 +21,7 @@
 
 // Which underlying memory allocator should we use?
 #if defined(HAVE_JEMALLOC)
-#  if defined(__APPLE__)
-/* On OS X, jemalloc has no new/delete hooks itself, and we instead rely
- * on our own custom zone (darwin_zone.c) to intercept malloc/realloc etc and
- * call the memory hook (before chaining to the real allocator).
- * Therefore even with je_malloc selected we still need to call 'normal' malloc
- * function - if we called je_malloc directly we wouldn't invoke our custom
- * hooks.
- */
-#    define MALLOC_PREFIX
-#  else
-#    define MALLOC_PREFIX je_
-#  endif // defined(__APPLE__)
+#  define MALLOC_PREFIX je_
 /* Irrespective of how jemalloc was configured on this platform,
  * don't rename je_FOO to FOO.
  */
