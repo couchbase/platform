@@ -129,7 +129,12 @@ ENDIF (CB_DONT_NEED_GETHRTIME OR HAVE_DEAD_SLOW_CHRONO)
 #
 # Add all of the libraries
 #
-ADD_LIBRARY(platform SHARED ${PLATFORM_FILES}
+
+# platform_so - the 'real' platform shared library containing our various
+# platform abstraction functionality.
+# Note that in general external users should link 'platform' and not
+# 'platform_so' - see below.
+ADD_LIBRARY(platform_so SHARED ${PLATFORM_FILES}
                             ${CMAKE_CURRENT_BINARY_DIR}/src/config.h
                             src/base64.cc
                             src/getpid.c
@@ -144,6 +149,7 @@ ADD_LIBRARY(platform SHARED ${PLATFORM_FILES}
                             src/crc32c.cc
                             src/crc32c_sse4_2.cc
                             src/crc32c_private.h
+                            src/global_new_replacement.cc
                             src/strerror.cc
                             src/thread.cc
                             src/timeutils.cc
@@ -159,21 +165,44 @@ ADD_LIBRARY(platform SHARED ${PLATFORM_FILES}
 
 LIST(APPEND PLATFORM_LIBRARIES "phosphor")
 LIST(REMOVE_DUPLICATES PLATFORM_LIBRARIES)
-TARGET_LINK_LIBRARIES(platform ${COUCHBASE_NETWORK_LIBS} ${MALLOC_LIBRARIES} ${PLATFORM_LIBRARIES})
+TARGET_LINK_LIBRARIES(platform_so
+                      ${COUCHBASE_NETWORK_LIBS} ${MALLOC_LIBRARIES} ${PLATFORM_LIBRARIES})
+
+# 'platform' - the library clients should normally link to.
+#
+# 'platform' is a static library, which itself links to the main platform_so
+# shared library. This is to ensure that any clients of platform always link
+# in the C++ global operator new/delete replacements if they use platform at
+# all. If they didn't then this would cause problems:
+# 1) Memory usage from the client will not be tracked.
+# 2) If a C++ object allocated in platform (using cbmalloc via new) is
+#    delete'd in the client (using default free) then we have a mismatched
+#    new/delete pair.
+# By giving all clients of platform the global new/delete automatically we
+# avoid these problems.
+ADD_LIBRARY(platform STATIC src/global_new_replacement.cc)
+SET_TARGET_PROPERTIES(platform PROPERTIES POSITION_INDEPENDENT_CODE true)
+TARGET_LINK_LIBRARIES(platform platform_so)
+
 
 # On OS X 10.11 we need to remove the default rpath settings in order to all
 # us to load the platform library from Python scripts that are run out of
 # /usr/bin/python. We can remove this once we ship our own Python.
 IF (APPLE)
-    SET_TARGET_PROPERTIES(platform
+    SET_TARGET_PROPERTIES(platform_so
                           PROPERTIES
                           INSTALL_RPATH "")
 ENDIF ()
 
-SET_TARGET_PROPERTIES(platform PROPERTIES SOVERSION 0.1.0)
+SET_TARGET_PROPERTIES(platform_so PROPERTIES SOVERSION 0.1.0)
 
-ADD_LIBRARY(dirutils SHARED src/dirutils.cc include/platform/dirutils.h)
+# TODO: Given dirutils now links with platform (for cbmalloc &
+# global_new_replacement) we can probably just merge it into platform.
+ADD_LIBRARY(dirutils SHARED
+            src/dirutils.cc
+            include/platform/dirutils.h)
 SET_TARGET_PROPERTIES(dirutils PROPERTIES SOVERSION 0.1.0)
+TARGET_LINK_LIBRARIES(dirutils platform)
 
 IF (BREAKPAD_FOUND)
    ADD_DEFINITIONS(-DHAVE_BREAKPAD)
@@ -196,7 +225,7 @@ TARGET_LINK_LIBRARIES(breakpad_wrapper
                       ${BREAKPAD_LIBRARIES})
 
 
-INSTALL(TARGETS breakpad_wrapper cJSON JSON_checker platform dirutils
+INSTALL(TARGETS breakpad_wrapper cJSON JSON_checker platform_so dirutils
         RUNTIME DESTINATION bin
         LIBRARY DESTINATION lib
         ARCHIVE DESTINATION lib)
@@ -217,7 +246,7 @@ IF (${CMAKE_MAJOR_VERSION} LESS 3)
                          ${CMAKE_INSTALL_PREFIX}/lib)
    SET_TARGET_PROPERTIES(JSON_checker PROPERTIES INSTALL_NAME_DIR
                          ${CMAKE_INSTALL_PREFIX}/lib)
-   SET_TARGET_PROPERTIES(platform PROPERTIES INSTALL_NAME_DIR
+   SET_TARGET_PROPERTIES(platform_so PROPERTIES INSTALL_NAME_DIR
                          ${CMAKE_INSTALL_PREFIX}/lib)
    SET_TARGET_PROPERTIES(dirutils PROPERTIES INSTALL_NAME_DIR
                          ${CMAKE_INSTALL_PREFIX}/lib)
