@@ -55,8 +55,7 @@ CONFIGURE_FILE (${CMAKE_CURRENT_SOURCE_DIR}/include/platform/dynamic.in.h
 # Set the include path
 #
 INCLUDE_DIRECTORIES(BEFORE ${CMAKE_CURRENT_SOURCE_DIR}/include
-                           ${CMAKE_CURRENT_BINARY_DIR}/src
-                           ${phosphor_SOURCE_DIR}/include)
+                           ${CMAKE_CURRENT_BINARY_DIR}/src)
 
 ADD_LIBRARY(cJSON SHARED
             include/cJSON.h
@@ -150,7 +149,6 @@ ADD_LIBRARY(platform SHARED ${PLATFORM_FILES}
                             include/platform/timeutils.h
                             include/platform/visibility.h)
 
-LIST(APPEND PLATFORM_LIBRARIES "phosphor")
 LIST(REMOVE_DUPLICATES PLATFORM_LIBRARIES)
 TARGET_LINK_LIBRARIES(platform ${COUCHBASE_NETWORK_LIBS} ${PLATFORM_LIBRARIES})
 
