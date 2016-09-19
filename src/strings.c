@@ -21,6 +21,8 @@
 
 #include "strings.h"
 
+#include <platform/cb_malloc.h>
+
 int asprintf(char **ret, const char *format, ...) {
     va_list ap;
     int count;
@@ -31,6 +33,8 @@ int asprintf(char **ret, const char *format, ...) {
 }
 
 int vasprintf(char **ret, const char *format, va_list ap) {
+    // Note: we use vanilla malloc/free (not cb_malloc/cb_free) to maintain
+    // compatibility with C99 vasprint() which uses system malloc/free.
     va_list copy;
     int res;
     va_copy(copy, ap);
