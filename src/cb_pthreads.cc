@@ -23,7 +23,6 @@
 #include <dlfcn.h>
 #include <memory>
 #include <new>
-#include <platform/cb_malloc.h>
 #include <stdexcept>
 #include <string>
 #include <sys/time.h>
@@ -332,22 +331,22 @@ cb_dlhandle_t cb_dlopen(const char *library, char **errmsg)
     } else {
         handle = dlopen(library, RTLD_NOW | RTLD_LOCAL);
         if (handle == NULL) {
-            buffer = reinterpret_cast<char*>(cb_malloc(strlen(library) + 20));
+            buffer = reinterpret_cast<char*>(malloc(strlen(library) + 20));
             if (buffer == NULL) {
                 if (*errmsg) {
-                    *errmsg = cb_strdup("Failed to allocate memory");
+                    *errmsg = strdup("Failed to allocate memory");
                 }
                 return NULL;
             }
 
             handle = dlopen(get_dll_name(library, buffer),
                             RTLD_NOW | RTLD_LOCAL);
-            cb_free(buffer);
+            free(buffer);
         }
     }
 
     if (handle == NULL && errmsg != NULL) {
-        *errmsg = cb_strdup(dlerror());
+        *errmsg = strdup(dlerror());
     }
 
     return handle;
@@ -357,7 +356,7 @@ void *cb_dlsym(cb_dlhandle_t handle, const char *symbol, char **errmsg)
 {
     void *ret = dlsym(handle, symbol);
     if (ret == NULL && errmsg) {
-        *errmsg = cb_strdup(dlerror());
+        *errmsg = strdup(dlerror());
     }
     return ret;
 }

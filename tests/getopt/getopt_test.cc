@@ -6,20 +6,23 @@
 #include <vector>
 #include <string>
 #include <platform/cbassert.h>
-#include <platform/cb_malloc.h>
 
+
+#ifdef _MSC_VER
+#define strdup _strdup
+#endif
 
 char **vec2array(const std::vector<std::string> &vec) {
     char **arr = new char*[vec.size()];
     for (unsigned int ii = 0; ii < (unsigned int)vec.size(); ++ii) {
-        arr[ii] = cb_strdup(vec[ii].c_str());
+        arr[ii] = strdup(vec[ii].c_str());
     }
     return arr;
 }
 
 static void release(char **arr, size_t size) {
     for (size_t ii = 0; ii < size; ++ii) {
-        cb_free(arr[ii]);
+        free(arr[ii]);
     }
     delete []arr;
 }

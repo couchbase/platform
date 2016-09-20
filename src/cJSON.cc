@@ -44,8 +44,6 @@
 #include <limits.h>
 #include <ctype.h>
 #include <new>
-#include <platform/cb_malloc.h>
-
 #include "cJSON.h"
 
 static int cJSON_strcasecmp(const char *s1, const char *s2)
@@ -65,7 +63,7 @@ static int cJSON_strcasecmp(const char *s1, const char *s2)
 }
 
 static void *cJSON_malloc(size_t sz) {
-    auto* ret = cb_malloc(sz);
+    auto* ret = malloc(sz);
     if (ret == nullptr) {
         throw std::bad_alloc();
     }
@@ -74,7 +72,7 @@ static void *cJSON_malloc(size_t sz) {
 }
 
 static void *cJSON_calloc(size_t nmemb, size_t size) {
-    auto* ret = cb_calloc(nmemb, size);
+    auto* ret = calloc(nmemb, size);
     if (ret == nullptr) {
         throw std::bad_alloc();
     }
@@ -83,11 +81,11 @@ static void *cJSON_calloc(size_t nmemb, size_t size) {
 }
 
 static void cJSON_free(void *ptr) {
-    cb_free(ptr);
+    free(ptr);
 }
 
 static char *cJSON_strdup(const char *str) {
-    auto* ret = cb_strdup(str);
+    auto* ret = strdup(str);
     if (ret == nullptr) {
         throw std::bad_alloc();
     }
@@ -381,7 +379,7 @@ char *cJSON_PrintUnformatted(const cJSON *item)
 
 void cJSON_Free(char *ptr)
 {
-    cJSON_free(ptr);
+    free(ptr);
 }
 
 /* Parser core - when encountering text, process appropriately. */
@@ -719,14 +717,14 @@ static char *print_object(const cJSON *item, int depth, int fmt)
     if (fail) {
         for (i = 0; i < numentries; i++) {
             if (names[i]) {
-                cJSON_free(names[i]);
+                free(names[i]);
             }
             if (entries[i]) {
-                cJSON_free(entries[i]);
+                free(entries[i]);
             }
         }
-        cJSON_free(names);
-        cJSON_free(entries);
+        free(names);
+        free(entries);
         return NULL;
     }
 

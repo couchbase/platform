@@ -4,7 +4,6 @@
 #include <strings.h>
 
 #include <platform/cbassert.h>
-#include <platform/cb_malloc.h>
 
 static void test_asprintf(void) {
     char *result = 0;

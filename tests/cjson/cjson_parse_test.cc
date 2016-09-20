@@ -5,7 +5,6 @@
 #include <assert.h>
 #include <sys/stat.h>
 #include <string.h>
-#include <platform/cb_malloc.h>
 #include <platform/platform.h>
 #include <cJSON.h>
 #include <stdio.h>
@@ -45,7 +44,7 @@ static char *load_file(const char *file)
         exit(EXIT_FAILURE);
     }
 
-    data = reinterpret_cast<char*>(cb_malloc(st.st_size + 1));
+    data = reinterpret_cast<char*>(malloc(st.st_size + 1));
     if (data == NULL) {
         fclose(fp);
         fprintf(stderr, "Failed to allocate memory\n");
@@ -53,7 +52,7 @@ static char *load_file(const char *file)
     }
 
     if (spool(fp, data, st.st_size) == -1) {
-        cb_free(data);
+        free(data);
         fclose(fp);
         fprintf(stderr, "Failed to open test file %s: %s", file,
                 strerror(errno));
@@ -113,6 +112,6 @@ int main(int argc, char **argv) {
 
     report(delta / (hrtime_t)num);
 
-    cb_free(data);
+    free(data);
     exit(EXIT_SUCCESS);
 }

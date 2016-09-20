@@ -16,7 +16,6 @@
  */
 #include "config.h"
 
-#include <platform/cb_malloc.h>
 #include <platform/strerror.h>
 #include <assert.h>
 #include <stdio.h>
@@ -211,7 +210,7 @@ cb_dlhandle_t cb_dlopen(const char *library, char **errmsg)
 
     if (library == NULL) {
         if (errmsg != NULL) {
-            *errmsg = cb_strdup("Open self is not supported");
+            *errmsg = _strdup("Open self is not supported");
         }
         return NULL;
     }
@@ -221,7 +220,7 @@ cb_dlhandle_t cb_dlopen(const char *library, char **errmsg)
     handle = LoadLibrary(get_dll_name(library, buffer.data()));
     if (handle == NULL && errmsg != NULL) {
         std::string reason = cb_strerror();
-        *errmsg = cb_strdup(reason.c_str());
+        *errmsg = _strdup(reason.c_str());
     }
 
     return handle;
@@ -233,7 +232,7 @@ void *cb_dlsym(cb_dlhandle_t handle, const char *symbol, char **errmsg)
     void *ret = GetProcAddress(reinterpret_cast<HMODULE>(handle), symbol);
     if (ret == NULL && errmsg) {
         std::string reason = cb_strerror();
-        *errmsg = cb_strdup(reason.c_str());
+        *errmsg = _strdup(reason.c_str());
     }
 
     return ret;
