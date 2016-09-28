@@ -6,6 +6,7 @@
 #cmakedefine HAVE_DLADDR 1
 #cmakedefine HAVE_PTHREAD_SETNAME_NP 1
 #cmakedefine HAVE_PTHREAD_GETNAME_NP 1
+#cmakedefine HAVE_SCHED_GETAFFINITY 1
 
 #ifdef WIN32
 #define NOMINMAX

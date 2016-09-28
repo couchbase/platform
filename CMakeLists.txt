@@ -36,6 +36,7 @@ SET(CMAKE_REQUIRED_DEFINITIONS "-D_GNU_SOURCE")
 SET(CMAKE_REQUIRED_LIBRARIES "pthread")
 CHECK_SYMBOL_EXISTS(pthread_setname_np pthread.h HAVE_PTHREAD_SETNAME_NP)
 CHECK_SYMBOL_EXISTS(pthread_getname_np pthread.h HAVE_PTHREAD_GETNAME_NP)
+CHECK_SYMBOL_EXISTS(sched_getaffinity sched.h HAVE_SCHED_GETAFFINITY)
 CMAKE_POP_CHECK_STATE()
 
 CMAKE_PUSH_CHECK_STATE(RESET)
@@ -151,6 +152,7 @@ ADD_LIBRARY(platform_so SHARED ${PLATFORM_FILES}
                             src/crc32c_private.h
                             src/global_new_replacement.cc
                             src/strerror.cc
+                            src/sysinfo.cc
                             src/thread.cc
                             src/timeutils.cc
                             include/platform/base64.h
@@ -159,6 +161,7 @@ ADD_LIBRARY(platform_so SHARED ${PLATFORM_FILES}
                             include/platform/platform.h
                             include/platform/random.h
                             include/platform/strerror.h
+                            include/platform/sysinfo.h
                             include/platform/thread.h
                             include/platform/timeutils.h
                             include/platform/visibility.h)
