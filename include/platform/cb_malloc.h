@@ -22,7 +22,7 @@
  * two reasons:
  *
  * 1. To give us a single 'interposing' point to use an alternative
- *    allocator (e.g. TCMalloc, jemalloc) instead of the system one.
+ *    allocator (e.g. jemalloc) instead of the system one.
  *    (On most *ix platforms it's relatively easy to interpose malloc and
  *    friends; you can simply define your own symbols in the application binary
  *    and those will be used; however this isn't possible on Windows so we
