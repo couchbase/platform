@@ -54,7 +54,6 @@
 #  define NOEXCEPT
 #else
 #  define NOEXCEPT noexcept
-#endif
 
 // Silence GCCs warning about redundant redeclaration (again, this will go
 // away soon).
@@ -63,6 +62,8 @@
 void* operator new(std::size_t count);
 void operator delete(void* ptr) NOEXCEPT;
 #pragma GCC diagnostic pop
+
+#endif
 
 void* operator new(std::size_t count) {
     void* result = cb_malloc(count);
