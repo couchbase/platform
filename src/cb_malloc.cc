@@ -28,10 +28,6 @@
 #  define JEMALLOC_NO_RENAME
 #  include <jemalloc/jemalloc.h>
 
-#elif defined(HAVE_TCMALLOC)
-#  define MALLOC_PREFIX tc_
-#  include <gperftools/tcmalloc.h>
-
 #else /* system allocator */
 #  define MALLOC_PREFIX
 #endif

@@ -50,27 +50,20 @@
 #include <cstdlib>
 #include <new>
 
-/* DJR TEMP - fix by 2016/10
- * The following symbols are marked as weak to simplify migrating existing
- * code. For example ep-engine has test code which defines its own operator
- * new/delete, and if we don't define these symbols as weak we'll get a linker
- * error when this patch is merged.
- */
 #if defined(WIN32)
-#  define WEAK_SYMBOL
 #  define NOEXCEPT
 #else
-#  define WEAK_SYMBOL __attribute__((weak))
 #  define NOEXCEPT noexcept
-#endif
 
 // Silence GCCs warning about redundant redeclaration (again, this will go
 // away soon).
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wredundant-decls"
-void* operator new(std::size_t count) WEAK_SYMBOL;
-void operator delete(void* ptr) NOEXCEPT WEAK_SYMBOL;
+void* operator new(std::size_t count);
+void operator delete(void* ptr) NOEXCEPT;
 #pragma GCC diagnostic pop
+
+#endif
 
 void* operator new(std::size_t count) {
     void* result = cb_malloc(count);
