@@ -16,16 +16,10 @@
  */
 #pragma once
 
-#include <platform/visibility.h>
-
 #include <string>
 #include <vector>
 
-#if defined(dirutils_EXPORTS)
-#define DIRUTILS_PUBLIC_API EXPORT_SYMBOL
-#else
-#define DIRUTILS_PUBLIC_API IMPORT_SYMBOL
-#endif
+#include <platform/dirutils-visibility.h>
 
 namespace cb {
 namespace io {
