@@ -29,6 +29,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <system_error>
 
 namespace CouchbaseDirectoryUtilities
 {
@@ -291,5 +292,34 @@ namespace CouchbaseDirectoryUtilities
         }
 
         return true;
+    }
+
+    std::string mktemp(const std::string& prefix) {
+        static const std::string patternmask{"XXXXXX"};
+
+        std::string pattern = prefix;
+        if (pattern.find(patternmask) == pattern.npos) {
+            pattern.append(patternmask);
+        }
+        return std::string {cb_mktemp(const_cast<char*>(pattern.data()))};
+    }
+
+    std::string getcwd(void) {
+        std::string result(4096, 0);
+#ifdef WIN32
+        if (GetCurrentDirectory(result.size(), &result[0]) == 0) {
+            throw std::system_error(GetLastError(), std::system_category(),
+                                    "Failed to determine current working directory");
+        }
+#else
+        if (::getcwd(&result[0], result.size()) == nullptr) {
+            throw std::system_error(errno, std::system_category(),
+                                    "Failed to determine current working directory");
+        }
+#endif
+
+        // Trim off any trailing \0 characters.
+        result.resize(strlen(result.c_str()));
+        return result;
     }
 }

@@ -223,6 +223,57 @@ static void testMkdirp(void) {
     rmrf("foo");
 }
 
+static void testGetCurrentDirectory() {
+   try {
+      auto cwd = CouchbaseDirectoryUtilities::getcwd();
+      // I can't really determine the correct value here, but it shouldn't be
+      // empty ;-)
+      if (cwd.empty()) {
+         std::cerr << "FAIL: cwd should not be an empty string" << std::endl;
+         exit(EXIT_FAILURE);
+      }
+   } catch (const std::exception& ex) {
+      std::cerr << "FAIL: " << ex.what() << std::endl;
+      exit(EXIT_FAILURE);
+   }
+}
+
+static void testCbMktemp() {
+   auto filename = CouchbaseDirectoryUtilities::mktemp("foo");
+   if (filename.empty()) {
+      std::cerr << "FAIL: Expected to create tempfile without mask"
+                << std::endl;
+      exit(EXIT_FAILURE);
+   }
+
+   if (!CouchbaseDirectoryUtilities::isFile(filename)) {
+      std::cerr << "FAIL: Expected mktemp to create file" << std::endl;
+      exit(EXIT_FAILURE);
+   }
+
+   if (!CouchbaseDirectoryUtilities::rmrf(filename)) {
+      std::cerr << "FAIL: failed to remove temporary file" << std::endl;
+      exit(EXIT_FAILURE);
+   }
+
+   filename = CouchbaseDirectoryUtilities::mktemp("barXXXXXX");
+   if (filename.empty()) {
+      std::cerr << "FAIL: Expected to create tempfile with mask"
+                << std::endl;
+      exit(EXIT_FAILURE);
+   }
+
+   if (!CouchbaseDirectoryUtilities::isFile(filename)) {
+      std::cerr << "FAIL: Expected mktemp to create file" << std::endl;
+      exit(EXIT_FAILURE);
+   }
+
+   if (!CouchbaseDirectoryUtilities::rmrf(filename)) {
+      std::cerr << "FAIL: failed to remove temporary file" << std::endl;
+      exit(EXIT_FAILURE);
+   }
+}
+
 int main(int argc, char **argv)
 {
    testDirname();
@@ -259,6 +310,8 @@ int main(int argc, char **argv)
    testIsDirectory();
    testIsFile();
    testMkdirp();
+   testGetCurrentDirectory();
+   testCbMktemp();
 
    return exit_value;
 }

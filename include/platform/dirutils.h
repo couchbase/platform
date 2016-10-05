@@ -1,6 +1,6 @@
 /* -*- Mode: C++; tab-width: 4; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /*
- *     Copyright 2012 Couchbase, Inc
+ *     Copyright 2016 Couchbase, Inc
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -92,6 +92,28 @@ namespace CouchbaseDirectoryUtilities
     DIRUTILS_PUBLIC_API
     bool mkdirp(const std::string &directory);
 
+    /**
+     * Create a unique temporary filename with the given prefix.
+     *
+     * This method is implemented by using cb_mktemp, but the caller
+     * does not need to add the XXXXXX in the filename.
+     *
+     * @param prefix The prefix to use in the filename.
+     * @return The unique filename
+     */
+    DIRUTILS_PUBLIC_API
+    std::string mktemp(const std::string& prefix);
+
+
+    /**
+     * Get the name of the current working directory
+     *
+     * @return the name of the current working directory
+     * @throws std::system_error if we fail to determine the current working
+     *         directory
+     */
+    DIRUTILS_PUBLIC_API
+    std::string getcwd(void);
 }
 
 #endif  // PLATFORM_DIRUTILS_H_
