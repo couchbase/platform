@@ -85,47 +85,47 @@ static bool exists(const std::string &path) {
 
 static void testDirname(void) {
    // Check the simple case
-   expect("foo", CouchbaseDirectoryUtilities::dirname("foo\\bar"));
-   expect("foo", CouchbaseDirectoryUtilities::dirname("foo/bar"));
+   expect("foo", cb::io::dirname("foo\\bar"));
+   expect("foo", cb::io::dirname("foo/bar"));
 
    // Make sure that we remove double an empty chunk
-   expect("foo", CouchbaseDirectoryUtilities::dirname("foo\\\\bar"));
-   expect("foo", CouchbaseDirectoryUtilities::dirname("foo//bar"));
+   expect("foo", cb::io::dirname("foo\\\\bar"));
+   expect("foo", cb::io::dirname("foo//bar"));
 
    // Make sure that we handle the case without a directory
-   expect(".", CouchbaseDirectoryUtilities::dirname("bar"));
-   expect(".", CouchbaseDirectoryUtilities::dirname(""));
+   expect(".", cb::io::dirname("bar"));
+   expect(".", cb::io::dirname(""));
 
    // Absolute directories
-   expect("\\", CouchbaseDirectoryUtilities::dirname("\\bar"));
-   expect("\\", CouchbaseDirectoryUtilities::dirname("\\\\bar"));
-   expect("/", CouchbaseDirectoryUtilities::dirname("/bar"));
-   expect("/", CouchbaseDirectoryUtilities::dirname("//bar"));
+   expect("\\", cb::io::dirname("\\bar"));
+   expect("\\", cb::io::dirname("\\\\bar"));
+   expect("/", cb::io::dirname("/bar"));
+   expect("/", cb::io::dirname("//bar"));
 
    // Test that we work with multiple directories
-   expect("1/2/3/4/5", CouchbaseDirectoryUtilities::dirname("1/2/3/4/5/6"));
-   expect("1\\2\\3\\4\\5", CouchbaseDirectoryUtilities::dirname("1\\2\\3\\4\\5\\6"));
-   expect("1/2\\4/5", CouchbaseDirectoryUtilities::dirname("1/2\\4/5\\6"));
+   expect("1/2/3/4/5", cb::io::dirname("1/2/3/4/5/6"));
+   expect("1\\2\\3\\4\\5", cb::io::dirname("1\\2\\3\\4\\5\\6"));
+   expect("1/2\\4/5", cb::io::dirname("1/2\\4/5\\6"));
 }
 
 static void testBasename(void) {
-   expect("bar", CouchbaseDirectoryUtilities::basename("foo\\bar"));
-   expect("bar", CouchbaseDirectoryUtilities::basename("foo/bar"));
-   expect("bar", CouchbaseDirectoryUtilities::basename("foo\\\\bar"));
-   expect("bar", CouchbaseDirectoryUtilities::basename("foo//bar"));
-   expect("bar", CouchbaseDirectoryUtilities::basename("bar"));
-   expect("", CouchbaseDirectoryUtilities::basename(""));
-   expect("bar", CouchbaseDirectoryUtilities::basename("\\bar"));
-   expect("bar", CouchbaseDirectoryUtilities::basename("\\\\bar"));
-   expect("bar", CouchbaseDirectoryUtilities::basename("/bar"));
-   expect("bar", CouchbaseDirectoryUtilities::basename("//bar"));
-   expect("6", CouchbaseDirectoryUtilities::basename("1/2/3/4/5/6"));
-   expect("6", CouchbaseDirectoryUtilities::basename("1\\2\\3\\4\\5\\6"));
-   expect("6", CouchbaseDirectoryUtilities::basename("1/2\\4/5\\6"));
+   expect("bar", cb::io::basename("foo\\bar"));
+   expect("bar", cb::io::basename("foo/bar"));
+   expect("bar", cb::io::basename("foo\\\\bar"));
+   expect("bar", cb::io::basename("foo//bar"));
+   expect("bar", cb::io::basename("bar"));
+   expect("", cb::io::basename(""));
+   expect("bar", cb::io::basename("\\bar"));
+   expect("bar", cb::io::basename("\\\\bar"));
+   expect("bar", cb::io::basename("/bar"));
+   expect("bar", cb::io::basename("//bar"));
+   expect("6", cb::io::basename("1/2/3/4/5/6"));
+   expect("6", cb::io::basename("1\\2\\3\\4\\5\\6"));
+   expect("6", cb::io::basename("1/2\\4/5\\6"));
 }
 
 static void testFindFilesWithPrefix(void) {
-   using namespace CouchbaseDirectoryUtilities;
+   using namespace cb::io;
 
    std::vector<std::string> vec = findFilesWithPrefix("fs");
    expect(1, vec);
@@ -146,7 +146,7 @@ static void testFindFilesWithPrefix(void) {
 }
 
 static void testFindFilesContaining(void) {
-   using namespace CouchbaseDirectoryUtilities;
+   using namespace cb::io;
    std::vector<std::string> vec = findFilesContaining("fs", "");
    expect(vfs.size() - 1, vec);
 
@@ -163,20 +163,20 @@ static void testFindFilesContaining(void) {
 
 static void testRemove(void) {
    fclose(fopen("test-file", "w"));
-   if (!CouchbaseDirectoryUtilities::rmrf("test-file")) {
+   if (!cb::io::rmrf("test-file")) {
       std::cerr << "expected to delete existing file" << std::endl;
    }
-   if (CouchbaseDirectoryUtilities::rmrf("test-file")) {
+   if (cb::io::rmrf("test-file")) {
       std::cerr << "Didn't expected to delete non-existing file" << std::endl;
    }
 
-   if (!CouchbaseDirectoryUtilities::rmrf("fs")) {
+   if (!cb::io::rmrf("fs")) {
       std::cerr << "Expected to nuke the entire fs directory recursively" << std::endl;
    }
 }
 
 static void testIsDirectory(void) {
-    using namespace CouchbaseDirectoryUtilities;
+    using namespace cb::io;
 #ifdef WIN32
     expect(true, isDirectory("c:\\"));
 #else
@@ -197,7 +197,7 @@ static void testIsDirectory(void) {
 }
 
 static void testIsFile(void) {
-   using namespace CouchbaseDirectoryUtilities;
+   using namespace cb::io;
    expect(false, isFile("."));
    FILE* fp = fopen("plainfile", "w");
    if (fp == nullptr) {
@@ -211,7 +211,7 @@ static void testIsFile(void) {
 }
 
 static void testMkdirp(void) {
-    using namespace CouchbaseDirectoryUtilities;
+    using namespace cb::io;
 
 #ifndef WIN32
     expect(false, mkdirp("/it/would/suck/if/I/could/create/this"));
@@ -225,7 +225,7 @@ static void testMkdirp(void) {
 
 static void testGetCurrentDirectory() {
    try {
-      auto cwd = CouchbaseDirectoryUtilities::getcwd();
+      auto cwd = cb::io::getcwd();
       // I can't really determine the correct value here, but it shouldn't be
       // empty ;-)
       if (cwd.empty()) {
@@ -239,36 +239,36 @@ static void testGetCurrentDirectory() {
 }
 
 static void testCbMktemp() {
-   auto filename = CouchbaseDirectoryUtilities::mktemp("foo");
+   auto filename = cb::io::mktemp("foo");
    if (filename.empty()) {
       std::cerr << "FAIL: Expected to create tempfile without mask"
                 << std::endl;
       exit(EXIT_FAILURE);
    }
 
-   if (!CouchbaseDirectoryUtilities::isFile(filename)) {
+   if (!cb::io::isFile(filename)) {
       std::cerr << "FAIL: Expected mktemp to create file" << std::endl;
       exit(EXIT_FAILURE);
    }
 
-   if (!CouchbaseDirectoryUtilities::rmrf(filename)) {
+   if (!cb::io::rmrf(filename)) {
       std::cerr << "FAIL: failed to remove temporary file" << std::endl;
       exit(EXIT_FAILURE);
    }
 
-   filename = CouchbaseDirectoryUtilities::mktemp("barXXXXXX");
+   filename = cb::io::mktemp("barXXXXXX");
    if (filename.empty()) {
       std::cerr << "FAIL: Expected to create tempfile with mask"
                 << std::endl;
       exit(EXIT_FAILURE);
    }
 
-   if (!CouchbaseDirectoryUtilities::isFile(filename)) {
+   if (!cb::io::isFile(filename)) {
       std::cerr << "FAIL: Expected mktemp to create file" << std::endl;
       exit(EXIT_FAILURE);
    }
 
-   if (!CouchbaseDirectoryUtilities::rmrf(filename)) {
+   if (!cb::io::rmrf(filename)) {
       std::cerr << "FAIL: failed to remove temporary file" << std::endl;
       exit(EXIT_FAILURE);
    }
