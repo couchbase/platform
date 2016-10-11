@@ -15,20 +15,19 @@
  *   limitations under the License.
  */
 
-
 #include <platform/compress.h>
 
 #include <snappy-c.h>
 #include <stdexcept>
 
-static bool doSnappyUncompress(const char *buf,
-                              size_t len,
-                        Couchbase::Compression::Buffer &output) {
+static bool doSnappyUncompress(const char* buf,
+                               size_t len,
+                               cb::compression::Buffer& output) {
     size_t inflated_length;
     if (snappy_uncompressed_length(buf, len, &inflated_length) == SNAPPY_OK) {
         std::unique_ptr<char[]> temp(new char[inflated_length]);
-        if (snappy_uncompress(buf, len,
-                              temp.get(), &inflated_length) == SNAPPY_OK) {
+        if (snappy_uncompress(buf, len, temp.get(), &inflated_length) ==
+            SNAPPY_OK) {
             output.data = std::move(temp);
             output.len = inflated_length;
             return true;
@@ -37,13 +36,13 @@ static bool doSnappyUncompress(const char *buf,
     return false;
 }
 
-static bool doSnappyCompress(const char *buf,
-                            size_t len,
-                      Couchbase::Compression::Buffer &output) {
+static bool doSnappyCompress(const char* buf,
+                             size_t len,
+                             cb::compression::Buffer& output) {
     size_t compressed_length = snappy_max_compressed_length(len);
     std::unique_ptr<char[]> temp(new char[compressed_length]);
-    if (snappy_compress(buf, len,
-                        temp.get(), &compressed_length) == SNAPPY_OK) {
+    if (snappy_compress(buf, len, temp.get(), &compressed_length) ==
+        SNAPPY_OK) {
         output.data = std::move(temp);
         output.len = compressed_length;
         return true;
@@ -51,25 +50,26 @@ static bool doSnappyCompress(const char *buf,
     return false;
 }
 
-
-bool Couchbase::Compression::inflate(const Algorithm algorithm,
-                                     const char* buf,
-                                     size_t len,
-                                     Buffer& output) {
+bool cb::compression::inflate(const Algorithm algorithm,
+                              const char* buf,
+                              size_t len,
+                              Buffer& output) {
     switch (algorithm) {
-    case Couchbase::Compression::Algorithm::Snappy:
+    case Algorithm::Snappy:
         return doSnappyUncompress(buf, len, output);
     }
-    throw std::invalid_argument("Unknown compression algorithm");
+    throw std::invalid_argument(
+        "cb::compression::inflate: Unknown compression algorithm");
 }
 
-bool Couchbase::Compression::deflate(const Algorithm algorithm,
-                                     const char* buf,
-                                     size_t len,
-                                     Buffer& output) {
+bool cb::compression::deflate(const Algorithm algorithm,
+                              const char* buf,
+                              size_t len,
+                              Buffer& output) {
     switch (algorithm) {
-    case Couchbase::Compression::Algorithm::Snappy:
+    case Algorithm::Snappy:
         return doSnappyCompress(buf, len, output);
     }
-    throw std::invalid_argument("Unknown compression algorithm");
+    throw std::invalid_argument(
+        "cb::compression::deflate: Unknown compression algorithm");
 }

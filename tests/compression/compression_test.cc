@@ -16,55 +16,51 @@
  */
 
 #include <gtest/gtest.h>
-#include <strings.h>
 #include <platform/compress.h>
+#include <strings.h>
 
 TEST(Compression, DetectInvalidAlgoritm) {
-    using namespace Couchbase;
-    Compression::Buffer buffer;
-    EXPECT_THROW(
-        Compression::inflate((Compression::Algorithm)5, nullptr, 0, buffer),
-        std::invalid_argument);
-    EXPECT_THROW(
-        Compression::deflate((Compression::Algorithm)5, nullptr, 0, buffer),
-        std::invalid_argument);
+    cb::compression::Buffer buffer;
+    EXPECT_THROW(cb::compression::inflate(
+                     (cb::compression::Algorithm)5, nullptr, 0, buffer),
+                 std::invalid_argument);
+    EXPECT_THROW(cb::compression::deflate(
+                     (cb::compression::Algorithm)5, nullptr, 0, buffer),
+                 std::invalid_argument);
 }
 
 TEST(Compression, TestCompression) {
-    using namespace Couchbase;
-    Compression::Buffer input;
-    Compression::Buffer output;
+    cb::compression::Buffer input;
+    cb::compression::Buffer output;
 
     output.len = 16000;
     input.data.reset(new char[8192]);
     memset(input.data.get(), 'a', 8192);
 
-    EXPECT_TRUE(Compression::deflate(Compression::Algorithm::Snappy,
-                                     input.data.get(),
-                                     8192, output));
+    EXPECT_TRUE(cb::compression::deflate(
+        cb::compression::Algorithm::Snappy, input.data.get(), 8192, output));
     EXPECT_LT(output.len, 8192);
     EXPECT_NE(nullptr, output.data.get());
 
-    Compression::Buffer back;
+    cb::compression::Buffer back;
 
-    EXPECT_TRUE(Compression::inflate(Compression::Algorithm::Snappy,
-                                     output.data.get(),
-                                     output.len, back));
+    EXPECT_TRUE(cb::compression::inflate(cb::compression::Algorithm::Snappy,
+                                         output.data.get(),
+                                         output.len,
+                                         back));
     EXPECT_EQ(8192, back.len);
     EXPECT_NE(nullptr, back.data.get());
     EXPECT_EQ(0, memcmp(input.data.get(), back.data.get(), 8192));
 }
 
 TEST(Compression, TestIllegalInflate) {
-    using namespace Couchbase;
-    Compression::Buffer input;
-    Compression::Buffer output;
+    cb::compression::Buffer input;
+    cb::compression::Buffer output;
 
     output.len = 16000;
     input.data.reset(new char[8192]);
     memset(input.data.get(), 'a', 8192);
 
-    EXPECT_FALSE(Compression::inflate(Compression::Algorithm::Snappy,
-                                     input.data.get(),
-                                     8192, output));
+    EXPECT_FALSE(cb::compression::inflate(
+        cb::compression::Algorithm::Snappy, input.data.get(), 8192, output));
 }

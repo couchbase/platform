@@ -19,48 +19,47 @@
 
 #include <memory>
 
-namespace Couchbase {
-    namespace Compression {
-        enum class Algorithm {
-            Snappy
-        };
+namespace cb {
+namespace compression {
+enum class Algorithm { Snappy };
 
-        struct Buffer {
-            Buffer() : len(0) {}
-            std::unique_ptr<char[]> data;
-            size_t len;
-        };
-
-        /**
-         * Inflate the data in the buffer into the output buffer
-         *
-         * @param algorithm the algorithm to use
-         * @param buf pointer to the input data
-         * @param len the size of the input data
-         * @param output Where to store the result
-         * @return true if success, false otherwise
-         * @throws std::bad_alloc if we fail to allocate memory for the
-         *                        destination buffer
-         */
-        bool inflate(const Algorithm algorithm,
-                     const char* buf,
-                     size_t len,
-                     Buffer& output);
-
-        /**
-         * Deflate the data in the buffer into the output buffer
-         *
-         * @param algorithm the algorithm to use
-         * @param buf pointer to the input data
-         * @param len the size of the input data
-         * @param output Where to store the result
-         * @return true if success, false otherwise
-         * @throws std::bad_alloc if we fail to allocate memory for the
-         *                        destination buffer
-         */
-        bool deflate(const Algorithm algorithm,
-                     const char* buf,
-                     size_t len,
-                     Buffer& output);
+struct Buffer {
+    Buffer() : len(0) {
     }
+    std::unique_ptr<char[]> data;
+    size_t len;
+};
+
+/**
+ * Inflate the data in the buffer into the output buffer
+ *
+ * @param algorithm the algorithm to use
+ * @param buf pointer to the input data
+ * @param len the size of the input data
+ * @param output Where to store the result
+ * @return true if success, false otherwise
+ * @throws std::bad_alloc if we fail to allocate memory for the
+ *                        destination buffer
+ */
+bool inflate(const Algorithm algorithm,
+             const char* buf,
+             size_t len,
+             Buffer& output);
+
+/**
+ * Deflate the data in the buffer into the output buffer
+ *
+ * @param algorithm the algorithm to use
+ * @param buf pointer to the input data
+ * @param len the size of the input data
+ * @param output Where to store the result
+ * @return true if success, false otherwise
+ * @throws std::bad_alloc if we fail to allocate memory for the
+ *                        destination buffer
+ */
+bool deflate(const Algorithm algorithm,
+             const char* buf,
+             size_t len,
+             Buffer& output);
+}
 }
