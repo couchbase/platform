@@ -16,6 +16,7 @@
  */
 #pragma once
 
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -106,6 +107,20 @@ std::string mktemp(const std::string& prefix);
  */
 DIRUTILS_PUBLIC_API
 std::string getcwd(void);
+
+/**
+ * Try to set the maximum number of file descriptors to the requested
+ * limit, and return the number we could get.
+ *
+ * On a Unix system this limit affects files and sockets
+ *
+ * @param limit the requested maximum number of file descriptors
+ * @return the maximum number of file descriptors
+ * @throws std::system_error if we fail to determine the maximum number
+ *         of file descriptor
+ */
+DIRUTILS_PUBLIC_API
+uint64_t maximizeFileDescriptors(uint64_t limit);
 }
 }
 

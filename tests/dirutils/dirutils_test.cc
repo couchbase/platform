@@ -1,6 +1,7 @@
 #include <iostream>
 #include <platform/dirutils.h>
 #include <cstdlib>
+#include <limits>
 #include <list>
 #include <string>
 #include <cerrno>
@@ -10,6 +11,7 @@
 #include <stdio.h>
 
 #ifdef WIN32
+#define NOMINMAX
 #include <windows.h>
 #include <direct.h>
 static bool CreateDirectory(const std::string &dir) {
@@ -274,6 +276,38 @@ static void testCbMktemp() {
    }
 }
 
+void testMaximizeFileDescriptors() {
+   auto limit = cb::io::maximizeFileDescriptors(32);
+   if (limit <= 32) {
+      std::cerr << "FAIL: I should be able to set it to at least 32"
+                << std::endl;
+      exit(EXIT_FAILURE);
+   }
+
+   limit = cb::io::maximizeFileDescriptors(std::numeric_limits<uint32_t>::max());
+   if (limit != std::numeric_limits<uint32_t>::max()) {
+      // windows don't have a max limit, and that could be for other platforms
+      // as well..
+      if (cb::io::maximizeFileDescriptors(limit + 1) != limit) {
+         std::cerr << "FAIL: I expected maximizeFileDescriptors to return "
+                   << "the same max limit" << std::endl;
+         exit(EXIT_FAILURE);
+      }
+   }
+
+   limit = cb::io::maximizeFileDescriptors(std::numeric_limits<uint64_t>::max());
+   if (limit != std::numeric_limits<uint64_t>::max()) {
+      // windows don't have a max limit, and that could be for other platforms
+      // as well..
+      if (cb::io::maximizeFileDescriptors(limit + 1) != limit) {
+         std::cerr << "FAIL: I expected maximizeFileDescriptors to return "
+                   << "the same max limit" << std::endl;
+         exit(EXIT_FAILURE);
+      }
+   }
+}
+
+
 int main(int argc, char **argv)
 {
    testDirname();
@@ -312,6 +346,8 @@ int main(int argc, char **argv)
    testMkdirp();
    testGetCurrentDirectory();
    testCbMktemp();
+
+   testMaximizeFileDescriptors();
 
    return exit_value;
 }

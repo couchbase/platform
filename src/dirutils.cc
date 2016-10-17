@@ -28,6 +28,7 @@
 
 #endif
 
+#include <limits>
 #include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>
@@ -321,4 +322,69 @@ std::string cb::io::getcwd(void) {
     // Trim off any trailing \0 characters.
     result.resize(strlen(result.c_str()));
     return result;
+}
+
+uint64_t cb::io::maximizeFileDescriptors(uint64_t limit) {
+#ifdef WIN32
+    return limit;
+#else
+    struct rlimit rlim;
+
+    if (getrlimit(RLIMIT_NOFILE, &rlim) != 0) {
+        throw std::system_error(errno, std::system_category(),
+                                "getrlimit(RLIMIT_NOFILE, &rlim) failed");
+    } else if (limit <= rlim.rlim_cur) {
+        return uint64_t(rlim.rlim_cur);
+    } else {
+        struct rlimit org = rlim;
+
+        rlim.rlim_cur = limit;
+
+        // we don't want to limit the current max if it is higher ;)
+        if (rlim.rlim_max < limit) {
+            rlim.rlim_max = limit;
+        }
+
+        if (setrlimit(RLIMIT_NOFILE, &rlim) == 0) {
+            return limit;
+        }
+
+        // Ok, we failed to get what we wanted.. Try a binary search
+        // to go as high as we can...
+        auto min = org.rlim_cur;
+        auto max = limit;
+        rlim_t last_good = 0;
+
+        while (min <= max) {
+            rlim_t avg;
+
+            // make sure we don't overflow
+            uint64_t high = std::numeric_limits<uint64_t>::max() - min;
+            if (high < max) {
+                avg = max / 2;
+            } else {
+                avg = (min + max) / 2;
+            }
+
+            rlim.rlim_cur = rlim.rlim_max = avg;
+            if (setrlimit(RLIMIT_NOFILE, &rlim) == 0) {
+                last_good = avg;
+                min = avg + 1;
+            } else {
+                max = avg - 1;
+            }
+        }
+
+        if (last_good == 0) {
+            // all setrlimit's failed... lets go fetch it again
+            if (getrlimit(RLIMIT_NOFILE, &rlim) != 0) {
+                throw std::system_error(errno, std::system_category(),
+                                        "getrlimit(RLIMIT_NOFILE, &rlim) failed");
+            }
+            return uint64_t(rlim.rlim_cur);
+        }
+
+        return uint64_t(last_good);
+    }
+#endif
 }
