@@ -243,6 +243,8 @@ ADD_LIBRARY(cbcompress STATIC
             include/platform/compress.h)
 TARGET_LINK_LIBRARIES(cbcompress ${SNAPPY_LIBRARIES})
 
+ADD_SUBDIRECTORY(extmeta)
+
 #
 # Test targets
 #
