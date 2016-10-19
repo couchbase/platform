@@ -50,6 +50,15 @@ enum class Version : uint8_t {
  */
 enum class Type : uint8_t {
     /**
+     * The length of the XATTR data (the data itself is located right
+     * before the actual value in the body). This means that xattrs has
+     * to be stripped from the document if the client has not enabled
+     * xattr support (otherwise the received document will look garbled
+     * to the user as the xattrs is prepended to the document)
+     */
+    XATTR_LENGTH = 0x00,
+
+    /**
      * adjusted time (no longer sent, but could be received on upgrade.)
      */
     ADJUSTED_TIME = 0x01,
