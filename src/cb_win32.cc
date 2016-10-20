@@ -82,6 +82,19 @@ int cb_create_named_thread(cb_thread_t *id, void (*func)(void *arg), void *arg,
 __declspec(dllexport)
 int cb_join_thread(cb_thread_t id)
 {
+    // We've seen problems where we've had global std::unique_ptr's which
+    // had to run destructors which waited for threads be run on a "random"
+    // thread causing a deadlock (the actual use was in memcached with the
+    // parent monitor thread). The C++ runtime just picked a random thread
+    // to run these destructors, and sometimes the parent monitor thread
+    // would run them. We've refactored the code in memcached so that object
+    // is no longer global, but to avoid facing the problem at a later time
+    // we should add a guard here. (and it doesn't make any sense from
+    // a logical perspective to wait for the current thread to be done ;-)
+    if (cb_thread_self() == id) {
+        throw std::runtime_error("cb_join_thread: can't try to join self");
+    }
+
     HANDLE handle = OpenThread(SYNCHRONIZE, FALSE, id);
     if (handle == NULL) {
         return -1;

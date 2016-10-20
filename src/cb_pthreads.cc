@@ -118,6 +118,10 @@ int cb_create_named_thread(cb_thread_t *id, cb_thread_main_func func, void *arg,
 
 int cb_join_thread(cb_thread_t id)
 {
+    if (pthread_self() == id) {
+        throw std::runtime_error("cb_join_thread: can't try to join self");
+    }
+
     return pthread_join(id, NULL);
 }
 
