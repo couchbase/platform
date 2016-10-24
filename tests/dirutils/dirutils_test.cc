@@ -220,12 +220,13 @@ TEST_F(IoTest, getcwd) {
 
 TEST_F(IoTest, mkdirp) {
 #ifndef WIN32
-    EXPECT_FALSE(cb::io::mkdirp("/it/would/suck/if/I/could/create/this"));
+    EXPECT_THROW(cb::io::mkdirp("/it/would/suck/if/I/could/create/this"),
+                 std::runtime_error);
 #endif
-    EXPECT_TRUE(cb::io::mkdirp("."));
-    EXPECT_TRUE(cb::io::mkdirp("/"));
-    EXPECT_TRUE(cb::io::mkdirp("foo/bar"));
-    EXPECT_TRUE(cb::io::isDirectory("foo/bar"));
+    EXPECT_NO_THROW(cb::io::mkdirp("."));
+    EXPECT_NO_THROW(cb::io::mkdirp("/"));
+    EXPECT_NO_THROW(cb::io::mkdirp("foo/bar"));
+    EXPECT_NO_THROW(cb::io::isDirectory("foo/bar"));
     cb::io::rmrf("foo");
     EXPECT_FALSE(cb::io::isDirectory("foo/bar"));
     EXPECT_FALSE(cb::io::isDirectory("foo"));

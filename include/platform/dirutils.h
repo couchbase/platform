@@ -81,10 +81,10 @@ bool isFile(const std::string& file);
  * Try to create directory including all of the parent directories
  *
  * @param directory the directory to create
- * @return true if success, false otherwise
+ * @throws std::runtime_error if an error occurs
  */
 DIRUTILS_PUBLIC_API
-bool mkdirp(const std::string& directory);
+void mkdirp(const std::string& directory);
 
 /**
  * Create a unique temporary filename with the given prefix.

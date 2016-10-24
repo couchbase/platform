@@ -20,7 +20,6 @@
 #ifdef _MSC_VER
 #include <direct.h>
 #define rmdir _rmdir
-#define mkdir(a, b) _mkdir(a)
 #else
 
 #include <dirent.h>
@@ -33,6 +32,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <system_error>
+#include <platform/strerror.h>
 
 static std::string split(const std::string& input, bool directory) {
     std::string::size_type path = input.find_last_of("\\/");
@@ -269,30 +269,58 @@ bool cb::io::isFile(const std::string& file) {
 }
 
 DIRUTILS_PUBLIC_API
-bool cb::io::mkdirp(const std::string& directory) {
-    struct stat st;
-    if (stat(directory.c_str(), &st) == 0) {
-        if ((st.st_mode & S_IFDIR) == S_IFDIR) {
-            // It exists and is a directory!
-            return true;
+void cb::io::mkdirp(const std::string& directory) {
+    // Bail out immediately if the directory already exists.
+    // note that both mkdir and CreateDirectory on windows returns
+    // EEXISTS if the directory already exists, BUT it could also
+    // return "permission denied" depending on the order the checks
+    // is run within "libc"
+    if (isDirectory(directory)) {
+        return;
+    }
+
+#ifdef WIN32
+    do {
+        if (CreateDirectory(directory.c_str(), nullptr)) {
+            return;
         }
 
-        // It exists but is a file!
-        return false;
-    }
+        switch (GetLastError()) {
+        case ERROR_ALREADY_EXISTS:
+            return;
+        case ERROR_PATH_NOT_FOUND:
+            // one of the paths up the chain does not exists..
+            break;
+        default:
+            throw std::system_error(GetLastError(), std::system_category(),
+                                    "cb::io::mkdirp(\"" + directory +
+                                    "\") failed");
+        }
 
-    std::string parent = dirname(directory);
+        // Try to create the parent directory..
+        mkdirp(dirname(directory));
+    } while (true);
+#else
+    do {
+        if (mkdir(directory.c_str(), S_IREAD | S_IWRITE | S_IEXEC) == 0) {
+            return;
+        }
 
-    if (!mkdirp(parent)) {
-        // failed to create parent directory
-        return false;
-    }
+        switch (errno) {
+        case EEXIST:
+            return;
+        case ENOENT:
+            break;
+        default:
+            throw std::system_error(errno, std::system_category(),
+                                    "cb::io::mkdirp(\"" + directory +
+                                    "\") failed");
+        }
 
-    if (mkdir(directory.c_str(), S_IREAD | S_IWRITE | S_IEXEC) != 0) {
-        return false;
-    }
-
-    return true;
+        // Try to create the parent directory..
+        mkdirp(dirname(directory));
+    } while (true);
+#endif
 }
 
 std::string cb::io::mktemp(const std::string& prefix) {
