@@ -1,353 +1,257 @@
-#include <iostream>
-#include <platform/dirutils.h>
-#include <cstdlib>
-#include <limits>
-#include <list>
-#include <string>
+/* -*- Mode: C++; tab-width: 4; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+/*
+ *     Copyright 2016 Couchbase, Inc.
+ *
+ *   Licensed under the Apache License, Version 2.0 (the "License");
+ *   you may not use this file except in compliance with the License.
+ *   You may obtain a copy of the License at
+ *
+ *       http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *   Unless required by applicable law or agreed to in writing, software
+ *   distributed under the License is distributed on an "AS IS" BASIS,
+ *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   See the License for the specific language governing permissions and
+ *   limitations under the License.
+ */
+#include <gtest/gtest.h>
+
+#include <algorithm>
 #include <cerrno>
+#include <cstdlib>
 #include <cstring>
+#include <limits>
+#include <platform/dirutils.h>
+#include <stdio.h>
+#include <string>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <stdio.h>
+#include <vector>
 
 #ifdef WIN32
 #define NOMINMAX
 #include <windows.h>
 #include <direct.h>
-static bool CreateDirectory(const std::string &dir) {
-    if (_mkdir(dir.c_str()) != 0) {
-        return false;
+#define mkdir(a, b) _mkdir(a)
+#define PATH_SEPARATOR "\\"
+#else
+#define PATH_SEPARATOR "/"
+#endif
+
+static bool CreateDirectory(const std::string& dir) {
+    if (mkdir(dir.c_str(), S_IXUSR | S_IWUSR | S_IRUSR) != 0) {
+        if (errno != EEXIST) {
+            return false;
+        }
     }
     return true;
 }
 
-#define PATH_SEPARATOR "\\"
-
-#else
-static bool CreateDirectory(const std::string &dir) {
-   if (mkdir(dir.c_str(), S_IXUSR | S_IWUSR | S_IRUSR) != 0) {
-      return false;
-   }
-   return true;
+static bool exists(const std::string& path) {
+    struct stat st;
+    return stat(path.c_str(), &st) == 0;
 }
 
-#define PATH_SEPARATOR "/"
 
-#endif
+class IoTest : public ::testing::Test {
+public:
 
-#undef NDEBUG
-#include <cassert>
+    static void SetUpTestCase();
 
-int exit_value = EXIT_SUCCESS;
+    static void TearDownTestCase();
 
-static void expect(const bool exp, const bool val) {
-    if (exp != val) {
-        std::cerr << "Expected " << exp << " got [" << val << "]" << std::endl;
-        exit_value = EXIT_FAILURE;
+protected:
+
+    // A small filesystem we can play around with
+    static const std::vector<std::string> vfs;
+};
+
+const std::vector<std::string> IoTest::vfs = {
+    {"fs"},
+    {"fs/d1"},
+    {"fs/d2"},
+    {"fs/e2"},
+    {"fs/f2c"},
+    {"fs/g2"},
+    {"fs/d3"},
+    {"fs/1"},
+    {"fs/2"},
+    {"fs/2c"},
+    {"fs/2d"},
+    {"fs/3"}
+};
+
+void IoTest::SetUpTestCase() {
+    for (const auto& file : vfs) {
+        ASSERT_TRUE(CreateDirectory(file)) << "failed to create directory";
+        ASSERT_TRUE(exists(file)) << "directory " << file << " does not exists";
     }
 }
 
-static void expect(const std::string &exp, const std::string &val) {
-   if (exp != val) {
-      std::cerr << "Expected " << exp << " got [" << val << "]" << std::endl;
-      exit_value = EXIT_FAILURE;
-   }
+void IoTest::TearDownTestCase() {
+    // Expecting the rmrf to work ;)
+    cb::io::rmrf("fs");
 }
 
-static void expect(size_t size, const std::vector<std::string> &vec) {
-   if (vec.size() != size) {
-      std::cerr << "Expected vector of " << size
-                << " elements got [" << vec.size() << "]" << std::endl;
-      exit_value = EXIT_FAILURE;
-   }
+TEST_F(IoTest, dirname) {
+    // Check the simple case
+    EXPECT_EQ("foo", cb::io::dirname("foo\\bar"));
+    EXPECT_EQ("foo", cb::io::dirname("foo/bar"));
+
+    // Make sure that we remove double an empty chunk
+    EXPECT_EQ("foo", cb::io::dirname("foo\\\\bar"));
+    EXPECT_EQ("foo", cb::io::dirname("foo//bar"));
+
+    // Make sure that we handle the case without a directory
+    EXPECT_EQ(".", cb::io::dirname("bar"));
+    EXPECT_EQ(".", cb::io::dirname(""));
+
+    // Absolute directories
+    EXPECT_EQ("\\", cb::io::dirname("\\bar"));
+    EXPECT_EQ("\\", cb::io::dirname("\\\\bar"));
+    EXPECT_EQ("/", cb::io::dirname("/bar"));
+    EXPECT_EQ("/", cb::io::dirname("//bar"));
+
+    // Test that we work with multiple directories
+    EXPECT_EQ("1/2/3/4/5", cb::io::dirname("1/2/3/4/5/6"));
+    EXPECT_EQ("1\\2\\3\\4\\5", cb::io::dirname("1\\2\\3\\4\\5\\6"));
+    EXPECT_EQ("1/2\\4/5", cb::io::dirname("1/2\\4/5\\6"));
 }
 
-static void contains(const std::string &val, const std::vector<std::string> &vec) {
-   std::vector<std::string>::const_iterator ii;
-   for (ii = vec.begin(); ii != vec.end(); ++ii) {
-      if (val == *ii) {
-         return ;
-      }
-   }
-
-   std::cerr << "Expected vector to contain [" << val << "]" << std::endl;
-   for (ii = vec.begin(); ii != vec.end(); ++ii) {
-      std::cerr << "  -> " << *ii << std::endl;
-   }
-   std::cerr << std::endl;
-   exit_value = EXIT_FAILURE;
+TEST_F(IoTest, basename) {
+    EXPECT_EQ("bar", cb::io::basename("foo\\bar"));
+    EXPECT_EQ("bar", cb::io::basename("foo/bar"));
+    EXPECT_EQ("bar", cb::io::basename("foo\\\\bar"));
+    EXPECT_EQ("bar", cb::io::basename("foo//bar"));
+    EXPECT_EQ("bar", cb::io::basename("bar"));
+    EXPECT_EQ("", cb::io::basename(""));
+    EXPECT_EQ("bar", cb::io::basename("\\bar"));
+    EXPECT_EQ("bar", cb::io::basename("\\\\bar"));
+    EXPECT_EQ("bar", cb::io::basename("/bar"));
+    EXPECT_EQ("bar", cb::io::basename("//bar"));
+    EXPECT_EQ("6", cb::io::basename("1/2/3/4/5/6"));
+    EXPECT_EQ("6", cb::io::basename("1\\2\\3\\4\\5\\6"));
+    EXPECT_EQ("6", cb::io::basename("1/2\\4/5\\6"));
 }
 
-static std::list<std::string> vfs;
+TEST_F(IoTest, findFilesWithPrefix) {
+    auto vec = cb::io::findFilesWithPrefix("fs");
+    EXPECT_EQ(1, vec.size());
 
-static bool exists(const std::string &path) {
-   struct stat st;
-   return stat(path.c_str(), &st) == 0;
+    EXPECT_NE(vec.end(), std::find(vec.begin(), vec.end(),
+                                   "." PATH_SEPARATOR "fs"));
+
+
+    vec = cb::io::findFilesWithPrefix("fs", "d");
+    EXPECT_EQ(3, vec.size());
+
+    // We don't know the order of the files in the result..
+    EXPECT_NE(vec.end(), std::find(vec.begin(), vec.end(),
+                                   "fs" PATH_SEPARATOR "d1"));
+    EXPECT_NE(vec.end(), std::find(vec.begin(), vec.end(),
+                                   "fs" PATH_SEPARATOR "d2"));
+    EXPECT_NE(vec.end(), std::find(vec.begin(), vec.end(),
+                                   "fs" PATH_SEPARATOR "d3"));
+
+    vec = cb::io::findFilesWithPrefix("fs", "1");
+    EXPECT_EQ(1, vec.size());
+    EXPECT_NE(vec.end(), std::find(vec.begin(), vec.end(),
+                                   "fs" PATH_SEPARATOR "1"));
+
+    vec = cb::io::findFilesWithPrefix("fs", "");
+    EXPECT_EQ(vfs.size() - 1, vec.size());
 }
 
-static void testDirname(void) {
-   // Check the simple case
-   expect("foo", cb::io::dirname("foo\\bar"));
-   expect("foo", cb::io::dirname("foo/bar"));
+TEST_F(IoTest, findFilesContaining) {
+    auto vec = cb::io::findFilesContaining("fs", "");
+    EXPECT_EQ(vfs.size() - 1, vec.size());
 
-   // Make sure that we remove double an empty chunk
-   expect("foo", cb::io::dirname("foo\\\\bar"));
-   expect("foo", cb::io::dirname("foo//bar"));
-
-   // Make sure that we handle the case without a directory
-   expect(".", cb::io::dirname("bar"));
-   expect(".", cb::io::dirname(""));
-
-   // Absolute directories
-   expect("\\", cb::io::dirname("\\bar"));
-   expect("\\", cb::io::dirname("\\\\bar"));
-   expect("/", cb::io::dirname("/bar"));
-   expect("/", cb::io::dirname("//bar"));
-
-   // Test that we work with multiple directories
-   expect("1/2/3/4/5", cb::io::dirname("1/2/3/4/5/6"));
-   expect("1\\2\\3\\4\\5", cb::io::dirname("1\\2\\3\\4\\5\\6"));
-   expect("1/2\\4/5", cb::io::dirname("1/2\\4/5\\6"));
+    vec = cb::io::findFilesContaining("fs", "2");
+    EXPECT_EQ(7, vec.size());
+    EXPECT_NE(vec.end(), std::find(vec.begin(), vec.end(),
+                                   "fs" PATH_SEPARATOR "d2"));
+    EXPECT_NE(vec.end(), std::find(vec.begin(), vec.end(),
+                                   "fs" PATH_SEPARATOR "e2"));
+    EXPECT_NE(vec.end(), std::find(vec.begin(), vec.end(),
+                                   "fs" PATH_SEPARATOR "f2c"));
+    EXPECT_NE(vec.end(), std::find(vec.begin(), vec.end(),
+                                   "fs" PATH_SEPARATOR "g2"));
+    EXPECT_NE(vec.end(), std::find(vec.begin(), vec.end(),
+                                   "fs" PATH_SEPARATOR "2"));
+    EXPECT_NE(vec.end(), std::find(vec.begin(), vec.end(),
+                                   "fs" PATH_SEPARATOR "2c"));
+    EXPECT_NE(vec.end(), std::find(vec.begin(), vec.end(),
+                                   "fs" PATH_SEPARATOR "2d"));
 }
 
-static void testBasename(void) {
-   expect("bar", cb::io::basename("foo\\bar"));
-   expect("bar", cb::io::basename("foo/bar"));
-   expect("bar", cb::io::basename("foo\\\\bar"));
-   expect("bar", cb::io::basename("foo//bar"));
-   expect("bar", cb::io::basename("bar"));
-   expect("", cb::io::basename(""));
-   expect("bar", cb::io::basename("\\bar"));
-   expect("bar", cb::io::basename("\\\\bar"));
-   expect("bar", cb::io::basename("/bar"));
-   expect("bar", cb::io::basename("//bar"));
-   expect("6", cb::io::basename("1/2/3/4/5/6"));
-   expect("6", cb::io::basename("1\\2\\3\\4\\5\\6"));
-   expect("6", cb::io::basename("1/2\\4/5\\6"));
+TEST_F(IoTest, mktemp) {
+    auto filename = cb::io::mktemp("foo");
+    EXPECT_FALSE(filename.empty())
+                << "FAIL: Expected to create tempfile without mask";
+    EXPECT_TRUE(cb::io::isFile(filename));
+    EXPECT_TRUE(cb::io::rmrf(filename));
+    EXPECT_FALSE(cb::io::isFile(filename));
+    EXPECT_FALSE(cb::io::isDirectory(filename));
+
+    filename = cb::io::mktemp("barXXXXXX");
+    EXPECT_FALSE(filename.empty())
+                << "FAIL: Expected to create tempfile mask";
+    EXPECT_TRUE(cb::io::isFile(filename));
+    EXPECT_TRUE(cb::io::rmrf(filename));
+    EXPECT_FALSE(cb::io::isFile(filename));
+    EXPECT_FALSE(cb::io::isDirectory(filename));
 }
 
-static void testFindFilesWithPrefix(void) {
-   using namespace cb::io;
-
-   std::vector<std::string> vec = findFilesWithPrefix("fs");
-   expect(1, vec);
-   contains("." PATH_SEPARATOR "fs", vec);
-
-   vec = findFilesWithPrefix("fs", "d");
-   expect(3, vec);
-   contains("fs" PATH_SEPARATOR "d1", vec);
-   contains("fs" PATH_SEPARATOR "d2", vec);
-   contains("fs" PATH_SEPARATOR "d3", vec);
-   vec = findFilesWithPrefix("fs", "1");
-   expect(1, vec);
-   contains("fs" PATH_SEPARATOR "1", vec);
-
-   vec = findFilesWithPrefix("fs", "");
-   expect(vfs.size() - 1, vec);
-
+TEST_F(IoTest, isFileAndIsDirectory) {
+    EXPECT_FALSE(cb::io::isFile("."));
+    EXPECT_TRUE(cb::io::isDirectory("."));
+    auto filename = cb::io::mktemp("plainfile");
+    EXPECT_TRUE(cb::io::isFile(filename));
+    EXPECT_FALSE(cb::io::isDirectory(filename));
+    EXPECT_TRUE(cb::io::rmrf(filename));
 }
 
-static void testFindFilesContaining(void) {
-   using namespace cb::io;
-   std::vector<std::string> vec = findFilesContaining("fs", "");
-   expect(vfs.size() - 1, vec);
-
-   vec = findFilesContaining("fs", "2");
-   expect(7, vec);
-   contains("fs" PATH_SEPARATOR "d2", vec);
-   contains("fs" PATH_SEPARATOR "e2", vec);
-   contains("fs" PATH_SEPARATOR "f2c", vec);
-   contains("fs" PATH_SEPARATOR "g2", vec);
-   contains("fs" PATH_SEPARATOR "2", vec);
-   contains("fs" PATH_SEPARATOR "2c", vec);
-   contains("fs" PATH_SEPARATOR "2d", vec);
+TEST_F(IoTest, getcwd) {
+    auto cwd = cb::io::getcwd();
+    // I can't really determine the correct value here, but it shouldn't be
+    // empty ;-)
+    ASSERT_FALSE(cwd.empty());
 }
 
-static void testRemove(void) {
-   fclose(fopen("test-file", "w"));
-   if (!cb::io::rmrf("test-file")) {
-      std::cerr << "expected to delete existing file" << std::endl;
-   }
-   if (cb::io::rmrf("test-file")) {
-      std::cerr << "Didn't expected to delete non-existing file" << std::endl;
-   }
-
-   if (!cb::io::rmrf("fs")) {
-      std::cerr << "Expected to nuke the entire fs directory recursively" << std::endl;
-   }
-}
-
-static void testIsDirectory(void) {
-    using namespace cb::io;
-#ifdef WIN32
-    expect(true, isDirectory("c:\\"));
-#else
-    expect(true, isDirectory("/"));
-#endif
-    expect(true, isDirectory("."));
-    expect(false, isDirectory("/it/would/suck/if/this/exists"));
-    FILE *fp = fopen("isDirectoryTest", "w");
-    if (fp == NULL) {
-        std::cerr << "Failed to create test file" << std::endl;
-        exit_value = EXIT_FAILURE;
-    } else {
-        using namespace std;
-        fclose(fp);
-        expect(false, isDirectory("isDirectoryTest"));
-        remove("isDirectoryTest");
-    }
-}
-
-static void testIsFile(void) {
-   using namespace cb::io;
-   expect(false, isFile("."));
-   FILE* fp = fopen("plainfile", "w");
-   if (fp == nullptr) {
-      std::cerr << "Failed to create test file" << std::endl;
-      exit_value = EXIT_FAILURE;
-   } else {
-      fclose(fp);
-      expect(true, isFile("plainfile"));
-      rmrf("plainfile");
-   }
-}
-
-static void testMkdirp(void) {
-    using namespace cb::io;
-
+TEST_F(IoTest, mkdirp) {
 #ifndef WIN32
-    expect(false, mkdirp("/it/would/suck/if/I/could/create/this"));
+    EXPECT_FALSE(cb::io::mkdirp("/it/would/suck/if/I/could/create/this"));
 #endif
-    expect(true, mkdirp("."));
-    expect(true, mkdirp("/"));
-    expect(true, mkdirp("foo/bar"));
-    expect(true, isDirectory("foo/bar"));
-    rmrf("foo");
+    EXPECT_TRUE(cb::io::mkdirp("."));
+    EXPECT_TRUE(cb::io::mkdirp("/"));
+    EXPECT_TRUE(cb::io::mkdirp("foo/bar"));
+    EXPECT_TRUE(cb::io::isDirectory("foo/bar"));
+    cb::io::rmrf("foo");
+    EXPECT_FALSE(cb::io::isDirectory("foo/bar"));
+    EXPECT_FALSE(cb::io::isDirectory("foo"));
 }
 
-static void testGetCurrentDirectory() {
-   try {
-      auto cwd = cb::io::getcwd();
-      // I can't really determine the correct value here, but it shouldn't be
-      // empty ;-)
-      if (cwd.empty()) {
-         std::cerr << "FAIL: cwd should not be an empty string" << std::endl;
-         exit(EXIT_FAILURE);
-      }
-   } catch (const std::exception& ex) {
-      std::cerr << "FAIL: " << ex.what() << std::endl;
-      exit(EXIT_FAILURE);
-   }
-}
+TEST_F(IoTest, maximizeFileDescriptors) {
+    auto limit = cb::io::maximizeFileDescriptors(32);
+    EXPECT_LE(32, limit) << "FAIL: I should be able to set it to at least 32";
 
-static void testCbMktemp() {
-   auto filename = cb::io::mktemp("foo");
-   if (filename.empty()) {
-      std::cerr << "FAIL: Expected to create tempfile without mask"
-                << std::endl;
-      exit(EXIT_FAILURE);
-   }
+    limit = cb::io::maximizeFileDescriptors(
+        std::numeric_limits<uint32_t>::max());
+    if (limit != std::numeric_limits<uint32_t>::max()) {
+        // windows don't have a max limit, and that could be for other platforms
+        // as well..
+        EXPECT_EQ(limit, cb::io::maximizeFileDescriptors(limit + 1))
+             << "FAIL: I expected maximizeFileDescriptors to return "
+                      << "the same max limit two times in a row";
+    }
 
-   if (!cb::io::isFile(filename)) {
-      std::cerr << "FAIL: Expected mktemp to create file" << std::endl;
-      exit(EXIT_FAILURE);
-   }
-
-   if (!cb::io::rmrf(filename)) {
-      std::cerr << "FAIL: failed to remove temporary file" << std::endl;
-      exit(EXIT_FAILURE);
-   }
-
-   filename = cb::io::mktemp("barXXXXXX");
-   if (filename.empty()) {
-      std::cerr << "FAIL: Expected to create tempfile with mask"
-                << std::endl;
-      exit(EXIT_FAILURE);
-   }
-
-   if (!cb::io::isFile(filename)) {
-      std::cerr << "FAIL: Expected mktemp to create file" << std::endl;
-      exit(EXIT_FAILURE);
-   }
-
-   if (!cb::io::rmrf(filename)) {
-      std::cerr << "FAIL: failed to remove temporary file" << std::endl;
-      exit(EXIT_FAILURE);
-   }
-}
-
-void testMaximizeFileDescriptors() {
-   auto limit = cb::io::maximizeFileDescriptors(32);
-   if (limit <= 32) {
-      std::cerr << "FAIL: I should be able to set it to at least 32"
-                << std::endl;
-      exit(EXIT_FAILURE);
-   }
-
-   limit = cb::io::maximizeFileDescriptors(std::numeric_limits<uint32_t>::max());
-   if (limit != std::numeric_limits<uint32_t>::max()) {
-      // windows don't have a max limit, and that could be for other platforms
-      // as well..
-      if (cb::io::maximizeFileDescriptors(limit + 1) != limit) {
-         std::cerr << "FAIL: I expected maximizeFileDescriptors to return "
-                   << "the same max limit" << std::endl;
-         exit(EXIT_FAILURE);
-      }
-   }
-
-   limit = cb::io::maximizeFileDescriptors(std::numeric_limits<uint64_t>::max());
-   if (limit != std::numeric_limits<uint64_t>::max()) {
-      // windows don't have a max limit, and that could be for other platforms
-      // as well..
-      if (cb::io::maximizeFileDescriptors(limit + 1) != limit) {
-         std::cerr << "FAIL: I expected maximizeFileDescriptors to return "
-                   << "the same max limit" << std::endl;
-         exit(EXIT_FAILURE);
-      }
-   }
-}
-
-
-int main(int argc, char **argv)
-{
-   testDirname();
-   testBasename();
-
-   vfs.push_back("fs");
-   vfs.push_back("fs/d1");
-   vfs.push_back("fs/d2");
-   vfs.push_back("fs/e2");
-   vfs.push_back("fs/f2c");
-   vfs.push_back("fs/g2");
-   vfs.push_back("fs/d3");
-   vfs.push_back("fs/1");
-   vfs.push_back("fs/2");
-   vfs.push_back("fs/2c");
-   vfs.push_back("fs/2d");
-   vfs.push_back("fs/3");
-
-   std::list<std::string>::iterator ii;
-   for (ii = vfs.begin(); ii != vfs.end(); ++ii) {
-      if (!CreateDirectory(*ii)) {
-         if (!exists(*ii)) {
-            std::cerr << "Fatal: failed to setup test directory: "
-                      << *ii << std::endl;
-            exit(EXIT_FAILURE);
-         }
-      }
-   }
-
-   testFindFilesWithPrefix();
-   testFindFilesContaining();
-   testRemove();
-
-   testIsDirectory();
-   testIsFile();
-   testMkdirp();
-   testGetCurrentDirectory();
-   testCbMktemp();
-
-   testMaximizeFileDescriptors();
-
-   return exit_value;
+    limit = cb::io::maximizeFileDescriptors(
+        std::numeric_limits<uint64_t>::max());
+    if (limit != std::numeric_limits<uint64_t>::max()) {
+        // windows don't have a max limit, and that could be for other platforms
+        // as well..
+        EXPECT_EQ(limit, cb::io::maximizeFileDescriptors(limit + 1))
+                    << "FAIL: I expected maximizeFileDescriptors to return "
+                    << "the same max limit two times in a row";
+    }
 }
