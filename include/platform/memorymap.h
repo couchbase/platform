@@ -96,6 +96,6 @@ private:
 #endif
     void* root;
     size_t size;
-    const Mode& mode;
+    const Mode mode;
 };
 }
