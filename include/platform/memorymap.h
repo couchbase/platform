@@ -1,6 +1,6 @@
 /* -*- Mode: C; tab-width: 4; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /*
- *     Copyright 2015 Couchbase, Inc
+ *     Copyright 2016 Couchbase, Inc
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -22,61 +22,69 @@
 #include <inttypes.h>
 #include <stddef.h>
 #include <cstdio>
+#include <stdexcept>
 #include <string>
 
-namespace Couchbase {
-    class PLATFORM_PUBLIC_API MemoryMappedFile {
-    public:
-        ~MemoryMappedFile();
+namespace cb {
+class PLATFORM_PUBLIC_API MemoryMappedFile {
+public:
+    ~MemoryMappedFile();
 
-        MemoryMappedFile(const char *fname, bool share, bool rdonly);
+    MemoryMappedFile(const char* fname, bool share, bool rdonly);
 
-        /**
-        * Open the mapping. Throws an std::string with a reason why
-        * in case of a failure.
-        */
-        void open(void);
+    /**
+     * Open the mapping.
+     * @throws std::exception (or one of the subclasses) if anything
+     *                        goes wrong
+     */
+    void open(void);
 
-        /**
-        * Close the file mapping.. This invalidates the root pointer
-        * and the mapping should NOT be used after it is closed
-        * (it'll most likely cause a crash)
-        */
-        void close(void);
+    /**
+     * Close the file mapping.. This invalidates the root pointer
+     * and the mapping should NOT be used after it is closed
+     * (it'll most likely cause a crash)
+     *
+     * @throws std::exception (or one of the subclasses) if anything
+     *                        goes wrong
+     */
+    void close(void);
 
-        /**
-        * Get the address for the beginning of the pointer.
-        */
-        void *getRoot(void) const {
-            if (root == NULL) {
-                throw std::string("Internal error, open() not called");
-            }
-            return root;
+    /**
+     * Get the address for the beginning of the pointer.
+     *
+     */
+    void* getRoot(void) const {
+        if (root == nullptr) {
+            throw std::logic_error(
+                "cb::MemoryMappedFile::getRoot(): open() not called");
         }
+        return root;
+    }
 
-        /**
-        * Get the size of the mapped segment
-        */
-        size_t getSize(void) const {
-            if (root == NULL) {
-                throw std::string("Internal error, open() not called");
-            }
-            return size;
+    /**
+     * Get the size of the mapped segment
+     */
+    size_t getSize(void) const {
+        if (root == nullptr) {
+            throw std::logic_error(
+                "cb::MemoryMappedFile::getSize(): open() not called");
         }
+        return size;
+    }
 
-    private:
-        MemoryMappedFile(MemoryMappedFile &) = delete;
+private:
+    MemoryMappedFile(MemoryMappedFile&) = delete;
 
-        std::string filename;
+    std::string filename;
 #ifdef WIN32
-        HANDLE filehandle;
-        HANDLE maphandle;
+    HANDLE filehandle;
+    HANDLE maphandle;
 #else
-        int filehandle;
+    int filehandle;
 #endif
-        void *root;
-        size_t size;
-        bool sharedMapping;
-        bool readonly;
-    };
+    void* root;
+    size_t size;
+    bool sharedMapping;
+    bool readonly;
+};
 }

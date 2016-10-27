@@ -1,6 +1,6 @@
 /* -*- Mode: C; tab-width: 4; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /*
- *     Copyright 2015 Couchbase, Inc
+ *     Copyright 2016 Couchbase, Inc
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -20,59 +20,64 @@
 const int MAP_FILE = 0;
 #endif
 
-#include <sstream>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <unistd.h>
 #include <cerrno>
 #include <cstring>
+#include <sstream>
+#include <stdexcept>
+#include <system_error>
 #include "platform/memorymap.h"
-#include <fcntl.h>
-#include <unistd.h>
-#include <sys/stat.h>
 
-Couchbase::MemoryMappedFile::MemoryMappedFile(const char *fname, bool share, bool rdonly) :
-        filename(fname),
-        filehandle(-1),
-        root(NULL),
-        size(0),
-        sharedMapping(share),
-        readonly(rdonly) {
+cb::MemoryMappedFile::MemoryMappedFile(const char* fname,
+                                       bool share,
+                                       bool rdonly)
+    : filename(fname),
+      filehandle(-1),
+      root(NULL),
+      size(0),
+      sharedMapping(share),
+      readonly(rdonly) {
     // Empty
 }
 
-Couchbase::MemoryMappedFile::~MemoryMappedFile() {
+cb::MemoryMappedFile::~MemoryMappedFile() {
     close();
 }
 
-void Couchbase::MemoryMappedFile::close(void) {
+void cb::MemoryMappedFile::close(void) {
     /* file not mapped anymore */
     if (root == NULL) {
         return;
     }
-    std::stringstream ss;
+    int error = 0;
 
     if (munmap(root, size) != 0) {
-        ss << "munmap failed: " << strerror(errno);
+        error = errno;
     }
     ::close(filehandle);
     filehandle = -1;
     root = NULL;
     size = 0;
 
-    std::string str = ss.str();
-    if (str.length() > 0) {
-        throw str;
+    if (error != 0) {
+        throw std::system_error(error, std::system_category(),
+                                "cb::MemoryMappedFile::close: munmap() failed");
     }
 }
 
-void Couchbase::MemoryMappedFile::open(void) {
+void cb::MemoryMappedFile::open(void) {
     if (sharedMapping && readonly) {
-        throw std::string("Invalid mode: shared and readonly don't make sense");
+        throw std::invalid_argument(
+            "cb::MemoryMappedFile::open: Invalid mode: shared and readonly don't make sense");
     }
 
     struct stat st;
     if (stat(filename.c_str(), &st) == -1) {
-        std::stringstream ss;
-        ss << "stat(" << filename << ") failed: " << strerror(errno);
-        throw ss.str();
+        throw std::system_error(
+            errno, std::system_category(),
+            "cb::MemoryMappedFile::open: stat() failed");
     }
     size = st.st_size;
 
@@ -94,19 +99,18 @@ void Couchbase::MemoryMappedFile::open(void) {
     }
 
     if ((filehandle = ::open(filename.c_str(), openMode)) == -1) {
-        std::stringstream ss;
-        ss << "Failed to open file: " << filename << " (" << strerror(errno) << ")";
-        throw ss.str();
+        throw std::system_error(
+            errno, std::system_category(), "cb::MemoryMappedFile::open: open() failed");
     }
 
     root = mmap(NULL, size, protection, mapMode, filehandle, 0);
     if (root == MAP_FAILED) {
-        std::stringstream ss;
-        ss << "mmap failed: " << strerror(errno);
+        auto error = errno;
         ::close(filehandle);
         filehandle = -1;
         root = NULL;
         size = 0;
-        throw ss.str();
+        throw std::system_error(
+            error, std::system_category(), "cb::MemoryMappedFile::open: mmap() failed");
     }
 }

@@ -1,6 +1,6 @@
 /* -*- Mode: C; tab-width: 4; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /*
- *     Copyright 2015 Couchbase, Inc
+ *     Copyright 2016 Couchbase, Inc
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -14,36 +14,38 @@
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
  */
+#include <platform/memorymap.h>
 #include <platform/platform.h>
-
 #include <sstream>
-#include <platform/strerror.h>
-#include "platform/memorymap.h"
+#include <stdexcept>
+#include <system_error>
 
-Couchbase::MemoryMappedFile::MemoryMappedFile(const char *fname, bool share, bool rdonly)
-        :
-        filename(fname),
-        filehandle(INVALID_HANDLE_VALUE),
-        maphandle(INVALID_HANDLE_VALUE),
-        root(NULL),
-        size(0),
-        sharedMapping(share),
-        readonly(rdonly) {
+cb::MemoryMappedFile::MemoryMappedFile(const char* fname,
+                                       bool share,
+                                       bool rdonly)
+    : filename(fname),
+      filehandle(INVALID_HANDLE_VALUE),
+      maphandle(INVALID_HANDLE_VALUE),
+      root(NULL),
+      size(0),
+      sharedMapping(share),
+      readonly(rdonly) {
 }
 
-Couchbase::MemoryMappedFile::~MemoryMappedFile() {
+cb::MemoryMappedFile::~MemoryMappedFile() {
     close();
 }
 
-void Couchbase::MemoryMappedFile::close(void) {
+void cb::MemoryMappedFile::close(void) {
     /* file not mapped */
     if (root == NULL) {
         return;
     }
     std::stringstream ss;
 
+    DWORD error = 0;
     if (!UnmapViewOfFile(root)) {
-        ss << "UnmapViewOfFile() failed: " << cb_strerror();
+        error = GetLastError();
     }
     CloseHandle(maphandle);
     maphandle = INVALID_HANDLE_VALUE;
@@ -52,28 +54,30 @@ void Couchbase::MemoryMappedFile::close(void) {
     root = NULL;
     size = 0;
 
-    std::string str = ss.str();
-    if (str.length() > 0) {
-        throw str;
+    if (error != 0) {
+        throw std::system_error(
+            error, std::system_category(),
+            "cb::MemoryMappedFile::close: UnmapViewOfFile() failed");
     }
 }
 
-void Couchbase::MemoryMappedFile::open(void) {
+void cb::MemoryMappedFile::open(void) {
     if (sharedMapping && readonly) {
-        throw std::string("Invalid mode: shared and readonly don't make sense");
+        throw std::invalid_argument(
+            "cb::MemoryMappedFile::open: Invalid mode: shared and readonly don't make sense");
     }
 
     WIN32_FILE_ATTRIBUTE_DATA fad;
-    if (GetFileAttributesEx(filename.c_str(), GetFileExInfoStandard,
-            &fad) == 0) {
-        std::stringstream ss;
-        ss << "failed to determine file size: " << cb_strerror();
-        throw ss.str();
+    if (GetFileAttributesEx(filename.c_str(), GetFileExInfoStandard, &fad) ==
+        0) {
+        throw std::system_error(GetLastError(),
+                                std::system_category(),
+                                "cb::MemoryMappedFile::open: GetFileAttributesEx() failed");
     }
     LARGE_INTEGER sz;
     sz.HighPart = fad.nFileSizeHigh;
     sz.LowPart = fad.nFileSizeLow;
-    size = (size_t) sz.QuadPart;
+    size = (size_t)sz.QuadPart;
 
     DWORD mode;
     DWORD access;
@@ -90,35 +94,40 @@ void Couchbase::MemoryMappedFile::open(void) {
         shared = FILE_SHARE_READ | FILE_SHARE_WRITE;
     }
 
-    filehandle = CreateFile(filename.c_str(), mode,
-            shared, NULL, OPEN_EXISTING,
-            FILE_ATTRIBUTE_NORMAL, NULL);
+    filehandle = CreateFile(filename.c_str(),
+                            mode,
+                            shared,
+                            NULL,
+                            OPEN_EXISTING,
+                            FILE_ATTRIBUTE_NORMAL,
+                            NULL);
 
     if (filehandle == INVALID_HANDLE_VALUE) {
-        std::stringstream ss;
-        ss << "failed to open file: " << cb_strerror();
-        size = 0;
-        throw ss.str();
+        throw std::system_error(GetLastError(),
+                                std::system_category(),
+                                "cb::MemoryMappedFile::open: CreateFile() failed");
     }
 
-    maphandle = CreateFileMapping(filehandle, NULL,
-            readonly ? PAGE_READONLY : PAGE_READWRITE,
-            0, 0, NULL);
+    maphandle = CreateFileMapping(filehandle,
+                                  NULL,
+                                  readonly ? PAGE_READONLY : PAGE_READWRITE,
+                                  0,
+                                  0,
+                                  NULL);
     if (maphandle == INVALID_HANDLE_VALUE) {
-        std::stringstream ss;
-        ss << "failed to create file mapping: " << cb_strerror();
+        auto error = GetLastError();
         CloseHandle(filehandle);
-        size = 0;
-        throw ss.str();
+        throw std::system_error(error, std::system_category(),
+                                "cb::MemoryMappedFile::open: CreateFileMapping() failed");
     }
 
     root = MapViewOfFile(maphandle, access, 0, 0, 0);
     if (root == NULL) {
-        std::stringstream ss;
-        ss << "mapviewoffile failed: " << cb_strerror();
+        auto error = GetLastError();
         CloseHandle(maphandle);
         CloseHandle(filehandle);
-        size = 0;
-        throw ss.str();
+
+        throw std::system_error(error, std::system_category(),
+                                "cb::MemoryMappedFile::open: MapViewOfFile() failed");
     }
 }
