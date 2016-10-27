@@ -26,11 +26,23 @@
 #include <string>
 
 namespace cb {
+/**
+ * A class that implements memory mapping of a file. It allows for only
+ * to different modes: Just read and read + write.
+ *
+ * All mappings are shared to other processes
+ */
 class PLATFORM_PUBLIC_API MemoryMappedFile {
 public:
+    enum class Mode : uint8_t {
+    /// Open the map with only read access
+    RDONLY,
+    /// Open the map with read and write access
+    RW
+    };
     ~MemoryMappedFile();
+    MemoryMappedFile(const char* fname, const Mode& mode_);
 
-    MemoryMappedFile(const char* fname, bool share, bool rdonly);
 
     /**
      * Open the mapping.
@@ -84,7 +96,6 @@ private:
 #endif
     void* root;
     size_t size;
-    bool sharedMapping;
-    bool readonly;
+    const Mode& mode;
 };
 }

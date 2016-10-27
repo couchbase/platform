@@ -30,15 +30,12 @@ const int MAP_FILE = 0;
 #include <system_error>
 #include "platform/memorymap.h"
 
-cb::MemoryMappedFile::MemoryMappedFile(const char* fname,
-                                       bool share,
-                                       bool rdonly)
+cb::MemoryMappedFile::MemoryMappedFile(const char* fname, const Mode& mode_)
     : filename(fname),
       filehandle(-1),
       root(NULL),
       size(0),
-      sharedMapping(share),
-      readonly(rdonly) {
+      mode(mode_) {
     // Empty
 }
 
@@ -68,33 +65,23 @@ void cb::MemoryMappedFile::close(void) {
 }
 
 void cb::MemoryMappedFile::open(void) {
-    if (sharedMapping && readonly) {
-        throw std::invalid_argument(
-            "cb::MemoryMappedFile::open: Invalid mode: shared and readonly don't make sense");
-    }
-
     struct stat st;
     if (stat(filename.c_str(), &st) == -1) {
         throw std::system_error(
             errno, std::system_category(),
             "cb::MemoryMappedFile::open: stat() failed");
     }
-    size = st.st_size;
+    size = size_t(st.st_size);
 
-    int mapMode = MAP_FILE;
     int openMode;
-    if (sharedMapping) {
-        openMode = O_RDWR;
-        mapMode |= MAP_SHARED;
-    } else {
-        openMode = O_RDONLY;
-        mapMode |= MAP_PRIVATE;
-    }
-
     int protection = PROT_READ;
-    if (readonly) {
+
+    switch (mode) {
+    case Mode::RDONLY:
         openMode = O_RDONLY;
-    } else {
+        break;
+    case Mode::RW:
+        openMode = O_RDWR;
         protection |= PROT_WRITE;
     }
 
@@ -103,7 +90,7 @@ void cb::MemoryMappedFile::open(void) {
             errno, std::system_category(), "cb::MemoryMappedFile::open: open() failed");
     }
 
-    root = mmap(NULL, size, protection, mapMode, filehandle, 0);
+    root = mmap(NULL, size, protection, MAP_FILE | MAP_SHARED, filehandle, 0);
     if (root == MAP_FAILED) {
         auto error = errno;
         ::close(filehandle);

@@ -20,16 +20,13 @@
 #include <stdexcept>
 #include <system_error>
 
-cb::MemoryMappedFile::MemoryMappedFile(const char* fname,
-                                       bool share,
-                                       bool rdonly)
+cb::MemoryMappedFile::MemoryMappedFile(const char* fname, const Mode& mode_)
     : filename(fname),
       filehandle(INVALID_HANDLE_VALUE),
       maphandle(INVALID_HANDLE_VALUE),
       root(NULL),
       size(0),
-      sharedMapping(share),
-      readonly(rdonly) {
+      mode(mode_) {
 }
 
 cb::MemoryMappedFile::~MemoryMappedFile() {
@@ -62,11 +59,6 @@ void cb::MemoryMappedFile::close(void) {
 }
 
 void cb::MemoryMappedFile::open(void) {
-    if (sharedMapping && readonly) {
-        throw std::invalid_argument(
-            "cb::MemoryMappedFile::open: Invalid mode: shared and readonly don't make sense");
-    }
-
     WIN32_FILE_ATTRIBUTE_DATA fad;
     if (GetFileAttributesEx(filename.c_str(), GetFileExInfoStandard, &fad) ==
         0) {
@@ -79,23 +71,25 @@ void cb::MemoryMappedFile::open(void) {
     sz.LowPart = fad.nFileSizeLow;
     size = (size_t)sz.QuadPart;
 
-    DWORD mode;
-    DWORD access;
-    if (readonly) {
-        mode = GENERIC_READ;
-        access = FILE_MAP_READ;
-    } else {
-        mode = GENERIC_READ | GENERIC_WRITE;
-        access = FILE_MAP_READ | FILE_MAP_WRITE;
+    DWORD openMode;
+    DWORD protection;
+    DWORD mapMode;
+
+    switch (mode) {
+    case Mode::RDONLY:
+        openMode = GENERIC_READ;
+        protection = FILE_MAP_READ;
+        mapMode = PAGE_READONLY;
+        break;
+    case Mode::RW:
+        openMode = GENERIC_READ | GENERIC_WRITE;
+        protection = FILE_MAP_READ | FILE_MAP_WRITE;
+        mapMode = PAGE_READWRITE;
     }
 
-    DWORD shared = 0;
-    if (sharedMapping) {
-        shared = FILE_SHARE_READ | FILE_SHARE_WRITE;
-    }
-
+    DWORD shared = FILE_SHARE_READ | FILE_SHARE_WRITE;
     filehandle = CreateFile(filename.c_str(),
-                            mode,
+                            openMode,
                             shared,
                             NULL,
                             OPEN_EXISTING,
@@ -108,12 +102,7 @@ void cb::MemoryMappedFile::open(void) {
                                 "cb::MemoryMappedFile::open: CreateFile() failed");
     }
 
-    maphandle = CreateFileMapping(filehandle,
-                                  NULL,
-                                  readonly ? PAGE_READONLY : PAGE_READWRITE,
-                                  0,
-                                  0,
-                                  NULL);
+    maphandle = CreateFileMapping(filehandle, nullptr, mapMode, 0, 0, nullptr);
     if (maphandle == INVALID_HANDLE_VALUE) {
         auto error = GetLastError();
         CloseHandle(filehandle);
@@ -121,7 +110,7 @@ void cb::MemoryMappedFile::open(void) {
                                 "cb::MemoryMappedFile::open: CreateFileMapping() failed");
     }
 
-    root = MapViewOfFile(maphandle, access, 0, 0, 0);
+    root = MapViewOfFile(maphandle, protection, 0, 0, 0);
     if (root == NULL) {
         auto error = GetLastError();
         CloseHandle(maphandle);

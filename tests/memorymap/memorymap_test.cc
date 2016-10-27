@@ -47,20 +47,9 @@ static std::vector<uint8_t> readFile(void) {
     return ret;
 }
 
-static void testInvalidMapOptions(void) {
-    MemoryMappedFile mymap(filename.c_str(), true, true);
-    try {
-        mymap.open();
-        std::cerr << "ERROR: readonly mapping with sharing doesn't make sense "
-                  << std::endl;
-        exit(EXIT_FAILURE);
-    } catch (const std::exception& err) {
-    }
-}
-
 static void testReadonlyMapping(void) {
     std::vector<uint8_t> before = readFile();
-    MemoryMappedFile mymap(filename.c_str(), false, true);
+    MemoryMappedFile mymap(filename.c_str(), MemoryMappedFile::Mode::RDONLY);
     try {
         mymap.open();
     } catch (const std::exception& err) {
@@ -70,28 +59,9 @@ static void testReadonlyMapping(void) {
     cb_assert(memcmp(before.data(), mymap.getRoot(), mymap.getSize()) == 0);
 }
 
-static void testPrivateMapping(void) {
-    std::vector<uint8_t> before = readFile();
-    MemoryMappedFile mymap(filename.c_str(), false, false);
-    try {
-        mymap.open();
-    } catch (const std::exception& err) {
-        std::cerr << "ERROR: " << err.what() << std::endl;
-        exit(EXIT_FAILURE);
-    }
-    uint8_t* block = new uint8_t[mymap.getSize()];
-    memset(block, 0, mymap.getSize());
-    memset(mymap.getRoot(), 0, mymap.getSize());
-    cb_assert(memcmp(block, mymap.getRoot(), mymap.getSize()) == 0);
-    delete[] block;
-    std::vector<uint8_t> after = readFile();
-    cb_assert(before.size() == after.size());
-    cb_assert(memcmp(before.data(), after.data(), before.size()) == 0);
-}
-
 static void testSharedMapping(void) {
     std::vector<uint8_t> before = readFile();
-    MemoryMappedFile mymap(filename.c_str(), true, false);
+    MemoryMappedFile mymap(filename.c_str(), MemoryMappedFile::Mode::RW);
     try {
         mymap.open();
     } catch (const std::exception& err) {
@@ -126,11 +96,7 @@ static void createFile(void) {
 
 int main(void) {
     createFile();
-    testInvalidMapOptions();
     testReadonlyMapping();
-#ifndef WIN32
-    testPrivateMapping();
-#endif
     testSharedMapping();
     remove(filename.c_str());
     exit(EXIT_SUCCESS);
