@@ -9,3 +9,8 @@ target_link_libraries(platform_extmeta_test extmeta gtest gtest_main)
 add_test(NAME platform-extmeta-test
          WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
          COMMAND platform_extmeta_test)
+
+install(TARGETS extmeta
+        RUNTIME DESTINATION bin
+        LIBRARY DESTINATION lib
+        ARCHIVE DESTINATION lib)
