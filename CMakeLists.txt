@@ -161,6 +161,7 @@ ADD_LIBRARY(platform_so SHARED ${PLATFORM_FILES}
                             include/platform/memorymap.h
                             include/platform/platform.h
                             include/platform/random.h
+                            include/platform/ring_buffer.h
                             include/platform/strerror.h
                             include/platform/sysinfo.h
                             include/platform/thread.h
