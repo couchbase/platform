@@ -150,6 +150,7 @@ ADD_LIBRARY(platform_so SHARED ${PLATFORM_FILES}
                             src/crc32c_sse4_2.cc
                             src/crc32c_private.h
                             src/global_new_replacement.cc
+                            src/processclock.cc
                             src/strerror.cc
                             src/sysinfo.cc
                             src/thread.cc
@@ -158,6 +159,7 @@ ADD_LIBRARY(platform_so SHARED ${PLATFORM_FILES}
                             include/platform/crc32c.h
                             include/platform/memorymap.h
                             include/platform/platform.h
+                            include/platform/processclock.h
                             include/platform/random.h
                             include/platform/strerror.h
                             include/platform/sysinfo.h
