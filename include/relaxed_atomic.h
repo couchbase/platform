@@ -28,81 +28,90 @@ namespace Couchbase {
     class RelaxedAtomic {
     public:
         RelaxedAtomic() {
-            value.store(0, std::memory_order_relaxed);
+            store(0);
         }
 
         RelaxedAtomic(const T& initial) {
-            value.store(initial, std::memory_order_relaxed);
+            store(initial);
         }
 
         explicit RelaxedAtomic(const RelaxedAtomic& other) {
-            value.store(other.value.load(std::memory_order_relaxed),
-                        std::memory_order_relaxed);
+            store(other.load());
         }
 
         operator T() const {
-            return value.load(std::memory_order_relaxed);
+            return load();
         }
 
         T load() const {
             return value.load(std::memory_order_relaxed);
         }
 
+        void store(T desired) {
+            value.store(desired, std::memory_order_relaxed);
+        }
+
+        T fetch_add(T arg) {
+            return value.fetch_add(arg, std::memory_order_relaxed);
+        }
+
+        T fetch_sub(T arg) {
+            return value.fetch_sub(arg, std::memory_order_relaxed);
+        }
+
         RelaxedAtomic& operator=(const RelaxedAtomic& rhs) {
-            value.store(rhs.load(), std::memory_order_relaxed);
+            store(rhs.load());
             return *this;
         }
 
         RelaxedAtomic& operator+=(const T rhs) {
-            value.fetch_add(rhs, std::memory_order_relaxed);
+            fetch_add(rhs);
             return *this;
         }
 
         RelaxedAtomic& operator+=(const RelaxedAtomic& rhs) {
-            value.fetch_add(rhs.value.load(std::memory_order_relaxed),
-                            std::memory_order_relaxed);
+            fetch_add(rhs.load());
             return *this;
         }
 
         RelaxedAtomic& operator-=(const T rhs) {
-            value.fetch_sub(rhs, std::memory_order_relaxed);
+            fetch_sub(rhs);
             return *this;
         }
 
         RelaxedAtomic& operator-=(const RelaxedAtomic& rhs) {
-            value.fetch_sub(rhs.value.load(std::memory_order_relaxed),
-                            std::memory_order_relaxed);
+            fetch_sub(rhs.load());
             return *this;
         }
 
         T operator++() {
-            return value.fetch_add(1, std::memory_order_relaxed) + 1;
+            return fetch_add(1) + 1;
         }
 
         T operator++(int) {
-            return value.fetch_add(1, std::memory_order_relaxed);
+            return fetch_add(1);
         }
 
         T operator--() {
-            return value.fetch_sub(1, std::memory_order_relaxed) - 1;
+            return fetch_sub(1) - 1;
         }
 
         T operator--(int) {
-            return value.fetch_sub(1, std::memory_order_relaxed);
+            return fetch_sub(1);
         }
 
         RelaxedAtomic& operator=(T val) {
-            value.store(val, std::memory_order_relaxed);
+            store(val);
             return *this;
         }
 
         void reset() {
-            value.store(0, std::memory_order_relaxed);
+            store(0);
         }
 
         void setIfGreater(const T& val) {
             do {
-                T currval = value.load(std::memory_order_relaxed);
+                T currval = load();
                 if (val > currval) {
                     if (value.compare_exchange_weak(currval, val,
                                                     std::memory_order_relaxed)) {
