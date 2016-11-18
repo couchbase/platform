@@ -18,13 +18,26 @@
 
 #include <platform/platform.h>
 
-namespace Couchbase {
+namespace cb {
 
 /**
  * Returns the number of logical threads (CPUs) this process has
  * access to - i.e. the maximum number of concurrent threads of
  * execution available.
+ *
+ * The user may override the number of CPUs to use by using the
+ * environment variable COUCHBASE_CPU_COUNT
+ *
+ * @throws std::logic_error if the environemnt variable can't be parsed
+ *         std::runtime_error if the system call to fetch available CPUs fail
  */
 PLATFORM_PUBLIC_API
 size_t get_available_cpu_count();
+}
+
+// For backwards compatibility
+namespace Couchbase {
+inline size_t get_available_cpu_count() {
+    return cb::get_available_cpu_count();
+}
 }
