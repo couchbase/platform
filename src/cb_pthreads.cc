@@ -296,14 +296,13 @@ void cb_cond_timedwait(cb_cond_t *cond, cb_mutex_t *mutex, unsigned int ms)
 #ifdef __APPLE__
 static const char *get_dll_name(const char *path, char *buffer)
 {
-    char *ptr = strstr(path, ".dylib");
-    if (ptr != NULL) {
+    if (strstr(path, ".dylib") != nullptr) {
         return path;
     }
 
     strcpy(buffer, path);
 
-    ptr = strstr(buffer, ".so");
+    char* ptr = strstr(buffer, ".so");
     if (ptr != NULL) {
         sprintf(ptr, ".dylib");
         return buffer;
