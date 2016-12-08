@@ -503,4 +503,26 @@ extern "C" {
 
 #ifdef __cplusplus
 }
+
+namespace cb {
+/**
+ * Search for a string within a string (which may not be '\0' terminated)
+ *
+ * @param haystack The buffer to search in
+ * @param needle The string to search for
+ * @param len The number of bytes in haystack
+ * @return pointer to the first occurrence of needle in haystack, or
+ *                 nullptr if not found.
+ */
+PLATFORM_PUBLIC_API
+char* strnstr(char* haystack, const char* needle, size_t len) CB_ATTR_NONNULL(1, 2);
+
+inline const char* strnstr(const char* haystack,
+                           const char* needle,
+                           size_t len) {
+    return const_cast<const char*>(strnstr(const_cast<char*>(haystack),
+                                           needle, len));
+}
+}
+
 #endif

@@ -155,6 +155,7 @@ ADD_LIBRARY(platform_so SHARED ${PLATFORM_FILES}
                             src/global_new_replacement.cc
                             src/processclock.cc
                             src/strerror.cc
+                            src/strnstr.cc
                             src/sysinfo.cc
                             src/thread.cc
                             src/timeutils.cc
