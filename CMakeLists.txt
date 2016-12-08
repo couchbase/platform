@@ -142,6 +142,7 @@ ADD_LIBRARY(platform_so SHARED ${PLATFORM_FILES}
                             src/getpid.c
                             src/random.cc
                             src/backtrace.c
+                            src/byte_buffer_dump.cc
                             src/byteorder.c
                             src/cb_malloc.cc
                             src/cb_mktemp.c
@@ -158,6 +159,7 @@ ADD_LIBRARY(platform_so SHARED ${PLATFORM_FILES}
                             src/thread.cc
                             src/timeutils.cc
                             include/platform/base64.h
+                            include/platform/byte_buffer_dump.h
                             include/platform/crc32c.h
                             include/platform/memorymap.h
                             include/platform/platform.h
