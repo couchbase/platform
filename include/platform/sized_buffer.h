@@ -18,6 +18,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <string>
 
 namespace cb {
@@ -48,6 +49,10 @@ struct sized_buffer {
         return len;
     }
 
+    inline bool operator==(const T& rhs) const {
+        return (len == rhs.len && std::memcmp(buf, rhs.buf, len) == 0);
+    }
+
     T* buf;
     size_t len;
 };
@@ -75,6 +80,10 @@ struct const_char_buffer : public sized_buffer<const char> {
 
     const_char_buffer(const std::string& str)
         : sized_buffer(str.data(), str.size()) {}
+
+    inline bool operator==(const const_char_buffer& rhs) const {
+        return (len == rhs.len && std::memcmp(buf, rhs.buf, len) == 0);
+    }
 };
 
 /**
