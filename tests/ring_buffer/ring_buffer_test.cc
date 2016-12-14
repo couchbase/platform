@@ -89,7 +89,7 @@ TYPED_TEST(RingBufferTest, testRingBuffer) {
     }
 
     ASSERT_EQ(10, rb.size());
-    for (int i = 0; i < rb.size(); ++i) {
+    for (size_t i = 0; i < rb.size(); ++i) {
         ASSERT_EQ(i + 1, rb[i]);
     }
 }

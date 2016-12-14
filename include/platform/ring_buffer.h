@@ -97,6 +97,12 @@ public:
     template <typename Tvalue, typename Tparent>
     class BaseIterator {
     public:
+        using difference_type = std::ptrdiff_t;
+        using value_type = std::remove_const<Tvalue>;
+        using pointer = Tvalue*;
+        using reference = Tvalue&;
+        using iterator_category = std::forward_iterator_tag;
+
         BaseIterator(Tparent& parent_, size_t pos_)
             : pos(pos_), parent(parent_) {
         }
