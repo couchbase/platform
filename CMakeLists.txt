@@ -42,6 +42,12 @@ CMAKE_POP_CHECK_STATE()
 
 CMAKE_PUSH_CHECK_STATE(RESET)
 CHECK_CXX_SOURCE_COMPILES("void f() noexcept; int main() { return 0; }" HAVE_NOEXCEPT)
+
+CHECK_CXX_SOURCE_COMPILES("
+    #include <memory>
+    int main() {
+        return *std::make_unique<int>(0);
+    }" HAVE_MAKE_UNIQUE)
 CMAKE_POP_CHECK_STATE()
 
 CHECK_SYMBOL_EXISTS(gethrtime sys/time.h CB_DONT_NEED_GETHRTIME)

@@ -64,3 +64,8 @@
 #else
 #define NOEXCEPT
 #endif
+
+/**
+ * Defined if std::make_unique is defined in <memory>
+ */
+#cmakedefine HAVE_MAKE_UNIQUE
