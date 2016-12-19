@@ -55,10 +55,3 @@ make_unique(size_t __n)
 }  // namespace std
 
 #endif  // !defined(HAVE_MAKE_UNIQUE)
-
-/* TEMPORARY global namespace version of make_unique(), this was incorrectly
- * added and there's existing code which uses it. Should be migrated to the
- * version in std - std::make_unique().
- * Once all callers of this are removed, we can delete it.
- */
-using std::make_unique;
