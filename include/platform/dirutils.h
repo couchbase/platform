@@ -123,6 +123,3 @@ DIRUTILS_PUBLIC_API
 uint64_t maximizeFileDescriptors(uint64_t limit);
 }
 }
-
-// For backward source compatibility
-namespace CouchbaseDirectoryUtilities = cb::io;
