@@ -250,13 +250,8 @@ INSTALL(TARGETS breakpad_wrapper cJSON JSON_checker platform_so dirutils
         LIBRARY DESTINATION lib
         ARCHIVE DESTINATION lib)
 
-INCLUDE_DIRECTORIES(AFTER ${SNAPPY_INCLUDE_DIR})
-ADD_LIBRARY(cbcompress STATIC
-            src/compress.cc
-            include/platform/compress.h)
-TARGET_LINK_LIBRARIES(cbcompress ${SNAPPY_LIBRARIES})
-
 ADD_SUBDIRECTORY(extmeta)
+ADD_SUBDIRECTORY(cbcompress)
 
 #
 # Test targets

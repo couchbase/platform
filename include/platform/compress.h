@@ -18,12 +18,13 @@
 #pragma once
 
 #include <memory>
+#include <platform/compress-visibility.h>
 
 namespace cb {
 namespace compression {
 enum class Algorithm { Snappy };
 
-struct Buffer {
+struct CBCOMPRESS_PUBLIC_API Buffer {
     Buffer() : len(0) {
     }
     std::unique_ptr<char[]> data;
@@ -41,6 +42,7 @@ struct Buffer {
  * @throws std::bad_alloc if we fail to allocate memory for the
  *                        destination buffer
  */
+CBCOMPRESS_PUBLIC_API
 bool inflate(const Algorithm algorithm,
              const char* buf,
              size_t len,
@@ -57,6 +59,7 @@ bool inflate(const Algorithm algorithm,
  * @throws std::bad_alloc if we fail to allocate memory for the
  *                        destination buffer
  */
+CBCOMPRESS_PUBLIC_API
 bool deflate(const Algorithm algorithm,
              const char* buf,
              size_t len,
