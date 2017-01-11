@@ -21,20 +21,6 @@
 
 #include <platform/platform.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-PLATFORM_PUBLIC_API
-int asprintf(char **ret, const char *format, ...);
-
-PLATFORM_PUBLIC_API
-int vasprintf(char **ret, const char *format, va_list ap);
-
-#ifdef __cplusplus
-}
-#endif
-
 /*
 * We have a fair amount of use of this file in our code base.
 * Let's just make a dummy file to aviod a lot of #ifdefs

@@ -86,7 +86,6 @@ IF (WIN32)
    ADD_DEFINITIONS(-D_CRT_SECURE_NO_WARNINGS)
    SET(PLATFORM_FILES src/getopt.c
                       src/sockets.c
-                      src/strings.c
                       src/cb_win32.cc
                       src/winrandom.c
                       src/memorymap_win32.cc
