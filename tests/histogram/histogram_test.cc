@@ -30,13 +30,12 @@
 #include "config.h"
 #include <gtest/gtest.h>
 
-
 class PopulatedSamples {
 public:
     PopulatedSamples(std::ostream& stream)
         : s(stream) { }
 
-    void operator()(const HistogramBin<int>* b) {
+    void operator()(const Histogram<int>::value_type& b) {
         if (b->count() > 0) {
             s << *b << "; ";
         }
@@ -136,4 +135,18 @@ TEST(BlockTimerTest, ThresholdTest) {
         std::this_thread::sleep_for(std::chrono::milliseconds(2));
     }
     EXPECT_EQ(1, histo.total());
+}
+
+TEST(MoveTest, Basic){
+    Histogram<int> histo;
+    std::stringstream s;
+    s << histo;
+    std::string oldExpected = s.str();
+    s.str(std::string());
+    Histogram<int> newHist(std::move(histo));
+    s << newHist;
+    ASSERT_EQ(oldExpected, s.str());
+    s.str(std::string());
+    s << histo;
+    ASSERT_NE(s.str(), oldExpected);
 }
