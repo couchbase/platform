@@ -39,7 +39,6 @@
 
 #ifdef WIN32
 /* Include winsock2.h before windows.h to avoid winsock.h to be included */
-#define NOMINMAX
 #include <winsock2.h>
 #include <windows.h>
 #else

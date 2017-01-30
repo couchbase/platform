@@ -29,7 +29,6 @@
 #include <vector>
 
 #ifdef WIN32
-#define NOMINMAX
 #include <windows.h>
 #include <direct.h>
 #define mkdir(a, b) _mkdir(a)

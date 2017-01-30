@@ -9,7 +9,6 @@
 #cmakedefine HAVE_SCHED_GETAFFINITY 1
 
 #ifdef WIN32
-#define NOMINMAX
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <windows.h>
