@@ -19,6 +19,7 @@
 
 #include <memory>
 #include <platform/compress-visibility.h>
+#include <platform/sized_buffer.h>
 
 namespace cb {
 namespace compression {
@@ -29,6 +30,11 @@ struct CBCOMPRESS_PUBLIC_API Buffer {
     }
     std::unique_ptr<char[]> data;
     size_t len;
+
+    operator const_byte_buffer() const {
+        return const_byte_buffer(reinterpret_cast<const uint8_t*>(data.get()),
+                                 len);
+    }
 };
 
 /**
