@@ -27,6 +27,7 @@
 #include <numeric>
 #include <platform/platform.h>
 #include <platform/make_unique.h>
+#include <relaxed_atomic.h>
 #include <sstream>
 #include <stdexcept>
 #include <iostream>
@@ -96,7 +97,7 @@ private:
                (value < _end || value == std::numeric_limits<T>::max());
     }
 
-    std::atomic<size_t> _count;
+    Couchbase::RelaxedAtomic<size_t> _count;
     T _start;
     T _end;
 };
