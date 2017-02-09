@@ -353,12 +353,6 @@ size_t buffer_hash(sized_buffer<CharT> base) {
 using char_buffer = sized_buffer<char>;
 
 /**
- * The const_char_buffer is intended for strings you're not going
- * to modify.
- */
-using const_char_buffer = sized_buffer<const char>;
-
-/**
  * The byte_buffer is intended to use for a blob of bytes you might want
  * to modify
  */
@@ -369,12 +363,60 @@ using byte_buffer = sized_buffer<uint8_t>;
  * want to modify.
  */
 using const_byte_buffer = sized_buffer<const uint8_t>;
+
+/**
+ * The const_char_buffer is intended for strings you're not going
+ * to modify.
+ */
+class const_char_buffer : public sized_buffer<const char> {
+public:
+    const_char_buffer() : sized_buffer() {
+    }
+
+    const_char_buffer(const char* cStr)
+        : sized_buffer(cStr, std::strlen(cStr) + 1) {
+    }
+
+    // MSVC does not support constructor inheritance so we must redefined them
+    // until MSVC 2015 is supported. The following exist because of MSVC
+    const_char_buffer(pointer buf_, size_type len_) : sized_buffer(buf_, len_) {
+    }
+
+    const_char_buffer(const std::basic_string<base_type>& str)
+        : sized_buffer(str) {
+    }
+
+    const_char_buffer(std::basic_string<base_type>& str) : sized_buffer(str) {
+    }
+
+    const_char_buffer(const std::vector<base_type>& vec) : sized_buffer(vec) {
+    }
+
+    const_char_buffer(std::vector<base_type>& vec) : sized_buffer(vec) {
+    }
+
+    const_char_buffer(const cb::char_buffer& other) : sized_buffer(other) {
+    }
+};
+
+static inline std::string to_string(const_char_buffer cb) {
+    return std::string(cb.data(), cb.size());
+}
 }
 
 namespace std {
 template <typename CharT>
 struct hash<cb::sized_buffer<CharT>> {
     size_t operator()(cb::sized_buffer<CharT> s) const {
+        return cb::buffer_hash(s);
+    }
+};
+}
+
+namespace std {
+template <>
+struct hash<cb::const_char_buffer> {
+    size_t operator()(cb::const_char_buffer s) const {
         return cb::buffer_hash(s);
     }
 };

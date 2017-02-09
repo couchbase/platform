@@ -205,3 +205,15 @@ TEST(SizedBufferTest, ToConst) {
     EXPECT_EQ(ccb.data(), cb.data());
     EXPECT_EQ(ccb.size(), cb.size());
 }
+
+TEST(SizedBufferTest, cString) {
+    const char* cStr = "Hello, World!";
+    cb::const_char_buffer ccb(cStr);
+
+    EXPECT_STREQ("Hello, World!", ccb.data());
+    EXPECT_EQ(sizeof("Hello, World!"), ccb.size());
+
+    auto str = cb::to_string(ccb);
+    EXPECT_TRUE(str.compare(ccb.data()));
+    EXPECT_EQ(ccb.size(), str.size());
+}
