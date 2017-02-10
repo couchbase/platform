@@ -206,14 +206,22 @@ TEST(SizedBufferTest, ToConst) {
     EXPECT_EQ(ccb.size(), cb.size());
 }
 
-TEST(SizedBufferTest, cString) {
+TEST(SizedBufferTest, cString1) {
     const char* cStr = "Hello, World!";
     cb::const_char_buffer ccb(cStr);
 
     EXPECT_STREQ("Hello, World!", ccb.data());
-    EXPECT_EQ(sizeof("Hello, World!"), ccb.size());
+    EXPECT_EQ(std::strlen("Hello, World!"), ccb.size());
 
     auto str = cb::to_string(ccb);
-    EXPECT_TRUE(str.compare(ccb.data()));
+    EXPECT_EQ(0, str.compare(ccb.data()));
     EXPECT_EQ(ccb.size(), str.size());
+}
+
+TEST(SizedBufferTest, cString2) {
+    const char* cStr = "Hello, World!";
+    std::string str(cStr);
+    cb::const_char_buffer ccb1(str);
+    cb::const_char_buffer ccb2(cStr);
+    EXPECT_EQ(ccb1, ccb2);
 }

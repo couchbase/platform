@@ -374,7 +374,7 @@ public:
     }
 
     const_char_buffer(const char* cStr)
-        : sized_buffer(cStr, std::strlen(cStr) + 1) {
+        : sized_buffer(cStr, std::strlen(cStr)) {
     }
 
     // MSVC does not support constructor inheritance so we must redefined them
