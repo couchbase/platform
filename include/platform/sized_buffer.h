@@ -402,7 +402,12 @@ public:
 static inline std::string to_string(const_char_buffer cb) {
     return std::string(cb.data(), cb.size());
 }
+
+inline bool operator==(const_char_buffer lhs, const char* rhs) {
+    return lhs.compare(const_char_buffer(rhs)) == 0;
 }
+
+} // namespace cb
 
 namespace std {
 template <typename CharT>
