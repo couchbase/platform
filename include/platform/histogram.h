@@ -413,21 +413,28 @@ public:
      * Get a BlockTimer that will store its values in the given
      * histogram.
      *
-     * @param d the histogram that will hold the result
+     * @param d the histogram that will hold the result.
+     *        If it is 'nullptr', the BlockTimer is disabled so that
+     *        both constructor and destructor will do nothing.
      * @param n the name to give the histogram, used when logging slow block
      *        execution to the log.
      */
     GenericBlockTimer(HISTOGRAM* d, const char* n = nullptr,
                       std::ostream* o = nullptr)
         : dest(d),
-          start(gethrtime()),
           name(n),
-          out(o) { }
+          out(o) {
+        if (dest) {
+            start = gethrtime();
+        }
+    }
 
     ~GenericBlockTimer() {
-        hrtime_t spent(gethrtime() - start);
-        dest->add(spent / 1000);
-        log(spent, name, out);
+        if (dest) {
+            hrtime_t spent(gethrtime() - start);
+            dest->add(spent / 1000);
+            log(spent, name, out);
+        }
     }
 
     static void log(hrtime_t spent, const char* name, std::ostream* o) {
