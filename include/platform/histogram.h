@@ -422,11 +422,9 @@ public:
     GenericBlockTimer(HISTOGRAM* d, const char* n = nullptr,
                       std::ostream* o = nullptr)
         : dest(d),
+          start((dest) ? gethrtime() : 0),
           name(n),
           out(o) {
-        if (dest) {
-            start = gethrtime();
-        }
     }
 
     ~GenericBlockTimer() {
