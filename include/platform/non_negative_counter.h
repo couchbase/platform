@@ -17,16 +17,39 @@
 #pragma once
 
 #include <atomic>
+#include <stdexcept>
+#include <string>
 #include <type_traits>
 
 namespace cb {
 
+/// Policy class for handling underflow by clamping the value at zero.
+template <class T>
+struct ClampAtZeroUnderflowPolicy {
+    void underflow(T& newValue) {
+        newValue = 0;
+    }
+};
+
+/// Policy class for handling underflow by throwing an exception.
+template <class T>
+struct ThrowExceptionUnderflowPolicy {
+    void underflow(T& newValue) {
+        using std::to_string;
+        throw std::underflow_error("ThrowExceptionUnderflowPolicy newValue:" +
+                                   to_string(newValue));
+    }
+};
+
+
 /**
  * The NonNegativeCounter class wraps std::atomic<> and prevents it
- * underflowing, instead clamping the value at 0
+ * underflowing. By default will clamp the value at 0 on underflow, but
+ * behaviour can be customized by specifying a differenr UnderflowPolicy class.
  */
-template <typename T>
-class NonNegativeCounter {
+template <typename T,
+          template <class> class UnderflowPolicy = ClampAtZeroUnderflowPolicy>
+class NonNegativeCounter : public UnderflowPolicy<T> {
     static_assert(
             std::is_unsigned<T>::value,
             "NonNegativeCounter should only be templated over unsigned types");
@@ -65,7 +88,7 @@ public:
         T desired;
         do {
             if (expected < arg) {
-                desired = 0;
+                UnderflowPolicy<T>::underflow(desired);
             } else {
                 desired = expected - arg;
             }
@@ -115,6 +138,7 @@ public:
     T operator--() {
         T previous = fetch_sub(1);
         if (previous == 0) {
+            UnderflowPolicy<T>::underflow(previous);
             return 0;
         }
         return previous - 1;
@@ -132,4 +156,5 @@ public:
 private:
     std::atomic<T> value;
 };
-}
+
+} // namespace cb

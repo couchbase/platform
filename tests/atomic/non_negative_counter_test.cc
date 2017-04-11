@@ -35,3 +35,17 @@ TEST(NonNegativeCounterTest, ClampsToZero) {
     EXPECT_EQ(6, nnAtomic.fetch_sub(10)); // returns previous value
     EXPECT_EQ(0, nnAtomic); // has been clamped to zero
 }
+
+// Test the ThrowException policy.
+TEST(NonNegativeCounterTest, ThrowExceptionPolicy) {
+    cb::NonNegativeCounter<size_t, cb::ThrowExceptionUnderflowPolicy> nnAtomic(0);
+
+    EXPECT_THROW(--nnAtomic, std::underflow_error);
+    EXPECT_EQ(0, nnAtomic);
+    EXPECT_THROW(nnAtomic--, std::underflow_error);
+    EXPECT_EQ(0, nnAtomic);
+
+    nnAtomic = 1;
+    EXPECT_THROW(nnAtomic -= 2, std::underflow_error);
+    EXPECT_EQ(1, nnAtomic);
+}
