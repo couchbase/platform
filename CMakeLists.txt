@@ -164,6 +164,7 @@ ADD_LIBRARY(platform_so SHARED ${PLATFORM_FILES}
                             src/sysinfo.cc
                             src/thread.cc
                             src/timeutils.cc
+                            src/uuid.cc
                             include/platform/base64.h
                             include/platform/byte_buffer_dump.h
                             include/platform/crc32c.h

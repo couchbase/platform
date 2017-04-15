@@ -1,0 +1,55 @@
+/* -*- Mode: C++; tab-width: 4; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+/*
+ *     Copyright 2017 Couchbase, Inc.
+ *
+ *   Licensed under the Apache License, Version 2.0 (the "License");
+ *   you may not use this file except in compliance with the License.
+ *   You may obtain a copy of the License at
+ *
+ *       http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *   Unless required by applicable law or agreed to in writing, software
+ *   distributed under the License is distributed on an "AS IS" BASIS,
+ *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   See the License for the specific language governing permissions and
+ *   limitations under the License.
+ */
+#pragma once
+
+#include <array>
+#include <cstdint>
+#include <string>
+
+#include <platform/visibility.h>
+#if defined(platform_so_EXPORTS)
+#define PLATFORM_PUBLIC_API EXPORT_SYMBOL
+#else
+#define PLATFORM_PUBLIC_API IMPORT_SYMBOL
+#endif
+
+namespace cb {
+namespace uuid {
+
+using uuid_t = std::array<uint8_t, 16>;
+
+/**
+ * Get a random uuid (version 4 of the uuids)
+ */
+PLATFORM_PUBLIC_API
+void random(uuid_t& uuid);
+
+/**
+ * Generate a new random uuid and return it
+ */
+PLATFORM_PUBLIC_API
+uuid_t random();
+} // uuid
+} // cb
+
+/**
+ * Print a textual version of the UUID in the form:
+ *
+ *     00000000-0000-0000-0000-000000000000
+ */
+PLATFORM_PUBLIC_API
+std::string to_string(const cb::uuid::uuid_t& uuid);
