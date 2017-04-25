@@ -20,9 +20,8 @@
 #include <platform/backtrace.h>
 #include <strings.h>
 
-#if defined(WIN32)
-#  define HAVE_BACKTRACE_SUPPORT 1
-#  include <Dbghelp.h>
+#if defined(WIN32) && defined(HAVE_BACKTRACE_SUPPORT)
+#include <Dbghelp.h>
 #endif
 
 #if defined(HAVE_BACKTRACE) && defined(HAVE_DLADDR)
