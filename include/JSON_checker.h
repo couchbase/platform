@@ -17,6 +17,22 @@
 #include <string>
 #include <stack>
 
+/**
+ * Variant of std::stack which exposes the clear() method from the
+ * underlying container.
+ *
+ * Adds an additional requirement that Container supports clear();
+ * however most STL containers (e.g. std::vector,std::deque and std::list)
+ * suppport this.
+ */
+template<class T, class Container = std::deque<T>>
+class ClearableStack : public std::stack<T, Container> {
+public:
+    void clear() {
+        this->c.clear();
+    }
+};
+
 namespace JSON_checker {
     /**
      * These modes can be pushed on the stack for the JSON parsing
@@ -30,6 +46,12 @@ namespace JSON_checker {
 
     class Instance {
     public:
+        /**
+         * Type to use for the state stack. We use ClearableStack for
+         * more efficient reset between validations.
+         */
+        using StackType = ClearableStack<Modes>;
+
         Instance();
 
         /**
@@ -52,7 +74,7 @@ namespace JSON_checker {
         bool pop(Modes mode);
 
         int state;
-        std::stack<Modes> stack;
+        StackType stack;
     };
 
     class JSON_CHECKER_PUBLIC_API Validator {

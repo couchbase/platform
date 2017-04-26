@@ -416,8 +416,7 @@ JSON_checker::Instance::Instance() {
 
 void JSON_checker::Instance::reset() {
     state = VA;
-    std::stack<Modes> empty;
-    stack.swap(empty);
+    stack.clear();
     push(Modes::DONE);
 }
 
