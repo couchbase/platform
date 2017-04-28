@@ -27,6 +27,8 @@
 #define PLATFORM_PUBLIC_API IMPORT_SYMBOL
 #endif
 
+#include <platform/sized_buffer.h>
+
 namespace cb {
 namespace uuid {
 
@@ -43,6 +45,14 @@ void random(uuid_t& uuid);
  */
 PLATFORM_PUBLIC_API
 uuid_t random();
+
+/**
+ * Convert a textual version of a UUID to a uuid type
+ * @throw std::invalid_argument if the textual uuid is not
+ *        formatted correctly
+ */
+PLATFORM_PUBLIC_API
+uuid_t from_string(const_char_buffer str);
 } // uuid
 } // cb
 

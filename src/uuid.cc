@@ -43,6 +43,54 @@ cb::uuid::uuid_t cb::uuid::random() {
     return ret;
 }
 
+namespace {
+uint8_t from_hex(char c) {
+    if ('0' <= c && c <= '9') {
+        return c - '0';
+    } else if ('A' <= c && c <= 'F') {
+        return c + 10 - 'A';
+    } else if ('a' <= c && c <= 'f') {
+        return c + 10 - 'a';
+    }
+    throw std::invalid_argument(
+            "from_hex: character was not"
+            "in hexadecimal range");
+}
+
+uint8_t from_hex(char a, char b) {
+    return from_hex(a) << 4 | from_hex(b);
+}
+}
+
+PLATFORM_PUBLIC_API
+cb::uuid::uuid_t cb::uuid::from_string(const_char_buffer str) {
+    uuid_t ret;
+    if (str.size() != 36) {
+        throw std::invalid_argument(
+                "cb::uuid::from_string: string was wrong size got: " +
+                std::to_string(str.size()) + " (expected: 36)");
+    }
+
+    int jj = 0;
+    for (int ii = 0; ii < 36; ii += 2) {
+        switch (ii) {
+        case 8:
+        case 13:
+        case 18:
+        case 23:
+            if (str[ii] != '-') {
+                throw std::invalid_argument(
+                        "cb::uuid::from_string: hyphen not found where "
+                        "expected");
+            }
+            ++ii;
+        default:
+            ret[jj++] = from_hex(str[ii], str[ii + 1]);
+        }
+    }
+    return ret;
+}
+
 PLATFORM_PUBLIC_API
 std::string to_string(const cb::uuid::uuid_t& uuid) {
     std::stringstream ss;
