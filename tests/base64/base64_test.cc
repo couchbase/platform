@@ -17,19 +17,16 @@
 #include <gtest/gtest.h>
 #include <platform/base64.h>
 
-using Couchbase::Base64::encode;
-using Couchbase::Base64::decode;
-
 class Base64Test : public ::testing::Test {
 protected:
     void validate(const std::string& source, const std::string& result) {
         std::string encoded;
         std::string decoded;
 
-        ASSERT_NO_THROW(encoded = encode(source));
+        ASSERT_NO_THROW(encoded = Couchbase::Base64::encode(source));
         EXPECT_EQ(result, encoded);
 
-        ASSERT_NO_THROW(decoded = decode(encoded));
+        ASSERT_NO_THROW(decoded = Couchbase::Base64::decode(encoded));
         EXPECT_EQ(source, decoded);
     }
 };
@@ -87,4 +84,27 @@ TEST_F(Base64Test, TestDecode) {
 
     validate(std::string(reinterpret_cast<char*>(salt.data()), salt.size()),
              "QSXCR+Q6sek8bf92");
+}
+
+TEST_F(Base64Test, TestPrettyPrint) {
+    std::string input(
+            "Man is distinguished, not only by his reason, but by this "
+            "singular passion from other animals, which is a lust of "
+            "the mind, that by a perseverance of delight in the "
+            "continued and indefatigable generation of knowledge, "
+            "exceeds the short vehemence of any carnal pleasure.");
+    std::string output(
+            "TWFuIGlzIGRpc3Rpbmd1aXNoZWQsIG5vdCBvbmx5IGJ5IGhpcyByZWFzb24sIGJ1\n"
+            "dCBieSB0aGlzIHNpbmd1bGFyIHBhc3Npb24gZnJvbSBvdGhlciBhbmltYWxzLCB3\n"
+            "aGljaCBpcyBhIGx1c3Qgb2YgdGhlIG1pbmQsIHRoYXQgYnkgYSBwZXJzZXZlcmFu\n"
+            "Y2Ugb2YgZGVsaWdodCBpbiB0aGUgY29udGludWVkIGFuZCBpbmRlZmF0aWdhYmxl\n"
+            "IGdlbmVyYXRpb24gb2Yga25vd2xlZGdlLCBleGNlZWRzIHRoZSBzaG9ydCB2ZWhl\n"
+            "bWVuY2Ugb2YgYW55IGNhcm5hbCBwbGVhc3VyZS4=\n");
+
+    EXPECT_EQ(output, cb::base64::encode(input, true));
+
+    auto decoded = cb::base64::decode(output);
+    EXPECT_EQ(input,
+              std::string(reinterpret_cast<const char*>(decoded.data()),
+                          decoded.size()));
 }

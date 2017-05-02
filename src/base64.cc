@@ -22,6 +22,7 @@
  */
 
 #include <algorithm>
+#include <cctype>
 #include <cstdint>
 #include <cstring>
 #include <iostream>
@@ -69,7 +70,7 @@ static const uint32_t code2val(const uint8_t code) {
  * @param d pointer to the output stream
  * @param num the number of characters from s to encode
  */
-static void encode_rest(const uint8_t* s, uint8_t* d, size_t num) {
+static void encode_rest(const uint8_t* s, std::string& result, size_t num) {
     uint32_t val = 0;
 
     switch (num) {
@@ -83,16 +84,14 @@ static void encode_rest(const uint8_t* s, uint8_t* d, size_t num) {
         throw std::invalid_argument("base64::encode_rest num may be 1 or 2");
     }
 
-    d[3] = '=';
-
+    result.push_back((char)code[(val >> 18) & 63]);
+    result.push_back((char)code[(val >> 12) & 63]);
     if (num == 2) {
-        d[2] = code[(val >> 6) & 63];
+        result.push_back((char)code[(val >> 6) & 63]);
     } else {
-        d[2] = '=';
+        result.push_back('=');
     }
-
-    d[1] = code[(val >> 12) & 63];
-    d[0] = code[(val >> 18) & 63];
+    result.push_back('=');
 }
 
 /**
@@ -101,40 +100,12 @@ static void encode_rest(const uint8_t* s, uint8_t* d, size_t num) {
  * @param s pointer to the input stream
  * @param d pointer to the output stream
  */
-static void encode_triplet(const uint8_t* s, uint8_t* d) {
+static void encode_triplet(const uint8_t* s, std::string& str) {
     uint32_t val = (uint32_t)((*s << 16) | (*(s + 1) << 8) | (*(s + 2)));
-    d[3] = code[val & 63];
-    d[2] = code[(val >> 6) & 63];
-    d[1] = code[(val >> 12) & 63];
-    d[0] = code[(val >> 18) & 63];
-}
-
-std::string Couchbase::Base64::encode(const std::string& source) {
-    // base64 encoding encodes up to 3 input characters to 4 output
-    // characters in the alphabet above.
-    auto triplets = source.length() / 3;
-    auto rest = source.length() % 3;
-    auto chunks = triplets;
-    if (rest != 0) {
-        ++chunks;
-    }
-
-    std::vector<char> buffer(chunks * 4);
-
-    const uint8_t* in = reinterpret_cast<const uint8_t*>(source.data());
-    uint8_t* out = reinterpret_cast<uint8_t*>(buffer.data());
-
-    for (size_t ii = 0; ii < triplets; ++ii) {
-        encode_triplet(in, out);
-        in += 3;
-        out += 4;
-    }
-
-    if (rest > 0) {
-        encode_rest(in, out, rest);
-    }
-
-    return std::string(buffer.data(), buffer.size());
+    str.push_back((char)code[(val >> 18) & 63]);
+    str.push_back((char)code[(val >> 12) & 63]);
+    str.push_back((char)code[(val >> 6) & 63]);
+    str.push_back((char)code[val & 63]);
 }
 
 /**
@@ -144,7 +115,7 @@ std::string Couchbase::Base64::encode(const std::string& source) {
  * @param d destination
  * @return the number of characters inserted
  */
-static int decode_quad(const uint8_t* s, uint8_t* d) {
+static int decode_quad(const uint8_t* s, std::vector<uint8_t>& d) {
     uint32_t value = code2val(s[0]) << 18;
     value |= code2val(s[1]) << 12;
 
@@ -161,39 +132,97 @@ static int decode_quad(const uint8_t* s, uint8_t* d) {
         }
     }
 
-    d[0] = uint8_t(value >> 16);
-    d[1] = uint8_t(value >> 8);
-    d[2] = uint8_t(value);
+    d.push_back(uint8_t(value >> 16));
+    if (ret > 1) {
+        d.push_back(uint8_t(value >> 8));
+        if (ret > 2) {
+            d.push_back(uint8_t(value));
+        }
+    }
 
     return ret;
 }
 
-std::string Couchbase::Base64::decode(const std::string& source) {
-
-    if (source.length() == 0) {
-        return "";
+namespace cb {
+namespace base64 {
+PLATFORM_PUBLIC_API
+std::string encode(const cb::const_byte_buffer blob, bool prettyprint) {
+    // base64 encoding encodes up to 3 input characters to 4 output
+    // characters in the alphabet above.
+    auto triplets = blob.size() / 3;
+    auto rest = blob.size() % 3;
+    auto chunks = triplets;
+    if (rest != 0) {
+        ++chunks;
     }
 
-    if (source.length() % 4 != 0) {
-        throw std::invalid_argument("Couchbase::Base64::decode invalid "
-                                        "input length");
+    std::string result;
+    if (prettyprint) {
+        // In pretty-print mode we insert a newline after adding
+        // 16 chunks (four characters).
+        result.reserve(chunks * 4 + chunks / 16);
+    } else {
+        result.reserve(chunks * 4);
     }
 
-    std::vector<uint8_t> destination;
-    destination.resize(source.size());
+    const uint8_t* in = blob.data();
 
-    const uint8_t* in = reinterpret_cast<const uint8_t*>(source.data());
-    uint8_t* out = destination.data();
-    size_t outlen = 0;
+    chunks = 0;
+    for (size_t ii = 0; ii < triplets; ++ii) {
+        encode_triplet(in, result);
+        in += 3;
 
-    size_t quads = source.length() / 4;
-    for (std::string::size_type ii = 0; ii < quads; ++ii) {
-        int num = decode_quad(in, out);
-        in += 4;
-        out += num;
-        outlen += num;
+        if (prettyprint && (++chunks % 16) == 0) {
+            result.push_back('\n');
+        }
     }
 
-    return std::string(reinterpret_cast<char*>(destination.data()), outlen);
+    if (rest > 0) {
+        encode_rest(in, result, rest);
+    }
+
+    if (prettyprint && result.back() != '\n') {
+        result.push_back('\n');
+    }
+
+    return result;
 }
 
+PLATFORM_PUBLIC_API
+std::vector<uint8_t> decode(const cb::const_char_buffer blob) {
+    std::vector<uint8_t> destination;
+
+    if (blob.empty()) {
+        return destination;
+    }
+
+    // To reduce the number of reallocations, start by reserving an
+    // output buffer of 75% of the input size (and add 3 to avoid dealing
+    // with zero)
+    size_t estimate = blob.size() * 0.75;
+    destination.reserve(estimate + 3);
+
+    const uint8_t* in = reinterpret_cast<const uint8_t*>(blob.data());
+    size_t offset = 0;
+    while (offset < blob.size()) {
+        if (std::isspace((int)*in)) {
+            ++offset;
+            ++in;
+            continue;
+        }
+
+        // We need at least 4 bytes
+        if ((offset + 4) > blob.size()) {
+            throw std::invalid_argument("cb::base64::decode invalid input");
+        }
+
+        decode_quad(in, destination);
+        in += 4;
+        offset += 4;
+    }
+
+    return destination;
+}
+
+}
+}
