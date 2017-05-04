@@ -93,6 +93,53 @@ static void getopt_test_2(void) {
     release(argv, vec.size());
 }
 
+static void getopt_long_test(void) {
+    static struct option long_options[] =
+    {
+        {"first",  no_argument, 0, 'f'},
+        {"second", no_argument, 0, 's'},
+        {"third",  no_argument, 0, 't'},
+        {0, 0, 0, 0}
+    };
+
+    getoptvec vec;
+
+    vec.push_back("getopt_long_test");
+    vec.push_back("--first");
+    vec.push_back("--wrong");
+    vec.push_back("--second");
+    vec.push_back("--third");
+
+    int argc = (int)vec.size();
+    char **argv = vec2array(vec);
+
+    int option_index = 0;
+    int c = 1;
+
+    bool first, second, third;
+    first = second = third = false;
+
+    while ( (c = getopt_long(argc, argv, "fst",
+                             long_options, &option_index)) != -1 )  {
+        switch (c) {
+        case 'f':
+            first = true;
+            break;
+        case 's':
+            second = true;
+            break;
+        case 't':
+            third = true;
+            break;
+        }
+    }
+    cb_assert(first);
+    cb_assert(second);
+    cb_assert(third);
+
+    release(argv, vec.size());
+}
+
 int main(int argc, char **argv)
 {
     if (argc != 2) {
@@ -109,6 +156,9 @@ int main(int argc, char **argv)
         break;
     case 2:
         getopt_test_2();
+        break;
+    case 3:
+        getopt_long_test();
         break;
     default:
         std::cerr << "Unknown test case" << std::endl;

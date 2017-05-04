@@ -44,7 +44,7 @@ static int parse_longopt(int argc, char **argv,
         ++optarg;
     }
 
-    for (p = longopts; p != NULL; ++p) {
+    for (p = longopts; p != NULL && p->name; ++p) {
         if (strcmp(name, p->name) == 0) {
             // This is it :)
             if (p->has_arg) {
@@ -60,11 +60,15 @@ static int parse_longopt(int argc, char **argv,
 
             } else {
                 optarg = NULL;
+                ++optind;
             }
             return p->val;
         }
     }
 
+    // Not found, we should increase optind too,
+    // to continue getopt_long().
+    optind++;
     return '?';
 }
 
