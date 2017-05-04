@@ -16,6 +16,7 @@
  */
 #pragma once
 
+#include <algorithm>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -121,5 +122,18 @@ std::string getcwd(void);
  */
 DIRUTILS_PUBLIC_API
 uint64_t maximizeFileDescriptors(uint64_t limit);
+
+/**
+ * Windows use '\' as the directory separator character (but internally it
+ * allows '/', but I've seen problems where I try to mix '\' and '/' in the
+ * same path. This method replace all occurrences of '/' with '\' on windows.
+ *
+ * @param path the path to sanitize
+ */
+inline void sanitizePath(std::string& path) {
+#ifdef WIN32
+    std::replace(path.begin(), path.end(), '/', '\\');
+#endif
+}
 }
 }
