@@ -62,9 +62,11 @@ std::vector<std::string> findFilesContaining(const std::string& dir,
 
 /**
  * Delete a file or directory (including subdirectories)
+ * @param path path of the file or directory that is being removed
+ * @throws system_error in case of any errors during deletion
  */
 DIRUTILS_PUBLIC_API
-bool rmrf(const std::string& path);
+void rmrf(const std::string& path);
 
 /**
  * Check if a directory exists or not

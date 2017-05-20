@@ -193,18 +193,25 @@ std::vector<std::string> cb::io::findFilesContaining(const std::string& dir,
 #endif
 
 DIRUTILS_PUBLIC_API
-bool cb::io::rmrf(const std::string& path) {
+void cb::io::rmrf(const std::string& path) {
     struct stat st;
     if (stat(path.c_str(), &st) == -1) {
-        return false;
+        throw std::system_error(errno, std::system_category(),
+                                "cb::io::rmrf: stat of " +
+                                path + " failed");
     }
 
     if ((st.st_mode & S_IFDIR) != S_IFDIR) {
-        return remove(path.c_str()) == 0;
+        if (remove(path.c_str()) != 0) {
+            throw std::system_error(errno, std::system_category(),
+                                    "cb::io::rmrf: remove of " +
+                                    path + " failed");
+        }
+        return;
     }
 
     if (rmdir(path.c_str()) == 0) {
-        return true;
+        return;
     }
 
     // Ok, this is a directory. Go ahead and delete it recursively
@@ -218,7 +225,9 @@ bool cb::io::rmrf(const std::string& path) {
 
         for (ii = vec.begin(); ii != vec.end(); ++ii) {
             if (stat(ii->c_str(), &st) == -1) {
-                return false;
+                throw std::system_error(errno, std::system_category(),
+                                        "cb::io::rmrf: stat of file/directory " +
+                                        *ii + " under " + path + " failed");
             }
 
             if ((st.st_mode & S_IFDIR) == S_IFDIR) {
@@ -226,12 +235,18 @@ bool cb::io::rmrf(const std::string& path) {
                     directories.push_back(*ii);
                 }
             } else if (remove(ii->c_str()) != 0) {
-                return false;
+                  throw std::system_error(errno, std::system_category(),
+                                          "cb::io::rmrf: remove of file/directory " +
+                                          *ii + " under " + path + " failed");
             }
         }
     } while (!directories.empty());
 
-    return rmdir(path.c_str()) == 0;
+    if (rmdir(path.c_str()) != 0) {
+        throw std::system_error(errno, std::system_category(),
+                                "cb::io::rmrf: removal of directory " +
+                                path + " failed");
+    }
 }
 
 DIRUTILS_PUBLIC_API

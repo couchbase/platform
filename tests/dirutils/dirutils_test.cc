@@ -27,6 +27,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <vector>
+#include <system_error>
 
 #ifdef WIN32
 #include <windows.h>
@@ -188,7 +189,7 @@ TEST_F(IoTest, mktemp) {
     EXPECT_FALSE(filename.empty())
                 << "FAIL: Expected to create tempfile without mask";
     EXPECT_TRUE(cb::io::isFile(filename));
-    EXPECT_TRUE(cb::io::rmrf(filename));
+    EXPECT_NO_THROW(cb::io::rmrf(filename));
     EXPECT_FALSE(cb::io::isFile(filename));
     EXPECT_FALSE(cb::io::isDirectory(filename));
 
@@ -196,7 +197,7 @@ TEST_F(IoTest, mktemp) {
     EXPECT_FALSE(filename.empty())
                 << "FAIL: Expected to create tempfile mask";
     EXPECT_TRUE(cb::io::isFile(filename));
-    EXPECT_TRUE(cb::io::rmrf(filename));
+    EXPECT_NO_THROW(cb::io::rmrf(filename));
     EXPECT_FALSE(cb::io::isFile(filename));
     EXPECT_FALSE(cb::io::isDirectory(filename));
 }
@@ -207,7 +208,12 @@ TEST_F(IoTest, isFileAndIsDirectory) {
     auto filename = cb::io::mktemp("plainfile");
     EXPECT_TRUE(cb::io::isFile(filename));
     EXPECT_FALSE(cb::io::isDirectory(filename));
-    EXPECT_TRUE(cb::io::rmrf(filename));
+    EXPECT_NO_THROW(cb::io::rmrf(filename));
+}
+
+TEST_F(IoTest, removeNonExistentFile) {
+    EXPECT_THROW(cb::io::rmrf("foo"), std::system_error)
+                << "Expected system error for removing non-existent file";
 }
 
 TEST_F(IoTest, getcwd) {
