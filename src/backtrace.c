@@ -66,33 +66,50 @@ static void describe_address(char* msg, size_t len, void* addr) {
     Dl_info info;
     int status = dladdr(addr, &info);
 
-    if (status != 0 &&
-        info.dli_fname != NULL &&
-        info.dli_fname[0] != '\0') {
-
-        if (info.dli_saddr == 0) {
-            // No offset calculation possible.
-            snprintf(msg, len, "%s(%s) [%p]",
-                    info.dli_fname,
-                    info.dli_sname ? info.dli_sname : "",
-                    addr);
-        } else {
-            char sign;
-            ptrdiff_t offset;
-            if (addr >= info.dli_saddr) {
-                sign = '+';
-                offset = (char*)addr - (char*)info.dli_saddr;
+    if (status != 0) {
+        ptrdiff_t image_offset = (char*)addr - (char*)info.dli_fbase;
+        if (info.dli_fname != NULL && info.dli_fname[0] != '\0') {
+            // Found a nearest symbol - print it.
+            if (info.dli_saddr == 0) {
+                // No function offset calculation possible.
+                snprintf(msg,
+                         len,
+                         "%s(%s) [%p+0x%" PRIx64 "]",
+                         info.dli_fname,
+                         info.dli_sname ? info.dli_sname : "",
+                         info.dli_fbase,
+                         (uint64_t)image_offset);
             } else {
-                sign = '-';
-                offset = (char*)info.dli_saddr - (char*)addr;
+                char sign;
+                ptrdiff_t offset;
+                if (addr >= info.dli_saddr) {
+                    sign = '+';
+                    offset = (char*)addr - (char*)info.dli_saddr;
+                } else {
+                    sign = '-';
+                    offset = (char*)info.dli_saddr - (char*)addr;
+                }
+                snprintf(msg,
+                         len,
+                         "%s(%s%c%#tx) [%p+0x%" PRIx64 "]",
+                         info.dli_fname,
+                         info.dli_sname ? info.dli_sname : "",
+                         sign,
+                         offset,
+                         info.dli_fbase,
+                         (uint64_t)image_offset);
             }
-            snprintf(msg, len, "%s(%s%c%#tx) [%p]",
-                    info.dli_fname,
-                    info.dli_sname ? info.dli_sname : "",
-                    sign, offset, addr);
+        } else {
+            // No function found; just print library name and offset.
+            snprintf(msg,
+                     len,
+                     "%s [%p+0x%" PRIx64 "]",
+                     info.dli_fname,
+                     info.dli_fbase,
+                     (uint64_t)image_offset);
         }
     } else {
-        // No symbol found.
+        // dladdr failed.
         snprintf(msg, len, "[%p]", addr);
     }
 #endif // WIN32
@@ -111,7 +128,7 @@ void print_backtrace(write_cb_t write_cb, void* context) {
     // Note we start from 1 to skip our own frame.
     for (int ii = 1; ii < active_frames; ii++) {
         // Fixed-sized buffer; possible that description will be cropped.
-        char msg[200];
+        char msg[300];
         describe_address(msg, sizeof(msg), frames[ii]);
         write_cb(context, msg);
     }
