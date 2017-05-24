@@ -261,6 +261,7 @@ INSTALL(TARGETS breakpad_wrapper cJSON JSON_checker platform_so dirutils
 
 ADD_SUBDIRECTORY(extmeta)
 ADD_SUBDIRECTORY(cbcompress)
+ADD_SUBDIRECTORY(cbsocket)
 
 #
 # Test targets
