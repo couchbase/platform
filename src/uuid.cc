@@ -16,9 +16,10 @@
  */
 #include <platform/uuid.h>
 
-#include <sstream>
+#include <platform/string.h>
 #include <iomanip>
 #include <random>
+#include <sstream>
 
 PLATFORM_PUBLIC_API
 void cb::uuid::random(cb::uuid::uuid_t& uuid) {
@@ -41,25 +42,6 @@ cb::uuid::uuid_t cb::uuid::random() {
     uuid_t ret;
     random(ret);
     return ret;
-}
-
-namespace {
-uint8_t from_hex(char c) {
-    if ('0' <= c && c <= '9') {
-        return c - '0';
-    } else if ('A' <= c && c <= 'F') {
-        return c + 10 - 'A';
-    } else if ('a' <= c && c <= 'f') {
-        return c + 10 - 'a';
-    }
-    throw std::invalid_argument(
-            "from_hex: character was not"
-            "in hexadecimal range");
-}
-
-uint8_t from_hex(char a, char b) {
-    return from_hex(a) << 4 | from_hex(b);
-}
 }
 
 PLATFORM_PUBLIC_API
@@ -85,7 +67,7 @@ cb::uuid::uuid_t cb::uuid::from_string(const_char_buffer str) {
             }
             ++ii;
         default:
-            ret[jj++] = from_hex(str[ii], str[ii + 1]);
+            ret[jj++] = uint8_t(cb::from_hex({str.data() + ii, 2}));
         }
     }
     return ret;

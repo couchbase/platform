@@ -169,6 +169,7 @@ ADD_LIBRARY(platform_so SHARED ${PLATFORM_FILES}
                             src/global_new_replacement.cc
                             src/processclock.cc
                             src/strerror.cc
+                            src/string.cc
                             src/strnstr.cc
                             src/sysinfo.cc
                             src/thread.cc
@@ -184,6 +185,7 @@ ADD_LIBRARY(platform_so SHARED ${PLATFORM_FILES}
                             include/platform/ring_buffer.h
                             include/platform/sized_buffer.h
                             include/platform/strerror.h
+                            include/platform/string.h
                             include/platform/sysinfo.h
                             include/platform/thread.h
                             include/platform/timeutils.h
