@@ -20,74 +20,64 @@
 #include <platform/dirutils.h>
 #include <platform/platform.h>
 
+#include <event2/util.h>
+
 #include <atomic>
+#include <cerrno>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <string.h>
 #include <system_error>
+#include <unordered_map>
 
 #ifndef WIN32
 #include <unistd.h>
-#include <cerrno>
 #include <netdb.h>
-
 #endif
 
-
-struct FileDeleter {
-    void operator()(FILE* fp) { fclose(fp); }
-};
-
-using unique_file_ptr = std::unique_ptr<FILE, FileDeleter>;
-
+/**
+ * We cache each directory name in an unordered map where we remove
+ * the entry every time the socket is successfully closed. By
+ * doing this we can create a new file every time the same socket
+ * is reopened.
+ */
+std::mutex mutex;
+std::unordered_map<SOCKET, std::string> name_map;
 
 std::string get_directory(SOCKET socket) {
-    std::string name{"/tmp/"};
-    name.append(std::to_string(cb_getpid()));
-    name.append("-");
-    name.append(std::to_string(socket));
-    return name;
-}
+    std::lock_guard<std::mutex> guard(mutex);
 
-static std::atomic_bool logging;
+    auto iter = name_map.find(socket);
+    if (iter == name_map.end()) {
+        std::string prefix{"/tmp/"};
+        prefix.append(std::to_string(cb_getpid()));
+        prefix.append("-");
+        prefix.append(std::to_string(socket));
+        prefix.append("-");
 
-static inline bool should_log(SOCKET sock) {
-    (void)sock;
-    return logging.load(std::memory_order_relaxed);
+        std::string name;
+        uint32_t seqno = 0;
+        do {
+            name = prefix+ std::to_string(seqno++);
+        } while (cb::io::isDirectory(name));
 
-#if 0
-    // If you want to do some more filtering (for instance only log traffic
-    // to certain ports you may just modify this piece of code...
-    //
-    // This example will only enable looging where the peer port must be 11210
-    struct sockaddr_storage peer{};
-    socklen_t peer_len = sizeof(peer);
-    int err;
-    if ((err = getpeername(sock,
-                           reinterpret_cast<struct sockaddr*>(&peer),
-                           &peer_len)) != 0) {
-        return false;
+        name_map[socket] = name;
+        return name;
     }
 
-    char host[50];
-    char port[50];
-
-    err = getnameinfo(reinterpret_cast<struct sockaddr*>(&peer),
-                          peer_len,
-                          host, sizeof(host),
-                          port, sizeof(port),
-                          NI_NUMERICHOST | NI_NUMERICSERV);
-    if (err != 0) {
-        return false;
-    }
-
-    return (atoi(port) == 11210);
-#endif
+    return iter->second;
 }
+
 
 static void log_it(SOCKET sock, const void* data, size_t nb, const char* dir) {
+    struct FileDeleter {
+        void operator()(FILE* fp) { fclose(fp); }
+    };
+
     std::string fname = get_directory(sock) + dir;
-    unique_file_ptr fp(fopen(fname.c_str(), "ab"));
+    std::unique_ptr<FILE, FileDeleter> fp(fopen(fname.c_str(), "ab"));
+
     if (!fp) {
         if (errno == ENOENT) {
             // The parent directory may not exists (if the socket was
@@ -109,9 +99,52 @@ static void log_it(SOCKET sock, const void* data, size_t nb, const char* dir) {
     }
 }
 
+static bool defaultFilterHandler(SOCKET sock) {
+    (void)sock;
+    return true;
+}
+
+static void defaultCloseHandler(SOCKET sock, const std::string& dir) {
+    try {
+        cb::io::rmrf(dir);
+    } catch (...) {
+        // Empty
+    }
+}
+
+static std::atomic<bool(*)(SOCKET)> filter_handler {defaultFilterHandler};
+static std::atomic<void(*)(SOCKET, const std::string&)> close_handler {defaultCloseHandler};
+static std::atomic_bool logging;
+
+static inline bool should_log(SOCKET sock) {
+    if (!logging.load(std::memory_order_relaxed)) {
+        return false;
+    }
+
+    // Logging is enabled.. check the filter for this socket
+    return filter_handler.load()(sock);
+}
 
 namespace cb {
 namespace net {
+
+CBSOCKET_PUBLIC_API
+void set_log_filter_handler(bool (* handler)(SOCKET)) {
+    if (handler == nullptr) {
+        filter_handler.store(defaultFilterHandler);
+    } else {
+        filter_handler.store(handler);
+    }
+}
+
+CBSOCKET_PUBLIC_API
+void set_on_close_handler(void (* handler)(SOCKET, const std::string& dir)) {
+    if (handler == nullptr) {
+        close_handler.store(defaultCloseHandler);
+    } else {
+        close_handler.store(handler);
+    }
+}
 
 CBSOCKET_PUBLIC_API
 void set_socket_logging(bool enable) {
@@ -120,21 +153,34 @@ void set_socket_logging(bool enable) {
 
 CBSOCKET_PUBLIC_API
 int closesocket(SOCKET s) {
-    int ret;
+    if (logging) {
+        std::lock_guard<std::mutex> guard(mutex);
+        int ret;
 #ifdef WIN32
-    ret = ::closesocket(s);
+        ret = ::closesocket(s);
 #else
-    ret = ::close(s);
+        ret = ::close(s);
 #endif
 
-    if (ret == 0 && logging) {
-        try {
-            cb::io::rmrf(get_directory(s));
-        } catch (...) {
+        if (ret == 0 && logging) {
+            std::string name;
+            auto iter = name_map.find(s);
+            if (iter != name_map.end()) {
+                name = iter->second;
+                name_map.erase(iter);
+                close_handler.load()(s, name);
+            }
         }
+
+        return ret;
     }
 
-    return ret;
+#ifdef WIN32
+    return ::closesocket(s);
+#else
+    return ::close(s);
+#endif
+
 }
 
 CBSOCKET_PUBLIC_API
@@ -154,7 +200,7 @@ int bind(SOCKET sock, const struct sockaddr* name, socklen_t namelen) {
 CBSOCKET_PUBLIC_API
 SOCKET accept(SOCKET sock, struct sockaddr* addr, socklen_t* addrlen) {
     auto ret = ::accept(sock, addr, addrlen);
-    if (ret != INVALID_SOCKET && logging) {
+    if (ret != INVALID_SOCKET && should_log(ret)) {
         cb::io::mkdirp(get_directory(ret));
     }
 
@@ -169,7 +215,7 @@ int connect(SOCKET sock, const struct sockaddr* name, int namelen) {
 CBSOCKET_PUBLIC_API
 SOCKET socket(int domain, int type, int protocol) {
     auto ret = ::socket(domain, type, protocol);
-    if (ret != INVALID_SOCKET && logging) {
+    if (ret != INVALID_SOCKET && should_log(ret)) {
         cb::io::mkdirp(get_directory(ret));
     }
     return ret;
@@ -224,7 +270,7 @@ ssize_t sendto(SOCKET sock,
                int flags,
                const struct sockaddr* dest_addr,
                socklen_t dest_len) {
-    if (logging) {
+    if (should_log(sock)) {
         throw std::runtime_error("cb::net::sendto: not implemented");
     }
 
@@ -262,7 +308,7 @@ ssize_t recvfrom(SOCKET sock,
                  int flags,
                  struct sockaddr* address,
                  socklen_t* address_len) {
-    if (logging) {
+    if (should_log(sock)) {
         throw std::runtime_error("cb::net::recvfrom: not implemented");
     }
 
@@ -302,6 +348,24 @@ ssize_t recvmsg(SOCKET sock, struct msghdr* message, int flags) {
 #else
     return ::recvmsg(sock, message, flags);
 #endif
+}
+
+CBSOCKET_PUBLIC_API
+int socketpair(int domain, int type, int protocol, SOCKET socket_vector[2]) {
+    auto ret = evutil_socketpair(domain,
+                                 type,
+                                 protocol,
+                                 reinterpret_cast<evutil_socket_t*>(socket_vector));
+    if (ret == 0 && logging) {
+        cb::io::mkdirp(get_directory(socket_vector[0]));
+        cb::io::mkdirp(get_directory(socket_vector[1]));
+    }
+    return ret;
+}
+
+CBSOCKET_PUBLIC_API
+int set_socket_noblocking(SOCKET sock) {
+    return evutil_make_socket_nonblocking(sock);
 }
 
 } // namespace net
@@ -387,4 +451,14 @@ ssize_t cb_recvmsg(SOCKET sock, struct msghdr* message, int flags) {
 CBSOCKET_PUBLIC_API
 void cb_set_socket_logging(bool enable) {
     cb::net::set_socket_logging(enable);
+}
+
+CBSOCKET_PUBLIC_API
+int cb_socketpair(int domain, int type, int protocol, SOCKET socket_vector[2]) {
+    return cb::net::socketpair(domain, type, protocol, socket_vector);
+}
+
+CBSOCKET_PUBLIC_API
+int cb_set_socket_noblocking(SOCKET sock) {
+    return cb::net::set_socket_noblocking(sock);
 }

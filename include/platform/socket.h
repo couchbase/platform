@@ -49,6 +49,7 @@
 #include <ws2tcpip.h>
 typedef int in_port_t;
 typedef int sa_family_t;
+#define SOCKETPAIR_AF AF_INET
 #else
 #include <sys/socket.h>
 typedef int SOCKET;
@@ -64,6 +65,8 @@ typedef int SOCKET;
 #include <stdint.h>
 
 #ifdef __cplusplus
+#include <string>
+
 extern "C" {
 #endif
 
@@ -117,6 +120,12 @@ CBSOCKET_PUBLIC_API
 ssize_t cb_recvmsg(SOCKET sock, struct msghdr* message, int flags);
 
 CBSOCKET_PUBLIC_API
+int cb_socketpair(int domain, int type, int protocol, SOCKET socket_vector[2]);
+
+CBSOCKET_PUBLIC_API
+int cb_set_socket_noblocking(SOCKET sock);
+
+CBSOCKET_PUBLIC_API
 void cb_set_socket_logging(bool enable);
 
 #ifdef __cplusplus
@@ -124,6 +133,57 @@ void cb_set_socket_logging(bool enable);
 
 namespace cb {
 namespace net {
+
+/**
+ * Specify a callback method to use to allow the caller to filter out
+ * _some_ connections instead of logging all of them.
+ *
+ * You might for instance just care about traffic to a given port, which
+ * may be implemented with something like:
+ *
+ *     static bool filterPeerPort(SOCKET sock) {
+ *         struct sockaddr_storage peer{};
+ *         socklen_t peer_len = sizeof(peer);
+ *         int err;
+ *         if ((err = getpeername(sock,
+ *                                reinterpret_cast<struct sockaddr*>(&peer),
+ *                                &peer_len)) != 0) {
+ *             return false;
+ *         }
+ *
+ *         char host[50];
+ *         char port[50];
+ *
+ *         err = getnameinfo(reinterpret_cast<struct sockaddr*>(&peer),
+ *                           peer_len,
+ *                           host, sizeof(host),
+ *                           port, sizeof(port),
+ *                           NI_NUMERICHOST | NI_NUMERICSERV);
+ *         if (err != 0) {
+ *             return false;
+ *         }
+ *
+ *         return (atoi(port) == 11210);
+ *     }
+ *
+ * The callback function should return true in order to enable logging for
+ * the given socket, or false to ignore the socket. Note that the global
+ * logging flag must be set in order to enable logging (and this filter).
+ *
+ * @param callback The method to use, or nullptr to reset to the default.
+ */
+CBSOCKET_PUBLIC_API
+void set_log_filter_handler(bool (* callback)(SOCKET));
+
+/**
+ * Specify a callback method to be called when a given socket is closed.
+ * The default on_close_handler removes the log file.
+ *
+ * @param callback The new handler to install, or nullptr to reset to the
+ *                 default handler.
+ */
+CBSOCKET_PUBLIC_API
+void set_on_close_handler(void (* callback)(SOCKET, const std::string& dir));
 
 /**
  * Enable / disable socket logging.
@@ -186,6 +246,13 @@ ssize_t recvfrom(SOCKET sock,
 
 CBSOCKET_PUBLIC_API
 ssize_t recvmsg(SOCKET sock, struct msghdr* message, int flags);
+
+CBSOCKET_PUBLIC_API
+int socketpair(int domain, int type, int protocol, SOCKET socket_vector[2]);
+
+CBSOCKET_PUBLIC_API
+int set_socket_noblocking(SOCKET sock);
+
 } // namespace net
 } // namespace cb
 
