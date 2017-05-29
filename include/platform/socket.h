@@ -29,19 +29,38 @@
  *
  * Each method works as documented in the in the OS.
  *
- * @todo open up for a callback to be called to allow the app to
- * determine if a particular socket should be logged or not (only if
- * the global logger flag is set)
- *
- * @todo As each application may open and close a lot of sockets during
- * its lifetime, the current version _deletes_ the files when the application
- * close the socket. The use case when I developed this was that the program
- * would crash and generate a coredump (but it could open/send-receive/close
- * a lot of data which could generate tens of GB of data first).
- *
  * One could use tcpdump to collect the same info, but I failed to get
  * tcpdump create a pcap file I know how to parse when using the loopback
  * interface. Whipping up this seemed a lot easier ;-)
+ *
+ * When using the logging feature of cbsocket a file is created in
+ * /tmp by using the following naming convention:
+ *
+ *     pid-socketid-seqno
+ *
+ * Seqno is needed as the socket identifiers may be reused by the operating
+ * system. Each file consists data received and sent over the socket, by
+ * using a header followed by the actual data. The header looks like:
+ *
+ *
+ *     Byte/     0       |       1       |       2       |       3       |
+ *        /              |               |               |               |
+ *       |0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|
+ *       +---------------+---------------+---------------+---------------+
+ *      0|                                                               |
+ *       +                64 bit steady-clock offset in 𝝁s               +
+ *      4|                                                               |
+ *       +---------------+---------------+---------------+---------------+
+ *      8|               32 bit number of bytes in payload               |
+ *       +---------------+---------------+---------------+---------------+
+ *     12| direction r/w |
+ *       +---------------+
+ *       Total 13 bytes
+ *
+ * The direction byte contains either 'r' or 'w' where an 'r' indicates
+ * that the data was read off the socket, and 'w' means it was sent over
+ * the socket.
+ *
  */
 
 #ifdef WIN32
@@ -50,6 +69,10 @@
 typedef int in_port_t;
 typedef int sa_family_t;
 #define SOCKETPAIR_AF AF_INET
+#define SHUT_RD SD_RECEIVE
+#define SHUT_WR SD_SEND
+#define SHUT_RDWR SD_BOTH
+
 #else
 #include <sys/socket.h>
 typedef int SOCKET;
@@ -65,6 +88,10 @@ typedef int SOCKET;
 #include <stdint.h>
 
 #ifdef __cplusplus
+#include <platform/sized_buffer.h>
+
+#include <cerrno>
+#include <functional>
 #include <string>
 
 extern "C" {
@@ -128,6 +155,23 @@ int cb_set_socket_noblocking(SOCKET sock);
 CBSOCKET_PUBLIC_API
 void cb_set_socket_logging(bool enable);
 
+CBSOCKET_PUBLIC_API
+int cb_getsockopt(SOCKET sock,
+                  int level,
+                  int option_name,
+                  void* option_value,
+                  socklen_t* option_len);
+
+CBSOCKET_PUBLIC_API
+int cb_setsockopt(SOCKET sock,
+                  int level,
+                  int option_name,
+                  const void* option_value,
+                  socklen_t option_len);
+
+CBSOCKET_PUBLIC_API
+int cb_listen(SOCKET sock, int backlog);
+
 #ifdef __cplusplus
 }
 
@@ -183,20 +227,47 @@ void set_log_filter_handler(bool (* callback)(SOCKET));
  *                 default handler.
  */
 CBSOCKET_PUBLIC_API
-void set_on_close_handler(void (* callback)(SOCKET, const std::string& dir));
+void set_on_close_handler(void (*callback)(SOCKET, const std::string& file));
 
 /**
  * Enable / disable socket logging.
  *
- * When enabled each socket creates a directory in /tmp by using the
- * following name `/tmp/<pid>-<socketfd>`. In that directory there will
- * be one file named `r` containing all data read by the application, and
- * one file named `w` containing all data written by the application.
+ * When enabled each socket creates a file in /tmp by using the
+ * following name `/tmp/<pid>-<socketfd>-seqno`.
  *
  * @param enable set to true to start logging
  */
 CBSOCKET_PUBLIC_API
 void set_socket_logging(bool enable);
+
+enum class Direction : uint8_t { Send, Receive };
+
+/**
+ * The iterator function to be called for each packet in the dump file
+ *
+ * @param timestamp the offset in 𝝁s
+ * @param direction if the data was sent or received
+ * @param data the actual payload in the packet
+ * @return true to continue parsing, false otherwise
+ */
+using IteratorFunc = std::function<bool(
+        uint64_t timestamp, Direction direction, cb::const_byte_buffer data)>;
+
+/**
+ * Iterate over a socket log file
+ *
+ * @param file the file to iterate over
+ * @param callback The callback function to call for each packet in
+ *                 the logfile
+ * @throws std::system_error if there is a problem accessing the file
+ * @throws std::bad_alloc for memory allocation issues
+ * @throws std::invalid_argument if the file contains an illegal format
+ */
+CBSOCKET_PUBLIC_API
+void iterate_logfile(const std::string& file, IteratorFunc callback);
+
+CBSOCKET_PUBLIC_API
+void iterate_logfile(cb::const_byte_buffer buffer, IteratorFunc callback);
 
 CBSOCKET_PUBLIC_API
 int closesocket(SOCKET s);
@@ -248,10 +319,74 @@ CBSOCKET_PUBLIC_API
 ssize_t recvmsg(SOCKET sock, struct msghdr* message, int flags);
 
 CBSOCKET_PUBLIC_API
+int getsockopt(SOCKET sock,
+               int level,
+               int option_name,
+               void* option_value,
+               socklen_t* option_len);
+
+CBSOCKET_PUBLIC_API
+int setsockopt(SOCKET sock,
+               int level,
+               int option_name,
+               const void* option_value,
+               socklen_t option_len);
+
+CBSOCKET_PUBLIC_API
 int socketpair(int domain, int type, int protocol, SOCKET socket_vector[2]);
 
 CBSOCKET_PUBLIC_API
 int set_socket_noblocking(SOCKET sock);
+
+CBSOCKET_PUBLIC_API
+int listen(SOCKET sock, int backlog);
+
+
+#ifdef WIN32
+inline int is_blocking(DWORD dw = get_socket_error()) {
+    return (dw == WSAEWOULDBLOCK);
+}
+inline int is_interrupted(DWORD dw = get_socket_error()) {
+    return (dw == WSAEINTR);
+}
+inline int is_emfile(DWORD dw = get_socket_error()) {
+    return (dw == WSAEMFILE);
+}
+inline int is_closed_conn(DWORD dw = get_socket_error()) {
+    return (dw == WSAENOTCONN || dw == WSAECONNRESET);
+}
+inline int is_addrinuse(DWORD dw = get_socket_error()) {
+    return (dw == WSAEADDRINUSE);
+}
+inline void set_ewouldblock(void) {
+    WSASetLastError(WSAEWOULDBLOCK);
+}
+inline void set_econnreset(void) {
+    WSASetLastError(WSAECONNRESET);
+}
+#else
+inline int is_blocking(int dw = get_socket_error()) {
+    return (dw == EAGAIN || dw == EWOULDBLOCK);
+}
+inline int is_interrupted(int dw = get_socket_error()) {
+    return (dw == EINTR || dw == EAGAIN);
+}
+inline int is_emfile(int dw = get_socket_error()) {
+    return (dw == EMFILE);
+}
+inline int is_closed_conn(int dw = get_socket_error()) {
+    return  (dw == ENOTCONN || dw != ECONNRESET);
+}
+inline int is_addrinuse(int dw = get_socket_error()) {
+    return (dw == EADDRINUSE);
+}
+inline void set_ewouldblock(void) {
+    errno = EWOULDBLOCK;
+}
+inline void set_econnreset(void) {
+    errno = ECONNRESET;
+}
+#endif
 
 } // namespace net
 } // namespace cb
