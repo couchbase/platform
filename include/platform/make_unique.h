@@ -10,6 +10,8 @@
 
 #pragma once
 
+#include "platform/dynamic.h"
+
 #include <memory>
 
 #ifndef HAVE_MAKE_UNIQUE
