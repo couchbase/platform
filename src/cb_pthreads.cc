@@ -24,6 +24,7 @@
 #include <memory>
 #include <new>
 #include <platform/cb_malloc.h>
+#include <platform/strerror.h>
 #include <stdexcept>
 #include <string>
 #include <sys/time.h>
@@ -398,10 +399,9 @@ int cb_rw_reader_enter(cb_rwlock_t *rw)
 {
     int result = pthread_rwlock_rdlock(rw);
     if (result != 0) {
-        char buffer[64];
-        strerror_r(result, buffer, sizeof(buffer));
+        auto err = cb_strerror(result);
         fprintf(stderr, "pthread_rwlock_rdlock returned %d (%s)\n",
-                        result, buffer);
+                        result, err.c_str());
     }
     return result;
 }
@@ -410,10 +410,9 @@ int cb_rw_reader_exit(cb_rwlock_t *rw)
 {
     int result = pthread_rwlock_unlock(rw);
     if (result != 0) {
-        char buffer[64];
-        strerror_r(result, buffer, sizeof(buffer));
+        auto err = cb_strerror(result);
         fprintf(stderr, "pthread_rwlock_unlock returned %d (%s)\n",
-                        result, buffer);
+                        result, err.c_str());
     }
     return result;
 }
@@ -422,10 +421,9 @@ int cb_rw_writer_enter(cb_rwlock_t *rw)
 {
     int result = pthread_rwlock_wrlock(rw);
     if (result != 0) {
-        char buffer[64];
-        strerror_r(result, buffer, sizeof(buffer));
+        auto err = cb_strerror(result);
         fprintf(stderr, "pthread_rwlock_wrlock returned %d (%s)\n",
-                        result, buffer);
+                        result, err.c_str());
     }
     return result;
 }
@@ -434,10 +432,9 @@ int cb_rw_writer_exit(cb_rwlock_t *rw)
 {
     int result = pthread_rwlock_unlock(rw);
     if (result != 0) {
-        char buffer[64];
-        strerror_r(result, buffer, sizeof(buffer));
+        auto err = cb_strerror(result);
         fprintf(stderr, "pthread_rwlock_unlock returned %d (%s)\n",
-                        result, buffer);
+                        result, err.c_str());
     }
     return result;
 }

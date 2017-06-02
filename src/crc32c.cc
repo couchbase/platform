@@ -354,6 +354,7 @@ bool setup_tables() {
     crc32c_zeros(crc32c_long, LONG_BLOCK);
     crc32c_zeros(crc32c_short, SHORT_BLOCK);
 
+    (void) tables_setup;
     return true;
 }
 
