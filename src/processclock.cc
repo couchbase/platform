@@ -28,8 +28,8 @@
  * approach provided in Microsoft Visual Studio 2015.
  */
 
-ProcessClock::duration ProcessClock::calculateDuration(
-                               const LONGLONG freq, const LARGE_INTEGER count) {
+cb::SteadyClock::duration cb::SteadyClock::calculateDuration(
+        const LONGLONG freq, const LARGE_INTEGER count) {
     /**
      * The implementation provided in the stackoverflow.com link returns the
      * result of the following calculation:
@@ -48,7 +48,7 @@ ProcessClock::duration ProcessClock::calculateDuration(
     return duration(whole + remainder);
 }
 
-ProcessClock::time_point SteadyClock::now(void) {
+cb::SteadyClock::time_point cb::SteadyClock::now(void) {
     const LONGLONG g_Frequency = []() {
         LARGE_INTEGER frequency;
         QueryPerformanceFrequency(&frequency);
@@ -64,7 +64,18 @@ ProcessClock::time_point SteadyClock::now(void) {
 
 #endif
 
-std::chrono::nanoseconds to_ns_since_epoch(const ProcessClock::time_point& tp) {
+cb::ProcessClock::time_point cb::DefaultProcessClockSource::now() {
+    return cb::ProcessClock::now();
+}
+
+static cb::DefaultProcessClockSource clockSource;
+
+cb::DefaultProcessClockSource& cb::defaultProcessClockSource() {
+    return clockSource;
+}
+
+std::chrono::nanoseconds cb::to_ns_since_epoch(
+        const ProcessClock::time_point& tp) {
     return std::chrono::duration_cast<std::chrono::nanoseconds>(
                                                          tp.time_since_epoch());
 }

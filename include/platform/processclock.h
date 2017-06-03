@@ -20,6 +20,8 @@
 
 #include <chrono>
 
+namespace cb {
+
 /**
  * ProcessClock provides an interface to std::chrono::steady_clock.
  * The steady_clock is not related to wall clock time and cannot be decreased.
@@ -68,3 +70,34 @@ using ProcessClock = std::chrono::steady_clock;
 // given a ProcessClock::time_point
 PLATFORM_PUBLIC_API
 std::chrono::nanoseconds to_ns_since_epoch(const ProcessClock::time_point& tp);
+
+/**
+ * Interface for a source of 'now' for the ProcessClock to allow
+ * for dependency injection of time.
+ */
+struct PLATFORM_PUBLIC_API ProcessClockSource {
+    virtual ProcessClock::time_point now() = 0;
+};
+
+/**
+ * Default 'now' source for ProcessClock, simply proxies ProcessClock::now()
+ */
+struct PLATFORM_PUBLIC_API DefaultProcessClockSource : ProcessClockSource {
+    ProcessClock::time_point now() override;
+};
+
+/**
+ * Singleton instance of DefaultProcessClockSource
+ */
+PLATFORM_PUBLIC_API
+DefaultProcessClockSource& defaultProcessClockSource();
+}
+
+// Import ProcessClock and to_ns_since_epoch into global namespace
+using ProcessClock = cb::ProcessClock;
+
+PLATFORM_PUBLIC_API
+inline std::chrono::nanoseconds to_ns_since_epoch(
+        const ProcessClock::time_point& tp) {
+    return cb::to_ns_since_epoch(tp);
+}

@@ -76,3 +76,12 @@ TEST(ProcessClockTest, DurationTest_Overflow) {
 }
 
 #endif
+
+TEST(DefaultProcessClockSourceTest, SensibleBounds) {
+    auto a = cb::ProcessClock::now();
+    auto b = cb::defaultProcessClockSource().now();
+    auto c = cb::ProcessClock::now();
+
+    EXPECT_LE(a, b);
+    EXPECT_LE(b, c);
+}
