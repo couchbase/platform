@@ -251,15 +251,9 @@ public:
     //Deleted to avoid copying large objects
     Histogram(const Histogram& other) = delete;
 
-    //Can't default this due to MSVC 2013
-    Histogram(Histogram&& other)
-        : bins(std::move(other.bins)) {
-    }
+    Histogram(Histogram&& other) = default;
 
-    Histogram& operator=(Histogram&& other){
-        bins = other.bins;
-        return *this;
-    }
+    Histogram& operator=(Histogram&& other) = default;
 
     Histogram& operator=(const Histogram& other) = delete;
 
