@@ -390,6 +390,11 @@ inline bool operator==(const_char_buffer lhs, const char* rhs) {
 
 } // namespace cb
 
+constexpr inline cb::const_char_buffer operator"" _ccb(const char* str,
+                                                       size_t len) noexcept {
+    return cb::const_char_buffer(str, len);
+}
+
 namespace std {
 template <typename CharT>
 struct hash<cb::sized_buffer<CharT>> {

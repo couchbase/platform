@@ -26,8 +26,8 @@ cb::const_char_buffer make_ccb(const char (&c)[N]) {
 }
 
 TEST(SizedBufferTest, Comparison) {
-    auto A = make_ccb("abc");
-    auto B = make_ccb("def");
+    auto A = "abc"_ccb;
+    auto B = "def"_ccb;
 
     // Technically all these could be done through the appropriate
     // EXPECT_* macros but I feel it's more explicit to invoke the
