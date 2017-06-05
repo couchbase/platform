@@ -36,6 +36,7 @@
  *   limitations under the License.
  */
 
+#include <cinttypes>
 #include <string.h>
 #include <stdio.h>
 #include <math.h>
@@ -994,4 +995,10 @@ extern void cJSON_AddBoolToObject(cJSON* object, const char* string, bool value)
     } else {
         cJSON_AddFalseToObject(object, string);
     }
+}
+
+void cJSON_AddUintPtrToObject(cJSON* obj, const char* name, uintptr_t value) {
+    char buffer[64];
+    snprintf(buffer, sizeof(buffer), "0x%" PRIxPTR, value);
+    cJSON_AddItemToObject(obj, name, cJSON_CreateString(buffer));
 }

@@ -40,6 +40,7 @@
 
 #include <platform/visibility.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 #ifdef BUILDING_CJSON
 #define CJSON_PUBLIC_API EXPORT_SYMBOL
@@ -172,6 +173,11 @@ extern void cJSON_ReplaceItemInObject(cJSON *object,const char *string,cJSON *ne
 
 CJSON_PUBLIC_API
 extern void cJSON_AddBoolToObject(cJSON* object, const char* string, bool value);
+
+CJSON_PUBLIC_API
+extern void cJSON_AddUintPtrToObject(cJSON* object,
+                                     const char* string,
+                                     uintptr_t value);
 
 #ifdef __cplusplus
 }
