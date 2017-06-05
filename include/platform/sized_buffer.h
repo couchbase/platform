@@ -35,8 +35,8 @@ namespace cb {
  * this object does not have ownership semantics.
  * A user should not free() the buf member themselves!
  *
- * @todo all of the member functions apart from the string/vector constructors
- * can be upgraded to constexpr when MSVC is eventually updated
+ * @todo more member functions can be made constexpr in C++14
+ *       without implicit const / with generalised constexpr
  */
 template <typename T>
 struct sized_buffer {
@@ -65,10 +65,10 @@ struct sized_buffer {
 
     static const size_type npos = size_type(-1);
 
-    sized_buffer() : sized_buffer(nullptr, 0) {
+    constexpr sized_buffer() : sized_buffer(nullptr, 0) {
     }
 
-    sized_buffer(pointer buf_, size_type len_) : buf(buf_), len(len_) {
+    constexpr sized_buffer(pointer buf_, size_type len_) : buf(buf_), len(len_) {
     }
 
     /**
@@ -112,7 +112,7 @@ struct sized_buffer {
      *
      * @param other Buffer to copy from
      */
-    sized_buffer(const ncbuffer_type& other) : buf(other.buf), len(other.len) {
+    constexpr sized_buffer(const ncbuffer_type& other) : buf(other.buf), len(other.len) {
     }
 
     // Iterators
@@ -121,11 +121,11 @@ struct sized_buffer {
         return buf;
     }
 
-    const_iterator begin() const {
+    constexpr const_iterator begin() const {
         return buf;
     }
 
-    const_iterator cbegin() const {
+    constexpr const_iterator cbegin() const {
         return buf;
     }
 
@@ -133,11 +133,11 @@ struct sized_buffer {
         return buf + size();
     }
 
-    const_iterator end() const {
+    constexpr const_iterator end() const {
         return buf + size();
     }
 
-    const_iterator cend() const {
+    constexpr const_iterator cend() const {
         return buf + size();
     }
 
@@ -147,7 +147,7 @@ struct sized_buffer {
         return buf[pos];
     }
 
-    const_reference operator[](size_type pos) const {
+    constexpr const_reference operator[](size_type pos) const {
         return buf[pos];
     }
 
@@ -175,7 +175,7 @@ struct sized_buffer {
         return buf[0];
     }
 
-    const_reference front() const {
+    constexpr const_reference front() const {
         return buf[0];
     }
 
@@ -183,7 +183,7 @@ struct sized_buffer {
         return buf[size() - 1];
     }
 
-    const_reference back() const {
+    constexpr const_reference back() const {
         return buf[size() - 1];
     }
 
@@ -191,17 +191,17 @@ struct sized_buffer {
         return buf;
     }
 
-    const_pointer data() const {
+    constexpr const_pointer data() const {
         return buf;
     }
 
     // Capacity
 
-    size_type size() const {
+    constexpr size_type size() const {
         return len;
     }
 
-    bool empty() const {
+    constexpr bool empty() const {
         return size() == 0;
     }
 
@@ -373,29 +373,10 @@ public:
     const_char_buffer() : sized_buffer() {
     }
 
+    using sized_buffer::sized_buffer;
+
     const_char_buffer(const char* cStr)
         : sized_buffer(cStr, std::strlen(cStr)) {
-    }
-
-    // MSVC does not support constructor inheritance so we must redefined them
-    // until MSVC 2015 is supported. The following exist because of MSVC
-    const_char_buffer(pointer buf_, size_type len_) : sized_buffer(buf_, len_) {
-    }
-
-    const_char_buffer(const std::basic_string<base_type>& str)
-        : sized_buffer(str) {
-    }
-
-    const_char_buffer(std::basic_string<base_type>& str) : sized_buffer(str) {
-    }
-
-    const_char_buffer(const std::vector<base_type>& vec) : sized_buffer(vec) {
-    }
-
-    const_char_buffer(std::vector<base_type>& vec) : sized_buffer(vec) {
-    }
-
-    const_char_buffer(const cb::char_buffer& other) : sized_buffer(other) {
     }
 };
 
