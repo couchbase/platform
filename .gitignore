@@ -29,3 +29,6 @@
 /platform-*-test
 /src/config.h
 /*_test
+/.cproject
+/.project
+/.settings/
