@@ -444,6 +444,23 @@ extern "C" {
     int cb_get_timeofday_offset(void);
 
     /**
+     * Set an uptime offset to be added to memcached_uptime
+     *
+     * This is intended for the testing of expiry.
+     *
+     * @param offset the number of seconds to add
+     *
+     */
+    PLATFORM_PUBLIC_API
+    void cb_set_uptime_offset(uint64_t offset);
+
+    /**
+     * Get the offset to add to the uptime.
+     */
+    PLATFORM_PUBLIC_API
+    uint64_t cb_get_uptime_offset();
+
+    /**
      * Travel in time by updating the timeofday_offset with a relative
      * value
      *

@@ -32,6 +32,7 @@
 #include <platform/platform.h>
 
 static std::atomic_int timeofday_offset { 0 };
+static std::atomic_uint uptime_offset{0};
 
 /*
     return a monotonically increasing value with a seconds frequency.
@@ -82,6 +83,14 @@ void cb_set_timeofday_offset(int offset) {
 
 int cb_get_timeofday_offset(void) {
     return timeofday_offset.load(std::memory_order_relaxed);
+}
+
+void cb_set_uptime_offset(uint64_t offset) {
+    uptime_offset.store(offset, std::memory_order_relaxed);
+}
+
+uint64_t cb_get_uptime_offset(void) {
+    return uptime_offset.load(std::memory_order_relaxed);
 }
 
 void cb_timeofday_timetravel(int offset) {
