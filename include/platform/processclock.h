@@ -28,43 +28,7 @@ namespace cb {
  * This is useful when we want a task to run at a set interval regardless if
  * the system wall clock is changed.
  */
-
-#if defined(_MSC_VER) && _MSC_VER < 1900 /* less than Visual Studio 2015 */
-/**
- * Due to a defect in Microsoft's implementation of the steady_clock
- * it does not have sufficiently high resolution.
- * See the following link for more details
- * https://web.archive.org/web/20141212192132/https://connect.microsoft.com/
- * VisualStudio/feedback/details/719443/
- *
- * The defect has been fixed in Visual Studio 2015, however we are currently
- * compiling using Visual Studio 2013 or earlier.  Therefore we need to provide
- * our own implementation of the steady_clock.
- */
-
-struct PLATFORM_PUBLIC_API SteadyClock {
-    typedef long long rep;
-    typedef std::nano period;
-    typedef std::chrono::duration<rep, period> duration;
-    typedef std::chrono::time_point<SteadyClock>   time_point;
-    static const bool is_steady = true;
-    static time_point now(void);
-
-protected:
-    static SteadyClock::duration calculateDuration(const LONGLONG freq,
-                                                   const LARGE_INTEGER count);
-};
-
-// Using ProcessClock to hide the differences in implementation between Windows
-// and non-Windows
-using ProcessClock = SteadyClock;
-
-#else
-
-// For non-Windows we just use the std::chrono::steady_clock
 using ProcessClock = std::chrono::steady_clock;
-
-#endif
 
 // Simple wrapper function that returns std::chrono::nanoseconds
 // given a ProcessClock::time_point
