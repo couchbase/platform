@@ -92,6 +92,10 @@ bool Pipe::empty() const {
     return read_head == write_head;
 }
 
+bool Pipe::full() const {
+    return write_head == buffer.size();
+}
+
 void Pipe::lock() {
     if (locked) {
         throw std::logic_error("Pipe::lock(): Buffer already locked");

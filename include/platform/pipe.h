@@ -168,6 +168,11 @@ public:
     bool empty() const;
 
     /**
+     * Is this buffer full or not
+     */
+    bool full() const;
+
+    /**
      * Clear all of the content in the buffer
      */
     void clear();
