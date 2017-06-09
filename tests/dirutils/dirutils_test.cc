@@ -78,7 +78,8 @@ const std::vector<std::string> IoTest::vfs = {
     {"fs/2"},
     {"fs/2c"},
     {"fs/2d"},
-    {"fs/3"}
+    {"fs/3"},
+    {"fs/d1/d1"}
 };
 
 void IoTest::SetUpTestCase() {
@@ -159,12 +160,12 @@ TEST_F(IoTest, findFilesWithPrefix) {
                                    "fs" PATH_SEPARATOR "1"));
 
     vec = cb::io::findFilesWithPrefix("fs", "");
-    EXPECT_EQ(vfs.size() - 1, vec.size());
+    EXPECT_EQ(vfs.size() - 2, vec.size());
 }
 
 TEST_F(IoTest, findFilesContaining) {
     auto vec = cb::io::findFilesContaining("fs", "");
-    EXPECT_EQ(vfs.size() - 1, vec.size());
+    EXPECT_EQ(vfs.size() - 2, vec.size());
 
     vec = cb::io::findFilesContaining("fs", "2");
     EXPECT_EQ(7, vec.size());
