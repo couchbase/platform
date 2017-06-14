@@ -63,6 +63,7 @@ CONFIGURE_FILE (${CMAKE_CURRENT_SOURCE_DIR}/include/platform/dynamic.in.h
 # Set the include path
 #
 INCLUDE_DIRECTORIES(BEFORE ${CMAKE_CURRENT_SOURCE_DIR}/include
+                           ${CMAKE_CURRENT_SOURCE_DIR}/external
                            ${CMAKE_CURRENT_BINARY_DIR}/src
                            ${phosphor_SOURCE_DIR}/include)
 

@@ -237,6 +237,27 @@ protected:
      */
     void consumed(size_t nbytes);
 
+    /*
+     * Some helper functions while running under Valgrind to help us
+     * verify that people aren't messing around with the buffers when
+     * they shouldn't.
+     *
+     * The documentation in the manual is a bit vague on how the underlying
+     * stuff works, so I decided to take the simple approach. In the "normal"
+     * situation we keep the section of the data containing data we may read
+     * open for access. The rest of the buffer is locked. When the client
+     * calls the "produce" methods, we lock the read buffer and open up
+     * the write buffer for access.
+     */
+    void valgrind_unlock_entire_buffer();
+    void valgrind_lock_entire_buffer();
+
+    void valgrind_unlock_write_buffer();
+    void valgrind_lock_write_buffer();
+
+    void valgrind_unlock_read_buffer();
+    void valgrind_lock_read_buffer();
+
     // The information about the underlying buffer
     cb::byte_buffer buffer;
 
