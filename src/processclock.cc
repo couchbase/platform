@@ -32,3 +32,34 @@ std::chrono::nanoseconds cb::to_ns_since_epoch(
     return std::chrono::duration_cast<std::chrono::nanoseconds>(
                                                          tp.time_since_epoch());
 }
+
+std::string to_string(const std::chrono::nanoseconds& ns) {
+    using namespace std::chrono;
+
+    if (ns <= nanoseconds(9999)) {
+        return std::to_string(ns.count()) + "ns";
+    }
+
+    if (ns <= microseconds(9999)) {
+        auto us = duration_cast<microseconds>(ns);
+        return std::to_string(us.count()) + "µs";
+    }
+
+    if (ns <= milliseconds(9999)) {
+        auto ms = duration_cast<milliseconds>(ns);
+        return std::to_string(ms.count()) + "ms";
+    }
+
+    if (ns <= seconds(599)) {
+        auto s = duration_cast<seconds>(ns);
+        return std::to_string(s.count()) + "s";
+    }
+
+    auto secs = duration_cast<seconds>(ns).count();
+    int hour = static_cast<int>(secs / 3600);
+    secs -= hour * 3600;
+    int min = static_cast<int>(secs / 60);
+    secs -= min * 60;
+    return std::to_string(hour) + ":" + std::to_string(min) + ":" +
+           std::to_string(secs);
+}
