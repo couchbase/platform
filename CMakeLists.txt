@@ -190,6 +190,7 @@ ADD_LIBRARY(platform_so SHARED ${PLATFORM_FILES}
                             src/crc32c_private.h
                             src/global_new_replacement.cc
                             src/histogram.cc
+                            src/interrupt.cc
                             src/processclock.cc
                             src/strerror.cc
                             src/string.cc
@@ -209,6 +210,7 @@ ADD_LIBRARY(platform_so SHARED ${PLATFORM_FILES}
                             include/platform/checked_snprintf.h
                             include/platform/corestore.h
                             include/platform/crc32c.h
+                            include/platform/interrupt.h
                             include/platform/make_unique.h
                             include/platform/memorymap.h
                             include/platform/non_negative_counter.h
