@@ -178,6 +178,7 @@ ADD_LIBRARY(platform_so SHARED ${PLATFORM_FILES}
                             src/timeutils.cc
                             src/uuid.cc
                             include/platform/base64.h
+                            include/platform/bitset.h
                             include/platform/byte_buffer_dump.h
                             include/platform/crc32c.h
                             include/platform/memorymap.h
