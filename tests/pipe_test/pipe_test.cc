@@ -80,6 +80,19 @@ TEST_F(PipeTest, EnsureCapacity) {
     });
 }
 
+TEST_F(PipeTest, EnsureCapacity_realloc) {
+    // ensureCapacity use realloc to grow the buffer which is kept in the
+    // std::unique_ptr. If realloc don't need to reallocate underlying buffer
+    // the unique_ptr would try to free the old address before keeping the
+    // freed address. As we don't know the sizes used by the underlying
+    // allocator this test just tries to slowly grow the underlying buffer
+    // and let valgrind detect if we're doing anything wrong..
+
+    for (size_t ii = 0; ii < 2048; ++ii) {
+        buffer.ensureCapacity(ii);
+    }
+}
+
 TEST_F(PipeTest, ProduceOverfow) {
     buffer.ensureCapacity(100);
     EXPECT_THROW(buffer.produce([](void*, size_t size) -> ssize_t {

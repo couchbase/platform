@@ -55,7 +55,12 @@ size_t Pipe::ensureCapacity(size_t nbytes) {
                 // used my own buffer locking..
                 memory.reset(cb_malloc(nsize));
             } else {
-                memory.reset(cb_realloc(memory.get(), nsize));
+                auto* mem = cb_realloc(memory.get(), nsize);
+                if (mem == nullptr) {
+                    throw std::bad_alloc();
+                } else if (mem != memory.get()) {
+                    memory.reset(mem);
+                }
             }
             buffer = {static_cast<uint8_t*>(memory.get()), nsize};
 
