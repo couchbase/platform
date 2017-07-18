@@ -78,19 +78,35 @@ TEST_F(PipeTest, EnsureCapacity) {
         EXPECT_EQ(0, size);
         return 0;
     });
-}
 
-TEST_F(PipeTest, EnsureCapacity_realloc) {
-    // ensureCapacity use realloc to grow the buffer which is kept in the
-    // std::unique_ptr. If realloc don't need to reallocate underlying buffer
-    // the unique_ptr would try to free the old address before keeping the
-    // freed address. As we don't know the sizes used by the underlying
-    // allocator this test just tries to slowly grow the underlying buffer
-    // and let valgrind detect if we're doing anything wrong..
 
-    for (size_t ii = 0; ii < 2048; ++ii) {
-        buffer.ensureCapacity(ii);
-    }
+    // Make sure that it keep the data between the iterations, even if it isn't
+    // at the beginning of the buffer
+    buffer.produce([](cb::byte_buffer buffer) -> ssize_t {
+        const std::string message{"hello world"};
+        std::copy(message.begin(), message.end(), buffer.data());
+        return message.size();
+    });
+
+    // Read out some of the data
+    buffer.consume([](const void*, size_t size) -> ssize_t {
+        return 6; // "hello "
+    });
+
+    buffer.ensureCapacity(1024);
+    buffer.produce([](void*, size_t size) -> ssize_t {
+        // The buffer should at least have room for 100 elements
+        EXPECT_LE(1024, size);
+        return 0;
+    });
+
+    // Make sure that the data was persisted across the move
+    buffer.consume([](cb::const_byte_buffer buffer) -> ssize_t {
+        const std::string data{reinterpret_cast<const char*>(buffer.data()),
+                               buffer.size()};
+        EXPECT_EQ("world", data);
+        return data.length();
+    });
 }
 
 TEST_F(PipeTest, ProduceOverfow) {

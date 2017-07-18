@@ -261,11 +261,7 @@ protected:
     // The information about the underlying buffer
     cb::byte_buffer buffer;
 
-    // The backing store for the actual data
-    struct MallocDeleter {
-        void operator()(void* ptr) { cb_free(ptr); }
-    };
-    std::unique_ptr<void, MallocDeleter> memory;
+    std::unique_ptr<uint8_t[]> memory;
 
     // The offset in the buffer where we may start write
     size_t write_head = 0;

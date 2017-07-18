@@ -24,8 +24,8 @@
 namespace cb {
 
 Pipe::Pipe(size_t size) {
-    memory.reset(cb_malloc(size));
-    buffer = {static_cast<uint8_t*>(memory.get()), size};
+    memory.reset(new uint8_t[size]);
+    buffer = {memory.get(), size};
     // Make the entire buffer inaccessible!
     valgrind_lock_entire_buffer();
     // but the read space should be open..
@@ -37,41 +37,30 @@ size_t Pipe::ensureCapacity(size_t nbytes) {
         throw std::logic_error("Pipe::ensureCapacity(): Buffer locked");
     }
 
-    const auto tail_size = buffer.size() - write_head;
+    // Move data to the beginning of the segment
+    pack();
 
-    if (tail_size < nbytes) {
-        // We might need to resize the buffer if we can't move stuff around...
-        const size_t avail = read_head + buffer.size() - write_head;
-        if (nbytes > avail) {
-            // @todo integrate with valgrind!!!
-            const auto nsize = buffer.size() + nbytes;
+    const size_t avail = buffer.size() - write_head;
+    if (avail < nbytes) {
+        // Allocate a (potentially) slightly bigger area (ignore the current
+        // available space in the existing buffer). That'll (hopefully) be
+        // used in a later allocation.
+        const auto nsize = buffer.size() + nbytes;
+        std::unique_ptr<uint8_t[]> nmem(new uint8_t[nsize]);
 
-            // Make the entire buffer unlocked..
-            valgrind_lock_read_buffer();
-            valgrind_unlock_entire_buffer();
+        // Make the entire buffer unlocked..
+        valgrind_lock_read_buffer();
+        valgrind_unlock_entire_buffer();
 
-            if (buffer.empty()) {
-                // valgrind wasn't too thrilled with realloc when I
-                // used my own buffer locking..
-                memory.reset(cb_malloc(nsize));
-            } else {
-                auto* mem = cb_realloc(memory.get(), nsize);
-                if (mem == nullptr) {
-                    throw std::bad_alloc();
-                } else if (mem != memory.get()) {
-                    memory.reset(mem);
-                }
-            }
-            buffer = {static_cast<uint8_t*>(memory.get()), nsize};
+        // Copy the existing data over
+        std::copy(memory.get(), memory.get() + write_head, nmem.get());
+        memory.swap(nmem);
+        buffer = {memory.get(), nsize};
 
-            // Make the entire buffer inaccessible!
-            valgrind_lock_entire_buffer();
-            // but the read space should be open..
-            valgrind_unlock_read_buffer();
-        } else {
-            // we've got space inside the buffer if we just pack the bytes
-            pack();
-        }
+        // Make the entire buffer inaccessible!
+        valgrind_lock_entire_buffer();
+        // but the read space should be open..
+        valgrind_unlock_read_buffer();
     }
 
     return getAvailableWriteSpace().size();
