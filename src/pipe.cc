@@ -66,8 +66,9 @@ size_t Pipe::ensureCapacity(size_t nbytes) {
     return getAvailableWriteSpace().size();
 }
 
-cb::byte_buffer Pipe::getAvailableWriteSpace() {
-    return {buffer.data() + write_head, buffer.size() - write_head};
+cb::byte_buffer Pipe::getAvailableWriteSpace() const {
+    return {const_cast<uint8_t*>(buffer.data()) + write_head,
+            buffer.size() - write_head};
 }
 
 void Pipe::produced(size_t nbytes) {
@@ -90,7 +91,7 @@ void Pipe::produced(size_t nbytes) {
     valgrind_unlock_read_buffer();
 }
 
-cb::const_byte_buffer Pipe::getAvailableReadSpace() {
+cb::const_byte_buffer Pipe::getAvailableReadSpace() const {
     return {buffer.data() + read_head, write_head - read_head};
 }
 
@@ -291,6 +292,14 @@ void Pipe::valgrind_lock_read_buffer() {
     if (!avail.empty()) {
         VALGRIND_MAKE_MEM_NOACCESS(avail.data(), avail.size());
     }
+}
+
+size_t Pipe::rsize() const {
+    return getAvailableReadSpace().size();
+}
+
+size_t Pipe::wsize() const {
+    return getAvailableWriteSpace().size();
 }
 
 } // namespace cb

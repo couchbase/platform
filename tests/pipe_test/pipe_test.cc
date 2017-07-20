@@ -68,6 +68,7 @@ TEST_F(PipeTest, Locking) {
 
 TEST_F(PipeTest, EnsureCapacity) {
     buffer.ensureCapacity(100);
+    EXPECT_EQ(100, buffer.wsize());
     buffer.produce([](void*, size_t size) -> ssize_t {
         EXPECT_EQ(100, size);
         return 0;
@@ -78,15 +79,18 @@ TEST_F(PipeTest, EnsureCapacity) {
         EXPECT_EQ(0, size);
         return 0;
     });
-
+    EXPECT_EQ(0, buffer.rsize());
 
     // Make sure that it keep the data between the iterations, even if it isn't
     // at the beginning of the buffer
-    buffer.produce([](cb::byte_buffer buffer) -> ssize_t {
-        const std::string message{"hello world"};
+    const std::string message{"hello world"};
+    buffer.produce([&message](cb::byte_buffer buffer) -> ssize_t {
         std::copy(message.begin(), message.end(), buffer.data());
         return message.size();
     });
+
+    EXPECT_EQ(message.size(), buffer.rsize());
+    EXPECT_EQ(100 - message.size(), buffer.wsize());
 
     // Read out some of the data
     buffer.consume([](const void*, size_t size) -> ssize_t {
