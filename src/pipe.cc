@@ -335,6 +335,10 @@ size_t Pipe::rsize() const {
     return getAvailableReadSpace().size();
 }
 
+const_byte_buffer Pipe::rdata() const {
+    return getAvailableReadSpace();
+}
+
 size_t Pipe::wsize() const {
     return getAvailableWriteSpace().size();
 }

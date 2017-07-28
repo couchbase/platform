@@ -118,6 +118,12 @@ public:
     size_t rsize() const;
 
     /**
+     * Get the available read buffer (this may be used for simplicity
+     * rather than calling consume to have to copy it out)
+     */
+    cb::const_byte_buffer rdata() const;
+
+    /**
      * Returns the number of bytes available to be written to in the
      * write end of the pipe
      */
