@@ -227,6 +227,13 @@ public:
     void stats(std::function<void(const char* /* key */,
                                   const char* /* value */)> stats);
 
+    /**
+     * The underlying buffer is being allocated by a number of chunks of the
+     * given size. The input size of the buffer is rounded to sizes of this
+     * size, and the chunk size for the pipe is set to that.
+     */
+    static const size_t defaultAllocationChunkSize;
+
 protected:
     /**
      * Get information of the _unused_ space in the write end of
@@ -303,6 +310,9 @@ protected:
 
     // Is the pipe locked or not (for testing)
     bool locked = false;
+
+    // the allocation chunk size.
+    const size_t allocation_chunk_size;
 };
 
 } // namespace cb

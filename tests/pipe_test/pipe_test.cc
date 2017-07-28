@@ -68,9 +68,9 @@ TEST_F(PipeTest, Locking) {
 
 TEST_F(PipeTest, EnsureCapacity) {
     buffer.ensureCapacity(100);
-    EXPECT_EQ(100, buffer.wsize());
+    EXPECT_EQ(cb::Pipe::defaultAllocationChunkSize, buffer.wsize());
     buffer.produce([](void*, size_t size) -> ssize_t {
-        EXPECT_EQ(100, size);
+        EXPECT_EQ(cb::Pipe::defaultAllocationChunkSize, size);
         return 0;
     });
 
@@ -90,17 +90,24 @@ TEST_F(PipeTest, EnsureCapacity) {
     });
 
     EXPECT_EQ(message.size(), buffer.rsize());
-    EXPECT_EQ(100 - message.size(), buffer.wsize());
+    EXPECT_EQ(cb::Pipe::defaultAllocationChunkSize - message.size(),
+              buffer.wsize());
 
     // Read out some of the data
     buffer.consume([](const void*, size_t size) -> ssize_t {
         return 6; // "hello "
     });
 
+    EXPECT_EQ(5, buffer.rsize()); // The buffer should still contain world
+    EXPECT_EQ(cb::Pipe::defaultAllocationChunkSize - message.size(),
+              buffer.wsize());
+
     buffer.ensureCapacity(1024);
     buffer.produce([](void*, size_t size) -> ssize_t {
-        // The buffer should at least have room for 100 elements
-        EXPECT_LE(1024, size);
+        // the reallocation should be aligned to 3 chunks. The memory in the
+        // old buffer was moved to the beginning of the buffer so that we've
+        // freed up the data we've already consumed.
+        EXPECT_EQ(cb::Pipe::defaultAllocationChunkSize * 3 - 5, size);
         return 0;
     });
 
@@ -132,14 +139,14 @@ TEST_F(PipeTest, ConsumeOverfow) {
 TEST_F(PipeTest, ProduceConsume) {
     buffer.ensureCapacity(100);
     EXPECT_EQ(3, buffer.produce([](void* ptr, size_t size) -> ssize_t {
-        EXPECT_EQ(100, size);
+        EXPECT_EQ(cb::Pipe::defaultAllocationChunkSize, size);
         ::memcpy(ptr, "abc", 3);
         return 3;
     }));
 
     // We should have 97 elements available
     buffer.produce([](void* ptr, size_t size) -> ssize_t {
-        EXPECT_EQ(97, size);
+        EXPECT_EQ(cb::Pipe::defaultAllocationChunkSize - 3, size);
         return 0;
     });
 
@@ -155,7 +162,7 @@ TEST_F(PipeTest, ProduceConsume) {
     // We've consumed only 1 byte so the produce space is unchanged,
     // but the consumer space is less
     buffer.produce([](void* ptr, size_t size) -> ssize_t {
-        EXPECT_EQ(97, size);
+        EXPECT_EQ(cb::Pipe::defaultAllocationChunkSize - 3, size);
         return 0;
     });
 
@@ -169,7 +176,7 @@ TEST_F(PipeTest, ProduceConsume) {
     // We've consumed only 1 byte so the produce space is unchanged,
     // but the consumer space is less
     buffer.produce([](void* ptr, size_t size) -> ssize_t {
-        EXPECT_EQ(97, size);
+        EXPECT_EQ(cb::Pipe::defaultAllocationChunkSize - 3, size);
         return 0;
     });
 
@@ -187,7 +194,7 @@ TEST_F(PipeTest, ProduceConsume) {
     EXPECT_FALSE(buffer.pack());
     buffer.produce([](void* ptr, size_t size) -> ssize_t {
         // Everything should have been moved to the front..
-        EXPECT_EQ(99, size);
+        EXPECT_EQ(cb::Pipe::defaultAllocationChunkSize - 1, size);
         return 0;
     });
 
@@ -206,7 +213,12 @@ TEST_F(PipeTest, ProduceConsume) {
 
     // And we should be able to insert 100 items again
     buffer.produce([](void* ptr, size_t size) -> ssize_t {
-        EXPECT_EQ(100, size);
+        EXPECT_EQ(cb::Pipe::defaultAllocationChunkSize, size);
         return 0;
     });
+}
+
+TEST_F(PipeTest, CustomChunkSize) {
+    cb::Pipe pipe(4096);
+    EXPECT_EQ(8192, pipe.ensureCapacity(4097));
 }

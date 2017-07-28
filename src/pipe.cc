@@ -19,11 +19,25 @@
 
 #include <valgrind/memcheck.h>
 
+#include <algorithm>
 #include <cinttypes>
 
 namespace cb {
 
-Pipe::Pipe(size_t size) {
+static size_t calculateAllocationChunkSize(size_t nbytes) {
+    auto chunks = nbytes / Pipe::defaultAllocationChunkSize;
+    if (nbytes % Pipe::defaultAllocationChunkSize != 0) {
+        chunks++;
+    }
+
+    return chunks * Pipe::defaultAllocationChunkSize;
+}
+
+const size_t Pipe::defaultAllocationChunkSize = 512;
+
+Pipe::Pipe(size_t size)
+    : allocation_chunk_size(std::max(calculateAllocationChunkSize(size),
+                                     size_t(defaultAllocationChunkSize))) {
     memory.reset(new uint8_t[size]);
     buffer = {memory.get(), size};
     // Make the entire buffer inaccessible!
@@ -37,33 +51,54 @@ size_t Pipe::ensureCapacity(size_t nbytes) {
         throw std::logic_error("Pipe::ensureCapacity(): Buffer locked");
     }
 
-    // Move data to the beginning of the segment
-    pack();
-
-    const size_t avail = buffer.size() - write_head;
-    if (avail < nbytes) {
-        // Allocate a (potentially) slightly bigger area (ignore the current
-        // available space in the existing buffer). That'll (hopefully) be
-        // used in a later allocation.
-        const auto nsize = buffer.size() + nbytes;
-        std::unique_ptr<uint8_t[]> nmem(new uint8_t[nsize]);
-
-        // Make the entire buffer unlocked..
-        valgrind_lock_read_buffer();
-        valgrind_unlock_entire_buffer();
-
-        // Copy the existing data over
-        std::copy(memory.get(), memory.get() + write_head, nmem.get());
-        memory.swap(nmem);
-        buffer = {memory.get(), nsize};
-
-        // Make the entire buffer inaccessible!
-        valgrind_lock_entire_buffer();
-        // but the read space should be open..
-        valgrind_unlock_read_buffer();
+    const size_t tail_space = buffer.size() - write_head;
+    if (tail_space >= nbytes) { // do we have enough space at the tail?
+        return wsize();
     }
 
-    return getAvailableWriteSpace().size();
+    if (nbytes <= (tail_space + read_head)) {
+        // we've got space if we pack the buffer
+        const auto head_space = read_head;
+        pack();
+        auto ret = wsize();
+        if (ret < nbytes) {
+            throw std::logic_error(
+                    "Pipe::ensureCapacity: expecting pack to free up enough "
+                    "bytes: " +
+                    std::to_string(ret) + " < " + std::to_string(nbytes) +
+                    ". hs: " + std::to_string(head_space) +
+                    " ts: " + std::to_string(tail_space));
+        }
+        return ret;
+    }
+
+    // No. We need to allocate a bigger memory area to fit the requested
+    size_t count = 1;
+    while (((count * allocation_chunk_size) + tail_space + read_head) <
+           nbytes) {
+        ++count;
+    }
+
+    const auto nsize = buffer.size() + (count * allocation_chunk_size);
+    std::unique_ptr<uint8_t[]> nmem(new uint8_t[nsize]);
+
+    // Make the entire buffer unlocked..
+    valgrind_lock_read_buffer();
+    valgrind_unlock_entire_buffer();
+
+    // Copy the existing data over
+    std::copy(memory.get() + read_head, memory.get() + write_head, nmem.get());
+    memory.swap(nmem);
+    buffer = {memory.get(), nsize};
+    write_head -= read_head;
+    read_head = 0;
+
+    // Make the entire buffer inaccessible!
+    valgrind_lock_entire_buffer();
+    // but the read space should be open..
+    valgrind_unlock_read_buffer();
+
+    return wsize();
 }
 
 cb::byte_buffer Pipe::getAvailableWriteSpace() const {
