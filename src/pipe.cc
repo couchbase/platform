@@ -254,6 +254,7 @@ void Pipe::stats(std::function<void(const char* /* key */,
     stats("locked", locked ? "true" : "false");
 }
 
+#ifdef CB_PIPE_VALGRIND_INTEGRATION
 void Pipe::valgrind_unlock_entire_buffer() {
     if (!buffer.empty()) {
         VALGRIND_MAKE_MEM_DEFINED(buffer.data(), buffer.size());
@@ -293,6 +294,7 @@ void Pipe::valgrind_lock_read_buffer() {
         VALGRIND_MAKE_MEM_NOACCESS(avail.data(), avail.size());
     }
 }
+#endif
 
 size_t Pipe::rsize() const {
     return getAvailableReadSpace().size();

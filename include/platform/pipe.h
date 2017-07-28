@@ -27,6 +27,15 @@
 namespace cb {
 
 /**
+ * The Pipe class may integrate with the buffer logic in valgrind to trap
+ * incorrect buffer usage if CB_PIPE_VALGRIND_INTEGRATION is defined
+ * for the project. Given that we don't have any numbers on the impact
+ * enabling/disabling read/write access to memory areas have on the overall
+ * system, we'll leave it as disabled for now.
+ */
+#undef CB_PIPE_VALGRIND_INTEGRATION
+
+/**
  * The Pipe class is a buffered pipe where you may insert data in one
  * end, and read it back out from the other (like a normal pipe).
  *
@@ -261,6 +270,7 @@ protected:
      * calls the "produce" methods, we lock the read buffer and open up
      * the write buffer for access.
      */
+#ifdef CB_PIPE_VALGRIND_INTEGRATION
     void valgrind_unlock_entire_buffer();
     void valgrind_lock_entire_buffer();
 
@@ -269,6 +279,16 @@ protected:
 
     void valgrind_unlock_read_buffer();
     void valgrind_lock_read_buffer();
+#else
+    void valgrind_unlock_entire_buffer() {}
+    void valgrind_lock_entire_buffer() {}
+
+    void valgrind_unlock_write_buffer() {}
+    void valgrind_lock_write_buffer() {}
+
+    void valgrind_unlock_read_buffer() {}
+    void valgrind_lock_read_buffer() {}
+#endif
 
     // The information about the underlying buffer
     cb::byte_buffer buffer;
