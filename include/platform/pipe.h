@@ -115,19 +115,25 @@ public:
      * Read the number of bytes currently available in the read end
      * of the pipe
      */
-    size_t rsize() const;
+    size_t rsize() const {
+        return getAvailableReadSpace().size();
+    }
 
     /**
      * Get the available read buffer (this may be used for simplicity
      * rather than calling consume to have to copy it out)
      */
-    cb::const_byte_buffer rdata() const;
+    cb::const_byte_buffer rdata() const {
+        return getAvailableReadSpace();
+    }
 
     /**
      * Returns the number of bytes available to be written to in the
      * write end of the pipe
      */
-    size_t wsize() const;
+    size_t wsize() const {
+        return getAvailableWriteSpace().size();
+    }
 
     /**
      * Try to produce a number of bytes by providing a callback function
@@ -247,7 +253,10 @@ protected:
      * call produced() later on to mark the space as used and that it
      * should be available for the consumer in the read end of the pipe.
      */
-    cb::byte_buffer getAvailableWriteSpace() const;
+    cb::byte_buffer getAvailableWriteSpace() const {
+        return {const_cast<uint8_t*>(buffer.data()) + write_head,
+                buffer.size() - write_head};
+    }
 
     /**
      * A number of bytes was made available for the consumer
@@ -260,7 +269,9 @@ protected:
      * use, and call consumed() later on to mark the space as free and
      * available for the producer.
      */
-    cb::const_byte_buffer getAvailableReadSpace() const;
+    cb::const_byte_buffer getAvailableReadSpace() const {
+        return {buffer.data() + read_head, write_head - read_head};
+    }
 
     /**
      * The number of bytes just removed from the consumer end of the buffer.

@@ -101,11 +101,6 @@ size_t Pipe::ensureCapacity(size_t nbytes) {
     return wsize();
 }
 
-cb::byte_buffer Pipe::getAvailableWriteSpace() const {
-    return {const_cast<uint8_t*>(buffer.data()) + write_head,
-            buffer.size() - write_head};
-}
-
 void Pipe::produced(size_t nbytes) {
     if (locked) {
         throw std::logic_error("Pipe::produced(): Buffer locked");
@@ -124,10 +119,6 @@ void Pipe::produced(size_t nbytes) {
 
     // Open up the read buffer with the extended segment
     valgrind_unlock_read_buffer();
-}
-
-cb::const_byte_buffer Pipe::getAvailableReadSpace() const {
-    return {buffer.data() + read_head, write_head - read_head};
 }
 
 void Pipe::consumed(size_t nbytes) {
@@ -330,17 +321,5 @@ void Pipe::valgrind_lock_read_buffer() {
     }
 }
 #endif
-
-size_t Pipe::rsize() const {
-    return getAvailableReadSpace().size();
-}
-
-const_byte_buffer Pipe::rdata() const {
-    return getAvailableReadSpace();
-}
-
-size_t Pipe::wsize() const {
-    return getAvailableWriteSpace().size();
-}
 
 } // namespace cb
