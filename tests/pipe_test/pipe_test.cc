@@ -41,31 +41,6 @@ TEST_F(PipeTest, DefaultSize) {
     EXPECT_TRUE(buffer.empty());
 }
 
-TEST_F(PipeTest, Locking) {
-    buffer.lock();
-    EXPECT_TRUE(buffer.empty());
-
-    // but not change it
-    EXPECT_THROW(buffer.clear(), std::logic_error);
-    EXPECT_THROW(buffer.pack(), std::logic_error);
-    EXPECT_THROW(buffer.consume([](const void*, size_t size) -> ssize_t {
-        return size;
-    }),
-                 std::logic_error);
-    EXPECT_THROW(
-            buffer.produce([](void*, size_t size) -> ssize_t { return size; }),
-            std::logic_error);
-    EXPECT_THROW(buffer.ensureCapacity(1), std::logic_error);
-
-    // And not lock a locked buffer
-    EXPECT_THROW(buffer.lock(), std::logic_error);
-
-    buffer.unlock();
-
-    // but we can't unlock twice
-    EXPECT_THROW(buffer.unlock(), std::logic_error);
-}
-
 TEST_F(PipeTest, EnsureCapacity) {
     buffer.ensureCapacity(100);
     EXPECT_EQ(cb::Pipe::defaultAllocationChunkSize, buffer.wsize());

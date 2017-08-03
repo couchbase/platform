@@ -41,10 +41,6 @@ Pipe::Pipe(size_t size)
 }
 
 size_t Pipe::ensureCapacity(size_t nbytes) {
-    if (locked) {
-        throw std::logic_error("Pipe::ensureCapacity(): Buffer locked");
-    }
-
     const size_t tail_space = buffer.size() - write_head;
     if (tail_space >= nbytes) { // do we have enough space at the tail?
         return wsize();
@@ -87,10 +83,6 @@ size_t Pipe::ensureCapacity(size_t nbytes) {
 }
 
 bool Pipe::pack() {
-    if (locked) {
-        throw std::logic_error("Pipe::pack(): Buffer locked");
-    }
-
     if (read_head == write_head) {
         read_head = write_head = 0;
     } else {
@@ -106,9 +98,6 @@ bool Pipe::pack() {
 
 ssize_t Pipe::consume(std::function<ssize_t(const void* /* ptr */,
                                             size_t /* size */)> consumer) {
-    if (locked) {
-        throw std::logic_error("Pipe::consume(): Buffer locked");
-    }
     auto avail = getAvailableReadSpace();
     const ssize_t ret =
             consumer(static_cast<const void*>(avail.data()), avail.size());
@@ -119,9 +108,6 @@ ssize_t Pipe::consume(std::function<ssize_t(const void* /* ptr */,
 }
 
 ssize_t Pipe::consume(std::function<ssize_t(cb::const_byte_buffer)> consumer) {
-    if (locked) {
-        throw std::logic_error("Pipe::consume(): Buffer locked");
-    }
     auto avail = getAvailableReadSpace();
     const ssize_t ret = consumer({avail.data(), avail.size()});
     if (ret > 0) {
@@ -132,9 +118,6 @@ ssize_t Pipe::consume(std::function<ssize_t(cb::const_byte_buffer)> consumer) {
 
 ssize_t Pipe::produce(
         std::function<ssize_t(void* /* ptr */, size_t /* size */)> producer) {
-    if (locked) {
-        throw std::logic_error("Pipe::produce(): Buffer locked");
-    }
     auto avail = getAvailableWriteSpace();
 
     const ssize_t ret =
@@ -148,9 +131,6 @@ ssize_t Pipe::produce(
 }
 
 ssize_t Pipe::produce(std::function<ssize_t(cb::byte_buffer)> producer) {
-    if (locked) {
-        throw std::logic_error("Pipe::produce(): Buffer locked");
-    }
     auto avail = getAvailableWriteSpace();
 
     const ssize_t ret = producer({avail.data(), avail.size()});
@@ -171,7 +151,6 @@ void Pipe::stats(std::function<void(const char* /* key */,
     stats("read_head", std::to_string(read_head).c_str());
     stats("write_head", std::to_string(write_head).c_str());
     stats("empty", empty() ? "true" : "false");
-    stats("locked", locked ? "true" : "false");
 }
 
 } // namespace cb

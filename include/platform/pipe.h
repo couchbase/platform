@@ -160,10 +160,6 @@ public:
      * A number of bytes was made available for the consumer
      */
     void produced(size_t nbytes) {
-        if (locked) {
-            throw std::logic_error("Pipe::produced(): Buffer locked");
-        }
-
         if (write_head + nbytes > buffer.size()) {
             throw std::logic_error(
                 "Pipe::produced(): Produced bytes exceeds "
@@ -201,10 +197,6 @@ public:
      * buffer)
      */
     void consumed(size_t nbytes) {
-        if (locked) {
-            throw std::logic_error("Pipe::consumed(): Buffer locked");
-        }
-
         if (read_head + nbytes > write_head) {
             throw std::logic_error(
                 "Pipe::consumed(): Consumed bytes exceeds "
@@ -252,37 +244,7 @@ public:
      * Clear all of the content in the buffer
      */
     void clear() {
-        if (locked) {
-            throw std::logic_error("Pipe::clear(): Buffer locked");
-        }
         write_head = read_head = 0;
-    }
-
-    /**
-     * Mark this buffer as "locked". When the buffer is "locked" any
-     * attempt that would change the state of the buffer would throw
-     * an exception.
-     *
-     * The primary use for this is for testing (and sanity checking) to
-     * ensure that we don't mess around with pipe when we don't expect
-     * clients to use them (In the memcached core we may move empty
-     * pipes between threads).
-     */
-    void lock() {
-        if (locked) {
-            throw std::logic_error("Pipe::lock(): Buffer already locked");
-        }
-        locked = true;
-    }
-
-    /**
-     * Release the locked state
-     */
-    void unlock() {
-        if (!locked) {
-            throw std::logic_error("Pipe::unlock(): Buffer not locked");
-        }
-        locked = false;
     }
 
     /**
@@ -336,9 +298,6 @@ protected:
 
     // The offset in the buffer where we may start deading
     size_t read_head = 0;
-
-    // Is the pipe locked or not (for testing)
-    bool locked = false;
 
     // the allocation chunk size.
     const size_t allocation_chunk_size;
