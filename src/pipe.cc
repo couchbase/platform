@@ -17,8 +17,6 @@
 #include <platform/make_unique.h>
 #include <platform/pipe.h>
 
-#include <valgrind/memcheck.h>
-
 #include <algorithm>
 #include <cinttypes>
 
@@ -40,10 +38,6 @@ Pipe::Pipe(size_t size)
                                      size_t(defaultAllocationChunkSize))) {
     memory.reset(new uint8_t[size]);
     buffer = {memory.get(), size};
-    // Make the entire buffer inaccessible!
-    valgrind_lock_entire_buffer();
-    // but the read space should be open..
-    valgrind_unlock_read_buffer();
 }
 
 size_t Pipe::ensureCapacity(size_t nbytes) {
@@ -82,10 +76,6 @@ size_t Pipe::ensureCapacity(size_t nbytes) {
     const auto nsize = buffer.size() + (count * allocation_chunk_size);
     std::unique_ptr<uint8_t[]> nmem(new uint8_t[nsize]);
 
-    // Make the entire buffer unlocked..
-    valgrind_lock_read_buffer();
-    valgrind_unlock_entire_buffer();
-
     // Copy the existing data over
     std::copy(memory.get() + read_head, memory.get() + write_head, nmem.get());
     memory.swap(nmem);
@@ -93,87 +83,13 @@ size_t Pipe::ensureCapacity(size_t nbytes) {
     write_head -= read_head;
     read_head = 0;
 
-    // Make the entire buffer inaccessible!
-    valgrind_lock_entire_buffer();
-    // but the read space should be open..
-    valgrind_unlock_read_buffer();
-
     return wsize();
-}
-
-void Pipe::produced(size_t nbytes) {
-    if (locked) {
-        throw std::logic_error("Pipe::produced(): Buffer locked");
-    }
-
-    if (write_head + nbytes > buffer.size()) {
-        throw std::logic_error(
-                "Pipe::produced(): Produced bytes exceeds "
-                "the number of available bytes");
-    }
-
-    // We've added more data into the read end..
-    valgrind_lock_read_buffer();
-
-    write_head += nbytes;
-
-    // Open up the read buffer with the extended segment
-    valgrind_unlock_read_buffer();
-}
-
-void Pipe::consumed(size_t nbytes) {
-    if (locked) {
-        throw std::logic_error("Pipe::consumed(): Buffer locked");
-    }
-
-    if (read_head + nbytes > write_head) {
-        throw std::logic_error(
-                "Pipe::consumed(): Consumed bytes exceeds "
-                "the number of available bytes");
-    }
-
-    // We've removed data from the read end so we need to move our
-    // read window.
-
-    valgrind_lock_read_buffer();
-
-    read_head += nbytes;
-    if (read_head == write_head) {
-        read_head = write_head = 0;
-    }
-
-    valgrind_unlock_read_buffer();
-}
-
-bool Pipe::empty() const {
-    return read_head == write_head;
-}
-
-bool Pipe::full() const {
-    return write_head == buffer.size();
-}
-
-void Pipe::lock() {
-    if (locked) {
-        throw std::logic_error("Pipe::lock(): Buffer already locked");
-    }
-    locked = true;
-}
-
-void Pipe::unlock() {
-    if (!locked) {
-        throw std::logic_error("Pipe::unlock(): Buffer not locked");
-    }
-    locked = false;
 }
 
 bool Pipe::pack() {
     if (locked) {
         throw std::logic_error("Pipe::pack(): Buffer locked");
     }
-
-    valgrind_lock_read_buffer();
-    valgrind_unlock_entire_buffer();
 
     if (read_head == write_head) {
         read_head = write_head = 0;
@@ -185,17 +101,7 @@ bool Pipe::pack() {
         read_head = 0;
     }
 
-    valgrind_lock_entire_buffer();
-    valgrind_unlock_read_buffer();
-
     return empty();
-}
-
-void Pipe::clear() {
-    if (locked) {
-        throw std::logic_error("Pipe::clear(): Buffer locked");
-    }
-    write_head = read_head = 0;
 }
 
 ssize_t Pipe::consume(std::function<ssize_t(const void* /* ptr */,
@@ -231,14 +137,8 @@ ssize_t Pipe::produce(
     }
     auto avail = getAvailableWriteSpace();
 
-    valgrind_lock_read_buffer();
-    valgrind_unlock_write_buffer();
-
     const ssize_t ret =
             producer(static_cast<void*>(avail.data()), avail.size());
-
-    valgrind_lock_write_buffer();
-    valgrind_unlock_read_buffer();
 
     if (ret > 0) {
         produced(ret);
@@ -253,13 +153,7 @@ ssize_t Pipe::produce(std::function<ssize_t(cb::byte_buffer)> producer) {
     }
     auto avail = getAvailableWriteSpace();
 
-    valgrind_lock_read_buffer();
-    valgrind_unlock_write_buffer();
-
     const ssize_t ret = producer({avail.data(), avail.size()});
-
-    valgrind_lock_write_buffer();
-    valgrind_unlock_read_buffer();
 
     if (ret > 0) {
         produced(ret);
@@ -279,47 +173,5 @@ void Pipe::stats(std::function<void(const char* /* key */,
     stats("empty", empty() ? "true" : "false");
     stats("locked", locked ? "true" : "false");
 }
-
-#ifdef CB_PIPE_VALGRIND_INTEGRATION
-void Pipe::valgrind_unlock_entire_buffer() {
-    if (!buffer.empty()) {
-        VALGRIND_MAKE_MEM_DEFINED(buffer.data(), buffer.size());
-    }
-}
-
-void Pipe::valgrind_lock_entire_buffer() {
-    if (!buffer.empty()) {
-        VALGRIND_MAKE_MEM_NOACCESS(buffer.data(), buffer.size());
-    }
-}
-
-void Pipe::valgrind_unlock_write_buffer() {
-    auto avail = getAvailableWriteSpace();
-    if (!avail.empty()) {
-        VALGRIND_MAKE_MEM_DEFINED(avail.data(), avail.size());
-    }
-}
-
-void Pipe::valgrind_lock_write_buffer() {
-    auto avail = getAvailableWriteSpace();
-    if (!avail.empty()) {
-        VALGRIND_MAKE_MEM_NOACCESS(avail.data(), avail.size());
-    }
-}
-
-void Pipe::valgrind_unlock_read_buffer() {
-    auto avail = getAvailableReadSpace();
-    if (!avail.empty()) {
-        VALGRIND_MAKE_MEM_DEFINED(avail.data(), avail.size());
-    }
-}
-
-void Pipe::valgrind_lock_read_buffer() {
-    auto avail = getAvailableReadSpace();
-    if (!avail.empty()) {
-        VALGRIND_MAKE_MEM_NOACCESS(avail.data(), avail.size());
-    }
-}
-#endif
 
 } // namespace cb

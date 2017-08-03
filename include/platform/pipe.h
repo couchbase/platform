@@ -23,17 +23,9 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <stdexcept>
 
 namespace cb {
-
-/**
- * The Pipe class may integrate with the buffer logic in valgrind to trap
- * incorrect buffer usage if CB_PIPE_VALGRIND_INTEGRATION is defined
- * for the project. Given that we don't have any numbers on the impact
- * enabling/disabling read/write access to memory areas have on the overall
- * system, we'll leave it as disabled for now.
- */
-#undef CB_PIPE_VALGRIND_INTEGRATION
 
 /**
  * The Pipe class is a buffered pipe where you may insert data in one
@@ -136,6 +128,13 @@ public:
     }
 
     /**
+     * Get the available write buffer
+     */
+    cb::byte_buffer wdata() const {
+        return getAvailableWriteSpace();
+    }
+
+    /**
      * Try to produce a number of bytes by providing a callback function
      * which will receive the buffer where the data may be inserted
      *
@@ -156,6 +155,22 @@ public:
      * @return the number of bytes produced
      */
     ssize_t produce(std::function<ssize_t(cb::byte_buffer)> producer);
+
+    /**
+     * A number of bytes was made available for the consumer
+     */
+    void produced(size_t nbytes) {
+        if (locked) {
+            throw std::logic_error("Pipe::produced(): Buffer locked");
+        }
+
+        if (write_head + nbytes > buffer.size()) {
+            throw std::logic_error(
+                "Pipe::produced(): Produced bytes exceeds "
+                    "the number of available bytes");
+        }
+        write_head += nbytes;
+    }
 
     /**
      * Try to consume data from the buffer by providing a callback function
@@ -179,6 +194,30 @@ public:
     ssize_t consume(std::function<ssize_t(cb::const_byte_buffer)> consumer);
 
     /**
+     * The number of bytes just removed from the consumer end of the buffer.
+     *
+     * If the consumer catch up with the producer all pointers returned
+     * could be invalidated (most likely reset to the beginning of the
+     * buffer)
+     */
+    void consumed(size_t nbytes) {
+        if (locked) {
+            throw std::logic_error("Pipe::consumed(): Buffer locked");
+        }
+
+        if (read_head + nbytes > write_head) {
+            throw std::logic_error(
+                "Pipe::consumed(): Consumed bytes exceeds "
+                    "the number of available bytes");
+        }
+
+        read_head += nbytes;
+        if (empty()) {
+            read_head = write_head = 0;
+        }
+    }
+
+    /**
      * Pack this buffer
      *
      * Given that we use a write_head and read_head in an array instead of
@@ -198,17 +237,26 @@ public:
      * Is this buffer empty (the consumer end completely caught up with
      * the producer)
      */
-    bool empty() const;
+    bool empty() const {
+        return read_head == write_head;
+    }
 
     /**
      * Is this buffer full or not
      */
-    bool full() const;
+    bool full() const {
+        return write_head == buffer.size();
+    }
 
     /**
      * Clear all of the content in the buffer
      */
-    void clear();
+    void clear() {
+        if (locked) {
+            throw std::logic_error("Pipe::clear(): Buffer locked");
+        }
+        write_head = read_head = 0;
+    }
 
     /**
      * Mark this buffer as "locked". When the buffer is "locked" any
@@ -220,12 +268,22 @@ public:
      * clients to use them (In the memcached core we may move empty
      * pipes between threads).
      */
-    void lock();
+    void lock() {
+        if (locked) {
+            throw std::logic_error("Pipe::lock(): Buffer already locked");
+        }
+        locked = true;
+    }
 
     /**
      * Release the locked state
      */
-    void unlock();
+    void unlock() {
+        if (!locked) {
+            throw std::logic_error("Pipe::unlock(): Buffer not locked");
+        }
+        locked = false;
+    }
 
     /**
      * Get the (internal) properties of the pipe
@@ -259,11 +317,6 @@ protected:
     }
 
     /**
-     * A number of bytes was made available for the consumer
-     */
-    void produced(size_t nbytes);
-
-    /**
      * Get information of the available data the consumer may read.
      * This is a contiguous space the caller may
      * use, and call consumed() later on to mark the space as free and
@@ -272,47 +325,6 @@ protected:
     cb::const_byte_buffer getAvailableReadSpace() const {
         return {buffer.data() + read_head, write_head - read_head};
     }
-
-    /**
-     * The number of bytes just removed from the consumer end of the buffer.
-     *
-     * If the consumer catch up with the producer all pointers returned
-     * could be invalidated (most likely reset to the beginning of the
-     * buffer)
-     */
-    void consumed(size_t nbytes);
-
-    /*
-     * Some helper functions while running under Valgrind to help us
-     * verify that people aren't messing around with the buffers when
-     * they shouldn't.
-     *
-     * The documentation in the manual is a bit vague on how the underlying
-     * stuff works, so I decided to take the simple approach. In the "normal"
-     * situation we keep the section of the data containing data we may read
-     * open for access. The rest of the buffer is locked. When the client
-     * calls the "produce" methods, we lock the read buffer and open up
-     * the write buffer for access.
-     */
-#ifdef CB_PIPE_VALGRIND_INTEGRATION
-    void valgrind_unlock_entire_buffer();
-    void valgrind_lock_entire_buffer();
-
-    void valgrind_unlock_write_buffer();
-    void valgrind_lock_write_buffer();
-
-    void valgrind_unlock_read_buffer();
-    void valgrind_lock_read_buffer();
-#else
-    void valgrind_unlock_entire_buffer() {}
-    void valgrind_lock_entire_buffer() {}
-
-    void valgrind_unlock_write_buffer() {}
-    void valgrind_lock_write_buffer() {}
-
-    void valgrind_unlock_read_buffer() {}
-    void valgrind_lock_read_buffer() {}
-#endif
 
     // The information about the underlying buffer
     cb::byte_buffer buffer;

@@ -48,6 +48,22 @@ void Produce(benchmark::State& state) {
 }
 BENCHMARK(Produce);
 
+// Benchmark calling the produce part of the pipe by using the wdata() and
+// produced
+void ProduceWdata(benchmark::State& state) {
+    std::vector<uint8_t> blob(256);
+    cb::Pipe pipe(4096);
+
+    while (state.KeepRunning()) {
+        pipe.clear();
+        auto data = pipe.wdata();
+        std::copy(blob.begin(), blob.end(), data.begin());
+        pipe.produced(256);
+    }
+}
+BENCHMARK(ProduceWdata);
+
+
 // Benchmark calling the consume part of the pipe to check the data just
 // being sent points to the buffer (this represents the action we've added
 // to see if just sent data
