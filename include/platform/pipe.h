@@ -17,9 +17,12 @@
 #pragma once
 
 #include <platform/cb_malloc.h>
+#include <platform/make_unique.h>
 #include <platform/platform.h>
 #include <platform/sized_buffer.h>
 
+#include <algorithm>
+#include <cinttypes>
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -78,7 +81,7 @@ namespace cb {
  * the read_head catch up with the write_head they're both set to 0 (the
  * beginning of the buffer).
  */
-class PLATFORM_PUBLIC_API Pipe {
+class Pipe {
 public:
     /**
      * Initialize a pipe with the given buffer size (default empty).
@@ -87,7 +90,12 @@ public:
      *
      * @param size The initial size of the buffer in the pipe (default 0)
      */
-    explicit Pipe(size_t size = 0);
+    explicit Pipe(size_t size = 0)
+        : allocation_chunk_size(
+                  std::max(calculateAllocationChunkSize(size), size_t(512))) {
+        memory.reset(new uint8_t[size]);
+        buffer = {memory.get(), size};
+    }
 
     /**
      * Make sure that one may insert at least the specified number
@@ -101,7 +109,57 @@ public:
      *         write end)
      * @throws std::bad_alloc if memory allocation fails
      */
-    size_t ensureCapacity(size_t nbytes);
+    size_t ensureCapacity(size_t nbytes) {
+        const size_t tail_space = buffer.size() - write_head;
+        if (tail_space >= nbytes) { // do we have enough space at the tail?
+            return wsize();
+        }
+
+        if (nbytes <= (tail_space + read_head)) {
+            // we've got space if we pack the buffer
+            const auto head_space = read_head;
+            pack();
+            auto ret = wsize();
+            if (ret < nbytes) {
+                throw std::logic_error(
+                        "Pipe::ensureCapacity: expecting pack to free up "
+                        "enough "
+                        "bytes: " +
+                        std::to_string(ret) + " < " + std::to_string(nbytes) +
+                        ". hs: " + std::to_string(head_space) +
+                        " ts: " + std::to_string(tail_space));
+            }
+            return ret;
+        }
+
+        // No. We need to allocate a bigger memory area to fit the requested
+        size_t count = 1;
+        while (((count * allocation_chunk_size) + tail_space + read_head) <
+               nbytes) {
+            ++count;
+        }
+
+        const auto nsize = buffer.size() + (count * allocation_chunk_size);
+        std::unique_ptr<uint8_t[]> nmem(new uint8_t[nsize]);
+
+        // Copy the existing data over
+        std::copy(memory.get() + read_head,
+                  memory.get() + write_head,
+                  nmem.get());
+        memory.swap(nmem);
+        buffer = {memory.get(), nsize};
+        write_head -= read_head;
+        read_head = 0;
+
+        return wsize();
+    }
+
+    /**
+     * Get the current allocation size of the buffer
+     */
+    size_t capacity() const {
+        return buffer.size();
+    }
 
     /**
      * Read the number of bytes currently available in the read end
@@ -144,7 +202,18 @@ public:
      * @return the number of bytes produced
      */
     ssize_t produce(std::function<ssize_t(void* /* ptr */, size_t /* size */)>
-                            producer);
+                            producer) {
+        auto avail = getAvailableWriteSpace();
+
+        const ssize_t ret =
+                producer(static_cast<void*>(avail.data()), avail.size());
+
+        if (ret > 0) {
+            produced(ret);
+        }
+
+        return ret;
+    }
 
     /**
      * Try to produce a number of bytes by providing a callback function
@@ -154,7 +223,17 @@ public:
      *                 provided buffer.
      * @return the number of bytes produced
      */
-    ssize_t produce(std::function<ssize_t(cb::byte_buffer)> producer);
+    ssize_t produce(std::function<ssize_t(cb::byte_buffer)> producer) {
+        auto avail = getAvailableWriteSpace();
+
+        const ssize_t ret = producer({avail.data(), avail.size()});
+
+        if (ret > 0) {
+            produced(ret);
+        }
+
+        return ret;
+    }
 
     /**
      * A number of bytes was made available for the consumer
@@ -162,7 +241,7 @@ public:
     void produced(size_t nbytes) {
         if (write_head + nbytes > buffer.size()) {
             throw std::logic_error(
-                "Pipe::produced(): Produced bytes exceeds "
+                    "Pipe::produced(): Produced bytes exceeds "
                     "the number of available bytes");
         }
         write_head += nbytes;
@@ -177,7 +256,15 @@ public:
      * @return the number of bytes consumed
      */
     ssize_t consume(std::function<ssize_t(const void* /* ptr */,
-                                          size_t /* size */)> consumer);
+                                          size_t /* size */)> consumer) {
+        auto avail = getAvailableReadSpace();
+        const ssize_t ret =
+                consumer(static_cast<const void*>(avail.data()), avail.size());
+        if (ret > 0) {
+            consumed(ret);
+        }
+        return ret;
+    }
 
     /**
      * Try to consume data from the buffer by providing a callback function
@@ -187,7 +274,14 @@ public:
      *                 returned.
      * @return the number of bytes consumed
      */
-    ssize_t consume(std::function<ssize_t(cb::const_byte_buffer)> consumer);
+    ssize_t consume(std::function<ssize_t(cb::const_byte_buffer)> consumer) {
+        auto avail = getAvailableReadSpace();
+        const ssize_t ret = consumer({avail.data(), avail.size()});
+        if (ret > 0) {
+            consumed(ret);
+        }
+        return ret;
+    }
 
     /**
      * The number of bytes just removed from the consumer end of the buffer.
@@ -199,7 +293,7 @@ public:
     void consumed(size_t nbytes) {
         if (read_head + nbytes > write_head) {
             throw std::logic_error(
-                "Pipe::consumed(): Consumed bytes exceeds "
+                    "Pipe::consumed(): Consumed bytes exceeds "
                     "the number of available bytes");
         }
 
@@ -223,7 +317,19 @@ public:
      *
      * @return true if the buffer is empty after packing
      */
-    bool pack();
+    bool pack() {
+        if (read_head == write_head) {
+            read_head = write_head = 0;
+        } else {
+            ::memmove(buffer.data(),
+                      buffer.data() + read_head,
+                      write_head - read_head);
+            write_head -= read_head;
+            read_head = 0;
+        }
+
+        return empty();
+    }
 
     /**
      * Is this buffer empty (the consumer end completely caught up with
@@ -257,16 +363,26 @@ public:
      * read and write buffer for connection stats).
      */
     void stats(std::function<void(const char* /* key */,
-                                  const char* /* value */)> stats);
-
-    /**
-     * The underlying buffer is being allocated by a number of chunks of the
-     * given size. The input size of the buffer is rounded to sizes of this
-     * size, and the chunk size for the pipe is set to that.
-     */
-    static const size_t defaultAllocationChunkSize;
+                                  const char* /* value */)> stats) {
+        char value[64];
+        snprintf(value, sizeof(value), "0x%" PRIxPTR, uintptr_t(buffer.data()));
+        stats("buffer", value);
+        stats("size", std::to_string(buffer.size()).c_str());
+        stats("read_head", std::to_string(read_head).c_str());
+        stats("write_head", std::to_string(write_head).c_str());
+        stats("empty", empty() ? "true" : "false");
+    }
 
 protected:
+    size_t calculateAllocationChunkSize(size_t nbytes) {
+        auto chunks = nbytes / 512;
+        if (nbytes % 512 != 0) {
+            chunks++;
+        }
+
+        return chunks * 512;
+    }
+
     /**
      * Get information of the _unused_ space in the write end of
      * the pipe. This is a contiguous space the caller may use, and

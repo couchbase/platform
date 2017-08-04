@@ -168,7 +168,6 @@ ADD_LIBRARY(platform_so SHARED ${PLATFORM_FILES}
                             src/crc32c_sse4_2.cc
                             src/crc32c_private.h
                             src/global_new_replacement.cc
-                            src/pipe.cc
                             src/processclock.cc
                             src/strerror.cc
                             src/string.cc
