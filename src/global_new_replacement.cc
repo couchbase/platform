@@ -91,3 +91,14 @@ void operator delete[](void *ptr) {
     cb_free(ptr);
 }
 #endif
+
+
+/* As we have a global new replacement, libraries could end up calling the
+ * system malloc_usable_size (if present) with a pointer to memory
+ * allocated by different allocator. This interposes malloc_usable_size
+ * to ensure the malloc_usable_size of the desired allocator is called */
+#if defined(HAVE_MALLOC_USABLE_SIZE)
+extern "C" size_t malloc_usable_size(void* ptr) {
+        return cb_malloc_usable_size(ptr);
+}
+#endif
