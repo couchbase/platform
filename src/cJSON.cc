@@ -348,8 +348,10 @@ static char *print_object(const cJSON *item, int depth, int fmt);
 /* Utility to jump whitespace and cr/lf */
 static const char *skip(const char *in)
 {
-    while (in && (unsigned char)*in <= 32) {
-        in++;
+    if (in != nullptr) {
+        while (*in && (unsigned char)*in <= 32) {
+            in++;
+        }
     }
     return in;
 }
