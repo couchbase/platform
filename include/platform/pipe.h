@@ -16,8 +16,7 @@
  */
 #pragma once
 
-#include <platform/cb_malloc.h>
-#include <platform/make_unique.h>
+#include <cJSON_utils.h>
 #include <platform/platform.h>
 #include <platform/sized_buffer.h>
 
@@ -355,22 +354,15 @@ public:
 
     /**
      * Get the (internal) properties of the pipe
-     *
-     * This allows other tools to build up a json structure or dump it
-     * elsewhere. We could have made a "to_json" method, but that would
-     * add a dependency to cJSON from our platform lib (this method
-     * is intended to be called from memcached core on the connections
-     * read and write buffer for connection stats).
      */
-    void stats(std::function<void(const char* /* key */,
-                                  const char* /* value */)> stats) {
-        char value[64];
-        snprintf(value, sizeof(value), "0x%" PRIxPTR, uintptr_t(buffer.data()));
-        stats("buffer", value);
-        stats("size", std::to_string(buffer.size()).c_str());
-        stats("read_head", std::to_string(read_head).c_str());
-        stats("write_head", std::to_string(write_head).c_str());
-        stats("empty", empty() ? "true" : "false");
+    unique_cJSON_ptr to_json() const {
+        unique_cJSON_ptr ret(cJSON_CreateObject());
+        cJSON_AddUintPtrToObject(ret.get(), "buffer", uintptr_t(buffer.data()));
+        cJSON_AddNumberToObject(ret.get(), "size", buffer.size());
+        cJSON_AddNumberToObject(ret.get(), "read_head", read_head);
+        cJSON_AddNumberToObject(ret.get(), "write_head", write_head);
+        cJSON_AddBoolToObject(ret.get(), "empty", empty());
+        return ret;
     }
 
 protected:
