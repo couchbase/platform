@@ -17,6 +17,7 @@
 #pragma once
 
 #include <cJSON_utils.h>
+#include <platform/cb_malloc.h>
 #include <platform/platform.h>
 #include <platform/sized_buffer.h>
 
@@ -92,7 +93,10 @@ public:
     explicit Pipe(size_t size = 0)
         : allocation_chunk_size(
                   std::max(calculateAllocationChunkSize(size), size_t(512))) {
-        memory.reset(new uint8_t[size]);
+        memory.reset(static_cast<uint8_t*>(cb_malloc(size)));
+        if (!memory) {
+            throw std::bad_alloc();
+        }
         buffer = {memory.get(), size};
     }
 
@@ -139,17 +143,25 @@ public:
         }
 
         const auto nsize = buffer.size() + (count * allocation_chunk_size);
-        std::unique_ptr<uint8_t[]> nmem(new uint8_t[nsize]);
 
-        // Copy the existing data over
-        std::copy(memory.get() + read_head,
-                  memory.get() + write_head,
-                  nmem.get());
-        memory.swap(nmem);
+        void* nmem = cb_realloc(memory.get(), nsize);
+        if (nmem == nullptr) {
+            throw std::bad_alloc();
+        }
+
+        if (nmem != memory.get()) {
+            // Realloc allocated a new memory segment and freed the old
+            // one. That means that the memory area is already freed
+            // so we need to release the pointer from our unique_ptr.
+            // If we try to use reset() it'll try to free it again
+            // that would be a double-free.
+            memory.release();
+            // Track the new memory area
+            memory.reset(static_cast<uint8_t*>(nmem));
+        }
+
         buffer = {memory.get(), nsize};
-        write_head -= read_head;
-        read_head = 0;
-
+        pack();
         return wsize();
     }
 
@@ -399,7 +411,12 @@ protected:
     // The information about the underlying buffer
     cb::byte_buffer buffer;
 
-    std::unique_ptr<uint8_t[]> memory;
+    struct cb_malloc_deleter {
+        void operator()(uint8_t* ptr) {
+            cb_free(static_cast<void*>(ptr));
+        }
+    };
+    std::unique_ptr<uint8_t, cb_malloc_deleter> memory;
 
     // The offset in the buffer where we may start write
     size_t write_head = 0;
