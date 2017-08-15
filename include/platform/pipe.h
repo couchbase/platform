@@ -88,12 +88,16 @@ public:
      *
      * The write end of the pipe may be increased by calling ensureCapacity.
      *
-     * @param size The initial size of the buffer in the pipe (default 0)
+     * The minimum size of the buffer is 128 bytes (to avoid having to deal
+     * with 0 sized buffers and code which accidentally end up with such a
+     * buffer in a corner case and get a std::logic_error thrown in their
+     * face).
+     *
+     * @param size The initial size of the buffer in the pipe (default 2k)
      */
-    explicit Pipe(size_t size = 0)
-        : allocation_chunk_size(
-                  std::max(calculateAllocationChunkSize(size), size_t(512))) {
-        memory.reset(static_cast<uint8_t*>(cb_malloc(size)));
+    explicit Pipe(size_t size = 2048) {
+        const size_t allocation_size = std::max(size, size_t(128));
+        memory.reset(static_cast<uint8_t*>(cb_malloc(allocation_size)));
         if (!memory) {
             throw std::bad_alloc();
         }
@@ -114,53 +118,44 @@ public:
      */
     size_t ensureCapacity(size_t nbytes) {
         const size_t tail_space = buffer.size() - write_head;
-        if (tail_space >= nbytes) { // do we have enough space at the tail?
+        if (tail_space >= nbytes) {
+            // There is enough space available at the tail
             return wsize();
         }
 
-        if (nbytes <= (tail_space + read_head)) {
-            // we've got space if we pack the buffer
-            const auto head_space = read_head;
-            pack();
-            auto ret = wsize();
-            if (ret < nbytes) {
-                throw std::logic_error(
-                        "Pipe::ensureCapacity: expecting pack to free up "
-                        "enough "
-                        "bytes: " +
-                        std::to_string(ret) + " < " + std::to_string(nbytes) +
-                        ". hs: " + std::to_string(head_space) +
-                        " ts: " + std::to_string(tail_space));
+        // No; we need a bigger buffer (or "pack" our existing buffer
+        // by moving the data in the pipe to the beginning of the buffer).
+        // We don't want to allocate buffers of all kinds of sizes, so just
+        // keep on doubling the size of the buffer until we find a buffer
+        // which is big enough.
+        const size_t needed = nbytes + rsize();
+        size_t nsize = buffer.size();
+        while (needed > nsize) {
+            nsize *= 2;
+        }
+
+        if (nsize != buffer.size()) {
+            // We need to reallocate in order to satisfy the allocation
+            // request.
+            auto* newm = cb_realloc(memory.get(), nsize);
+            if (newm == nullptr) {
+                throw std::bad_alloc();
             }
-            return ret;
-        }
 
-        // No. We need to allocate a bigger memory area to fit the requested
-        size_t count = 1;
-        while (((count * allocation_chunk_size) + tail_space + read_head) <
-               nbytes) {
-            ++count;
-        }
-
-        const auto nsize = buffer.size() + (count * allocation_chunk_size);
-
-        void* nmem = cb_realloc(memory.get(), nsize);
-        if (nmem == nullptr) {
-            throw std::bad_alloc();
-        }
-
-        if (nmem != memory.get()) {
-            // Realloc allocated a new memory segment and freed the old
-            // one. That means that the memory area is already freed
-            // so we need to release the pointer from our unique_ptr.
-            // If we try to use reset() it'll try to free it again
-            // that would be a double-free.
+            // We're using a std::unique_ptr to keep track of the allocated
+            // memory segment, but realloc may or may not perform a
+            // reallocation. If it did perform a reallocation it released
+            // the allocated memory, so we need to release that from our
+            // unique_ptr to avoid unique_ptr to free the memory when
+            // we try to reset the new memory (if not we'll try to free
+            // the memory twice).
             memory.release();
-            // Track the new memory area
-            memory.reset(static_cast<uint8_t*>(nmem));
+            memory.reset(static_cast<uint8_t*>(newm));
+            buffer = {memory.get(), nsize};
         }
 
-        buffer = {memory.get(), nsize};
+        // Pack the buffer by moving all of the data to the beginning of
+        // the buffer.
         pack();
         return wsize();
     }
@@ -331,7 +326,7 @@ public:
     bool pack() {
         if (read_head == write_head) {
             read_head = write_head = 0;
-        } else {
+        } else if (read_head != 0) {
             ::memmove(buffer.data(),
                       buffer.data() + read_head,
                       write_head - read_head);
@@ -378,15 +373,6 @@ public:
     }
 
 protected:
-    size_t calculateAllocationChunkSize(size_t nbytes) {
-        auto chunks = nbytes / 512;
-        if (nbytes % 512 != 0) {
-            chunks++;
-        }
-
-        return chunks * 512;
-    }
-
     /**
      * Get information of the _unused_ space in the write end of
      * the pipe. This is a contiguous space the caller may use, and
@@ -423,9 +409,6 @@ protected:
 
     // The offset in the buffer where we may start deading
     size_t read_head = 0;
-
-    // the allocation chunk size.
-    const size_t allocation_chunk_size;
 };
 
 } // namespace cb

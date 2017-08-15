@@ -19,23 +19,16 @@
 
 #include <gtest/gtest.h>
 
-class MockPipe : public cb::Pipe {
-public:
-    size_t capacity() const {
-        return buffer.size();
-    }
-};
-
 class PipeTest : public ::testing::Test {
 protected:
-    MockPipe buffer;
+    cb::Pipe buffer;
 };
 
 TEST_F(PipeTest, DefaultSize) {
-    EXPECT_EQ(0, buffer.produce([](void*, size_t size) -> ssize_t {
+    EXPECT_EQ(2048, buffer.produce([](void*, size_t size) -> ssize_t {
         return size;
     }));
-    EXPECT_EQ(0, buffer.consume([](const void*, size_t size) -> ssize_t {
+    EXPECT_EQ(2048, buffer.consume([](const void*, size_t size) -> ssize_t {
         return size;
     }));
     EXPECT_TRUE(buffer.empty());
@@ -43,9 +36,11 @@ TEST_F(PipeTest, DefaultSize) {
 
 TEST_F(PipeTest, EnsureCapacity) {
     buffer.ensureCapacity(100);
-    EXPECT_EQ(512, buffer.wsize());
-    buffer.produce([](void*, size_t size) -> ssize_t {
-        EXPECT_EQ(512, size);
+    EXPECT_EQ(buffer.capacity(), buffer.wsize());
+
+    size_t capacity = buffer.capacity();
+    buffer.produce([capacity](void*, size_t size) -> ssize_t {
+        EXPECT_EQ(capacity, size);
         return 0;
     });
 
@@ -65,8 +60,7 @@ TEST_F(PipeTest, EnsureCapacity) {
     });
 
     EXPECT_EQ(message.size(), buffer.rsize());
-    EXPECT_EQ(512 - message.size(),
-              buffer.wsize());
+    EXPECT_EQ(buffer.capacity() - message.size(), buffer.wsize());
 
     // Read out some of the data
     buffer.consume([](const void*, size_t size) -> ssize_t {
@@ -74,15 +68,17 @@ TEST_F(PipeTest, EnsureCapacity) {
     });
 
     EXPECT_EQ(5, buffer.rsize()); // The buffer should still contain world
-    EXPECT_EQ(512 - message.size(),
-              buffer.wsize());
+    EXPECT_EQ(buffer.capacity() - message.size(), buffer.wsize());
 
-    buffer.ensureCapacity(1024);
-    buffer.produce([](void*, size_t size) -> ssize_t {
-        // the reallocation should be aligned to 3 chunks. The memory in the
-        // old buffer was moved to the beginning of the buffer so that we've
+    buffer.ensureCapacity(3000);
+    // the buffer should have been doubled in size
+    EXPECT_EQ(capacity * 2, buffer.capacity());
+    capacity = buffer.capacity();
+    buffer.produce([capacity](void*, size_t size) -> ssize_t {
+        // the reallocation should be doubled, and the memory in the old
+        // buffer was moved to the beginning of the buffer so that we've
         // freed up the data we've already consumed.
-        EXPECT_EQ(512 * 3 - 5, size);
+        EXPECT_EQ(capacity - 5, size);
         return 0;
     });
 
@@ -113,15 +109,16 @@ TEST_F(PipeTest, ConsumeOverfow) {
 
 TEST_F(PipeTest, ProduceConsume) {
     buffer.ensureCapacity(100);
-    EXPECT_EQ(3, buffer.produce([](void* ptr, size_t size) -> ssize_t {
-        EXPECT_EQ(512, size);
+    const auto capacity = buffer.capacity();
+    EXPECT_EQ(3, buffer.produce([capacity](void* ptr, size_t size) -> ssize_t {
+        EXPECT_EQ(capacity, size);
         ::memcpy(ptr, "abc", 3);
         return 3;
     }));
 
-    // We should have 97 elements available
-    buffer.produce([](void* ptr, size_t size) -> ssize_t {
-        EXPECT_EQ(512 - 3, size);
+    // We should have occupied 3 elements
+    buffer.produce([capacity](void* ptr, size_t size) -> ssize_t {
+        EXPECT_EQ(capacity - 3, size);
         return 0;
     });
 
@@ -136,8 +133,8 @@ TEST_F(PipeTest, ProduceConsume) {
 
     // We've consumed only 1 byte so the produce space is unchanged,
     // but the consumer space is less
-    buffer.produce([](void* ptr, size_t size) -> ssize_t {
-        EXPECT_EQ(512 - 3, size);
+    buffer.produce([capacity](void* ptr, size_t size) -> ssize_t {
+        EXPECT_EQ(capacity - 3, size);
         return 0;
     });
 
@@ -150,8 +147,8 @@ TEST_F(PipeTest, ProduceConsume) {
 
     // We've consumed only 1 byte so the produce space is unchanged,
     // but the consumer space is less
-    buffer.produce([](void* ptr, size_t size) -> ssize_t {
-        EXPECT_EQ(512 - 3, size);
+    buffer.produce([capacity](void* ptr, size_t size) -> ssize_t {
+        EXPECT_EQ(capacity - 3, size);
         return 0;
     });
 
@@ -163,13 +160,13 @@ TEST_F(PipeTest, ProduceConsume) {
         return 0;
     });
 
-    // Let's pack the buffer.. that should move the bytes and leave 99
-    // buffers available in the buffer (pack returns true if the
-    // pipe is empty)
+    // Let's pack the buffer.. that should move the bytes and leave
+    // the entire capacity minus one element available in the buffer.
+    // pack() returns true if the pipe is empty.
     EXPECT_FALSE(buffer.pack());
-    buffer.produce([](void* ptr, size_t size) -> ssize_t {
+    buffer.produce([capacity](void* ptr, size_t size) -> ssize_t {
         // Everything should have been moved to the front..
-        EXPECT_EQ(512 - 1, size);
+        EXPECT_EQ(capacity - 1, size);
         return 0;
     });
 
@@ -186,14 +183,19 @@ TEST_F(PipeTest, ProduceConsume) {
     // And trying to pack it should return true
     EXPECT_TRUE(buffer.pack());
 
-    // And we should be able to insert 100 items again
-    buffer.produce([](void* ptr, size_t size) -> ssize_t {
-        EXPECT_EQ(512, size);
+    // And we should be able to insert the initial capacity number of items
+    EXPECT_EQ(capacity, buffer.wsize());
+    buffer.produce([capacity](void* ptr, size_t size) -> ssize_t {
+        EXPECT_EQ(capacity, size);
         return 0;
     });
 }
 
-TEST_F(PipeTest, CustomChunkSize) {
-    cb::Pipe pipe(4096);
-    EXPECT_EQ(8192, pipe.ensureCapacity(4097));
+TEST_F(PipeTest, RellocationSizes) {
+    cb::Pipe pipe;
+
+    // Verify that we always double the size of the buffer
+    for (int ii = 1; ii < 8; ii++) {
+        EXPECT_EQ(2048 << ii, pipe.ensureCapacity(pipe.capacity() + 1));
+    }
 }
