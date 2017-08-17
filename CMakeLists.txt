@@ -264,7 +264,6 @@ INSTALL(TARGETS breakpad_wrapper cJSON JSON_checker platform_so dirutils
         LIBRARY DESTINATION lib
         ARCHIVE DESTINATION lib)
 
-ADD_SUBDIRECTORY(extmeta)
 ADD_SUBDIRECTORY(cbcompress)
 ADD_SUBDIRECTORY(cbsocket)
 
