@@ -16,24 +16,29 @@
  */
 #include "config.h"
 
-#include <platform/cb_malloc.h>
-#include <platform/strerror.h>
 #include <assert.h>
-#include <stdio.h>
 #include <fcntl.h>
 #include <io.h>
+#include <phosphor/phosphor.h>
+#include <platform/cb_malloc.h>
+#include <platform/strerror.h>
+#include <stdio.h>
 #include <vector>
 
 struct thread_execute {
     cb_thread_main_func func;
     void *argument;
+    // Windows doesn't support naming threads, but phosphor does
+    std::string thread_name;
 };
 
 static DWORD WINAPI platform_thread_wrap(LPVOID arg)
 {
     auto *ctx = reinterpret_cast<struct thread_execute*>(arg);
     assert(ctx);
+    PHOSPHOR_INSTANCE.registerThread(ctx->thread_name);
     ctx->func(ctx->argument);
+    PHOSPHOR_INSTANCE.deregisterThread();
     delete ctx;
     return 0;
 }
@@ -45,6 +50,15 @@ int cb_create_thread(cb_thread_t *id,
                      void *arg,
                      int detached)
 {
+    // Implemented in terms of cb_create_named_thread; without a name.
+    return cb_create_named_thread(id, func, arg, detached, NULL);
+}
+
+__declspec(dllexport) int cb_create_named_thread(cb_thread_t* id,
+                                                 void (*func)(void* arg),
+                                                 void* arg,
+                                                 int detached,
+                                                 const char* name) {
     HANDLE handle;
 
     struct thread_execute *ctx;
@@ -56,6 +70,7 @@ int cb_create_thread(cb_thread_t *id,
 
     ctx->func = func;
     ctx->argument = arg;
+    ctx->thread_name = (name == nullptr) ? "" : name;
 
     handle = CreateThread(NULL, 0, platform_thread_wrap, ctx, 0, id);
     if (handle == NULL) {
@@ -68,15 +83,6 @@ int cb_create_thread(cb_thread_t *id,
     }
 
     return 0;
-}
-
-__declspec(dllexport)
-int cb_create_named_thread(cb_thread_t *id, void (*func)(void *arg), void *arg,
-                     int detached, const char* name)
-{
-    // Thread naming not supported on WIN32, just call down to non-named
-    // variant.
-    return cb_create_thread(id, func, arg, detached);
 }
 
 __declspec(dllexport)
