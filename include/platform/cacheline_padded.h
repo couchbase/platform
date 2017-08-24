@@ -83,15 +83,15 @@ private:
   T item;
 };
 
-} // namespace cb
-
-#undef FALSE_SHARING_RANGE
-
 /// output stream operator - forwards to underlying type's operator to
 /// allow generic code to still stream padded types.
 template<typename T>
-std::ostream& operator<<(std::ostream& os, const cb::CachelinePadded<T>& obj)
+std::ostream& operator<<(std::ostream& os, const CachelinePadded<T>& obj)
 {
     os << *obj;
     return os;
 }
+
+} // namespace cb
+
+#undef FALSE_SHARING_RANGE
