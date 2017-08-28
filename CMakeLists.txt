@@ -42,7 +42,6 @@ CHECK_SYMBOL_EXISTS(sched_getaffinity sched.h HAVE_SCHED_GETAFFINITY)
 CMAKE_POP_CHECK_STATE()
 
 CMAKE_PUSH_CHECK_STATE(RESET)
-CHECK_CXX_SOURCE_COMPILES("void f() noexcept; int main() { return 0; }" HAVE_NOEXCEPT)
 
 CHECK_CXX_SOURCE_COMPILES("
     #include <memory>
