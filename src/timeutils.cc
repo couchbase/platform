@@ -17,9 +17,15 @@
 
 #include <platform/timeutils.h>
 
-std::string Couchbase::hrtime2text(hrtime_t time) {
+std::string Couchbase::hrtime2text(hrtime_t time2convert) {
+    std::chrono::nanoseconds time(time2convert);
+    return cb::time2text(time);
+}
+
+std::string cb::time2text(std::chrono::nanoseconds time2convert) {
     const char* const extensions[] = {" ns", " us", " ms", " s", nullptr};
     int id = 0;
+    auto time = time2convert.count();
 
     while (time > 9999) {
         ++id;

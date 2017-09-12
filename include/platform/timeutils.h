@@ -17,6 +17,7 @@
 #pragma once
 
 #include <platform/platform.h>
+#include <chrono>
 #include <string>
 
 
@@ -42,4 +43,14 @@ namespace Couchbase {
  */
 PLATFORM_PUBLIC_API
 std::string hrtime2text(const hrtime_t time);
+}
+
+namespace cb {
+/**
+ * Convert a time (in ns) to a human readable form...
+ * @param time the time in nanoseconds
+ * @return a string representation of the timestamp
+ */
+PLATFORM_PUBLIC_API
+std::string time2text(const std::chrono::nanoseconds time);
 }

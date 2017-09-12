@@ -15,77 +15,61 @@
  *   limitations under the License.
  */
 #include <platform/timeutils.h>
+#include <chrono>
 
 #include <gtest/gtest.h>
 
-using Couchbase::hrtime2text;
+using cb::time2text;
 
 TEST(TimeutilsTest, Nano0) {
-    hrtime_t ns = 0;
-    EXPECT_EQ(std::string("0 ns"), hrtime2text(ns));
+    EXPECT_EQ(std::string("0 ns"),
+              time2text(std::chrono::nanoseconds(0)));
 }
 
 TEST(TimeutilsTest, Nano9999) {
-    hrtime_t ns = 9999;
-    EXPECT_EQ(std::string("9999 ns"), hrtime2text(ns));
+    EXPECT_EQ(std::string("9999 ns"),
+              time2text(std::chrono::nanoseconds(9999)));
 }
 
 TEST(TimeutilsTest, NanoUsecWrap) {
-    hrtime_t ns = 9999 + 1;
-    EXPECT_EQ(std::string("10 us"), hrtime2text(ns));
+    EXPECT_EQ(std::string("10 us"),
+              time2text(std::chrono::microseconds(10)));
 }
 
 TEST(TimeutilsTest, Usec9999) {
-    hrtime_t ns = 9999;
-    ns *= 1000; // make usec
-    EXPECT_EQ(std::string("9999 us"), hrtime2text(ns));
+    EXPECT_EQ(std::string("9999 us"),
+              time2text(std::chrono::microseconds(9999)));
 }
 
 TEST(TimeutilsTest, UsecMsecWrap) {
-    hrtime_t ns = 9999 + 1;
-    ns *= 1000; // make usec
-    EXPECT_EQ(std::string("10 ms"), hrtime2text(ns));
+    EXPECT_EQ(std::string("10 ms"),
+              time2text(std::chrono::milliseconds(10)));
 }
 
 TEST(TimeutilsTest, Msec9999) {
-    hrtime_t ns = 9999;
-    ns *= 1000; // make usec
-    ns *= 1000; // make ms
-
-    EXPECT_EQ(std::string("9999 ms"), hrtime2text(ns));
+    EXPECT_EQ(std::string("9999 ms"),
+              time2text(std::chrono::milliseconds(9999)));
 }
 
 TEST(TimeutilsTest, MsecSecWrap) {
-    hrtime_t ns = 9999 + 1;
-    ns *= 1000; // make usec
-    ns *= 1000; // make ms
-
-    EXPECT_EQ(std::string("10 s"), hrtime2text(ns));
+    EXPECT_EQ(std::string("10 s"),
+              time2text(std::chrono::seconds(10)));
 }
 
 TEST(TimeutilsTest, SecLargest) {
-    hrtime_t ns = 1000;
-    ns *= 1000; // make usec
-    ns *= 1000; // make ms
-    ns *= 599;
-
-    EXPECT_EQ(std::string("599 s"), hrtime2text(ns));
+    EXPECT_EQ(std::string("599 s"),
+              time2text(std::chrono::seconds(599)));
 }
 
 TEST(TimeutilsTest, AlmostFullSpecTime) {
-    hrtime_t ns = 1000;
-    ns *= 1000; // make usec
-    ns *= 1000; // make ms
-    ns *= 600;  // 10 minutes
-
-    EXPECT_EQ(std::string("10m:0s"), hrtime2text(ns));
+    EXPECT_EQ(std::string("10m:0s"),
+              time2text(std::chrono::minutes(10)));
 }
 
 TEST(TimeutilsTest, FullSpecTime) {
-    hrtime_t ns = 1000;
-    ns *= 1000; // make usec
-    ns *= 1000; // make ms
-    ns *= 3661; // 1hour, 1minute and 1sec
+    std::chrono::nanoseconds ns (std::chrono::hours(1)
+                                 + std::chrono::minutes(1)
+                                 + std::chrono::seconds(1));
 
-    EXPECT_EQ(std::string("1h:1m:1s"), hrtime2text(ns));
+    EXPECT_EQ(std::string("1h:1m:1s"), time2text(ns));
 }
