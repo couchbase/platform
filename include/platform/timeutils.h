@@ -35,16 +35,6 @@
 #define PLATFORM_PUBLIC_API IMPORT_SYMBOL
 #endif
 
-namespace Couchbase {
-/**
- * Convert a time (in ns) to a human readable form...
- * @param time the time in nanoseconds
- * @return a string representation of the timestamp
- */
-PLATFORM_PUBLIC_API
-std::string hrtime2text(const hrtime_t time);
-}
-
 namespace cb {
 /**
  * Convert a time (in ns) to a human readable form...
