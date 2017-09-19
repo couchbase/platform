@@ -21,6 +21,42 @@
 
 #include <gtest/gtest.h>
 
+TEST(NonNegativeCounterTest, Increment) {
+    cb::NonNegativeCounter<size_t> nnAtomic(1);
+    ASSERT_EQ(1, nnAtomic);
+
+    EXPECT_EQ(2, ++nnAtomic);
+    EXPECT_EQ(2, nnAtomic++);
+    EXPECT_EQ(3, nnAtomic);
+}
+
+TEST(NonNegativeCounterTest, Add) {
+    cb::NonNegativeCounter<size_t> nnAtomic(1);
+    ASSERT_EQ(1, nnAtomic);
+
+    EXPECT_EQ(3, nnAtomic += 2);
+    EXPECT_EQ(3, nnAtomic.fetch_add(2));
+    EXPECT_EQ(5, nnAtomic);
+}
+
+TEST(NonNegativeCounterTest, Decrement) {
+    cb::NonNegativeCounter<size_t> nnAtomic(2);
+    ASSERT_EQ(2, nnAtomic);
+
+    EXPECT_EQ(1, --nnAtomic);
+    EXPECT_EQ(1, nnAtomic--);
+    EXPECT_EQ(0, nnAtomic);
+}
+
+TEST(NonNegativeCounterTest, Subtract) {
+    cb::NonNegativeCounter<size_t> nnAtomic(4);
+    ASSERT_EQ(4, nnAtomic);
+
+    EXPECT_EQ(2, nnAtomic -= 2);
+    EXPECT_EQ(2, nnAtomic.fetch_sub(2));
+    EXPECT_EQ(0, nnAtomic);
+}
+
 // Test that a NonNegativeCounter will clamp to zero.
 TEST(NonNegativeCounterTest, ClampsToZero) {
     cb::NonNegativeCounter<size_t> nnAtomic(0);
@@ -30,9 +66,7 @@ TEST(NonNegativeCounterTest, ClampsToZero) {
     EXPECT_EQ(0, nnAtomic);
 
     nnAtomic = 5;
-    EXPECT_EQ(5, nnAtomic);
-    EXPECT_EQ(6, ++nnAtomic);
-    EXPECT_EQ(6, nnAtomic.fetch_sub(10)); // returns previous value
+    EXPECT_EQ(5, nnAtomic.fetch_sub(10)); // returns previous value
     EXPECT_EQ(0, nnAtomic); // has been clamped to zero
 }
 
