@@ -59,7 +59,7 @@ TEST(NonNegativeCounterTest, Subtract) {
 
 // Test that a NonNegativeCounter will clamp to zero.
 TEST(NonNegativeCounterTest, ClampsToZero) {
-    cb::NonNegativeCounter<size_t> nnAtomic(0);
+    cb::NonNegativeCounter<size_t, cb::ClampAtZeroUnderflowPolicy> nnAtomic(0);
 
     EXPECT_EQ(0, --nnAtomic);
     EXPECT_EQ(0, nnAtomic--);

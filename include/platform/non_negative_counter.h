@@ -16,6 +16,8 @@
  */
 #pragma once
 
+#include "config.h"
+
 #include <atomic>
 #include <stdexcept>
 #include <string>
@@ -41,14 +43,23 @@ struct ThrowExceptionUnderflowPolicy {
     }
 };
 
+// Default NonNegativeCounter OrdereReversedPolicy (if user doesn't explicitly
+// specify otherwise) - use ClampAtZeroUnderflowPolicy for Release builds, and
+// ThrowExceptionPolicy for Pre-Release builds.
+template <class T>
+#if CB_DEVELOPMENT_ASSERTS
+using DefaultUnderflowPolicy = ThrowExceptionUnderflowPolicy<T>;
+#else
+using DefaultUnderflowPolicy = ClampAtZeroUnderflowPolicy<T>;
+#endif
 
 /**
  * The NonNegativeCounter class wraps std::atomic<> and prevents it
  * underflowing. By default will clamp the value at 0 on underflow, but
- * behaviour can be customized by specifying a differenr UnderflowPolicy class.
+ * behaviour can be customized by specifying a different UnderflowPolicy class.
  */
 template <typename T,
-          template <class> class UnderflowPolicy = ClampAtZeroUnderflowPolicy>
+          template <class> class UnderflowPolicy = DefaultUnderflowPolicy>
 class NonNegativeCounter : public UnderflowPolicy<T> {
     static_assert(
             std::is_unsigned<T>::value,
