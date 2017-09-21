@@ -180,6 +180,7 @@ ADD_LIBRARY(platform_so SHARED ${PLATFORM_FILES}
                             src/thread.cc
                             src/timeutils.cc
                             src/uuid.cc
+                            include/platform/atomic_duration.h
                             include/platform/base64.h
                             include/platform/bitset.h
                             include/platform/byte_buffer_dump.h
