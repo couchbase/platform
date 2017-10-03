@@ -16,44 +16,51 @@
  */
 #include "config.h"
 
+#include <platform/processclock.h>
 #include <string.h>
+#include <cinttypes>
 
 #ifdef WIN32
 #include <io.h> /* for mktemp*/
 #else
-#include <sys/types.h>
-#include <sys/stat.h>
+
 #include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+
 #endif
 
 PLATFORM_PUBLIC_API
-char *cb_mktemp(char *pattern)
-{
+char* cb_mktemp(char* pattern) {
     int searching = 1;
-    char *ptr = strstr(pattern, "XXXXXX");
+    char* ptr = strstr(pattern, "XXXXXX");
     if (ptr == NULL) {
         return NULL;
     }
-    unsigned int counter = (unsigned int)gethrtime();
+    auto counter = ProcessClock::now().time_since_epoch().count();
 
     do {
         ++counter;
-        sprintf(ptr, "%06u", counter % 1000000);
+        sprintf(ptr, "%06" PRIu64, static_cast<uint64_t>(counter) % 1000000);
 
 #ifdef WIN32
-       HANDLE handle = CreateFile(pattern, GENERIC_READ | GENERIC_WRITE,
-                                  0, NULL, CREATE_NEW, FILE_ATTRIBUTE_NORMAL,
-                                  NULL);
-       if (handle != INVALID_HANDLE_VALUE) {
-           CloseHandle(handle);
-           searching = 0;
-       }
+        HANDLE handle = CreateFile(pattern,
+                                   GENERIC_READ | GENERIC_WRITE,
+                                   0,
+                                   NULL,
+                                   CREATE_NEW,
+                                   FILE_ATTRIBUTE_NORMAL,
+                                   NULL);
+        if (handle != INVALID_HANDLE_VALUE) {
+            CloseHandle(handle);
+            searching = 0;
+        }
 #else
-       int fd = open(pattern, O_WRONLY | O_EXCL | O_CREAT, S_IRUSR | S_IWUSR);
-       if (fd != -1) {
-          close(fd);
-          searching = 0;
-       }
+        int fd = open(pattern, O_WRONLY | O_EXCL | O_CREAT, S_IRUSR | S_IWUSR);
+        if (fd != -1) {
+            close(fd);
+            searching = 0;
+        }
 #endif
 
     } while (searching);

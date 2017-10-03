@@ -17,12 +17,13 @@
 #include "config.h"
 
 #include <platform/platform.h>
-#include <platform/strerror.h>
+#include <platform/processclock.h>
 #include <platform/random.h>
+#include <platform/strerror.h>
 
+#include <mutex>
 #include <sstream>
 #include <stdexcept>
-#include <mutex>
 
 namespace Couchbase {
    class RandomGeneratorProvider {
@@ -85,7 +86,7 @@ uint64_t Couchbase::RandomGenerator::next(void) {
       return ret;
    }
 
-   return gethrtime();
+   return ProcessClock::now().time_since_epoch().count();
 }
 
 PLATFORM_PUBLIC_API

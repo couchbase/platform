@@ -1,15 +1,18 @@
 /* -*- Mode: C; tab-width: 4; c-basic-offset: 4; indent-tabs-mode: nil -*- */
-#include <stdlib.h>
-#include <getopt.h>
-#include <inttypes.h>
-#include <assert.h>
-#include <sys/stat.h>
-#include <string.h>
+
 #include <platform/cb_malloc.h>
 #include <platform/platform.h>
+#include <platform/processclock.h>
+
+#include <assert.h>
 #include <cJSON.h>
-#include <stdio.h>
 #include <errno.h>
+#include <getopt.h>
+#include <inttypes.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
 
 static int spool(FILE *fp, char *dest, size_t size)
 {
@@ -65,21 +68,24 @@ static char *load_file(const char *file)
     return data;
 }
 
-static void report(hrtime_t time) {
-   const char * const extensions[] = { " ns", " usec", " ms", " s", NULL };
-   int id = 0;
+static void report(ProcessClock::duration duration) {
+    const char* const extensions[] = {" ns", " usec", " ms", " s", NULL};
+    int id = 0;
+    auto time = duration.count();
 
-   while (time > 9999) {
-      ++id;
-      time /= 1000;
-      if (extensions[id + 1] == NULL) {
-         break;
-      }
-   }
+    while (time > 9999) {
+        ++id;
+        time /= 1000;
+        if (extensions[id + 1] == NULL) {
+            break;
+        }
+    }
 
-   assert(extensions[id] != NULL);
-   fprintf(stderr, "Parsing took an average of %" PRIu64 "%s\n",
-           (uint64_t)time, extensions[id]);
+    assert(extensions[id] != NULL);
+    fprintf(stderr,
+            "Parsing took an average of %" PRIu64 "%s\n",
+            static_cast<uint64_t>(time),
+            extensions[id]);
 }
 
 int main(int argc, char **argv) {
@@ -88,8 +94,6 @@ int main(int argc, char **argv) {
     int num = 1;
     int cmd;
     int ii;
-    hrtime_t start;
-    hrtime_t delta;
 
     while ((cmd = getopt(argc, argv, "f:n:")) != -1) {
         switch (cmd) {
@@ -103,15 +107,15 @@ int main(int argc, char **argv) {
 
     data = load_file(fname);
 
-    start = gethrtime();
+    auto start = ProcessClock::now();
     for (ii = 0; ii < num; ++ii) {
         cJSON *ptr = cJSON_Parse(data);
         assert(ptr != NULL);
         cJSON_Delete(ptr);
     }
-    delta = gethrtime() - start;
+    auto delta = ProcessClock::now() - start;
 
-    report(delta / (hrtime_t)num);
+    report(delta / num);
 
     cb_free(data);
     exit(EXIT_SUCCESS);

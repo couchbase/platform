@@ -21,22 +21,25 @@
 // hardware versions can be checked.
 //
 
+#include <platform/platform.h>
+#include <platform/processclock.h>
+#include <platform/timeutils.h>
+
 #include <stdint.h>
 #include <cstring>
-#include <vector>
+#include <iomanip>
 #include <iostream>
 #include <random>
-#include <string>
-#include <iomanip>
 #include <sstream>
-
-#include "platform/platform.h"
+#include <string>
+#include <vector>
 
 // extern directly to the hw/sw versions
 extern uint32_t crc32c_sw(const uint8_t* buf, size_t len, uint32_t crc_in);
 extern uint32_t crc32c_hw(const uint8_t* buf, size_t len, uint32_t crc_in);
 extern uint32_t crc32c_hw_1way(const uint8_t* buf, size_t len, uint32_t crc_in);
 
+using DurationVector = std::vector<ProcessClock::duration>;
 typedef uint32_t (*crc32c_function)(const uint8_t* buf, size_t len, uint32_t crc_in);
 
 static std::vector<std::string> column_heads(0);
@@ -58,11 +61,12 @@ void crc_results_banner() {
     std::cout << std::endl;
 }
 
-std::string gib_per_sec(size_t test_size, hrtime_t t) {
+std::string gib_per_sec(size_t test_size, ProcessClock::duration t) {
     double gib_per_sec = 0.0;
-    if (t != 0) {
-        uint64_t one_sec = 1000000000;
-        uint64_t how_many_per_sec = one_sec / t;
+    if (t != ProcessClock::duration::zero()) {
+        auto one_sec = std::chrono::nanoseconds(std::chrono::seconds(1));
+        auto how_many_per_sec = one_sec / t;
+
         double bytes_per_sec = static_cast<double>(test_size * how_many_per_sec);
         gib_per_sec = bytes_per_sec/(1024.0*1024.0*1024.0);
     }
@@ -75,18 +79,19 @@ std::string gib_per_sec(size_t test_size, hrtime_t t) {
 // Return a/b with an 'x' appended
 // Allows us to print 2.0x when a is twice the size of b
 //
-std::string get_ratio_string(hrtime_t a, hrtime_t b) {
-    double ratio = static_cast<double>(a) / static_cast<double>(b);
+std::string get_ratio_string(ProcessClock::duration a,
+                             ProcessClock::duration b) {
+    double ratio = static_cast<double>(a.count()) / b.count();
     std::stringstream ss;
     ss << std::fixed << std::setprecision(3) << ratio << "x";
     return ss.str();
 }
 
 void crc_results(size_t test_size,
-                 std::vector<hrtime_t> &timings_sw,
-                 std::vector<hrtime_t> &timings_hw,
-                 std::vector<hrtime_t> &timings_hw_opt) {
-    hrtime_t avg_sw = 0, avg_hw = 0, avg_hw_opt = 0;
+                 DurationVector& timings_sw,
+                 DurationVector& timings_hw,
+                 DurationVector& timings_hw_opt) {
+    ProcessClock::duration avg_sw(0), avg_hw(0), avg_hw_opt(0);
     for(auto duration : timings_sw) {
         avg_sw += duration;
     }
@@ -102,12 +107,12 @@ void crc_results(size_t test_size,
 
     std::vector<std::string> rows(0);
     rows.push_back(std::to_string(test_size));
-    rows.push_back(std::to_string(avg_sw));
+    rows.push_back(cb::time2text(avg_sw));
     rows.push_back(gib_per_sec(test_size, avg_sw));
-    rows.push_back(std::to_string(avg_hw));
+    rows.push_back(cb::time2text(avg_hw));
     rows.push_back(gib_per_sec(test_size, avg_hw));
     rows.push_back(get_ratio_string(avg_sw, avg_hw));
-    rows.push_back(std::to_string(avg_hw_opt));
+    rows.push_back(cb::time2text(avg_hw_opt));
     rows.push_back(gib_per_sec(test_size, avg_hw_opt));
     rows.push_back(get_ratio_string(avg_hw, avg_hw_opt));
     rows.push_back(get_ratio_string(avg_sw, avg_hw_opt));
@@ -123,13 +128,12 @@ void crc_bench_core(const uint8_t* buffer,
                     size_t len,
                     int iterations,
                     crc32c_function crc32c_fn,
-                    std::vector<hrtime_t> &timings) {
-
+                    DurationVector& timings) {
     for (int i = 0; i < iterations; i++) {
-        const hrtime_t start = gethrtime();
+        const auto start = ProcessClock::now();
         crc32c_fn(buffer, len, 0);
-        const hrtime_t end = gethrtime();
-        timings.push_back((end - start) + gethrtime_period());
+        const auto end = ProcessClock::now();
+        timings.push_back((end - start) + ProcessClock::duration(1));
     }
 }
 
@@ -143,7 +147,7 @@ void crc_bench(size_t len,
         uint8_t data_value = static_cast<uint8_t>(dis(twister));
         data[data_index] = data_value;
     }
-    std::vector<hrtime_t> timings_sw, timings_hw, timings_hw_opt;
+    DurationVector timings_sw, timings_hw, timings_hw_opt;
     crc_bench_core(data+unalignment, len, iterations, crc32c_sw, timings_sw);
     crc_bench_core(data+unalignment, len, iterations, crc32c_hw_1way, timings_hw);
     crc_bench_core(data+unalignment, len, iterations, crc32c_hw, timings_hw_opt);
@@ -158,10 +162,11 @@ int main() {
     // Print a notice if the clock duration is probably too big
     // to measure the smaller tests. 20 seems about right from
     // running on a variety of systems.
-    if (gethrtime_period() > 20) {
+    if (ProcessClock::duration(1) > std::chrono::nanoseconds(20)) {
         std::cout << "Note: The small tests maybe too fast to observe with "
                   << "this system's clock. The clock duration "
-                  << "on this system is " << gethrtime_period() << std::endl;
+                  << "on this system is "
+                  << cb::time2text(ProcessClock::duration(1)) << std::endl;
     }
 
     crc_results_banner();

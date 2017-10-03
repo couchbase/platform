@@ -17,20 +17,22 @@
 
 #pragma once
 
+#include <platform/make_unique.h>
+#include <platform/platform.h>
+#include <platform/processclock.h>
+#include <relaxed_atomic.h>
 #include <algorithm>
 #include <atomic>
+#include <chrono>
+#include <cinttypes>
 #include <cmath>
 #include <functional>
-#include <inttypes.h>
+#include <iostream>
 #include <iterator>
 #include <limits>
 #include <numeric>
-#include <platform/platform.h>
-#include <platform/make_unique.h>
-#include <relaxed_atomic.h>
 #include <sstream>
 #include <stdexcept>
-#include <iostream>
 #include <vector>
 
 // Forward declaration.
@@ -413,38 +415,51 @@ public:
      * @param n the name to give the histogram, used when logging slow block
      *        execution to the log.
      */
-    GenericBlockTimer(HISTOGRAM* d, const char* n = nullptr,
+    GenericBlockTimer(HISTOGRAM* d,
+                      const char* n = nullptr,
                       std::ostream* o = nullptr)
         : dest(d),
-          start((dest) ? gethrtime() : 0),
+          start((dest) ? ProcessClock::now() : ProcessClock::time_point()),
           name(n),
           out(o) {
     }
 
     ~GenericBlockTimer() {
         if (dest) {
-            hrtime_t spent(gethrtime() - start);
-            dest->add(spent / 1000);
+            auto spent = ProcessClock::now() - start;
+            dest->add(
+                    std::chrono::duration_cast<std::chrono::microseconds>(spent)
+                            .count());
             log(spent, name, out);
         }
     }
 
+    // Compatibility function, added for kv_engine engine calls. Should be
+    // deleted after uses in kv_engine have been migrated to the new style.
     static void log(hrtime_t spent, const char* name, std::ostream* o) {
+        log(ProcessClock::duration(spent), name, o);
+    }
+
+    static void log(ProcessClock::duration spent,
+                    const char* name,
+                    std::ostream* o) {
         if (o && name) {
-            *o << name << "\t" << spent << "\n";
+            *o << name << "\t" << spent.count() << "\n";
         }
         if (THRESHOLD_MS > 0) {
-            const uint64_t msec = spent / 1000000;
+            const auto msec = std::make_unsigned<ProcessClock::rep>::type(
+                    std::chrono::duration_cast<std::chrono::milliseconds>(spent)
+                            .count());
             if (name != nullptr && msec > THRESHOLD_MS) {
-                std::cerr << "BlockTimer<" << name << "> Took too long: "
-                          << msec << "ms" << std::endl;
+                std::cerr << "BlockTimer<" << name
+                          << "> Took too long: " << msec << "ms" << std::endl;
             }
         }
     }
 
 private:
     HISTOGRAM* dest;
-    hrtime_t start;
+    ProcessClock::time_point start;
     const char* name;
     std::ostream* out;
 };
