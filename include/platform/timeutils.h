@@ -38,6 +38,14 @@
 namespace cb {
 /**
  * Convert a time (in ns) to a human readable form...
+ *
+ * Up to 9999ns, print as ns
+ * up to 9999µs, print as µs
+ * up to 9999ms, print as ms
+ * up to 599s, print as s
+ *
+ * Anything else is printed as h:m:s
+ *
  * @param time the time in nanoseconds
  * @return a string representation of the timestamp
  */

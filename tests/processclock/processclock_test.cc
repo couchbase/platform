@@ -28,26 +28,3 @@ TEST(DefaultProcessClockSourceTest, SensibleBounds) {
     EXPECT_LE(a, b);
     EXPECT_LE(b, c);
 }
-
-TEST(to_string, ns) {
-    EXPECT_EQ("0ns", to_string(std::chrono::nanoseconds(0)));
-    EXPECT_EQ("9999ns", to_string(std::chrono::nanoseconds(9999)));
-}
-
-TEST(to_string, usec) {
-    EXPECT_EQ("10µs", to_string(std::chrono::nanoseconds(10000)));
-    EXPECT_EQ("9999µs", to_string(std::chrono::microseconds(9999)));
-}
-
-
-TEST(to_string, ms) {
-    EXPECT_EQ("10ms", to_string(std::chrono::microseconds(10000)));
-    EXPECT_EQ("9999ms", to_string(std::chrono::milliseconds(9999)));
-}
-
-TEST(to_string, ss) {
-    EXPECT_EQ("10s", to_string(std::chrono::milliseconds(10000)));
-    EXPECT_EQ("599s", to_string(std::chrono::seconds(599)));
-    // values greater than 600 should be printed as h:m:s
-    EXPECT_EQ("0:10:0", to_string(std::chrono::seconds(600)));
-}

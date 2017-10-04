@@ -66,20 +66,3 @@ inline std::chrono::nanoseconds to_ns_since_epoch(
         const ProcessClock::time_point& tp) {
     return cb::to_ns_since_epoch(tp);
 }
-
-/**
- * Print a nanoreprensentation in a human readable form by loosing information
- * the higher the value is.
- *
- * Up to 9999ns, print as ns
- * up to 9999µs, print as µs
- * up to 9999ms, print as ms
- * up to 599s, print as s
- *
- * Anything else is printed as: h:m:s
- *
- * @param ns The value in nanosecond
- * @return The textual representation
- */
-PLATFORM_PUBLIC_API
-std::string to_string(const std::chrono::nanoseconds& ns);
