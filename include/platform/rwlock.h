@@ -17,6 +17,7 @@
 #pragma once
 
 #include <platform/platform.h>
+#include <stdexcept>
 #include <string>
 
 namespace cb {
