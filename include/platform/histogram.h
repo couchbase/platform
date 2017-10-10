@@ -203,8 +203,8 @@ public:
           _power(power) { }
 
     typename Histogram<T>::value_type operator()() {
-        T start = static_cast<T>(std::pow(_power, static_cast<double>(_start)));
-        T end = static_cast<T>(std::pow(_power, static_cast<double>(++_start)));
+        T start = T(uint64_t(std::pow(_power, double(_start))));
+        T end = T(uint64_t(std::pow(_power, double(++_start))));
         return std::make_unique<typename Histogram<T>::bin_type>(start, end);
     }
 
@@ -212,6 +212,16 @@ private:
     uint64_t _start;
     double _power;
 };
+
+// chrono::microseconds stream operator required for Histogram::verify() so the
+// type can be printed.
+// TODO: Ideally we'd not need this (bad to define operators for types under
+// `std`), but I can't see a simple workaround...
+inline std::ostream& operator<<(std::ostream& os,
+                                const std::chrono::microseconds& ms) {
+    os << ms.count();
+    return os;
+}
 
 /**
  * A Histogram.
@@ -391,7 +401,13 @@ private:
     container_type bins;
 };
 
-
+/**
+ * Histogram of durations measured in microseconds.
+ *
+ * Typesafe; calling add() with any chrono::duration specialization (seconds,
+ * milliseconds etc) will perform any necessary conversion.
+ */
+using MicrosecondHistogram = Histogram<std::chrono::microseconds>;
 
 /**
  * Times blocks automatically and records the values in a histogram.
