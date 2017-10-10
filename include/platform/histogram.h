@@ -450,12 +450,6 @@ public:
         }
     }
 
-    // Compatibility function, added for kv_engine engine calls. Should be
-    // deleted after uses in kv_engine have been migrated to the new style.
-    static void log(hrtime_t spent, const char* name, std::ostream* o) {
-        log(ProcessClock::duration(spent), name, o);
-    }
-
     static void log(ProcessClock::duration spent,
                     const char* name,
                     std::ostream* o) {
