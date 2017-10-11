@@ -98,7 +98,7 @@ IF (WIN32)
    # and the FindCouchbaseDbgHelp macro didn't pick it up in the new location
    # stuff has been moved around for the CE version. The library is only used
    # for backtrace support which we can live without
-   get_supported_production_platform(_supported_platform)
+   CB_GET_SUPPORTED_PLATFORM(_supported_platform)
    if (_supported_platform)
        ADD_DEFINITIONS(-DHAVE_BACKTRACE_SUPPORT=1)
        INCLUDE(FindCouchbaseDbgHelp)
