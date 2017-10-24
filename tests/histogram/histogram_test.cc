@@ -116,7 +116,7 @@ TEST(HistoTest, CompleteRange) {
 
 
 TEST(BlockTimerTest, Basic) {
-    Histogram<hrtime_t> histo;
+    MicrosecondHistogram histo;
     ASSERT_EQ(0, histo.total());
     {
         BlockTimer timer(&histo);
@@ -127,11 +127,10 @@ TEST(BlockTimerTest, Basic) {
 // TODO: This doesn't fully test the threshold functionality as it doesn't
 // check that the threshold is actually logged.
 TEST(BlockTimerTest, ThresholdTest) {
-    Histogram<hrtime_t> histo;
+    MicrosecondHistogram histo;
     ASSERT_EQ(0, histo.total());
     {
-        GenericBlockTimer<Histogram<hrtime_t>, 1> timer(&histo,
-                                                        "thresholdTest");
+        GenericBlockTimer<MicrosecondHistogram, 1> timer(&histo, "thresholdTest");
         std::this_thread::sleep_for(std::chrono::milliseconds(2));
     }
     EXPECT_EQ(1, histo.total());

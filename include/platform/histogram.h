@@ -35,14 +35,41 @@
 #include <stdexcept>
 #include <vector>
 
+// Custom microseconds duration used for measuring histogram stats.
+// Stats will never be negative, so an unsigned Rep is used.
+using UnsignedMicroseconds = std::chrono::duration<uint64_t, std::micro>;
+
+namespace cb {
+// std::chrono::durations are not supported by std::numeric_limits by default.
+// This struct acts as a traits class for durations. It should be specialised
+// for individual durations and implement a required subset of methods from
+// std::numeric_limits
+template <typename T>
+struct duration_limits {};
+
+template <>
+struct duration_limits<UnsignedMicroseconds> {
+    static UnsignedMicroseconds max() {
+        return UnsignedMicroseconds::max();
+    }
+    static UnsignedMicroseconds min() {
+        return UnsignedMicroseconds::min();
+    }
+};
+}
+
 // Forward declaration.
-template<typename T>
+template <typename T, template <class> class Limits>
 class Histogram;
 
 /**
  * An individual bin of histogram data.
+ *
+ * @tparam T type of the histogram bin value.
+ * @tparam Limits traits class which provides min() and max() static
+ *         member functions which specify the min and max value of T.
  */
-template<typename T>
+template <typename T, template <class> class Limits = std::numeric_limits>
 class HistogramBin {
 public:
 
@@ -72,7 +99,7 @@ public:
     size_t count() const { return _count.load(); }
 
 private:
-    friend class Histogram<T>;
+    friend class Histogram<T, Limits>;
 
     /**
      * Increment this bin by the given amount.
@@ -95,8 +122,7 @@ private:
      * @return true if this value is counted within this bin
      */
     bool accepts(T value) {
-        return value >= _start &&
-               (value < _end || value == std::numeric_limits<T>::max());
+        return value >= _start && (value < _end || value == Limits<T>::max());
     }
 
     Couchbase::RelaxedAtomic<size_t> _count;
@@ -107,12 +133,13 @@ private:
 /**
  * Helper function object to sum sample.
  */
-template<typename T>
+template <typename T, template <class> class Limits>
 class HistogramBinSampleAdder {
 public:
     HistogramBinSampleAdder() { }
 
-    size_t operator()(size_t n, const typename Histogram<T>::value_type& b) {
+    size_t operator()(size_t n,
+                      const typename Histogram<T, Limits>::value_type& b) {
         return n + b->count();
     }
 };
@@ -121,7 +148,7 @@ public:
  * A bin generator that generates buckets of a width that may increase
  * in size a fixed growth amount over iterations.
  */
-template<typename T>
+template <typename T, template <class> class Limits = std::numeric_limits>
 class GrowingWidthGenerator {
 public:
 
@@ -134,18 +161,18 @@ public:
      */
     GrowingWidthGenerator(T start, T width, double growth = 1.0)
         : _growth(growth),
-          _start(start),
-          _width(static_cast<double>(width)) { }
+          _start(start) {
+        // Dividing two durations returns a value of the underlying Rep.
+        _width = width / T(1);
+    }
 
     /**
      * Generate the next bin.
      */
-    typename Histogram<T>::value_type operator()() {
-        typename Histogram<T>::value_type rv =
-                std::make_unique<typename Histogram<T>::bin_type>
-                        (_start,
-                         _start + static_cast<T>(_width));
-        _start += static_cast<T>(_width);
+    typename Histogram<T, Limits>::value_type operator()() {
+        auto rv = std::make_unique<typename Histogram<T, Limits>::bin_type>(
+                _start, _start + static_cast<T>(uint64_t(_width)));
+        _start += static_cast<T>(uint64_t(_width));
         _width = _width * _growth;
         return rv;
     }
@@ -160,7 +187,7 @@ private:
  * A bin generator that generates buckets from a sequence of T where
  * each bin is from [v[n], v[n+1]).
  */
-template<typename T>
+template <typename T, template <class> class Limits = std::numeric_limits>
 class FixedInputGenerator {
 public:
 
@@ -171,7 +198,7 @@ public:
         : it(input.begin()),
           end(input.end()) { }
 
-    typename Histogram<T>::value_type operator()() {
+    typename Histogram<T, Limits>::value_type operator()() {
         if (it + 1 >= end) {
             throw std::overflow_error("FixedInputGenerator::operator()"
                                               "would overflow input sequence");
@@ -179,8 +206,8 @@ public:
         T current = *it;
         ++it;
         T next = *it;
-        return std::make_unique<typename Histogram<T>::bin_type>(current,
-                                                                 next);
+        return std::make_unique<typename Histogram<T, Limits>::bin_type>(
+                current, next);
     }
 
 private:
@@ -191,7 +218,7 @@ private:
 /**
  * A bin generator that [n^i, n^(i+1)).
  */
-template<typename T>
+template <typename T, template <class> class Limits = std::numeric_limits>
 class ExponentialGenerator {
 public:
 
@@ -202,10 +229,11 @@ public:
         : _start(start),
           _power(power) { }
 
-    typename Histogram<T>::value_type operator()() {
+    typename Histogram<T, Limits>::value_type operator()() {
         T start = T(uint64_t(std::pow(_power, double(_start))));
         T end = T(uint64_t(std::pow(_power, double(++_start))));
-        return std::make_unique<typename Histogram<T>::bin_type>(start, end);
+        return std::make_unique<typename Histogram<T, Limits>::bin_type>(start,
+                                                                         end);
     }
 
 private:
@@ -213,12 +241,10 @@ private:
     double _power;
 };
 
-// chrono::microseconds stream operator required for Histogram::verify() so the
-// type can be printed.
-// TODO: Ideally we'd not need this (bad to define operators for types under
-// `std`), but I can't see a simple workaround...
+// UnsignedMicroseconds stream operator required for Histogram::verify()
+// so the type can be printed.
 inline std::ostream& operator<<(std::ostream& os,
-                                const std::chrono::microseconds& ms) {
+                                const UnsignedMicroseconds& ms) {
     os << ms.count();
     return os;
 }
@@ -226,11 +252,10 @@ inline std::ostream& operator<<(std::ostream& os,
 /**
  * A Histogram.
  */
-template<typename T>
+template <typename T, template <class> class Limits = std::numeric_limits>
 class Histogram {
 public:
-
-    using bin_type = HistogramBin<T>;
+    using bin_type = HistogramBin<T, Limits>;
     using value_type = std::unique_ptr<bin_type>;
     using container_type = std::vector<value_type>;
     using const_iterator = typename container_type::const_iterator;
@@ -257,7 +282,7 @@ public:
      * @param n how many bins this histogram should contain.
      */
     Histogram(size_t n = 30)
-        : Histogram(ExponentialGenerator<T>(0, 2.0), n) {
+        : Histogram(ExponentialGenerator<T, Limits>(0, 2.0), n) {
     }
 
     //Deleted to avoid copying large objects
@@ -282,7 +307,7 @@ public:
     /**
      * Get the bin servicing the given sized input.
      */
-    const HistogramBin<T>* getBin(T amount) {
+    const HistogramBin<T, Limits>* getBin(T amount) {
         return findBin(amount)->get();
     }
 
@@ -300,7 +325,7 @@ public:
      * This is the sum of all counts in each bin.
      */
     size_t total() {
-        HistogramBinSampleAdder<T> a;
+        HistogramBinSampleAdder<T, Limits> a;
         return std::accumulate(begin(), end(), 0, a);
     }
 
@@ -336,17 +361,16 @@ private:
 
         // If there will not naturally be one, create a bin for the
         // smallest possible value
-        if (bins.front()->start() > std::numeric_limits<T>::min()) {
+        if (bins.front()->start() > Limits<T>::min()) {
             bins.insert(bins.begin(),
-                        std::make_unique<bin_type>
-                                (std::numeric_limits<T>::min(),
-                                            bins.front()->start()));
+                        std::make_unique<bin_type>(Limits<T>::min(),
+                                                   bins.front()->start()));
         }
 
         // Also create one reaching to the largest possible value
-        if (bins.back()->end() < std::numeric_limits<T>::max()) {
+        if (bins.back()->end() < Limits<T>::max()) {
             bins.push_back(std::make_unique<bin_type>(bins.back()->end(),
-                                               std::numeric_limits<T>::max()));
+                                                      Limits<T>::max()));
         }
 
         verify();
@@ -355,7 +379,7 @@ private:
     // This validates that we're sorted and have no gaps or overlaps. Returns
     // true if tests pass, else false.
     bool verify() {
-        T prev = std::numeric_limits<T>::min();
+        T prev = Limits<T>::min();
         int pos(0);
         for (const auto& bin : bins) {
             if (bin->start() != prev) {
@@ -369,7 +393,7 @@ private:
             prev = bin->end();
             ++pos;
         }
-        if (prev != std::numeric_limits<T>::max()) {
+        if (prev != Limits<T>::max()) {
             return false;
         }
         return true;
@@ -379,12 +403,14 @@ private:
      * () if not found
      */
     iterator findBin(T amount) {
-        if (amount == std::numeric_limits<T>::max()) {
+        if (amount == Limits<T>::max()) {
             return bins.end() - 1;
         } else {
             iterator it;
-            it = std::upper_bound(bins.begin(), bins.end(), amount,
-                                  [](T t, Histogram<T>::value_type & b) {
+            it = std::upper_bound(bins.begin(),
+                                  bins.end(),
+                                  amount,
+                                  [](T t, Histogram<T, Limits>::value_type& b) {
                                       return t < b->end();
                                   });
             if (!(*it)->accepts(amount)) {
@@ -394,9 +420,9 @@ private:
         }
     }
 
-    template<typename Ttype>
+    template <typename type, template <class> class limits>
     friend std::ostream& operator<<(std::ostream& out,
-                                    const Histogram<Ttype>& b);
+                                    const Histogram<type, limits>& b);
 
     container_type bins;
 };
@@ -407,7 +433,8 @@ private:
  * Typesafe; calling add() with any chrono::duration specialization (seconds,
  * milliseconds etc) will perform any necessary conversion.
  */
-using MicrosecondHistogram = Histogram<std::chrono::microseconds>;
+using MicrosecondHistogram =
+        Histogram<UnsignedMicroseconds, cb::duration_limits>;
 
 /**
  * Times blocks automatically and records the values in a histogram.
@@ -416,8 +443,7 @@ using MicrosecondHistogram = Histogram<std::chrono::microseconds>;
  * THRESHOLD_MS to execute will be reported to stderr.
  * Note this requires that a name is specified for the BlockTimer.
  */
-template<typename HISTOGRAM,
-    uint64_t THRESHOLD_MS>
+template<typename HISTOGRAM, uint64_t THRESHOLD_MS>
 class GenericBlockTimer {
 public:
 
@@ -443,9 +469,7 @@ public:
     ~GenericBlockTimer() {
         if (dest) {
             auto spent = ProcessClock::now() - start;
-            dest->add(
-                    std::chrono::duration_cast<std::chrono::microseconds>(spent)
-                            .count());
+            dest->add(std::chrono::duration_cast<std::chrono::microseconds>(spent));
             log(spent, name, out);
         }
     }
@@ -457,9 +481,7 @@ public:
             *o << name << "\t" << spent.count() << "\n";
         }
         if (THRESHOLD_MS > 0) {
-            const auto msec = std::make_unsigned<ProcessClock::rep>::type(
-                    std::chrono::duration_cast<std::chrono::milliseconds>(spent)
-                            .count());
+            const auto msec = std::make_unsigned<ProcessClock::rep>::type(std::chrono::duration_cast<std::chrono::milliseconds>(spent).count());
             if (name != nullptr && msec > THRESHOLD_MS) {
                 std::cerr << "BlockTimer<" << name
                           << "> Took too long: " << msec << "ms" << std::endl;
@@ -474,21 +496,21 @@ private:
     std::ostream* out;
 };
 
-/* Convenience specialization which only records in a Histogram<hrtime_t>;
+/* Convenience specialization which only records in a MicrosecondHistogram;
  * doesn't log slow blocks.
  */
-typedef GenericBlockTimer<Histogram<hrtime_t>, 0> BlockTimer;
+typedef GenericBlockTimer<MicrosecondHistogram, 0> BlockTimer;
 
 // How to print a bin.
-template<typename T>
-std::ostream& operator<<(std::ostream& out, const HistogramBin<T>& b) {
+template <typename T, template <class> class Limits>
+std::ostream& operator<<(std::ostream& out, const HistogramBin<T, Limits>& b) {
     out << "[" << b.start() << ", " << b.end() << ") = " << b.count();
     return out;
 }
 
 // How to print a histogram.
-template<typename T>
-std::ostream& operator<<(std::ostream& out, const Histogram<T>& b) {
+template <typename T, template <class> class Limits>
+std::ostream& operator<<(std::ostream& out, const Histogram<T, Limits>& b) {
     out << "{Histogram: ";
     bool needComma(false);
     for (const auto& bin : b.bins) {
