@@ -70,5 +70,21 @@ bool deflate(const Algorithm algorithm,
              const char* buf,
              size_t len,
              Buffer& output);
+
+/**
+ * Validate whether the data is compressed correctly by the given
+ * algorithm
+ *
+ * @param algorithm the algorithm to use
+ * @param buf pointer to the input data
+ * @param len the size of the input data
+ * @return true if success, false otherwise
+ * @throws std::invalid_argument if the algorithm provided is an
+ *                               an unknown algorithm
+ */
+CBCOMPRESS_PUBLIC_API
+bool validate(const Algorithm algorithm,
+              const char* buf,
+              size_t len);
 }
 }

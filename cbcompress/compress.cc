@@ -50,6 +50,14 @@ static bool doSnappyCompress(const char* buf,
     return false;
 }
 
+static bool doSnappyValidate(const char* buf,
+                             size_t len) {
+    if (snappy_validate_compressed_buffer(buf, len) == SNAPPY_OK) {
+        return true;
+    }
+    return false;
+}
+
 bool cb::compression::inflate(const Algorithm algorithm,
                               const char* buf,
                               size_t len,
@@ -72,4 +80,15 @@ bool cb::compression::deflate(const Algorithm algorithm,
     }
     throw std::invalid_argument(
         "cb::compression::deflate: Unknown compression algorithm");
+}
+
+bool cb::compression::validate(const Algorithm algorithm,
+                               const char* buf,
+                               size_t len) {
+    switch (algorithm) {
+    case Algorithm::Snappy:
+        return doSnappyValidate(buf, len);
+    }
+    throw std::invalid_argument(
+        "cb::compression::validate: Unknown compression algorithm");
 }
