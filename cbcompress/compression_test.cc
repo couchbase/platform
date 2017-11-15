@@ -22,10 +22,10 @@
 TEST(Compression, DetectInvalidAlgoritm) {
     cb::compression::Buffer buffer;
     EXPECT_THROW(cb::compression::inflate(
-                     (cb::compression::Algorithm)5, nullptr, 0, buffer),
+                     (cb::compression::Algorithm)5, {}, buffer),
                  std::invalid_argument);
     EXPECT_THROW(cb::compression::deflate(
-                     (cb::compression::Algorithm)5, nullptr, 0, buffer),
+                     (cb::compression::Algorithm)5, {}, buffer),
                  std::invalid_argument);
 }
 
@@ -38,15 +38,14 @@ TEST(Compression, TestCompression) {
     memset(input.data.get(), 'a', 8192);
 
     EXPECT_TRUE(cb::compression::deflate(
-        cb::compression::Algorithm::Snappy, input.data.get(), 8192, output));
+        cb::compression::Algorithm::Snappy, {input.data.get(), 8192},
+        output));
     EXPECT_LT(output.len, 8192);
     EXPECT_NE(nullptr, output.data.get());
 
     cb::compression::Buffer back;
-
     EXPECT_TRUE(cb::compression::inflate(cb::compression::Algorithm::Snappy,
-                                         output.data.get(),
-                                         output.len,
+                                         {output.data.get(), output.len},
                                          back));
     EXPECT_EQ(8192, back.len);
     EXPECT_NE(nullptr, back.data.get());
@@ -62,5 +61,5 @@ TEST(Compression, TestIllegalInflate) {
     memset(input.data.get(), 'a', 8192);
 
     EXPECT_FALSE(cb::compression::inflate(
-        cb::compression::Algorithm::Snappy, input.data.get(), 8192, output));
+        cb::compression::Algorithm::Snappy, {input.data.get(), 8192}, output));
 }

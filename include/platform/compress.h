@@ -41,8 +41,7 @@ struct CBCOMPRESS_PUBLIC_API Buffer {
  * Inflate the data in the buffer into the output buffer
  *
  * @param algorithm the algorithm to use
- * @param buf pointer to the input data
- * @param len the size of the input data
+ * @param input_buffer buffer pointing to the input data
  * @param output Where to store the result
  * @return true if success, false otherwise
  * @throws std::bad_alloc if we fail to allocate memory for the
@@ -50,16 +49,14 @@ struct CBCOMPRESS_PUBLIC_API Buffer {
  */
 CBCOMPRESS_PUBLIC_API
 bool inflate(const Algorithm algorithm,
-             const char* buf,
-             size_t len,
+             cb::const_char_buffer input_buffer,
              Buffer& output);
 
 /**
  * Deflate the data in the buffer into the output buffer
  *
  * @param algorithm the algorithm to use
- * @param buf pointer to the input data
- * @param len the size of the input data
+ * @param input_buffer buffer pointing to the input data
  * @param output Where to store the result
  * @return true if success, false otherwise
  * @throws std::bad_alloc if we fail to allocate memory for the
@@ -67,8 +64,7 @@ bool inflate(const Algorithm algorithm,
  */
 CBCOMPRESS_PUBLIC_API
 bool deflate(const Algorithm algorithm,
-             const char* buf,
-             size_t len,
+             cb::const_char_buffer input_buffer,
              Buffer& output);
 
 /**
@@ -76,15 +72,13 @@ bool deflate(const Algorithm algorithm,
  * algorithm
  *
  * @param algorithm the algorithm to use
- * @param buf pointer to the input data
- * @param len the size of the input data
+ * @param input_buffer buffer pointing to the input data
  * @return true if success, false otherwise
  * @throws std::invalid_argument if the algorithm provided is an
  *                               an unknown algorithm
  */
 CBCOMPRESS_PUBLIC_API
 bool validate(const Algorithm algorithm,
-              const char* buf,
-              size_t len);
+              cb::const_char_buffer input_buffer);
 }
 }
