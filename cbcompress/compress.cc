@@ -17,45 +17,41 @@
 
 #include <platform/compress.h>
 
-#include <snappy-c.h>
+#include <snappy.h>
 #include <stdexcept>
 
-static bool doSnappyUncompress(const char* buf,
-                               size_t len,
+static bool doSnappyUncompress(cb::const_char_buffer input,
                                cb::compression::Buffer& output) {
     size_t inflated_length;
-    if (snappy_uncompressed_length(buf, len, &inflated_length) == SNAPPY_OK) {
-        std::unique_ptr<char[]> temp(new char[inflated_length]);
-        if (snappy_uncompress(buf, len, temp.get(), &inflated_length) ==
-            SNAPPY_OK) {
-            output.data = std::move(temp);
-            output.len = inflated_length;
-            return true;
-        }
+
+    if (!snappy::GetUncompressedLength(
+                input.data(), input.size(), &inflated_length)) {
+        return false;
     }
-    return false;
+
+    std::unique_ptr<char[]> temp(new char[inflated_length]);
+    if (!snappy::RawUncompress(input.data(), input.size(), temp.get())) {
+        return false;
+    }
+
+    output.data = std::move(temp);
+    output.len = inflated_length;
+    return true;
 }
 
-static bool doSnappyCompress(const char* buf,
-                             size_t len,
+static bool doSnappyCompress(cb::const_char_buffer input,
                              cb::compression::Buffer& output) {
-    size_t compressed_length = snappy_max_compressed_length(len);
+    size_t compressed_length = snappy::MaxCompressedLength(input.size());
     std::unique_ptr<char[]> temp(new char[compressed_length]);
-    if (snappy_compress(buf, len, temp.get(), &compressed_length) ==
-        SNAPPY_OK) {
-        output.data = std::move(temp);
-        output.len = compressed_length;
-        return true;
-    }
-    return false;
+    snappy::RawCompress(
+            input.data(), input.size(), temp.get(), &compressed_length);
+    output.data = std::move(temp);
+    output.len = compressed_length;
+    return true;
 }
 
-static bool doSnappyValidate(const char* buf,
-                             size_t len) {
-    if (snappy_validate_compressed_buffer(buf, len) == SNAPPY_OK) {
-        return true;
-    }
-    return false;
+static bool doSnappyValidate(cb::const_char_buffer buffer) {
+    return snappy::IsValidCompressedBuffer(buffer.data(), buffer.size());
 }
 
 bool cb::compression::inflate(const Algorithm algorithm,
@@ -63,9 +59,7 @@ bool cb::compression::inflate(const Algorithm algorithm,
                               Buffer& output) {
     switch (algorithm) {
     case Algorithm::Snappy:
-        return doSnappyUncompress(input_buffer.buf,
-                                  input_buffer.len,
-                                  output);
+        return doSnappyUncompress(input_buffer, output);
     }
     throw std::invalid_argument(
         "cb::compression::inflate: Unknown compression algorithm");
@@ -76,9 +70,7 @@ bool cb::compression::deflate(const Algorithm algorithm,
                               Buffer& output) {
     switch (algorithm) {
     case Algorithm::Snappy:
-        return doSnappyCompress(input_buffer.buf,
-                                input_buffer.len,
-                                output);
+        return doSnappyCompress(input_buffer, output);
     }
     throw std::invalid_argument(
         "cb::compression::deflate: Unknown compression algorithm");
@@ -88,7 +80,7 @@ bool cb::compression::validate(const Algorithm algorithm,
                                cb::const_char_buffer input_buffer) {
     switch (algorithm) {
     case Algorithm::Snappy:
-        return doSnappyValidate(input_buffer.buf, input_buffer.len);
+        return doSnappyValidate(input_buffer);
     }
     throw std::invalid_argument(
         "cb::compression::validate: Unknown compression algorithm");
