@@ -66,19 +66,5 @@ CBCOMPRESS_PUBLIC_API
 bool deflate(const Algorithm algorithm,
              cb::const_char_buffer input_buffer,
              Buffer& output);
-
-/**
- * Validate whether the data is compressed correctly by the given
- * algorithm
- *
- * @param algorithm the algorithm to use
- * @param input_buffer buffer pointing to the input data
- * @return true if success, false otherwise
- * @throws std::invalid_argument if the algorithm provided is an
- *                               an unknown algorithm
- */
-CBCOMPRESS_PUBLIC_API
-bool validate(const Algorithm algorithm,
-              cb::const_char_buffer input_buffer);
 }
 }
