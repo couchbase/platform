@@ -23,7 +23,7 @@
 
 namespace cb {
 namespace compression {
-enum class Algorithm { Snappy };
+enum class Algorithm { Snappy, LZ4 };
 
 struct CBCOMPRESS_PUBLIC_API Buffer {
     Buffer() : len(0) {
@@ -72,5 +72,14 @@ CBCOMPRESS_PUBLIC_API
 bool deflate(Algorithm algorithm,
              cb::const_char_buffer input_buffer,
              Buffer& output);
+
+/**
+ * Get the algorithm as specified by the textual string
+ */
+CBCOMPRESS_PUBLIC_API
+Algorithm to_algorithm(const std::string& string);
 }
 }
+
+CBCOMPRESS_PUBLIC_API
+std::string to_string(cb::compression::Algorithm algorithm);

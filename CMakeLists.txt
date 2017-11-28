@@ -65,7 +65,8 @@ CONFIGURE_FILE (${CMAKE_CURRENT_SOURCE_DIR}/include/platform/dynamic.in.h
 INCLUDE_DIRECTORIES(BEFORE ${CMAKE_CURRENT_SOURCE_DIR}/include
                            ${CMAKE_CURRENT_SOURCE_DIR}/external
                            ${CMAKE_CURRENT_BINARY_DIR}/src
-                           ${phosphor_SOURCE_DIR}/include)
+                           ${phosphor_SOURCE_DIR}/include
+                           ${gsl_lite_SOURCE_DIR}/include)
 
 IF (MEMORY_ALLOCATOR)
   INCLUDE_DIRECTORIES(AFTER ${MALLOC_INCLUDE_DIR})

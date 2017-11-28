@@ -29,7 +29,7 @@ TEST(Compression, DetectInvalidAlgoritm) {
                  std::invalid_argument);
 }
 
-TEST(Compression, TestCompression) {
+TEST(Compression, TestSnappyCompression) {
     cb::compression::Buffer input;
     cb::compression::Buffer output;
 
@@ -58,7 +58,7 @@ TEST(Compression, TestCompression) {
                                           4096));
 }
 
-TEST(Compression, TestIllegalInflate) {
+TEST(Compression, TestIllegalSnappyInflate) {
     cb::compression::Buffer input;
     cb::compression::Buffer output;
 
@@ -66,6 +66,56 @@ TEST(Compression, TestIllegalInflate) {
     input.data.reset(new char[8192]);
     memset(input.data.get(), 'a', 8192);
 
-    EXPECT_FALSE(cb::compression::inflate(
-        cb::compression::Algorithm::Snappy, {input.data.get(), 8192}, output));
+    EXPECT_FALSE(cb::compression::inflate(cb::compression::Algorithm::Snappy,
+                                          {input.data.get(), 8192},
+                                          output));
 }
+
+TEST(Compression, ToString) {
+    EXPECT_EQ("Snappy", to_string(cb::compression::Algorithm::Snappy));
+    EXPECT_EQ("LZ4", to_string(cb::compression::Algorithm::LZ4));
+}
+
+TEST(Compression, ToAlgorithm) {
+    using namespace cb::compression;
+    EXPECT_EQ(Algorithm::Snappy, to_algorithm("SnApPy"));
+    EXPECT_EQ(Algorithm::LZ4, to_algorithm("lz4"));
+    EXPECT_THROW(to_algorithm("foo"), std::invalid_argument);
+}
+
+#ifdef CB_LZ4_SUPPORT
+TEST(Compression, TestLZ4Compression) {
+    cb::compression::Buffer input;
+    cb::compression::Buffer output;
+
+    output.len = 16000;
+    input.data.reset(new char[8192]);
+    memset(input.data.get(), 'a', 8192);
+
+    EXPECT_TRUE(cb::compression::deflate(
+            cb::compression::Algorithm::LZ4, {input.data.get(), 8192}, output));
+    EXPECT_LT(output.len, 8192);
+    EXPECT_NE(nullptr, output.data.get());
+
+    cb::compression::Buffer back;
+    EXPECT_TRUE(cb::compression::inflate(cb::compression::Algorithm::LZ4,
+                                         {output.data.get(), output.len},
+                                         back));
+    EXPECT_EQ(8192, back.len);
+    EXPECT_NE(nullptr, back.data.get());
+    EXPECT_EQ(0, memcmp(input.data.get(), back.data.get(), 8192));
+}
+
+TEST(Compression, TestIllegalLZ4Inflate) {
+    cb::compression::Buffer input;
+    cb::compression::Buffer output;
+
+    output.len = 16000;
+    input.data.reset(new char[8192]);
+    memset(input.data.get(), 'a', 8192);
+    *reinterpret_cast<uint32_t*>(input.data.get()) = 512;
+
+    EXPECT_FALSE(cb::compression::inflate(
+            cb::compression::Algorithm::LZ4, {input.data.get(), 8192}, output));
+}
+#endif
