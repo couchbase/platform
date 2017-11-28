@@ -48,7 +48,7 @@ struct CBCOMPRESS_PUBLIC_API Buffer {
  *                        destination buffer
  */
 CBCOMPRESS_PUBLIC_API
-bool inflate(const Algorithm algorithm,
+bool inflate(Algorithm algorithm,
              cb::const_char_buffer input_buffer,
              Buffer& output);
 
@@ -63,7 +63,7 @@ bool inflate(const Algorithm algorithm,
  *                        destination buffer
  */
 CBCOMPRESS_PUBLIC_API
-bool deflate(const Algorithm algorithm,
+bool deflate(Algorithm algorithm,
              cb::const_char_buffer input_buffer,
              Buffer& output);
 }

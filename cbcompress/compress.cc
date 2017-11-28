@@ -50,7 +50,7 @@ static bool doSnappyCompress(cb::const_char_buffer input,
     return true;
 }
 
-bool cb::compression::inflate(const Algorithm algorithm,
+bool cb::compression::inflate(Algorithm algorithm,
                               cb::const_char_buffer input_buffer,
                               Buffer& output) {
     switch (algorithm) {
@@ -61,7 +61,7 @@ bool cb::compression::inflate(const Algorithm algorithm,
         "cb::compression::inflate: Unknown compression algorithm");
 }
 
-bool cb::compression::deflate(const Algorithm algorithm,
+bool cb::compression::deflate(Algorithm algorithm,
                               cb::const_char_buffer input_buffer,
                               Buffer& output) {
     switch (algorithm) {
