@@ -21,18 +21,13 @@
 #include <platform/platform.h>
 #include <platform/processclock.h>
 #include <relaxed_atomic.h>
+
 #include <algorithm>
-#include <atomic>
 #include <chrono>
-#include <cinttypes>
 #include <cmath>
 #include <functional>
 #include <iostream>
-#include <iterator>
-#include <limits>
 #include <numeric>
-#include <sstream>
-#include <stdexcept>
 #include <vector>
 
 // Custom microseconds duration used for measuring histogram stats.
@@ -297,12 +292,15 @@ public:
     /**
      * Add a value to this histogram.
      *
+     * Note: defined non-inline to reduce the code bloat from recording
+     *       histogram values - the inline size of this method is non-trivial.
+     *       If you get want to add a new instantiation of this class; check
+     *       the explicit template definition in histogram.cc.
+     *
      * @param amount the size of the thing being added
      * @param count the quantity at this size being added
      */
-    void add(T amount, size_t count = 1) {
-        (*findBin(amount))->incr(count);
-    }
+    void add(T amount, size_t count = 1);
 
     /**
      * Get the bin servicing the given sized input.
@@ -314,22 +312,14 @@ public:
     /**
      * Set all bins to 0.
      */
-    void reset() {
-        std::for_each(bins.begin(), bins.end(),
-                      [](value_type& val){val->set(0);});
-    }
+    void reset();
 
     /**
      * Get the total number of samples counted.
      *
      * This is the sum of all counts in each bin.
      */
-    size_t total() {
-        HistogramBinSampleAdder<T, Limits> a;
-        return std::accumulate(begin(), end(), 0, a);
-    }
-
-
+    size_t total();
 
     /**
      * Get an iterator from the beginning of a histogram bin.
@@ -378,47 +368,12 @@ private:
 
     // This validates that we're sorted and have no gaps or overlaps. Returns
     // true if tests pass, else false.
-    bool verify() {
-        T prev = Limits<T>::min();
-        int pos(0);
-        for (const auto& bin : bins) {
-            if (bin->start() != prev) {
-                std::cerr << "Expected " << bin->start() << " == " << prev
-                          << " at pos " << pos << std::endl;
-                return false;
-            }
-            if (bin->start() != prev) {
-                return false;
-            }
-            prev = bin->end();
-            ++pos;
-        }
-        if (prev != Limits<T>::max()) {
-            return false;
-        }
-        return true;
-    }
+    bool verify();
 
     /* Finds the bin containing the specified amount. Returns iterator to end
      * () if not found
      */
-    iterator findBin(T amount) {
-        if (amount == Limits<T>::max()) {
-            return bins.end() - 1;
-        } else {
-            iterator it;
-            it = std::upper_bound(bins.begin(),
-                                  bins.end(),
-                                  amount,
-                                  [](T t, Histogram<T, Limits>::value_type& b) {
-                                      return t < b->end();
-                                  });
-            if (!(*it)->accepts(amount)) {
-                return bins.end();
-            }
-            return it;
-        }
-    }
+    iterator findBin(T amount);
 
     template <typename type, template <class> class limits>
     friend std::ostream& operator<<(std::ostream& out,
