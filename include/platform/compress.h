@@ -43,6 +43,11 @@ struct CBCOMPRESS_PUBLIC_API Buffer {
  * @param algorithm the algorithm to use
  * @param input_buffer buffer pointing to the input data
  * @param output Where to store the result
+ * @param max_inflated_size The maximum size for the inflated object (the
+ *                          library needs to allocate buffers this big, which
+ *                          could affect other components in the system. If
+ *                          the resulting object becomes bigger than this
+ *                          limit we'll abort and return false)
  * @return true if success, false otherwise
  * @throws std::bad_alloc if we fail to allocate memory for the
  *                        destination buffer
@@ -50,7 +55,8 @@ struct CBCOMPRESS_PUBLIC_API Buffer {
 CBCOMPRESS_PUBLIC_API
 bool inflate(Algorithm algorithm,
              cb::const_char_buffer input_buffer,
-             Buffer& output);
+             Buffer& output,
+             size_t max_inflated_size = 30 * 1024 * 1024);
 
 /**
  * Deflate the data in the buffer into the output buffer

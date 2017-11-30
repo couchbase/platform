@@ -21,11 +21,16 @@
 #include <stdexcept>
 
 static bool doSnappyUncompress(cb::const_char_buffer input,
-                               cb::compression::Buffer& output) {
+                               cb::compression::Buffer& output,
+                               size_t max_inflated_size) {
     size_t inflated_length;
 
     if (!snappy::GetUncompressedLength(
                 input.data(), input.size(), &inflated_length)) {
+        return false;
+    }
+
+    if (inflated_length > max_inflated_size) {
         return false;
     }
 
@@ -52,10 +57,11 @@ static bool doSnappyCompress(cb::const_char_buffer input,
 
 bool cb::compression::inflate(Algorithm algorithm,
                               cb::const_char_buffer input_buffer,
-                              Buffer& output) {
+                              Buffer& output,
+                              size_t max_inflated_size) {
     switch (algorithm) {
     case Algorithm::Snappy:
-        return doSnappyUncompress(input_buffer, output);
+        return doSnappyUncompress(input_buffer, output, max_inflated_size);
     }
     throw std::invalid_argument(
         "cb::compression::inflate: Unknown compression algorithm");

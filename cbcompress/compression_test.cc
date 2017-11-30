@@ -50,6 +50,12 @@ TEST(Compression, TestCompression) {
     EXPECT_EQ(8192, back.len);
     EXPECT_NE(nullptr, back.data.get());
     EXPECT_EQ(0, memcmp(input.data.get(), back.data.get(), 8192));
+
+    // Verify that we don't exceed the max size:
+    EXPECT_FALSE(cb::compression::inflate(cb::compression::Algorithm::Snappy,
+                                          {output.data.get(), output.len},
+                                          back,
+                                          4096));
 }
 
 TEST(Compression, TestIllegalInflate) {
