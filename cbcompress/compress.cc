@@ -17,16 +17,17 @@
 
 #include "config.h"
 
+#include <platform/cb_malloc.h>
 #include <platform/compress.h>
+#include <snappy.h>
+#include <cctype>
+#include <gsl/gsl>
+#include <stdexcept>
 
 #ifdef CB_LZ4_SUPPORT
 #include <lz4.h>
 #endif
-#include <snappy.h>
-#include <cctype>
-#include <gsl/gsl>
 
-#include <stdexcept>
 
 static bool doSnappyUncompress(cb::const_char_buffer input,
                                cb::compression::Buffer& output,
@@ -42,24 +43,20 @@ static bool doSnappyUncompress(cb::const_char_buffer input,
         return false;
     }
 
-    std::unique_ptr<char[]> temp(new char[inflated_length]);
-    if (!snappy::RawUncompress(input.data(), input.size(), temp.get())) {
+    output.resize(inflated_length);
+    if (!snappy::RawUncompress(input.data(), input.size(), output.data())) {
         return false;
     }
-
-    output.data = std::move(temp);
-    output.len = inflated_length;
     return true;
 }
 
 static bool doSnappyCompress(cb::const_char_buffer input,
                              cb::compression::Buffer& output) {
     size_t compressed_length = snappy::MaxCompressedLength(input.size());
-    std::unique_ptr<char[]> temp(new char[compressed_length]);
+    output.resize(compressed_length);
     snappy::RawCompress(
-            input.data(), input.size(), temp.get(), &compressed_length);
-    output.data = std::move(temp);
-    output.len = compressed_length;
+            input.data(), input.size(), output.data(), &compressed_length);
+    output.resize(compressed_length);
     return true;
 }
 
@@ -82,19 +79,14 @@ static bool doLZ4Uncompress(cb::const_char_buffer input,
         return false;
     }
 
-    std::unique_ptr<char[]> temp(new char[size]);
+    output.resize(size);
     auto nb = LZ4_decompress_safe(input.data() + 4,
-                                  temp.get(),
+                                  output.data(),
                                   gsl::narrow_cast<int>(input.size() - 4),
                                   gsl::narrow_cast<int>(size));
 
-    if (nb != gsl::narrow_cast<int>(size)) {
-        return false;
-    }
+    return nb == gsl::narrow_cast<int>(size);
 
-    output.data = std::move(temp);
-    output.len = size;
-    return true;
 #else
     throw std::runtime_error("doLZ4Uncompress: LZ4 not supported");
 #endif
@@ -105,15 +97,15 @@ static bool doLZ4Compress(cb::const_char_buffer input,
 #ifdef CB_LZ4_SUPPORT
     const auto buffersize =
             size_t(LZ4_compressBound(gsl::narrow_cast<int>(input.size())));
-    std::unique_ptr<char[]> temp(new char[buffersize + 4]);
+    output.resize(buffersize + 4);
     // The length of the compressed data is stored in the first 4 bytes
     // in network byte order
-    auto* size_ptr = reinterpret_cast<uint32_t*>(temp.get());
+    auto* size_ptr = reinterpret_cast<uint32_t*>(output.data());
     *size_ptr = htonl(gsl::narrow_cast<uint32_t>(input.size()));
 
     auto compressed_length =
             LZ4_compress_default(input.data(),
-                                 temp.get() + 4,
+                                 output.data() + 4,
                                  gsl::narrow_cast<int>(input.size()),
                                  gsl::narrow_cast<int>(buffersize));
 
@@ -122,8 +114,7 @@ static bool doLZ4Compress(cb::const_char_buffer input,
     }
 
     // Include the length bytes..
-    output.data = std::move(temp);
-    output.len = size_t(compressed_length + 4);
+    output.resize(size_t(compressed_length + 4));
     return true;
 #else
     throw std::runtime_error("doLZ4Compress: LZ4 not supported");
@@ -136,9 +127,17 @@ bool cb::compression::inflate(Algorithm algorithm,
                               size_t max_inflated_size) {
     switch (algorithm) {
     case Algorithm::Snappy:
-        return doSnappyUncompress(input_buffer, output, max_inflated_size);
+        if (!doSnappyUncompress(input_buffer, output, max_inflated_size)) {
+            output.reset();
+            return false;
+        }
+        return true;
     case Algorithm::LZ4:
-        return doLZ4Uncompress(input_buffer, output, max_inflated_size);
+        if (!doLZ4Uncompress(input_buffer, output, max_inflated_size)) {
+            output.reset();
+            return false;
+        }
+        return true;
     }
     throw std::invalid_argument(
         "cb::compression::inflate: Unknown compression algorithm");
@@ -149,9 +148,17 @@ bool cb::compression::deflate(Algorithm algorithm,
                               Buffer& output) {
     switch (algorithm) {
     case Algorithm::Snappy:
-        return doSnappyCompress(input_buffer, output);
+        if (!doSnappyCompress(input_buffer, output)) {
+            output.reset();
+            return false;
+        }
+        return true;
     case Algorithm::LZ4:
-        return doLZ4Compress(input_buffer, output);
+        if (!doLZ4Compress(input_buffer, output)) {
+            output.reset();
+            return false;
+        }
+        return true;
     }
     throw std::invalid_argument(
         "cb::compression::deflate: Unknown compression algorithm");

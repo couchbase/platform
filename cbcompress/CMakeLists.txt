@@ -1,5 +1,7 @@
 add_library(cbcompress SHARED
             ${Platform_SOURCE_DIR}/include/platform/compress.h
+            ${Platform_SOURCE_DIR}/include/platform/compression/allocator.h
+            ${Platform_SOURCE_DIR}/include/platform/compression/buffer.h
             compress.cc)
 target_compile_definitions(cbcompress
                            PRIVATE

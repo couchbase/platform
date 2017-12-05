@@ -17,8 +17,8 @@
 
 #pragma once
 
-#include <memory>
 #include <platform/compress-visibility.h>
+#include <platform/compression/buffer.h>
 #include <platform/sized_buffer.h>
 
 namespace cb {
@@ -30,18 +30,6 @@ enum class Algorithm { Snappy, LZ4 };
  * garbled which could impact the rest of the system.
  */
 static const size_t DEFAULT_MAX_INFLATED_SIZE = 30 * 1024 * 1024;
-
-struct CBCOMPRESS_PUBLIC_API Buffer {
-    Buffer() : len(0) {
-    }
-    std::unique_ptr<char[]> data;
-    size_t len;
-
-    operator const_byte_buffer() const {
-        return const_byte_buffer(reinterpret_cast<const uint8_t*>(data.get()),
-                                 len);
-    }
-};
 
 /**
  * Inflate the data in the buffer into the output buffer
