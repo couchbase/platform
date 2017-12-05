@@ -24,6 +24,12 @@
 namespace cb {
 namespace compression {
 enum class Algorithm { Snappy, LZ4 };
+/**
+ * The default maximum size used during inflating of buffers to avoid having
+ * the library go ahead and allocate crazy big sizes if the input is
+ * garbled which could impact the rest of the system.
+ */
+static const size_t DEFAULT_MAX_INFLATED_SIZE = 30 * 1024 * 1024;
 
 struct CBCOMPRESS_PUBLIC_API Buffer {
     Buffer() : len(0) {
@@ -56,7 +62,7 @@ CBCOMPRESS_PUBLIC_API
 bool inflate(Algorithm algorithm,
              cb::const_char_buffer input_buffer,
              Buffer& output,
-             size_t max_inflated_size = 30 * 1024 * 1024);
+             size_t max_inflated_size = DEFAULT_MAX_INFLATED_SIZE);
 
 /**
  * Deflate the data in the buffer into the output buffer
@@ -78,6 +84,25 @@ bool deflate(Algorithm algorithm,
  */
 CBCOMPRESS_PUBLIC_API
 Algorithm to_algorithm(const std::string& string);
+
+/**
+ * Validate whether the data is compressed correctly by the given
+ * algorithm
+ *
+ * @param algorithm the algorithm to use
+ * @param input_buffer buffer pointing to the input data
+ * @param max_inflated_size The maximum size for the inflated object (if the
+ *                          library needs to allocate buffers exceeding this
+ *                          size in order to validate the input, we'll abort
+ *                          and return false)
+ * @return true if success, false otherwise
+ * @throws std::invalid_argument if the algorithm provided is an
+ *                               an unknown algorithm
+ */
+CBCOMPRESS_PUBLIC_API
+bool validate(Algorithm algorithm,
+              cb::const_char_buffer input_buffer,
+              size_t max_inflated_size = DEFAULT_MAX_INFLATED_SIZE);
 }
 }
 

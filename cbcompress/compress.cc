@@ -63,6 +63,10 @@ static bool doSnappyCompress(cb::const_char_buffer input,
     return true;
 }
 
+static bool doSnappyValidate(cb::const_char_buffer buffer) {
+    return snappy::IsValidCompressedBuffer(buffer.data(), buffer.size());
+}
+
 static bool doLZ4Uncompress(cb::const_char_buffer input,
                             cb::compression::Buffer& output,
                             size_t max_inflated_size) {
@@ -182,4 +186,18 @@ std::string to_string(cb::compression::Algorithm algorithm) {
     throw std::invalid_argument(
             "to_string(cb::compression::Algorithm): Unknown compression "
             "algorithm");
+}
+
+bool cb::compression::validate(cb::compression::Algorithm algorithm,
+                               cb::const_char_buffer input_buffer,
+                               size_t max_inflated_size) {
+    switch (algorithm) {
+    case Algorithm::Snappy:
+        return doSnappyValidate(input_buffer);
+    case Algorithm::LZ4:
+        cb::compression::Buffer output;
+        return doLZ4Uncompress(input_buffer, output, max_inflated_size);
+    }
+    throw std::invalid_argument(
+        "cb::compression::validate: Unknown compression algorithm");
 }
