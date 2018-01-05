@@ -74,7 +74,7 @@ public:
         store(initial);
     }
 
-    explicit NonNegativeCounter(const NonNegativeCounter& other) {
+    NonNegativeCounter(const NonNegativeCounter& other) {
         store(other.load());
     }
 
