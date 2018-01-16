@@ -33,6 +33,23 @@ namespace cb {
  */
 PLATFORM_PUBLIC_API
 size_t get_available_cpu_count();
+
+/**
+ * Returns the number of logical threads (CPUs) this process has
+ * access to - i.e. the maximum number of concurrent threads of
+ * execution available.
+ *
+ * @throws std::runtime_error if the system call to fetch available CPUs fail
+ */
+PLATFORM_PUBLIC_API
+size_t get_cpu_count();
+
+/**
+ * @return the current CPU of the caller
+ * @throws std::runtime_error if the system call to fetch current CPU fails
+ */
+PLATFORM_PUBLIC_API
+size_t get_cpu_index();
 }
 
 // For backwards compatibility

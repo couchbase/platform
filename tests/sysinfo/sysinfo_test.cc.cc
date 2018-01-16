@@ -82,3 +82,14 @@ TEST(GetAvailableCpu, InvalidValue) {
     EXPECT_THROW(cb::get_available_cpu_count(), std::logic_error);
 }
 
+TEST(GetCpuCount, get_cpu_count) {
+    auto count = cb::get_cpu_count();
+    EXPECT_NE(0, count);
+    std::cout << "get_cpu_count:" << count << std::endl;
+}
+
+// This test may never fail, but we at least expect the following to never
+// happen
+TEST(GetCpuCount, get_cpu_index) {
+    EXPECT_LE(cb::get_cpu_index(), cb::get_cpu_count());
+}

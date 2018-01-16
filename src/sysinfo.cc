@@ -17,13 +17,17 @@
 
 #include "config.h"
 
-#include <platform/sysinfo.h>
+#ifdef HAVE_CPUID_H
+#include <cpuid.h>
+#endif
 
+#include <platform/sysinfo.h>
+#include <algorithm>
 #include <cctype>
 #include <stdexcept>
 #include <system_error>
 
-#if defined(HAVE_SCHED_GETAFFINITY)
+#if defined(HAVE_SCHED_GETAFFINITY) || defined(HAVE_SCHED_GETCPU)
 #include <sched.h>
 #endif
 #include <string>
@@ -55,7 +59,7 @@ size_t cb::get_available_cpu_count() {
         return count;
     }
 
-    #if defined(WIN32)
+#if defined(WIN32)
     SYSTEM_INFO sysinfo;
     GetSystemInfo(&sysinfo);
     return size_t(sysinfo.dwNumberOfProcessors);
@@ -80,4 +84,54 @@ size_t cb::get_available_cpu_count() {
 
     return size_t(ret);
 #endif // WIN32
+}
+
+#if defined(WIN32)
+static size_t groupSize = 0;
+#endif
+
+size_t cb::get_cpu_count() {
+#if defined(WIN32)
+    size_t logicalProcs = 0;
+    int groups = GetMaximumProcessorGroupCount();
+    for (int group = 0; group < groups; group++) {
+        size_t currentGroupSize = GetMaximumProcessorCount(group);
+        groupSize = std::max(groupSize, logicalProcs);
+        logicalProcs += currentGroupSize;
+    }
+    return logicalProcs;
+#else // !WIN32
+    auto ret = sysconf(_SC_NPROCESSORS_ONLN);
+    if (ret == -1) {
+        throw std::system_error(std::error_code(errno, std::system_category()),
+                                "cb::get_cpu_count(): sysconf failed");
+    }
+
+    return size_t(ret);
+#endif // WIN32
+}
+
+PLATFORM_PUBLIC_API
+size_t cb::get_cpu_index() {
+#if defined(WIN32)
+    if (groupSize == 0) {
+        cb::get_cpu_count();
+    }
+    PROCESSOR_NUMBER processor;
+    GetCurrentProcessorNumberEx(&processor);
+    return processor.Number + (processor.Group * groupSize);
+#else // !WIN32
+#if defined(HAVE_SCHED_GETCPU)
+    int rv = sched_getcpu();
+    if (rv == -1) {
+        throw std::system_error(std::error_code(errno, std::system_category()),
+                                "cb::get_cpu_index(): sched_getcpu failed");
+    }
+    return rv;
+#else // !HAVE_SCHED_GETCPU
+    uint32_t registers[4] = {0, 0, 0, 0};
+    __cpuid(1, registers[0], registers[1], registers[2], registers[3]);
+    return registers[1] >> 24;
+#endif
+#endif
 }

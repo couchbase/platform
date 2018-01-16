@@ -7,6 +7,8 @@
 #cmakedefine HAVE_PTHREAD_SETNAME_NP 1
 #cmakedefine HAVE_PTHREAD_GETNAME_NP 1
 #cmakedefine HAVE_SCHED_GETAFFINITY 1
+#cmakedefine HAVE_SCHED_GETCPU 1
+#cmakedefine HAVE_CPUID_H 1
 
 #ifdef WIN32
 #include <winsock2.h>
