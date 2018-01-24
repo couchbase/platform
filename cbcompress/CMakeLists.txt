@@ -25,32 +25,34 @@ install(TARGETS cbcompress
         LIBRARY DESTINATION lib
         ARCHIVE DESTINATION lib)
 
-#
-# Unit tests
-#
-add_executable(platform-compression-test
-               ${Platform_SOURCE_DIR}/include/platform/compress.h
-               compression_test.cc)
-target_compile_definitions(platform-compression-test
-                           PRIVATE
-                           $<$<BOOL:${LZ4_FOUND}>:CB_LZ4_SUPPORT>)
+if (COUCHBASE_PLATFORM_BUILD_UNIT_TESTS)
+    #
+    # Unit tests
+    #
+    add_executable(platform-compression-test
+                   ${Platform_SOURCE_DIR}/include/platform/compress.h
+                   compression_test.cc)
+    target_compile_definitions(platform-compression-test
+                               PRIVATE
+                               $<$<BOOL:${LZ4_FOUND}>:CB_LZ4_SUPPORT>)
 
-target_link_libraries(platform-compression-test cbcompress gtest gtest_main)
-add_test(platform-compression-test platform-compression-test)
+    target_link_libraries(platform-compression-test cbcompress gtest gtest_main)
+    add_test(platform-compression-test platform-compression-test)
 
-#
-# Benchmark
-#
-add_executable(platform-compression-bench compress_bench.cc)
-target_compile_definitions(platform-compression-bench
-                           PRIVATE
-                           $<$<BOOL:${LZ4_FOUND}>:CB_LZ4_SUPPORT>)
-target_include_directories(platform-compression-bench
-                           PRIVATE
-                           ${SNAPPY_INCLUDE_DIR}
-                           $<$<BOOL:${LZ4_FOUND}>:${LZ4_INCLUDE_DIR}>)
-target_link_libraries(platform-compression-bench
-                      ${SNAPPY_LIBRARIES}
-                      $<$<BOOL:${LZ4_FOUND}>:${LZ4_LIBRARIES}>
-                      benchmark
-                      gtest)
+    #
+    # Benchmark
+    #
+    add_executable(platform-compression-bench compress_bench.cc)
+    target_compile_definitions(platform-compression-bench
+                               PRIVATE
+                               $<$<BOOL:${LZ4_FOUND}>:CB_LZ4_SUPPORT>)
+    target_include_directories(platform-compression-bench
+                               PRIVATE
+                               ${SNAPPY_INCLUDE_DIR}
+                               $<$<BOOL:${LZ4_FOUND}>:${LZ4_INCLUDE_DIR}>)
+    target_link_libraries(platform-compression-bench
+                          ${SNAPPY_LIBRARIES}
+                          $<$<BOOL:${LZ4_FOUND}>:${LZ4_LIBRARIES}>
+                          benchmark
+                          gtest)
+endif (COUCHBASE_PLATFORM_BUILD_UNIT_TESTS)
