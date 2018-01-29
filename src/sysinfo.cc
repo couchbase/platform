@@ -101,7 +101,7 @@ size_t cb::get_cpu_count() {
     }
     return logicalProcs;
 #else // !WIN32
-    auto ret = sysconf(_SC_NPROCESSORS_ONLN);
+    auto ret = sysconf(_SC_NPROCESSORS_CONF);
     if (ret == -1) {
         throw std::system_error(std::error_code(errno, std::system_category()),
                                 "cb::get_cpu_count(): sysconf failed");
