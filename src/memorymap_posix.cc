@@ -75,14 +75,23 @@ void cb::MemoryMappedFile::open(void) {
 
     int openMode;
     int protection = PROT_READ;
+    bool validMode = false;
 
     switch (mode) {
     case Mode::RDONLY:
         openMode = O_RDONLY;
+        validMode = true;
         break;
     case Mode::RW:
         openMode = O_RDWR;
+        validMode = true;
         protection |= PROT_WRITE;
+        break;
+    }
+    if (!validMode) {
+        throw std::logic_error(
+                "cb::MemoryMappedFile::open: invalid value for mode:" +
+                std::to_string(uint8_t(mode)));
     }
 
     if ((filehandle = ::open(filename.c_str(), openMode)) == -1) {

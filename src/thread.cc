@@ -30,13 +30,13 @@ Couchbase::Thread::~Thread() {
         cb_join_thread(thread_id);
         return;
     case ThreadState::Running:
-        throw std::logic_error("Thread should be stopped before deleted"
-                                   " (running)");
     case ThreadState::Starting:
-        throw std::logic_error("Thread should be stopped before deleted"
-                                   " (starting)");
+        // Both of these states are invalid (should not destruct if Running or
+        // Starting), however destructors cannot fail so should not throw
+        // or similar here. *If* we had access to a logger we might want to log
+        // something...
+        break;
     }
-    throw std::logic_error("Invalid state for the Thread object");
 }
 
 void Couchbase::Thread::thread_entry() {
