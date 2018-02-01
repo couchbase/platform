@@ -134,6 +134,10 @@ namespace Couchbase {
                                                std::memory_order_relaxed);
         }
 
+        T exchange(T desired) {
+            return value.exchange(desired, std::memory_order_relaxed);
+        }
+
     private:
         std::atomic <T> value;
     };
