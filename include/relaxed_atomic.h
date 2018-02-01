@@ -127,6 +127,13 @@ namespace Couchbase {
             setIfGreater(val.load());
         }
 
+        bool compare_exchange_weak(T& expected, T desired) {
+            return value.compare_exchange_weak(expected,
+                                               desired,
+                                               std::memory_order_release,
+                                               std::memory_order_relaxed);
+        }
+
     private:
         std::atomic <T> value;
     };
