@@ -46,3 +46,8 @@ uint64_t cb::from_hex(cb::const_char_buffer buffer) {
 
     return ret;
 }
+
+PLATFORM_PUBLIC_API
+std::string cb::to_string(cb::const_char_buffer cb) {
+    return std::string{cb.data(), cb.size()};
+}

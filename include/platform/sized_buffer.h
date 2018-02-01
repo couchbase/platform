@@ -16,6 +16,8 @@
  */
 #pragma once
 
+#include <platform/platform.h>
+
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
@@ -380,9 +382,8 @@ public:
     }
 };
 
-static inline std::string to_string(const_char_buffer cb) {
-    return std::string(cb.data(), cb.size());
-}
+PLATFORM_PUBLIC_API
+std::string to_string(const_char_buffer cb);
 
 inline bool operator==(const_char_buffer lhs, const char* rhs) {
     return lhs.compare(const_char_buffer(rhs)) == 0;
