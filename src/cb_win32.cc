@@ -23,6 +23,8 @@
 #include <platform/cb_malloc.h>
 #include <platform/strerror.h>
 #include <stdio.h>
+#include <chrono>
+#include <thread>
 #include <vector>
 
 struct thread_execute {
@@ -267,11 +269,7 @@ void cb_dlclose(cb_dlhandle_t handle)
 __declspec(dllexport)
 void usleep(unsigned int useconds)
 {
-    unsigned int msec = useconds / 1000;
-    if (msec == 0) {
-        msec = 1;
-    }
-    Sleep(msec);
+    std::this_thread::sleep_for(std::chrono::microseconds(useconds));
 }
 
 __declspec(dllexport)
