@@ -37,4 +37,17 @@ namespace cb {
  */
 PLATFORM_PUBLIC_API
 uint64_t from_hex(cb::const_char_buffer buffer);
+
+PLATFORM_PUBLIC_API
+std::string to_hex(uint8_t val);
+
+PLATFORM_PUBLIC_API
+std::string to_hex(uint16_t val);
+
+PLATFORM_PUBLIC_API
+std::string to_hex(uint32_t val);
+
+PLATFORM_PUBLIC_API
+std::string to_hex(uint64_t val);
+
 } // namespace cb

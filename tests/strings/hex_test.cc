@@ -32,3 +32,31 @@ TEST(Hex, InputStringData) {
     const uint64_t expected{0x0123456789abcdefULL};
     EXPECT_EQ(expected, cb::from_hex(value));
 }
+
+TEST(Hex, ToHexUint8) {
+    uint8_t val = uint8_t(-1);
+    EXPECT_EQ("0xff", cb::to_hex(val));
+    val = 0;
+    EXPECT_EQ("0x00", cb::to_hex(val));
+}
+
+TEST(Hex, ToHexUint16) {
+    uint16_t val = uint16_t(-1);
+    EXPECT_EQ("0xffff", cb::to_hex(val));
+    val = 0;
+    EXPECT_EQ("0x0000", cb::to_hex(val));
+}
+
+TEST(Hex, ToHexUint32) {
+    uint32_t val = uint32_t(-1);
+    EXPECT_EQ("0xffffffff", cb::to_hex(val));
+    val = 0;
+    EXPECT_EQ("0x00000000", cb::to_hex(val));
+}
+
+TEST(Hex, ToHexUint64) {
+    uint64_t val = uint64_t(-1);
+    EXPECT_EQ("0xffffffffffffffff", cb::to_hex(val));
+    val = 0;
+    EXPECT_EQ("0x0000000000000000", cb::to_hex(val));
+}

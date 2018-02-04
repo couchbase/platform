@@ -17,6 +17,7 @@
 
 #include <platform/string.h>
 
+#include <cinttypes>
 #include <stdexcept>
 #include <string>
 
@@ -50,4 +51,32 @@ uint64_t cb::from_hex(cb::const_char_buffer buffer) {
 PLATFORM_PUBLIC_API
 std::string cb::to_string(cb::const_char_buffer cb) {
     return std::string{cb.data(), cb.size()};
+}
+
+PLATFORM_PUBLIC_API
+std::string cb::to_hex(uint8_t val) {
+    char buf[32];
+    snprintf(buf, sizeof(buf), "0x%02" PRIx8, val);
+    return std::string{buf};
+}
+
+PLATFORM_PUBLIC_API
+std::string cb::to_hex(uint16_t val) {
+    char buf[32];
+    snprintf(buf, sizeof(buf), "0x%04" PRIx16, val);
+    return std::string{buf};
+}
+
+PLATFORM_PUBLIC_API
+std::string cb::to_hex(uint32_t val) {
+    char buf[32];
+    snprintf(buf, sizeof(buf), "0x%08" PRIx32, val);
+    return std::string{buf};
+}
+
+PLATFORM_PUBLIC_API
+std::string cb::to_hex(uint64_t val) {
+    char buf[32];
+    snprintf(buf, sizeof(buf), "0x%016" PRIx64, val);
+    return std::string{buf};
 }
