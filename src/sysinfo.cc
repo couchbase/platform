@@ -120,18 +120,32 @@ size_t cb::get_cpu_index() {
     PROCESSOR_NUMBER processor;
     GetCurrentProcessorNumberEx(&processor);
     return processor.Number + (processor.Group * groupSize);
-#else // !WIN32
-#if defined(HAVE_SCHED_GETCPU)
+#elif defined(HAVE_SCHED_GETCPU)
     int rv = sched_getcpu();
     if (rv == -1) {
         throw std::system_error(std::error_code(errno, std::system_category()),
                                 "cb::get_cpu_index(): sched_getcpu failed");
     }
     return rv;
+#elif defined(__APPLE__)
+    // From:
+    // https://github.com/apple/darwin-xnu/blob/0a798f6738bc1db01281fc08ae024145e84df927/libsyscall/os/tsd.h
+    // macOS stores the cpu number in the lower bits of the IDTR.
+    {
+#if defined(__x86_64__) || defined(__i386__)
+        struct __attribute__((packed)) {
+            uint16_t size;
+            uintptr_t ptr;
+        } idt;
+        __asm__("sidt %[p]" : [p] "=&m"(idt));
+        return size_t(idt.size & 0xfff);
+#else
+#error get_cpu_index (macOS) not implemented on this architecture
+#endif
+    }
 #else // !HAVE_SCHED_GETCPU
     uint32_t registers[4] = {0, 0, 0, 0};
     __cpuid(1, registers[0], registers[1], registers[2], registers[3]);
     return registers[1] >> 24;
-#endif
 #endif
 }
