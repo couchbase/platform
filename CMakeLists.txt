@@ -183,22 +183,32 @@ ADD_LIBRARY(platform_so SHARED ${PLATFORM_FILES}
                             src/timeutils.cc
                             src/uuid.cc
                             include/platform/atomic_duration.h
+                            include/platform/backtrace.h
                             include/platform/base64.h
                             include/platform/bitset.h
                             include/platform/byte_buffer_dump.h
+                            include/platform/cacheline_padded.h
+                            include/platform/cb_malloc.h
+                            include/platform/cbassert.h
+                            include/platform/checked_snprintf.h
+                            include/platform/corestore.h
                             include/platform/crc32c.h
+                            include/platform/make_unique.h
                             include/platform/memorymap.h
+                            include/platform/non_negative_counter.h
                             include/platform/platform.h
                             include/platform/pipe.h
                             include/platform/processclock.h
                             include/platform/random.h
                             include/platform/ring_buffer.h
+                            include/platform/rwlock.h
                             include/platform/sized_buffer.h
                             include/platform/strerror.h
                             include/platform/string.h
                             include/platform/sysinfo.h
                             include/platform/thread.h
                             include/platform/timeutils.h
+                            include/platform/uuid.h
                             include/platform/visibility.h)
 
 LIST(APPEND PLATFORM_LIBRARIES "phosphor")
