@@ -1,6 +1,3 @@
-# The unit tests use gtest
-INCLUDE_DIRECTORIES(AFTER ${gtest_SOURCE_DIR}/include)
-
 ADD_SUBDIRECTORY(atomic)
 ADD_SUBDIRECTORY(backtrace)
 ADD_SUBDIRECTORY(base64)

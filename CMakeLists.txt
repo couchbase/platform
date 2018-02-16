@@ -62,11 +62,7 @@ CONFIGURE_FILE (${CMAKE_CURRENT_SOURCE_DIR}/include/platform/dynamic.in.h
 #
 # Set the include path
 #
-INCLUDE_DIRECTORIES(BEFORE ${CMAKE_CURRENT_SOURCE_DIR}/include
-                           ${CMAKE_CURRENT_SOURCE_DIR}/external
-                           ${CMAKE_CURRENT_BINARY_DIR}/src
-                           ${phosphor_SOURCE_DIR}/include
-                           ${gsl_lite_SOURCE_DIR}/include)
+INCLUDE_DIRECTORIES(BEFORE ${CMAKE_CURRENT_SOURCE_DIR}/external)
 
 IF (MEMORY_ALLOCATOR)
   INCLUDE_DIRECTORIES(AFTER ${MALLOC_INCLUDE_DIR})
@@ -81,9 +77,12 @@ SET_TARGET_PROPERTIES(cJSON PROPERTIES SOVERSION 1.1.0)
 GENERATE_EXPORT_HEADER(cJSON
                        EXPORT_MACRO_NAME CJSON_PUBLIC_API
                        EXPORT_FILE_NAME ${CMAKE_CURRENT_BINARY_DIR}/include/platform/cJSON-visibility.h)
+TARGET_INCLUDE_DIRECTORIES(cJSON INTERFACE include)
+TARGET_LINK_LIBRARIES(cJSON PRIVATE gsl_lite)
 
 ADD_LIBRARY(JSON_checker SHARED src/JSON_checker.cc include/JSON_checker.h)
 SET_TARGET_PROPERTIES(JSON_checker PROPERTIES SOVERSION 1.0.0)
+TARGET_LINK_LIBRARIES(JSON_checker PRIVATE platform_headers)
 
 IF (WIN32)
    INCLUDE_DIRECTORIES(AFTER ${CMAKE_CURRENT_SOURCE_DIR}/include/win32)
@@ -120,7 +119,7 @@ ELSE (WIN32)
    SET(LIB_M m)
 ENDIF (WIN32)
 
-TARGET_LINK_LIBRARIES(cJSON platform ${LIB_M})
+TARGET_LINK_LIBRARIES(cJSON PRIVATE platform ${LIB_M})
 
 IF (NOT DEFINED COUCHBASE_NETWORK_LIBS)
    IF (WIN32)
@@ -149,6 +148,21 @@ endif()
 #
 # Add all of the libraries
 #
+
+# 'platform_headers' - header-only part of platform.
+#
+# This should typically only be used for tests / benchmarks which want the
+# definitions of platform functions; but don't want to link against the
+# complete library. For example, a unit test might want to just link against
+# the single .cc file for the code it is testing, but needs the prototype(s)
+# of that .cc file.
+ADD_LIBRARY(platform_headers INTERFACE)
+TARGET_INCLUDE_DIRECTORIES(platform_headers INTERFACE
+        include
+        # "config.h" (which resides in ${Platform_BINARY_DIR}/src) is needed
+        # indirectly by any targets linking against platform_headers (because
+        # a number of platform's public headers include it).
+        ${Platform_BINARY_DIR}/src)
 
 # platform_so - the 'real' platform shared library containing our various
 # platform abstraction functionality.
@@ -211,8 +225,25 @@ ADD_LIBRARY(platform_so SHARED ${PLATFORM_FILES}
 
 LIST(APPEND PLATFORM_LIBRARIES "phosphor")
 LIST(REMOVE_DUPLICATES PLATFORM_LIBRARIES)
-TARGET_LINK_LIBRARIES(platform_so
-                      ${COUCHBASE_NETWORK_LIBS} ${MALLOC_LIBRARIES} ${PLATFORM_LIBRARIES})
+TARGET_LINK_LIBRARIES(platform_so PRIVATE
+        platform_headers
+        gsl_lite
+        ${MALLOC_LIBRARIES}
+        ${PLATFORM_LIBRARIES})
+
+# Link publically with COUCHBASE_NETWORK_LIBS - strictly speaking this
+# shouldn't be necessary, however a number of downstream components
+# (e.g. couchstore targets) rely on platform to make available
+# htons/htonl (via Ws2_32) etc when building on Windows.
+# Until all such targets are # updated to link directly to Ws2_32, we
+# link publically.
+TARGET_LINK_LIBRARIES(platform_so PUBLIC
+        ${COUCHBASE_NETWORK_LIBS})
+
+TARGET_INCLUDE_DIRECTORIES(platform_so PUBLIC include)
+# TODO: Add a TARGET_INCLUDE_DIRECTORIES(PUBLIC) to phosphor; then the
+# following line can be removed:
+TARGET_INCLUDE_DIRECTORIES(platform_so PRIVATE ${phosphor_SOURCE_DIR}/include)
 
 # 'platform' - the library clients should normally link to.
 #
@@ -228,8 +259,7 @@ TARGET_LINK_LIBRARIES(platform_so
 # avoid these problems.
 ADD_LIBRARY(platform STATIC src/global_new_replacement.cc)
 SET_TARGET_PROPERTIES(platform PROPERTIES POSITION_INDEPENDENT_CODE true)
-TARGET_LINK_LIBRARIES(platform platform_so)
-
+TARGET_LINK_LIBRARIES(platform platform_headers platform_so)
 
 # On OS X 10.11 we need to remove the default rpath settings in order to all
 # us to load the platform library from Python scripts that are run out of
@@ -271,8 +301,7 @@ ADD_LIBRARY(breakpad_wrapper SHARED
             include/breakpad_wrapper/breakpad_wrapper.h)
 
 TARGET_LINK_LIBRARIES(breakpad_wrapper
-                      ${BREAKPAD_LIBRARIES})
-
+                      ${BREAKPAD_LIBRARIES} platform_headers)
 
 INSTALL(TARGETS breakpad_wrapper cJSON JSON_checker platform_so dirutils
         RUNTIME DESTINATION bin

@@ -5,6 +5,7 @@ add_library(cbsocket SHARED
 
 target_link_libraries(cbsocket
                       dirutils
+                      gsl_lite
                       platform
                       ${LIBEVENT_LIBRARIES}
                       ${COUCHBASE_NETWORK_LIBS})

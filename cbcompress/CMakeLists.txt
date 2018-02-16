@@ -12,7 +12,7 @@ target_include_directories(cbcompress
                            ${SNAPPY_INCLUDE_DIR}
                            $<$<BOOL:${LZ4_FOUND}>:${LZ4_INCLUDE_DIR}>)
 
-target_link_libraries(cbcompress platform
+target_link_libraries(cbcompress gsl_lite platform
                       ${SNAPPY_LIBRARIES}
                       $<$<BOOL:${LZ4_FOUND}>:${LZ4_LIBRARIES}>)
 

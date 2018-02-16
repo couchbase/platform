@@ -8,5 +8,5 @@ ADD_TEST(platform-cjson-parse-test
          -n 1)
 
 ADD_EXECUTABLE(platform-cjsonutils-test cjson_utils_test.cc)
-TARGET_LINK_LIBRARIES(platform-cjsonutils-test cJSON gtest gtest_main)
+TARGET_LINK_LIBRARIES(platform-cjsonutils-test cJSON gsl_lite gtest gtest_main platform)
 ADD_TEST(platform-cjsonutils-test platform-cjsonutils-test)
