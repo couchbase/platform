@@ -118,6 +118,11 @@ public:
         return cb::const_char_buffer{data(), size()};
     }
 
+    operator cb::const_byte_buffer() {
+        return cb::const_byte_buffer{reinterpret_cast<uint8_t*>(data()),
+                                     size()};
+    }
+
     Allocator allocator;
 
 private:
