@@ -42,6 +42,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <float.h>
+#include <gsl/gsl>
 #include <limits.h>
 #include <ctype.h>
 #include <new>
@@ -1003,4 +1004,26 @@ void cJSON_AddUintPtrToObject(cJSON* obj, const char* name, uintptr_t value) {
     char buffer[64];
     snprintf(buffer, sizeof(buffer), "0x%" PRIxPTR, value);
     cJSON_AddItemToObject(obj, name, cJSON_CreateString(buffer));
+}
+
+void cJSON_AddIntegerToObject(cJSON* object, const char* string, uint32_t value){
+    static_assert(std::numeric_limits<double>::digits >= 32,
+                  "Platform double cannot represent uint32_t");
+    cJSON_AddNumberToObject(object, string, gsl::narrow_cast<double>(value));
+}
+
+void cJSON_AddInteger64ToObject(cJSON* object, const char* string, uint64_t value){
+    cJSON_AddNumberToObject(object, string, gsl::narrow_cast<double>(value));
+}
+
+void cJSON_AddStringifiedIntegerToObject(cJSON* object, const char* string, uint64_t value){
+    char buffer[64];
+    snprintf(buffer, sizeof(buffer), "%" PRIu64, value);
+    cJSON_AddItemToObject(object, string, cJSON_CreateString(buffer));
+}
+
+extern void cJSON_AddStringifiedSignedIntegerToObject(cJSON* object, const char* string, int64_t value){
+    char buffer[64];
+    snprintf(buffer, sizeof(buffer), "%" PRId64, value);
+    cJSON_AddItemToObject(object, string, cJSON_CreateString(buffer));
 }

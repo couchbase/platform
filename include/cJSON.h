@@ -179,6 +179,31 @@ extern void cJSON_AddUintPtrToObject(cJSON* object,
                                      const char* string,
                                      uintptr_t value);
 
+CJSON_PUBLIC_API
+extern void cJSON_AddIntegerToObject(cJSON* object, const char* string, uint32_t value);
+
+/**
+ * Adds a uint64_t to the cJSON object. This method WILL siltently cast the
+ * number to double, meaning there is potential for data loss. Given we are
+ * doing this in places anyway, this method is just in place so we can get rid
+ * of compiler warnings complaining about narrowing conversions of arguments.
+ *
+ */
+CJSON_PUBLIC_API
+extern void cJSON_AddInteger64ToObject(cJSON* object, const char* string, uint64_t value);
+
+/**
+ * Adds an unsigned numerical value to the cJSON object by converting it to a string representation of it.
+ */
+CJSON_PUBLIC_API
+extern void cJSON_AddStringifiedIntegerToObject(cJSON* object, const char* string, uint64_t value);
+
+/**
+ * Adds a signed numerical value to the cJSON object by converting it to a string representation of it.
+ */
+CJSON_PUBLIC_API
+extern void cJSON_AddStringifiedSignedIntegerToObject(cJSON* object, const char* string, int64_t value);
+
 #ifdef __cplusplus
 }
 #endif

@@ -16,6 +16,7 @@
  */
 #include <cJSON_utils.h>
 #include <gtest/gtest.h>
+#include <gsl/gsl>
 
 TEST(cJSON, ToStringInvalidArguments) {
     unique_cJSON_ptr ptr;
@@ -92,4 +93,40 @@ TEST(cJSON, ToStringEmptyArrayAsFieldUnformatted) {
     unique_cJSON_ptr ptr(cJSON_CreateObject());
     cJSON_AddItemToObject(ptr.get(), "foo", cJSON_CreateArray());
     EXPECT_EQ("{\"foo\":[]}", to_string(ptr, false));
+}
+
+TEST(cJSON, ToStringAddIntegerToObject) {
+    unique_cJSON_ptr ptr(cJSON_CreateObject());
+    cJSON_AddIntegerToObject(ptr.get(), "foo", 0xdeadbeef);
+    EXPECT_EQ("{\"foo\":3735928559}", to_string(ptr, false));
+}
+
+TEST(cJSON, ToStringAddInteger64ToObject_Safe) {
+    unique_cJSON_ptr ptr(cJSON_CreateObject());
+    cJSON_AddInteger64ToObject(ptr.get(), "foo", 0xdeadbeef);
+    EXPECT_EQ("{\"foo\":3735928559}", to_string(ptr, false));
+}
+
+TEST(cJSON, ToStringAddInteger64ToObject_Narrowing) {
+    unique_cJSON_ptr ptr(cJSON_CreateObject());
+    cJSON_AddInteger64ToObject(ptr.get(), "foo", 0xdeadbeefdeadbeef);
+    double a = gsl::narrow_cast<double>(0xdeadbeefdeadbeef);
+    std::stringstream expected;
+    expected << "{\"foo\":" << std::fixed << std::setprecision(0) << a << "}";
+    EXPECT_EQ(expected.str(), to_string(ptr, false));
+}
+
+TEST(cJSON, ToStringAddStringifiedInteger_Unsigned) {
+    unique_cJSON_ptr ptr(cJSON_CreateObject());
+    cJSON_AddStringifiedIntegerToObject(ptr.get(), "foo", uint64_t(0xdeadbeef));
+    EXPECT_EQ("{\"foo\":\"3735928559\"}", to_string(ptr, false));
+}
+
+TEST(cJSON, ToStringAddStringifiedInteger_Signed) {
+    unique_cJSON_ptr ptr(cJSON_CreateObject());
+    cJSON_AddStringifiedSignedIntegerToObject(
+            ptr.get(), "foo", int64_t(0xdeadbeef));
+    EXPECT_EQ("{\"foo\":\"3735928559\"}", to_string(ptr, false));
+    cJSON_AddStringifiedSignedIntegerToObject(ptr.get(), "bar", int64_t(-1));
+    EXPECT_EQ("{\"foo\":\"3735928559\",\"bar\":\"-1\"}", to_string(ptr, false));
 }
