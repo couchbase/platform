@@ -38,15 +38,10 @@
 
 #pragma once
 
-#include <platform/visibility.h>
+#include <platform/cJSON-visibility.h>
+
 #include <stdbool.h>
 #include <stdint.h>
-
-#ifdef BUILDING_CJSON
-#define CJSON_PUBLIC_API EXPORT_SYMBOL
-#else
-#define CJSON_PUBLIC_API IMPORT_SYMBOL
-#endif
 
 #ifdef __cplusplus
 extern "C"
