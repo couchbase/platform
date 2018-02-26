@@ -36,17 +36,18 @@
  *   limitations under the License.
  */
 
-#include <cinttypes>
-#include <string.h>
-#include <stdio.h>
-#include <math.h>
-#include <stdlib.h>
-#include <float.h>
-#include <gsl/gsl>
-#include <limits.h>
-#include <ctype.h>
-#include <new>
+#include <cJSON_utils.h>
 #include <platform/cb_malloc.h>
+#include <cctype>
+#include <cfloat>
+#include <cinttypes>
+#include <climits>
+#include <cmath>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <gsl/gsl>
+#include <new>
 
 #include "cJSON.h"
 
@@ -122,68 +123,70 @@ void cJSON_Delete(cJSON *c)
     }
 }
 
-/* Parse the input text to generate a number, and populate the result into item. */
+/**
+ * Parse the input text to generate a number, and populate the result into
+ * the provided item.
+ *
+ * A number is defined in https://tools.ietf.org/html/rfc7159 to look like:
+ *
+ * number = [ minus ] int [ frac ] [ exp ]
+ *      decimal-point = %x2E       ; .
+ *      digit1-9 = %x31-39         ; 1-9
+ *      e = %x65 / %x45            ; e E
+ *      exp = e [ minus / plus ] 1*DIGIT
+ *      frac = decimal-point 1*DIGIT
+ *      int = zero / ( digit1-9 *DIGIT )
+ *      minus = %x2D               ; -
+ *      plus = %x2B                ; +
+ *      zero = %x30                ; 0
+ *
+ */
 static const char *parse_number(cJSON *item, const char *num)
 {
-    double n = 0, sign = 1, scale = 0;
-    int subscale = 0, signsubscale = 1;
-
-    /* Could use sscanf for this? */
-    if (*num == '-') {
-        sign = -1, num++; /* Has sign? */
-    }
-    if (*num == '0') {
-        num++; /* is zero */
-    }
-    if (*num >= '1' && *num <= '9') {
-        do {
-            n = (n * 10.0) + (*num++ -'0');
-        } while (*num >= '0' && *num <= '9'); /* Number? */
-    }
-    if (*num == '.') {
-        num++; /* Fractional part? */
-        do {
-            n = (n * 10.0) + (*num++ -'0'), scale--;
-        } while (*num >= '0' && *num <= '9');
-    }
-    if (*num == 'e' || *num == 'E') { /* Exponent? */
-        num++;
-        if (*num == '+') {
-            num++;
-        } else if (*num == '-') {
-            signsubscale = -1, num++; /* With sign? */
-        }
-        while (*num >= '0' && *num <= '9') {
-            subscale = (subscale * 10) + (*num++ - '0'); /* Number? */
-        }
-    }
-
-    n = sign * n * pow(10.0, (scale + subscale * signsubscale)); /* number = +/- number.fraction * 10^+/- exponent */
-
-    item->valuedouble = n;
-    item->valueint = (int)n;
+    // Unfortunately std::stoull will parse as many characters as
+    // there are digit, and stop at the first non-digit instead of
+    // throwing an exception if the number isn't an integral number.
+    //
+    // Let's start by assuming that it is an integer (as that is what
+    // we typically use).
+    std::size_t pos;
     item->type = cJSON_Number;
-    return num;
+    item->valueint = int64_t(std::stoull(num, &pos));
+
+    // Now it _could_ be that this is a floating point number instead.
+    const auto next = num[pos];
+    if (next == '.' || next == 'e' || next == 'E') {
+        // this is a double!
+        item->valuedouble = std::stod(num, &pos);
+        item->type = cJSON_Double;
+    }
+
+    return num + pos;
 }
 
 /* Render the number nicely from the given item into a string. */
 static char *print_number(const cJSON *item)
 {
     char *str;
+    str = reinterpret_cast<char*>(cJSON_malloc(21)); /* 2^64+1 can be represented in 21 chars. */
+    sprintf(str, "%" PRId64, item->valueint);
+    return str;
+}
+
+/* Render the number nicely from the given item into a string. */
+static char *print_double(const cJSON *item)
+{
     double d = item->valuedouble;
-    if (fabs(((double)item->valueint) - d) <= DBL_EPSILON && d <= INT_MAX && d >= INT_MIN) {
-        str = reinterpret_cast<char*>(cJSON_malloc(21)); /* 2^64+1 can be represented in 21 chars. */
-        sprintf(str, "%d", item->valueint);
+    char *str;
+    str = reinterpret_cast<char *>(cJSON_malloc(64)); /* This is a nice tradeoff. */
+    if (fabs(floor(d) - d) <= DBL_EPSILON) {
+        sprintf(str, "%.0f", d);
+    } else if (fabs(d) < 1.0e-6 || fabs(d) > 1.0e9) {
+        sprintf(str, "%e", d);
     } else {
-        str = reinterpret_cast<char*>(cJSON_malloc(64)); /* This is a nice tradeoff. */
-        if (fabs(floor(d) - d) <= DBL_EPSILON) {
-            sprintf(str, "%.0f", d);
-        } else if (fabs(d) < 1.0e-6 || fabs(d) > 1.0e9) {
-            sprintf(str, "%e", d);
-        } else {
-            sprintf(str, "%f", d);
-        }
+        sprintf(str, "%f", d);
     }
+
     return str;
 }
 
@@ -360,16 +363,21 @@ static const char *skip(const char *in)
 /* Parse an object - create a new root, and populate. */
 cJSON *cJSON_Parse(const char *value)
 {
-    cJSON *c = cJSON_New_Item();
-    if (!c) {
-        return NULL; /* memory fail */
+    unique_cJSON_ptr ret(cJSON_New_Item());
+    if (!ret) {
+        return nullptr; /* memory fail */
     }
 
-    if (!parse_value(c, skip(value))) {
-        cJSON_Delete(c);
-        return NULL;
+    try {
+        if (!parse_value(ret.get(), skip(value))) {
+            return nullptr;
+        }
+    } catch (const std::invalid_argument&) {
+        // format error..
+        ret.reset();
     }
-    return c;
+
+    return ret.release();
 }
 
 /* Render a cJSON item/entity/structure to text. */
@@ -442,6 +450,9 @@ static char *print_value(const cJSON *item, int depth, int fmt)
         break;
     case cJSON_Number:
         out = print_number(item);
+        break;
+    case cJSON_Double:
+        out = print_double(item);
         break;
     case cJSON_String:
         out = print_string(item);
@@ -960,12 +971,19 @@ cJSON *cJSON_CreateFalse(void)
     return item;
 }
 
-cJSON *cJSON_CreateNumber(double num)
+cJSON *cJSON_CreateNumber(int64_t num)
 {
     cJSON *item = cJSON_New_Item();
     item->type = cJSON_Number;
+    item->valueint = num;
+    return item;
+}
+
+cJSON *cJSON_CreateDouble(double num)
+{
+    cJSON *item = cJSON_New_Item();
+    item->type = cJSON_Double;
     item->valuedouble = num;
-    item->valueint = (int)num;
     return item;
 }
 
@@ -991,6 +1009,12 @@ cJSON *cJSON_CreateObject(void)
     return item;
 }
 
+void cJSON_AddDoubleToObject(cJSON *object,
+                             const char *string,
+                             double value) {
+    cJSON_AddItemToObject(object, string, cJSON_CreateDouble(value));
+}
+
 extern void cJSON_AddBoolToObject(cJSON* object, const char* string, bool value)
 {
     if (value) {
@@ -1007,13 +1031,11 @@ void cJSON_AddUintPtrToObject(cJSON* obj, const char* name, uintptr_t value) {
 }
 
 void cJSON_AddIntegerToObject(cJSON* object, const char* string, uint32_t value){
-    static_assert(std::numeric_limits<double>::digits >= 32,
-                  "Platform double cannot represent uint32_t");
-    cJSON_AddNumberToObject(object, string, gsl::narrow_cast<double>(value));
+    cJSON_AddNumberToObject(object, string, value);
 }
 
 void cJSON_AddInteger64ToObject(cJSON* object, const char* string, uint64_t value){
-    cJSON_AddNumberToObject(object, string, gsl::narrow_cast<double>(value));
+    cJSON_AddItemToObject(object, string, cJSON_CreateNumber(int64_t(value)));
 }
 
 void cJSON_AddStringifiedIntegerToObject(cJSON* object, const char* string, uint64_t value){

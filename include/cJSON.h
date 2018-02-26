@@ -44,6 +44,9 @@
 #include <stdint.h>
 
 #ifdef __cplusplus
+#include <cstddef>
+#include <ctime>
+#include <type_traits>
 extern "C"
 {
 #endif
@@ -53,9 +56,10 @@ extern "C"
 #define cJSON_True 1
 #define cJSON_NULL 2
 #define cJSON_Number 3
-#define cJSON_String 4
-#define cJSON_Array 5
-#define cJSON_Object 6
+#define cJSON_Double 4
+#define cJSON_String 5
+#define cJSON_Array 6
+#define cJSON_Object 7
 
 #define cJSON_IsReference 256
 
@@ -72,8 +76,8 @@ typedef struct cJSON {
         int type; /* The type of the item, as above. */
 
         char *valuestring; /* The item's string, if type==cJSON_String */
-        int valueint; /* The item's number, if type==cJSON_Number */
-        double valuedouble; /* The item's number, if type==cJSON_Number */
+        int64_t valueint; /* The item's number, if type==cJSON_Number */
+        double valuedouble; /* The item's number, if type==cJSON_Double */
 
         char *string; /* The item's name string, if this item is the
                          child of, or is in the list of subitems of an
@@ -118,7 +122,9 @@ extern cJSON *cJSON_CreateTrue(void);
 CJSON_PUBLIC_API
 extern cJSON *cJSON_CreateFalse(void);
 CJSON_PUBLIC_API
-extern cJSON *cJSON_CreateNumber(double num);
+extern cJSON *cJSON_CreateDouble(double num);
+CJSON_PUBLIC_API
+extern cJSON *cJSON_CreateNumber(int64_t num);
 CJSON_PUBLIC_API
 extern cJSON *cJSON_CreateString(const char *string);
 CJSON_PUBLIC_API
@@ -130,41 +136,49 @@ extern cJSON *cJSON_CreateObject(void);
 CJSON_PUBLIC_API
 extern void cJSON_AddItemToArray(cJSON *array, cJSON *item);
 CJSON_PUBLIC_API
-extern void cJSON_AddItemToObject(cJSON *object,const char *string,cJSON *item);
+extern void cJSON_AddItemToObject(cJSON *object, const char *string, cJSON *item);
 /* Append reference to item to the specified array/object. Use this
    when you want to add an existing cJSON to a new cJSON, but don't
    want to corrupt your existing cJSON. */
 CJSON_PUBLIC_API
 extern void cJSON_AddItemReferenceToArray(cJSON *array, cJSON *item);
 CJSON_PUBLIC_API
-extern void cJSON_AddItemReferenceToObject(cJSON *object,const char *string,cJSON *item);
+extern void cJSON_AddItemReferenceToObject(cJSON *object, const char *string, cJSON *item);
 
 /* Remove/Detatch items from Arrays/Objects. */
 CJSON_PUBLIC_API
-extern cJSON *cJSON_DetachItemFromArray(cJSON *array,int which);
+extern cJSON *cJSON_DetachItemFromArray(cJSON *array, int which);
 CJSON_PUBLIC_API
-extern void   cJSON_DeleteItemFromArray(cJSON *array,int which);
+extern void cJSON_DeleteItemFromArray(cJSON *array, int which);
 CJSON_PUBLIC_API
-extern cJSON *cJSON_DetachItemFromObject(cJSON *object,const char *string);
+extern cJSON *cJSON_DetachItemFromObject(cJSON *object, const char *string);
 CJSON_PUBLIC_API
-extern void   cJSON_DeleteItemFromObject(cJSON *object,const char *string);
+extern void cJSON_DeleteItemFromObject(cJSON *object, const char *string);
 
 /* Update array items. */
 CJSON_PUBLIC_API
-extern void cJSON_ReplaceItemInArray(cJSON *array,int which,cJSON *newitem);
+extern void cJSON_ReplaceItemInArray(cJSON *array, int which, cJSON *newitem);
 CJSON_PUBLIC_API
-extern void cJSON_ReplaceItemInObject(cJSON *object,const char *string,cJSON *newitem);
+extern void cJSON_ReplaceItemInObject(cJSON *object, const char *string, cJSON *newitem);
 
-#define cJSON_AddNullToObject(object,name) \
+#define cJSON_AddNullToObject(object, name) \
         cJSON_AddItemToObject(object, name, cJSON_CreateNull())
-#define cJSON_AddTrueToObject(object,name) \
+#define cJSON_AddTrueToObject(object, name) \
         cJSON_AddItemToObject(object, name, cJSON_CreateTrue())
-#define cJSON_AddFalseToObject(object,name) \
+#define cJSON_AddFalseToObject(object, name) \
         cJSON_AddItemToObject(object, name, cJSON_CreateFalse())
-#define cJSON_AddNumberToObject(object,name,n) \
-        cJSON_AddItemToObject(object, name, cJSON_CreateNumber(n))
-#define cJSON_AddStringToObject(object,name,s) \
+#define cJSON_AddStringToObject(object, name, s) \
         cJSON_AddItemToObject(object, name, cJSON_CreateString(s))
+
+#ifdef __cplusplus
+}
+
+// These methods only exists for C++
+
+CJSON_PUBLIC_API
+void cJSON_AddDoubleToObject(cJSON *object,
+                             const char *string,
+                             double value);
 
 CJSON_PUBLIC_API
 extern void cJSON_AddBoolToObject(cJSON* object, const char* string, bool value);
@@ -178,11 +192,7 @@ CJSON_PUBLIC_API
 extern void cJSON_AddIntegerToObject(cJSON* object, const char* string, uint32_t value);
 
 /**
- * Adds a uint64_t to the cJSON object. This method WILL siltently cast the
- * number to double, meaning there is potential for data loss. Given we are
- * doing this in places anyway, this method is just in place so we can get rid
- * of compiler warnings complaining about narrowing conversions of arguments.
- *
+ * Adds a uint64_t to the cJSON object.
  */
 CJSON_PUBLIC_API
 extern void cJSON_AddInteger64ToObject(cJSON* object, const char* string, uint64_t value);
@@ -199,6 +209,15 @@ extern void cJSON_AddStringifiedIntegerToObject(cJSON* object, const char* strin
 CJSON_PUBLIC_API
 extern void cJSON_AddStringifiedSignedIntegerToObject(cJSON* object, const char* string, int64_t value);
 
-#ifdef __cplusplus
+/**
+ * Add an integral number to the JSON document. It is converted to a _signed_
+ * 64 bit integer.
+ */
+template<typename T, typename = std::enable_if<std::is_integral<T>::value> >
+inline void cJSON_AddNumberToObject(cJSON *object,
+                                    const char *string,
+                                    T value) {
+    cJSON_AddInteger64ToObject(object, string, uint64_t(value));
 }
+
 #endif

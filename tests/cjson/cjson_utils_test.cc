@@ -107,15 +107,6 @@ TEST(cJSON, ToStringAddInteger64ToObject_Safe) {
     EXPECT_EQ("{\"foo\":3735928559}", to_string(ptr, false));
 }
 
-TEST(cJSON, ToStringAddInteger64ToObject_Narrowing) {
-    unique_cJSON_ptr ptr(cJSON_CreateObject());
-    cJSON_AddInteger64ToObject(ptr.get(), "foo", 0xdeadbeefdeadbeef);
-    double a = gsl::narrow_cast<double>(0xdeadbeefdeadbeef);
-    std::stringstream expected;
-    expected << "{\"foo\":" << std::fixed << std::setprecision(0) << a << "}";
-    EXPECT_EQ(expected.str(), to_string(ptr, false));
-}
-
 TEST(cJSON, ToStringAddStringifiedInteger_Unsigned) {
     unique_cJSON_ptr ptr(cJSON_CreateObject());
     cJSON_AddStringifiedIntegerToObject(ptr.get(), "foo", uint64_t(0xdeadbeef));
@@ -129,4 +120,31 @@ TEST(cJSON, ToStringAddStringifiedInteger_Signed) {
     EXPECT_EQ("{\"foo\":\"3735928559\"}", to_string(ptr, false));
     cJSON_AddStringifiedSignedIntegerToObject(ptr.get(), "bar", int64_t(-1));
     EXPECT_EQ("{\"foo\":\"3735928559\",\"bar\":\"-1\"}", to_string(ptr, false));
+}
+
+TEST(cJSON, ParseFloatingPoints) {
+    unique_cJSON_ptr ptr(cJSON_Parse(R"({"double" : 1.5} )"));
+    ASSERT_TRUE(ptr);
+    auto* obj = cJSON_GetObjectItem(ptr.get(), "double");
+    ASSERT_NE(nullptr, obj);
+    EXPECT_EQ(cJSON_Double, obj->type);
+    EXPECT_EQ(1.5f, obj->valuedouble);
+
+    ptr.reset(cJSON_Parse(R"({"double" : 1.5e2} )"));
+    ASSERT_TRUE(ptr);
+    obj = cJSON_GetObjectItem(ptr.get(), "double");
+    ASSERT_NE(nullptr, obj);
+    EXPECT_EQ(cJSON_Double, obj->type);
+    EXPECT_EQ(1.5e2f, obj->valuedouble);
+
+    ptr.reset(cJSON_Parse(R"({"double" : 1e2} )"));
+    ASSERT_TRUE(ptr);
+    obj = cJSON_GetObjectItem(ptr.get(), "double");
+    ASSERT_NE(nullptr, obj);
+    EXPECT_EQ(cJSON_Double, obj->type);
+    EXPECT_EQ(1e2f, obj->valuedouble);
+
+    // This isn't legal
+    ptr.reset(cJSON_Parse(R"({"double" : 1f} )"));
+    ASSERT_FALSE(ptr);
 }
