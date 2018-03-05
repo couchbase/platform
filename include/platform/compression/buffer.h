@@ -69,6 +69,14 @@ public:
     }
 
     /**
+     * Get a pointer to the backing storage for the buffer. The data area
+     * is a continuous memory space size() bytes big.
+     */
+    const char* data() const {
+        return memory.get();
+    }
+
+    /**
      * Release / detach / take ownership of the underlying buffer
      *
      * The caller is now responsible for freeing the memory by using
