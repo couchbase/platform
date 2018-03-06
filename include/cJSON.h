@@ -46,6 +46,7 @@
 #ifdef __cplusplus
 #include <cstddef>
 #include <ctime>
+#include <string>
 #include <type_traits>
 extern "C"
 {
@@ -167,9 +168,6 @@ extern void cJSON_ReplaceItemInObject(cJSON *object, const char *string, cJSON *
         cJSON_AddItemToObject(object, name, cJSON_CreateTrue())
 #define cJSON_AddFalseToObject(object, name) \
         cJSON_AddItemToObject(object, name, cJSON_CreateFalse())
-#define cJSON_AddStringToObject(object, name, s) \
-        cJSON_AddItemToObject(object, name, cJSON_CreateString(s))
-
 #ifdef __cplusplus
 }
 
@@ -182,6 +180,16 @@ void cJSON_AddDoubleToObject(cJSON *object,
 
 CJSON_PUBLIC_API
 extern void cJSON_AddBoolToObject(cJSON* object, const char* string, bool value);
+
+CJSON_PUBLIC_API
+extern void cJSON_AddStringToObject(cJSON* object,
+                                    const char* string,
+                                    const char* value);
+
+CJSON_PUBLIC_API
+void cJSON_AddStringToObject(cJSON *object,
+                             const char *string,
+                             const std::string &value);
 
 CJSON_PUBLIC_API
 extern void cJSON_AddUintPtrToObject(cJSON* object,

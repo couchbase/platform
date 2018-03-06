@@ -1015,8 +1015,19 @@ void cJSON_AddDoubleToObject(cJSON *object,
     cJSON_AddItemToObject(object, string, cJSON_CreateDouble(value));
 }
 
-extern void cJSON_AddBoolToObject(cJSON* object, const char* string, bool value)
-{
+void cJSON_AddStringToObject(cJSON* object,
+                             const char* string,
+                             const char* value) {
+    cJSON_AddItemToObject(object, string, cJSON_CreateString(value));
+}
+
+void cJSON_AddStringToObject(cJSON *object,
+                             const char *string,
+                             const std::string &value) {
+    cJSON_AddStringToObject(object, string, value.c_str());
+}
+
+void cJSON_AddBoolToObject(cJSON* object, const char* string, bool value) {
     if (value) {
         cJSON_AddTrueToObject(object, string);
     } else {
