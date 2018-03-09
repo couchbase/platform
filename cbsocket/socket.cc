@@ -87,7 +87,7 @@ int shutdown(SOCKET sock, int how) {
 CBSOCKET_PUBLIC_API
 ssize_t send(SOCKET sock, const void* buffer, size_t length, int flags) {
 #ifdef WIN32
-    return ::send(sock, static_cast<const char*>(buffer), int(length), flags);
+    return ::send(sock, static_cast<const char*>(buffer), gsl::narrow<int>(length), flags);
 #else
     return ::send(sock, buffer, length, flags);
 #endif
@@ -120,7 +120,7 @@ ssize_t sendto(SOCKET sock,
 CBSOCKET_PUBLIC_API
 ssize_t recv(SOCKET sock, void* buffer, size_t length, int flags) {
 #ifdef WIN32
-    return ::recv(sock, static_cast<char*>(buffer), length, flags);
+    return ::recv(sock, static_cast<char*>(buffer), gsl::narrow<int>(length), flags);
 #else
     return ::recv(sock, buffer, length, flags);
 #endif
