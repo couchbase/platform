@@ -63,7 +63,7 @@ CBSOCKET_PUBLIC_API
 SOCKET accept(SOCKET sock, struct sockaddr* addr, socklen_t* addrlen);
 
 CBSOCKET_PUBLIC_API
-int connect(SOCKET sock, const struct sockaddr* name, socklen_t namelen);
+int connect(SOCKET sock, const struct sockaddr* name, size_t namelen);
 
 CBSOCKET_PUBLIC_API
 SOCKET socket(int domain, int type, int protocol);

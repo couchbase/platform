@@ -66,11 +66,11 @@ SOCKET accept(SOCKET sock, struct sockaddr* addr, socklen_t* addrlen) {
 }
 
 CBSOCKET_PUBLIC_API
-int connect(SOCKET sock, const struct sockaddr* name, socklen_t namelen) {
+int connect(SOCKET sock, const struct sockaddr* name, size_t namelen) {
 #ifdef WIN32
     return ::connect(sock, name, gsl::narrow<int>(namelen));
 #else
-    return ::connect(sock, name, namelen);
+    return ::connect(sock, name, gsl::narrow<socklen_t>(namelen));
 #endif
 }
 
