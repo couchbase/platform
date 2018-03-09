@@ -44,96 +44,8 @@ typedef int SOCKET;
 #include <platform/platform.h>
 #include <platform/socket-visibility.h>
 
-#include <stdbool.h>
-#include <stdint.h>
-
-#ifdef __cplusplus
-#include <platform/sized_buffer.h>
-
 #include <cerrno>
-#include <functional>
-#include <string>
-
-extern "C" {
-#endif
-
-CBSOCKET_PUBLIC_API
-int cb_closesocket(SOCKET s);
-
-CBSOCKET_PUBLIC_API
-int cb_get_socket_error();
-
-CBSOCKET_PUBLIC_API
-int cb_bind(SOCKET sock, const struct sockaddr* name, socklen_t namelen);
-
-CBSOCKET_PUBLIC_API
-SOCKET cb_accept(SOCKET sock, struct sockaddr* addr, socklen_t* addrlen);
-
-CBSOCKET_PUBLIC_API
-int cb_connect(SOCKET sock, const struct sockaddr* name, socklen_t namelen);
-
-CBSOCKET_PUBLIC_API
-SOCKET cb_socket(int domain, int type, int protocol);
-
-CBSOCKET_PUBLIC_API
-int cb_shutdown(SOCKET sock, int how);
-
-CBSOCKET_PUBLIC_API
-ssize_t cb_send(SOCKET sock, const void* buffer, size_t length, int flags);
-
-CBSOCKET_PUBLIC_API
-ssize_t cb_sendmsg(SOCKET sock, const struct msghdr* message, int flags);
-
-CBSOCKET_PUBLIC_API
-ssize_t cb_sendto(SOCKET sock,
-                  const void* buffer,
-                  size_t length,
-                  int flags,
-                  const struct sockaddr* dest_addr,
-                  socklen_t dest_len);
-
-CBSOCKET_PUBLIC_API
-ssize_t cb_recv(SOCKET sock, void* buffer, size_t length, int flags);
-
-CBSOCKET_PUBLIC_API
-ssize_t cb_recvfrom(SOCKET sock,
-                    void* buffer,
-                    size_t length,
-                    int flags,
-                    struct sockaddr* address,
-                    socklen_t* address_len);
-
-CBSOCKET_PUBLIC_API
-ssize_t cb_recvmsg(SOCKET sock, struct msghdr* message, int flags);
-
-CBSOCKET_PUBLIC_API
-int cb_socketpair(int domain, int type, int protocol, SOCKET socket_vector[2]);
-
-CBSOCKET_PUBLIC_API
-int cb_set_socket_noblocking(SOCKET sock);
-
-CBSOCKET_PUBLIC_API
-void cb_set_socket_logging(bool enable);
-
-CBSOCKET_PUBLIC_API
-int cb_getsockopt(SOCKET sock,
-                  int level,
-                  int option_name,
-                  void* option_value,
-                  socklen_t* option_len);
-
-CBSOCKET_PUBLIC_API
-int cb_setsockopt(SOCKET sock,
-                  int level,
-                  int option_name,
-                  const void* option_value,
-                  socklen_t option_len);
-
-CBSOCKET_PUBLIC_API
-int cb_listen(SOCKET sock, int backlog);
-
-#ifdef __cplusplus
-}
+#include <cstdint>
 
 namespace cb {
 namespace net {
@@ -259,5 +171,3 @@ inline void set_econnreset(void) {
 
 } // namespace net
 } // namespace cb
-
-#endif
