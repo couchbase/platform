@@ -17,50 +17,10 @@
 #pragma once
 
 /**
- * This is a wrapping layer on top of BSD sockets to allow for logging all
- * of the data being transferred. It was initially created in order to
- * track down why one of the pipes in moxi seemed to get out of sync
- * protocol wise, but may be useful in the future. This extra layer cause
- * an extra lookup of an atomic variable to determine if logging should
- * be performed or not which shouldn't affect the performance too much.
- *
- * As it was initially created for locating a bug in moxi, a C API exists
- * with a 'cb_' prefix. It all wraps into methods in cb::net namespace.
- *
- * Each method works as documented in the in the OS.
- *
- * One could use tcpdump to collect the same info, but I failed to get
- * tcpdump create a pcap file I know how to parse when using the loopback
- * interface. Whipping up this seemed a lot easier ;-)
- *
- * When using the logging feature of cbsocket a file is created in
- * /tmp by using the following naming convention:
- *
- *     pid-socketid-seqno
- *
- * Seqno is needed as the socket identifiers may be reused by the operating
- * system. Each file consists data received and sent over the socket, by
- * using a header followed by the actual data. The header looks like:
- *
- *
- *     Byte/     0       |       1       |       2       |       3       |
- *        /              |               |               |               |
- *       |0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|
- *       +---------------+---------------+---------------+---------------+
- *      0|                                                               |
- *       +                64 bit steady-clock offset in 𝝁s               +
- *      4|                                                               |
- *       +---------------+---------------+---------------+---------------+
- *      8|               32 bit number of bytes in payload               |
- *       +---------------+---------------+---------------+---------------+
- *     12| direction r/w |
- *       +---------------+
- *       Total 13 bytes
- *
- * The direction byte contains either 'r' or 'w' where an 'r' indicates
- * that the data was read off the socket, and 'w' means it was sent over
- * the socket.
- *
+ * This is a wrapping layer on top of BSD sockets to hide away the difference
+ * between Windows and Linux (the first use char pointers and the latter
+ * use void etc). This allows us to hide all of the platform difference in
+ * one place and not have to do #ifdef's all over the place
  */
 
 #ifdef WIN32
@@ -110,7 +70,7 @@ CBSOCKET_PUBLIC_API
 SOCKET cb_accept(SOCKET sock, struct sockaddr* addr, socklen_t* addrlen);
 
 CBSOCKET_PUBLIC_API
-int cb_connect(SOCKET sock, const struct sockaddr* name, int namelen);
+int cb_connect(SOCKET sock, const struct sockaddr* name, socklen_t namelen);
 
 CBSOCKET_PUBLIC_API
 SOCKET cb_socket(int domain, int type, int protocol);
@@ -178,97 +138,6 @@ int cb_listen(SOCKET sock, int backlog);
 namespace cb {
 namespace net {
 
-/**
- * Specify a callback method to use to allow the caller to filter out
- * _some_ connections instead of logging all of them.
- *
- * You might for instance just care about traffic to a given port, which
- * may be implemented with something like:
- *
- *     static bool filterPeerPort(SOCKET sock) {
- *         struct sockaddr_storage peer{};
- *         socklen_t peer_len = sizeof(peer);
- *         int err;
- *         if ((err = getpeername(sock,
- *                                reinterpret_cast<struct sockaddr*>(&peer),
- *                                &peer_len)) != 0) {
- *             return false;
- *         }
- *
- *         char host[50];
- *         char port[50];
- *
- *         err = getnameinfo(reinterpret_cast<struct sockaddr*>(&peer),
- *                           peer_len,
- *                           host, sizeof(host),
- *                           port, sizeof(port),
- *                           NI_NUMERICHOST | NI_NUMERICSERV);
- *         if (err != 0) {
- *             return false;
- *         }
- *
- *         return (atoi(port) == 11210);
- *     }
- *
- * The callback function should return true in order to enable logging for
- * the given socket, or false to ignore the socket. Note that the global
- * logging flag must be set in order to enable logging (and this filter).
- *
- * @param callback The method to use, or nullptr to reset to the default.
- */
-CBSOCKET_PUBLIC_API
-void set_log_filter_handler(bool (* callback)(SOCKET));
-
-/**
- * Specify a callback method to be called when a given socket is closed.
- * The default on_close_handler removes the log file.
- *
- * @param callback The new handler to install, or nullptr to reset to the
- *                 default handler.
- */
-CBSOCKET_PUBLIC_API
-void set_on_close_handler(void (*callback)(SOCKET, const std::string& file));
-
-/**
- * Enable / disable socket logging.
- *
- * When enabled each socket creates a file in /tmp by using the
- * following name `/tmp/<pid>-<socketfd>-seqno`.
- *
- * @param enable set to true to start logging
- */
-CBSOCKET_PUBLIC_API
-void set_socket_logging(bool enable);
-
-enum class Direction : uint8_t { Send, Receive };
-
-/**
- * The iterator function to be called for each packet in the dump file
- *
- * @param timestamp the offset in 𝝁s
- * @param direction if the data was sent or received
- * @param data the actual payload in the packet
- * @return true to continue parsing, false otherwise
- */
-using IteratorFunc = std::function<bool(
-        uint64_t timestamp, Direction direction, cb::const_byte_buffer data)>;
-
-/**
- * Iterate over a socket log file
- *
- * @param file the file to iterate over
- * @param callback The callback function to call for each packet in
- *                 the logfile
- * @throws std::system_error if there is a problem accessing the file
- * @throws std::bad_alloc for memory allocation issues
- * @throws std::invalid_argument if the file contains an illegal format
- */
-CBSOCKET_PUBLIC_API
-void iterate_logfile(const std::string& file, IteratorFunc callback);
-
-CBSOCKET_PUBLIC_API
-void iterate_logfile(cb::const_byte_buffer buffer, IteratorFunc callback);
-
 CBSOCKET_PUBLIC_API
 int closesocket(SOCKET s);
 
@@ -282,7 +151,7 @@ CBSOCKET_PUBLIC_API
 SOCKET accept(SOCKET sock, struct sockaddr* addr, socklen_t* addrlen);
 
 CBSOCKET_PUBLIC_API
-int connect(SOCKET sock, const struct sockaddr* name, int namelen);
+int connect(SOCKET sock, const struct sockaddr* name, socklen_t namelen);
 
 CBSOCKET_PUBLIC_API
 SOCKET socket(int domain, int type, int protocol);
