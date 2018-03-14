@@ -46,6 +46,7 @@ typedef int SOCKET;
 
 #include <cerrno>
 #include <cstdint>
+#include <string>
 
 namespace cb {
 namespace net {
@@ -168,6 +169,38 @@ inline void set_econnreset(void) {
     errno = ECONNRESET;
 }
 #endif
+
+/**
+ * Get a textual representation of the address represented in sockaddr_storage
+ */
+CBSOCKET_PUBLIC_API
+std::string to_string(const struct sockaddr_storage* addr, socklen_t addr_len);
+
+/**
+ * Get the name of the socket in a textual form like:
+ *
+ *    127.0.0.1:11211
+ *    [::1]:11211
+ *
+ * @param sfd The socket to get the name for
+ * @throws std::exception if one of the functions needed to look up the socket
+ *                        name fails
+ */
+CBSOCKET_PUBLIC_API
+std::string getsockname(SOCKET sfd);
+
+/**
+ * Get the name of the peer in a textual form like:
+ *
+ *    127.0.0.1:11211
+ *    [::1]:11211
+ *
+ * @param sfd The socket to get the name for
+ * @throws std::exception if one of the functions needed to look up the peer
+ *                        name fails
+ */
+CBSOCKET_PUBLIC_API
+std::string getpeername(SOCKET sfd);
 
 } // namespace net
 } // namespace cb

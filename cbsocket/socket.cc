@@ -214,5 +214,58 @@ int set_socket_noblocking(SOCKET sock) {
     return evutil_make_socket_nonblocking(sock);
 }
 
+CBSOCKET_PUBLIC_API
+std::string to_string(const struct sockaddr_storage* addr, socklen_t addr_len) {
+    char host[50];
+    char port[50];
+
+    int err = getnameinfo(reinterpret_cast<const struct sockaddr*>(addr),
+                          addr_len,
+                          host,
+                          sizeof(host),
+                          port,
+                          sizeof(port),
+                          NI_NUMERICHOST | NI_NUMERICSERV);
+    if (err != 0) {
+        throw std::runtime_error(
+                "cb::net::to_string: getnameinfo() failed with error: " +
+                std::to_string(err));
+    }
+
+    if (addr->ss_family == AF_INET6) {
+        return "[" + std::string(host) + "]:" + std::string(port);
+    } else {
+        return std::string(host) + ":" + std::string(port);
+    }
+}
+
+CBSOCKET_PUBLIC_API
+std::string getsockname(SOCKET sfd) {
+    sockaddr_storage sock{};
+    socklen_t sock_len = sizeof(sock);
+    if (::getsockname(sfd,
+                      reinterpret_cast<struct sockaddr*>(&sock),
+                      &sock_len) != 0) {
+        throw std::system_error(cb::net::get_socket_error(),
+                                std::system_category(),
+                                "getsockname() failed");
+    }
+    return to_string(&sock, sock_len);
+}
+
+CBSOCKET_PUBLIC_API
+std::string getpeername(SOCKET sfd) {
+    sockaddr_storage peer;
+    socklen_t peer_len = sizeof(peer);
+    if (getpeername(sfd,
+                    reinterpret_cast<struct sockaddr*>(&peer),
+                    &peer_len) != 0) {
+        throw std::system_error(cb::net::get_socket_error(),
+                                std::system_category(),
+                                "getpeername() failed");
+    }
+    return to_string(&peer, peer_len);
+}
+
 } // namespace net
 } // namespace cb
