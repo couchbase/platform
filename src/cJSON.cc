@@ -51,22 +51,6 @@
 
 #include "cJSON.h"
 
-static int cJSON_strcasecmp(const char *s1, const char *s2)
-{
-    if (!s1) {
-        return (s1 == s2) ? 0 : 1;
-    }
-    if (!s2) {
-        return 1;
-    }
-    for (; tolower(*s1) == tolower(*s2); ++s1, ++s2) {
-        if (*s1 == 0) {
-            return 0;
-        }
-    }
-    return tolower(*(const unsigned char *)s1) - tolower(*(const unsigned char *)s2);
-}
-
 static void *cJSON_malloc(size_t sz) {
     auto* ret = cb_malloc(sz);
     if (ret == nullptr) {
@@ -810,7 +794,7 @@ cJSON *cJSON_GetArrayItem(cJSON *array, int item)
 cJSON *cJSON_GetObjectItem(cJSON *object, const char *string)
 {
     cJSON *c = object->child;
-    while (c && cJSON_strcasecmp(c->string, string)) {
+    while (c && strcmp(c->string, string) != 0) {
         c = c->next;
     }
     return c;
@@ -898,7 +882,7 @@ cJSON *cJSON_DetachItemFromObject(cJSON *object, const char *string)
 {
     int i = 0;
     cJSON *c = object->child;
-    while (c && cJSON_strcasecmp(c->string, string)) {
+    while (c && strcmp(c->string, string) != 0) {
         i++, c = c->next;
     }
     if (c) {
@@ -940,7 +924,7 @@ void cJSON_ReplaceItemInObject(cJSON *object, const char *string, cJSON *newitem
 {
     int i = 0;
     cJSON *c = object->child;
-    while (c && cJSON_strcasecmp(c->string, string)) {
+    while (c && strcmp(c->string, string) != 0) {
         i++, c = c->next;
     }
     if (c) {
