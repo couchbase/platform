@@ -83,6 +83,9 @@ TARGET_LINK_LIBRARIES(cJSON PRIVATE gsl_lite)
 ADD_LIBRARY(JSON_checker SHARED src/JSON_checker.cc include/JSON_checker.h)
 SET_TARGET_PROPERTIES(JSON_checker PROPERTIES SOVERSION 1.0.0)
 TARGET_LINK_LIBRARIES(JSON_checker PRIVATE platform_headers)
+GENERATE_EXPORT_HEADER(JSON_checker
+                       EXPORT_MACRO_NAME JSON_CHECKER_PUBLIC_API
+                       EXPORT_FILE_NAME ${CMAKE_CURRENT_BINARY_DIR}/include/platform/JSON_checker-visibility.h)
 
 IF (WIN32)
    INCLUDE_DIRECTORIES(AFTER ${CMAKE_CURRENT_SOURCE_DIR}/include/win32)
@@ -162,7 +165,8 @@ TARGET_INCLUDE_DIRECTORIES(platform_headers INTERFACE
         # "config.h" (which resides in ${Platform_BINARY_DIR}/src) is needed
         # indirectly by any targets linking against platform_headers (because
         # a number of platform's public headers include it).
-        ${Platform_BINARY_DIR}/src)
+        ${Platform_BINARY_DIR}/src
+        ${Platform_BINARY_DIR}/include)
 
 # platform_so - the 'real' platform shared library containing our various
 # platform abstraction functionality.
@@ -221,7 +225,10 @@ ADD_LIBRARY(platform_so SHARED ${PLATFORM_FILES}
                             include/platform/thread.h
                             include/platform/timeutils.h
                             include/platform/uuid.h
-                            include/platform/visibility.h)
+                            ${Platform_BINARY_DIR}/include/platform/visibility.h)
+GENERATE_EXPORT_HEADER(platform_so
+                       EXPORT_MACRO_NAME PLATFORM_PUBLIC_API
+                       EXPORT_FILE_NAME ${Platform_BINARY_DIR}/include/platform/visibility.h)
 
 LIST(APPEND PLATFORM_LIBRARIES "phosphor")
 LIST(REMOVE_DUPLICATES PLATFORM_LIBRARIES)
@@ -299,7 +306,7 @@ ENDIF (BREAKPAD_FOUND)
 ADD_LIBRARY(breakpad_wrapper SHARED
             src/breakpad_wrapper.cc
             include/breakpad_wrapper/breakpad_wrapper.h)
-
+SET_TARGET_PROPERTIES(breakpad_wrapper PROPERTIES COMPILE_FLAGS "-Dplatform_so_EXPORTS")
 TARGET_LINK_LIBRARIES(breakpad_wrapper
                       ${BREAKPAD_LIBRARIES} platform_headers)
 

@@ -2,13 +2,7 @@
 
 #pragma once
 
-#include <platform/visibility.h>
-
-#if defined(JSON_checker_EXPORTS)
-#define JSON_CHECKER_PUBLIC_API EXPORT_SYMBOL
-#else
-#define JSON_CHECKER_PUBLIC_API IMPORT_SYMBOL
-#endif
+#include <platform/JSON_checker-visibility.h>
 
 #ifdef __cplusplus
 

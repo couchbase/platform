@@ -20,14 +20,8 @@
 #include <cstdint>
 #include <string>
 
-#include <platform/visibility.h>
-#if defined(platform_so_EXPORTS)
-#define PLATFORM_PUBLIC_API EXPORT_SYMBOL
-#else
-#define PLATFORM_PUBLIC_API IMPORT_SYMBOL
-#endif
-
 #include <platform/sized_buffer.h>
+#include <platform/visibility.h>
 
 namespace cb {
 namespace uuid {

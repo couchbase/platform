@@ -20,21 +20,6 @@
 #include <chrono>
 #include <string>
 
-
-/* PLATFORM_PUBLIC_API
- *
- * Used for functions which are part of the public API of platform.
- * "Inside" platform (i.e. when compiling platform.so) they will export the
- * symbol
- * "Outside" platform (i.e. when compiling code which wants to link to
- * platform.so) they will allow the symbol to be imported from platform.so
- */
-#if defined(platform_so_EXPORTS)
-#define PLATFORM_PUBLIC_API EXPORT_SYMBOL
-#else
-#define PLATFORM_PUBLIC_API IMPORT_SYMBOL
-#endif
-
 namespace cb {
 /**
  * Convert a time (in ns) to a human readable form...

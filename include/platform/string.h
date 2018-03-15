@@ -17,11 +17,6 @@
 #pragma once
 
 #include <platform/visibility.h>
-#if defined(platform_so_EXPORTS)
-#define PLATFORM_PUBLIC_API EXPORT_SYMBOL
-#else
-#define PLATFORM_PUBLIC_API IMPORT_SYMBOL
-#endif
 
 #include <cstdint>
 #include "sized_buffer.h"
