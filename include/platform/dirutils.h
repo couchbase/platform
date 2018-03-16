@@ -137,5 +137,16 @@ inline void sanitizePath(std::string& path) {
     std::replace(path.begin(), path.end(), '/', '\\');
 #endif
 }
+
+/**
+ * Load the named file
+ *
+ * @param name the name of the file to load
+ * @return The content of the file
+ * @throws std::system_exception if an error occurs opening / reading the file
+ *         std::bad_alloc for memory allocation errors
+ */
+DIRUTILS_PUBLIC_API
+std::string loadFile(const std::string& name);
 }
 }

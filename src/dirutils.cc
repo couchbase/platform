@@ -27,12 +27,13 @@
 
 #endif
 
-#include <limits>
+#include <platform/memorymap.h>
+#include <platform/strerror.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <limits>
 #include <system_error>
-#include <platform/strerror.h>
 
 static std::string split(const std::string& input, bool directory) {
     std::string::size_type path = input.find_last_of("\\/");
@@ -443,4 +444,11 @@ uint64_t cb::io::maximizeFileDescriptors(uint64_t limit) {
         return uint64_t(last_good);
     }
 #endif
+}
+
+DIRUTILS_PUBLIC_API
+std::string cb::io::loadFile(const std::string& name) {
+    cb::MemoryMappedFile map(name.c_str(), cb::MemoryMappedFile::Mode::RDONLY);
+    map.open();
+    return std::string{reinterpret_cast<char*>(map.getRoot()), map.getSize()};
 }
