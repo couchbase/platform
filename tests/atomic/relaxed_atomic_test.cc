@@ -35,3 +35,23 @@ TEST(RelaxedAtomicTest, STLContainer) {
     vec[2] = 2;
     EXPECT_EQ(2, vec[2]);
 }
+
+TEST(RelaxedAtomicTest, setIfSmaller) {
+    Couchbase::RelaxedAtomic<uint8_t> val;
+    val.store(10);
+
+    // Check we don't store larger numbers
+    val.setIfSmaller(15);
+    EXPECT_EQ(val.load(), 10);
+
+    // Check we store smaller numbers
+    val.setIfSmaller(5);
+    EXPECT_EQ(val.load(), 5);
+
+    Couchbase::RelaxedAtomic<uint8_t> smaller;
+    smaller.store(3);
+
+    // Check we can correctly store from another Couchbase::RelaxedAtomic
+    val.setIfSmaller(smaller);
+    EXPECT_EQ(val.load(), 3);
+}

@@ -127,6 +127,24 @@ namespace Couchbase {
             setIfGreater(val.load());
         }
 
+        void setIfSmaller(const T& val) {
+            do {
+                T currval = load();
+                if (val < currval) {
+                    if (value.compare_exchange_weak(
+                                currval, val, std::memory_order_relaxed)) {
+                        break;
+                    }
+                } else {
+                    break;
+                }
+            } while (true);
+        }
+
+        void setIfSmaller(const RelaxedAtomic& val) {
+            setIfSmaller(val.load());
+        }
+
         bool compare_exchange_weak(T& expected, T desired) {
             return value.compare_exchange_weak(expected,
                                                desired,
