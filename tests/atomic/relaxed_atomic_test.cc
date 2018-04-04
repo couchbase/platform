@@ -55,3 +55,36 @@ TEST(RelaxedAtomicTest, setIfSmaller) {
     val.setIfSmaller(smaller);
     EXPECT_EQ(val.load(), 3);
 }
+
+TEST(RelaxedAtomicTest, setAdd) {
+    Couchbase::RelaxedAtomic<uint8_t> val;
+    val.store(5);
+
+    // Check we can add to the value
+    val.setAdd(10);
+    EXPECT_EQ(val.load(), 15);
+
+    Couchbase::RelaxedAtomic<uint8_t> add;
+    add.store(5);
+
+    // Check we can add from another Couchbase::RelaxedAtomic
+    val.setAdd(add);
+    EXPECT_EQ(val.load(), 20);
+}
+
+TEST(RelaxedAtomicTest, setSub) {
+    Couchbase::RelaxedAtomic<uint8_t> val;
+    val.store(10);
+
+    // Check we can subtract from the value
+    val.setSub(5);
+    EXPECT_EQ(val.load(), 5);
+
+    Couchbase::RelaxedAtomic<uint8_t> sub;
+    sub.store(2);
+
+    // Check we can subtract from the value from another
+    // Couchbase::RelaxedAtomic
+    val.setSub(sub);
+    EXPECT_EQ(val.load(), 3);
+}

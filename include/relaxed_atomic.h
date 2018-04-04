@@ -145,6 +145,70 @@ namespace Couchbase {
             setIfSmaller(val.load());
         }
 
+        /**
+         * Implementation similar to fetch_add. This function is needed as not
+         * all implementations of RelaxedAtomic are able to make use of the
+         * operator overload methods if they are not of integral type. In the
+         * first case, using the operator overload is preferred as it is more
+         * optimized, this should only be used if that is not possible.
+         * @param val The value to add to that of the one stored
+         */
+        void setAdd(const T& val) {
+            do {
+                T currval = load();
+                if (value.compare_exchange_weak(currval,
+                                                currval + val,
+                                                std::memory_order_relaxed)) {
+                    break;
+                }
+            } while (true);
+        }
+
+        /**
+         * Implementation similar to fetch_add. This function is needed as not
+         * all implementations of RelaxedAtomic are able to make use of the
+         * operator overload methods if they are not of integral type. In the
+         * first case, using the operator overload is preferred as it is more
+         * optimized, this should only be used if that is not possible.
+         * @param val The RelaxedAtomic containing the value to add to that of
+         * the one stored
+         */
+        void setAdd(const RelaxedAtomic& val) {
+            setAdd(val.load());
+        }
+
+        /**
+         * Implementation similar to fetch_sub. This function is needed as not
+         * all implementations of RelaxedAtomic are able to make use of the
+         * operator overload methods if they are not of integral type. In the
+         * first case, using the operator overload is preferred as it is more
+         * optimized, this should only be used if that is not possible.
+         * @param val The value to subtract to that of the one stored
+         */
+        void setSub(const T& val) {
+            do {
+                T currval = load();
+                if (value.compare_exchange_weak(currval,
+                                                currval - val,
+                                                std::memory_order_relaxed)) {
+                    break;
+                }
+            } while (true);
+        }
+
+        /**
+         * Implementation similar to fetch_sub. This function is needed as not
+         * all implementations of RelaxedAtomic are able to make use of the
+         * operator overload methods if they are not of integral type. In the
+         * first case, using the operator overload is preferred as it is more
+         * optimized, this should only be used if that is not possible.
+         * @param val The RelaxedAtomic containing the value to subtract to that
+         * of the one stored
+         */
+        void setSub(const RelaxedAtomic& val) {
+            setSub(val.load());
+        }
+
         bool compare_exchange_weak(T& expected, T desired) {
             return value.compare_exchange_weak(expected,
                                                desired,
@@ -156,7 +220,7 @@ namespace Couchbase {
             return value.exchange(desired, std::memory_order_relaxed);
         }
 
-    private:
+    protected:
         std::atomic <T> value;
     };
 }
