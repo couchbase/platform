@@ -220,7 +220,7 @@ namespace Couchbase {
             return value.exchange(desired, std::memory_order_relaxed);
         }
 
-    protected:
+    private:
         std::atomic <T> value;
     };
 }
