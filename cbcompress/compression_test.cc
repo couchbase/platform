@@ -77,6 +77,24 @@ TEST(Compression, ToAlgorithm) {
     EXPECT_THROW(to_algorithm("foo"), std::invalid_argument);
 }
 
+TEST(Compression, TestGetUncompressedLength) {
+    cb::compression::Buffer input;
+    cb::compression::Buffer output;
+
+    input.resize(8192);
+    memset(input.data(), 'a', 8192);
+    EXPECT_TRUE(cb::compression::deflate(cb::compression::Algorithm::Snappy,
+                                         {input.data(), input.size()},
+                                         output));
+    EXPECT_LT(output.size(), 8192);
+    EXPECT_NE(nullptr, output.data());
+
+    EXPECT_EQ(8192,
+              cb::compression::get_uncompressed_length(
+                      cb::compression::Algorithm::Snappy,
+                      {output.data(), output.size()}));
+}
+
 #ifdef CB_LZ4_SUPPORT
 TEST(Compression, TestLZ4Compression) {
     cb::compression::Buffer input;
@@ -109,4 +127,24 @@ TEST(Compression, TestIllegalLZ4Inflate) {
     EXPECT_FALSE(cb::compression::inflate(
             cb::compression::Algorithm::LZ4, input, output));
 }
+
+TEST(Compression, TestLZ4GetUncompressedLength) {
+    cb::compression::Buffer input;
+    cb::compression::Buffer output;
+
+    input.resize(8192);
+    memset(input.data(), 'a', 8192);
+
+    EXPECT_TRUE(cb::compression::deflate(cb::compression::Algorithm::LZ4,
+                                         {input.data(), input.size()},
+                                         output));
+    EXPECT_LT(output.size(), 8192);
+    EXPECT_NE(nullptr, output.data());
+
+    EXPECT_EQ(8192,
+              cb::compression::get_uncompressed_length(
+                      cb::compression::Algorithm::LZ4,
+                      {output.data(), output.size()}));
+}
+
 #endif

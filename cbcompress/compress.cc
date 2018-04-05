@@ -64,6 +64,13 @@ static bool doSnappyValidate(cb::const_char_buffer buffer) {
     return snappy::IsValidCompressedBuffer(buffer.data(), buffer.size());
 }
 
+static size_t doSnappyUncompressedLength(cb::const_char_buffer buffer) {
+    size_t uncompressed_length = 0;
+    snappy::GetUncompressedLength(
+            buffer.data(), buffer.size(), &uncompressed_length);
+    return uncompressed_length;
+}
+
 static bool doLZ4Uncompress(cb::const_char_buffer input,
                             cb::compression::Buffer& output,
                             size_t max_inflated_size) {
@@ -89,6 +96,14 @@ static bool doLZ4Uncompress(cb::const_char_buffer input,
 
 #else
     throw std::runtime_error("doLZ4Uncompress: LZ4 not supported");
+#endif
+}
+
+static size_t doLZ4UncompressedLength(cb::const_char_buffer buffer) {
+#ifdef CB_LZ4_SUPPORT
+    return ntohl(*reinterpret_cast<const uint32_t*>(buffer.data()));
+#else
+    throw std::runtime_error("doLZ4UncompressedLength: LZ4 not supported");
 #endif
 }
 
@@ -207,4 +222,18 @@ bool cb::compression::validate(cb::compression::Algorithm algorithm,
     }
     throw std::invalid_argument(
         "cb::compression::validate: Unknown compression algorithm");
+}
+
+size_t cb::compression::get_uncompressed_length(
+        cb::compression::Algorithm algorithm,
+        cb::const_char_buffer input_buffer) {
+    switch (algorithm) {
+    case Algorithm::Snappy:
+        return doSnappyUncompressedLength(input_buffer);
+    case Algorithm::LZ4:
+        return doLZ4UncompressedLength(input_buffer);
+    }
+    throw std::invalid_argument(
+            "cb::compression::get_uncompressed_length: Unknown compression "
+            "algorithm");
 }

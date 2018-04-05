@@ -91,6 +91,19 @@ CBCOMPRESS_PUBLIC_API
 bool validate(Algorithm algorithm,
               cb::const_char_buffer input_buffer,
               size_t max_inflated_size = DEFAULT_MAX_INFLATED_SIZE);
+
+/**
+ * Get the uncompressed length from the given compressed input buffer
+ *
+ * @param algorithm the algorithm to use
+ * @param input_buffer buffer pointing to the input buffer
+ * @return the uncompressed length if success, false otherwise
+ * @throws std::invalid_argument if the algorithm provided is an
+ *                               unknown algorithm
+ */
+CBCOMPRESS_PUBLIC_API
+size_t get_uncompressed_length(Algorithm algorithm,
+                               cb::const_char_buffer input_buffer);
 }
 }
 
