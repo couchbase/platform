@@ -392,6 +392,33 @@ using MicrosecondHistogram =
         Histogram<UnsignedMicroseconds, cb::duration_limits>;
 
 /**
+ * Adapter class to assist in recording the duration of an event into
+ * MicrosecondHistograms; which don't have start() / stop() methods.
+ *
+ * This class will record the startTime when start() is called; then when end()
+ * is called it will calculate the duration and pass that to Histogram.
+ *
+ * @tparam Histogram Type to record the duration into.
+ *
+ */
+class PLATFORM_PUBLIC_API MicrosecondStopwatch {
+public:
+    MicrosecondStopwatch(MicrosecondHistogram& histogram)
+        : histogram(histogram) {
+    }
+
+    void start(ProcessClock::time_point start_) {
+        startTime = start_;
+    }
+
+    void stop(ProcessClock::time_point end);
+
+private:
+    MicrosecondHistogram& histogram;
+    ProcessClock::time_point startTime;
+};
+
+/**
  * Times blocks automatically and records the values in a histogram.
  *
  * If THRESHOLD_MS is greater than zero, then any blocks taking longer than
