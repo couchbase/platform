@@ -24,7 +24,7 @@ TEST(UUID, to_string) {
 
     // Verify that it is of version 4
     EXPECT_EQ(0x40, out[6] & 0xf0);
-    EXPECT_EQ(36, to_string(out).size());
+    EXPECT_EQ(36u, to_string(out).size());
 }
 
 TEST(UUID, from_string) {

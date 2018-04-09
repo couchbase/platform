@@ -23,7 +23,7 @@ TEST(MakeArrayTest, Basic) {
     // Just a simple smoke test to make sure its doing sensible things
     constexpr auto number_array = cb::make_array(1, 2, 3, 4, 5);
     EXPECT_EQ(4, number_array.at(3));
-    EXPECT_EQ(5, number_array.size());
+    EXPECT_EQ(5u, number_array.size());
 
     // Check non-primitives are handled nicely
     constexpr auto string_array = cb::make_array(

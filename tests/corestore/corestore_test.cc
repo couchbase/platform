@@ -31,9 +31,9 @@ TEST_F(CoreStoreTest, test) {
 
     std::cout << corestore.size() << std::endl;
 
-    int count = 0;
+    size_t count = 0;
     for (auto& e : corestore) {
-        EXPECT_EQ(0, e.load());
+        EXPECT_EQ(0u, e.load());
         count++;
     }
     EXPECT_EQ(corestore.size(), count);
@@ -47,5 +47,5 @@ TEST_F(CoreStoreTest, test) {
     }
 
     // Expected on core slot to be non-zero
-    EXPECT_EQ(1, count);
+    EXPECT_EQ(1u, count);
 }

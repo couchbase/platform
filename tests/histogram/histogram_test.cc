@@ -66,13 +66,13 @@ TEST(HistoTest, Basic) {
     std::for_each(histo.begin(), histo.end(), ps);
     expected = "[-2147483648, 0) = 15; [0, 10) = 1; [128178, 2147483647) = 11; ";
     EXPECT_EQ(expected, s2.str());
-    EXPECT_EQ(27, histo.total());
+    EXPECT_EQ(27u, histo.total());
 
     // I haven't set a 4, but there should be something in that bin.
-    EXPECT_EQ(1, histo.getBin(4)->count());
+    EXPECT_EQ(1u, histo.getBin(4)->count());
 
     histo.reset();
-    EXPECT_EQ(0, histo.total());
+    EXPECT_EQ(0u, histo.total());
 }
 
 TEST(HistoTest, FixedInput) {
@@ -117,23 +117,23 @@ TEST(HistoTest, CompleteRange) {
 
 TEST(BlockTimerTest, Basic) {
     MicrosecondHistogram histo;
-    ASSERT_EQ(0, histo.total());
+    ASSERT_EQ(0u, histo.total());
     {
         BlockTimer timer(&histo);
     }
-    EXPECT_EQ(1, histo.total());
+    EXPECT_EQ(1u, histo.total());
 }
 
 // TODO: This doesn't fully test the threshold functionality as it doesn't
 // check that the threshold is actually logged.
 TEST(BlockTimerTest, ThresholdTest) {
     MicrosecondHistogram histo;
-    ASSERT_EQ(0, histo.total());
+    ASSERT_EQ(0u, histo.total());
     {
         GenericBlockTimer<MicrosecondHistogram, 1> timer(&histo, "thresholdTest");
         std::this_thread::sleep_for(std::chrono::milliseconds(2));
     }
-    EXPECT_EQ(1, histo.total());
+    EXPECT_EQ(1u, histo.total());
 }
 
 TEST(MoveTest, Basic){

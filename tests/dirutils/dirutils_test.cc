@@ -137,14 +137,14 @@ TEST_F(IoTest, basename) {
 
 TEST_F(IoTest, findFilesWithPrefix) {
     auto vec = cb::io::findFilesWithPrefix("fs");
-    EXPECT_EQ(1, vec.size());
+    EXPECT_EQ(1u, vec.size());
 
     EXPECT_NE(vec.end(), std::find(vec.begin(), vec.end(),
                                    "." PATH_SEPARATOR "fs"));
 
 
     vec = cb::io::findFilesWithPrefix("fs", "d");
-    EXPECT_EQ(3, vec.size());
+    EXPECT_EQ(3u, vec.size());
 
     // We don't know the order of the files in the result..
     EXPECT_NE(vec.end(), std::find(vec.begin(), vec.end(),
@@ -155,7 +155,7 @@ TEST_F(IoTest, findFilesWithPrefix) {
                                    "fs" PATH_SEPARATOR "d3"));
 
     vec = cb::io::findFilesWithPrefix("fs", "1");
-    EXPECT_EQ(1, vec.size());
+    EXPECT_EQ(1u, vec.size());
     EXPECT_NE(vec.end(), std::find(vec.begin(), vec.end(),
                                    "fs" PATH_SEPARATOR "1"));
 
@@ -168,7 +168,7 @@ TEST_F(IoTest, findFilesContaining) {
     EXPECT_EQ(vfs.size() - 2, vec.size());
 
     vec = cb::io::findFilesContaining("fs", "2");
-    EXPECT_EQ(7, vec.size());
+    EXPECT_EQ(7u, vec.size());
     EXPECT_NE(vec.end(), std::find(vec.begin(), vec.end(),
                                    "fs" PATH_SEPARATOR "d2"));
     EXPECT_NE(vec.end(), std::find(vec.begin(), vec.end(),
@@ -240,7 +240,7 @@ TEST_F(IoTest, mkdirp) {
 
 TEST_F(IoTest, maximizeFileDescriptors) {
     auto limit = cb::io::maximizeFileDescriptors(32);
-    EXPECT_LE(32, limit) << "FAIL: I should be able to set it to at least 32";
+    EXPECT_LE(32u, limit) << "FAIL: I should be able to set it to at least 32";
 
     limit = cb::io::maximizeFileDescriptors(
         std::numeric_limits<uint32_t>::max());

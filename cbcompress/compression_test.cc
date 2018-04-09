@@ -39,13 +39,13 @@ TEST(Compression, TestSnappyCompression) {
 
     EXPECT_TRUE(cb::compression::deflate(
             cb::compression::Algorithm::Snappy, input.data(), output));
-    EXPECT_LT(output.size(), 8192);
+    EXPECT_LT(output.size(), 8192u);
     EXPECT_NE(nullptr, output.data());
 
     cb::compression::Buffer back;
     EXPECT_TRUE(cb::compression::inflate(
             cb::compression::Algorithm::Snappy, output, back));
-    EXPECT_EQ(8192, back.size());
+    EXPECT_EQ(8192u, back.size());
     EXPECT_NE(nullptr, back.data());
     EXPECT_EQ(0, memcmp(input.data(), back.data(), input.size()));
 
@@ -86,10 +86,10 @@ TEST(Compression, TestGetUncompressedLength) {
     EXPECT_TRUE(cb::compression::deflate(cb::compression::Algorithm::Snappy,
                                          {input.data(), input.size()},
                                          output));
-    EXPECT_LT(output.size(), 8192);
+    EXPECT_LT(output.size(), 8192u);
     EXPECT_NE(nullptr, output.data());
 
-    EXPECT_EQ(8192,
+    EXPECT_EQ(8192u,
               cb::compression::get_uncompressed_length(
                       cb::compression::Algorithm::Snappy,
                       {output.data(), output.size()}));
@@ -105,13 +105,13 @@ TEST(Compression, TestLZ4Compression) {
 
     EXPECT_TRUE(cb::compression::deflate(
             cb::compression::Algorithm::LZ4, input, output));
-    EXPECT_LT(output.size(), 8192);
+    EXPECT_LT(output.size(), 8192u);
     EXPECT_NE(nullptr, output.data());
 
     cb::compression::Buffer back;
     EXPECT_TRUE(cb::compression::inflate(
             cb::compression::Algorithm::LZ4, output, back));
-    EXPECT_EQ(8192, back.size());
+    EXPECT_EQ(8192u, back.size());
     EXPECT_NE(nullptr, back.data());
     EXPECT_EQ(0, memcmp(input.data(), back.data(), input.size()));
 }
@@ -138,10 +138,10 @@ TEST(Compression, TestLZ4GetUncompressedLength) {
     EXPECT_TRUE(cb::compression::deflate(cb::compression::Algorithm::LZ4,
                                          {input.data(), input.size()},
                                          output));
-    EXPECT_LT(output.size(), 8192);
+    EXPECT_LT(output.size(), 8192u);
     EXPECT_NE(nullptr, output.data());
 
-    EXPECT_EQ(8192,
+    EXPECT_EQ(8192u,
               cb::compression::get_uncompressed_length(
                       cb::compression::Algorithm::LZ4,
                       {output.data(), output.size()}));

@@ -45,7 +45,7 @@ TYPED_TEST_CASE(RingBufferTest, MyTypes);
 
 TYPED_TEST(RingBufferTest, testRingBuffer) {
     TypeParam rb;
-    ASSERT_EQ(10, rb.size());
+    ASSERT_EQ(10u, rb.size());
     for (int i = 0; i < 10; ++i) {
         ASSERT_EQ(0, rb[i]);
     }
@@ -53,7 +53,7 @@ TYPED_TEST(RingBufferTest, testRingBuffer) {
     rb.push_back(42);
     ASSERT_EQ(42, rb.back());
     ASSERT_EQ(0, rb.front());
-    ASSERT_EQ(10, rb.size());
+    ASSERT_EQ(10u, rb.size());
 
     // Fill up the ring buffer
     for (int i = 0; i < 10; i++) {
@@ -65,7 +65,7 @@ TYPED_TEST(RingBufferTest, testRingBuffer) {
     for (auto num : rb) {
         nums.push_back(num);
     }
-    ASSERT_EQ(10, nums.size());
+    ASSERT_EQ(10u, nums.size());
 
     // Test iteration on const values
     std::vector<int> const_nums;
@@ -88,8 +88,8 @@ TYPED_TEST(RingBufferTest, testRingBuffer) {
         rb.emplace_back(i + 1);
     }
 
-    ASSERT_EQ(10, rb.size());
+    ASSERT_EQ(10u, rb.size());
     for (size_t i = 0; i < rb.size(); ++i) {
-        ASSERT_EQ(i + 1, rb[i]);
+        ASSERT_EQ(int(i) + 1, rb[i]);
     }
 }

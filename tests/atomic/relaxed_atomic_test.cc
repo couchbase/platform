@@ -27,13 +27,13 @@ TEST(RelaxedAtomicTest, STLContainer) {
 
     // Check we can populate a std::vector with assign()
     vec.assign(3, 1);
-    EXPECT_EQ(1, vec[0]);
-    EXPECT_EQ(1, vec[1]);
-    EXPECT_EQ(1, vec[2]);
+    EXPECT_EQ(1u, vec[0]);
+    EXPECT_EQ(1u, vec[1]);
+    EXPECT_EQ(1u, vec[2]);
 
     // Check we can change existing values
     vec[2] = 2;
-    EXPECT_EQ(2, vec[2]);
+    EXPECT_EQ(2u, vec[2]);
 }
 
 TEST(RelaxedAtomicTest, setIfSmaller) {
@@ -42,18 +42,18 @@ TEST(RelaxedAtomicTest, setIfSmaller) {
 
     // Check we don't store larger numbers
     val.setIfSmaller(15);
-    EXPECT_EQ(val.load(), 10);
+    EXPECT_EQ(10u, val.load());
 
     // Check we store smaller numbers
     val.setIfSmaller(5);
-    EXPECT_EQ(val.load(), 5);
+    EXPECT_EQ(5u, val.load());
 
     Couchbase::RelaxedAtomic<uint8_t> smaller;
     smaller.store(3);
 
     // Check we can correctly store from another Couchbase::RelaxedAtomic
     val.setIfSmaller(smaller);
-    EXPECT_EQ(val.load(), 3);
+    EXPECT_EQ(3u, val.load());
 }
 
 TEST(RelaxedAtomicTest, setAdd) {
@@ -62,14 +62,14 @@ TEST(RelaxedAtomicTest, setAdd) {
 
     // Check we can add to the value
     val.setAdd(10);
-    EXPECT_EQ(val.load(), 15);
+    EXPECT_EQ(15u, val.load());
 
     Couchbase::RelaxedAtomic<uint8_t> add;
     add.store(5);
 
     // Check we can add from another Couchbase::RelaxedAtomic
     val.setAdd(add);
-    EXPECT_EQ(val.load(), 20);
+    EXPECT_EQ(20u, val.load());
 }
 
 TEST(RelaxedAtomicTest, setSub) {
@@ -78,7 +78,7 @@ TEST(RelaxedAtomicTest, setSub) {
 
     // Check we can subtract from the value
     val.setSub(5);
-    EXPECT_EQ(val.load(), 5);
+    EXPECT_EQ(5u, val.load());
 
     Couchbase::RelaxedAtomic<uint8_t> sub;
     sub.store(2);
@@ -86,5 +86,5 @@ TEST(RelaxedAtomicTest, setSub) {
     // Check we can subtract from the value from another
     // Couchbase::RelaxedAtomic
     val.setSub(sub);
-    EXPECT_EQ(val.load(), 3);
+    EXPECT_EQ(3u, val.load());
 }

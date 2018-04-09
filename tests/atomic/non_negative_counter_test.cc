@@ -23,51 +23,51 @@
 
 TEST(NonNegativeCounterTest, Increment) {
     cb::NonNegativeCounter<size_t> nnAtomic(1);
-    ASSERT_EQ(1, nnAtomic);
+    ASSERT_EQ(1u, nnAtomic);
 
-    EXPECT_EQ(2, ++nnAtomic);
-    EXPECT_EQ(2, nnAtomic++);
-    EXPECT_EQ(3, nnAtomic);
+    EXPECT_EQ(2u, ++nnAtomic);
+    EXPECT_EQ(2u, nnAtomic++);
+    EXPECT_EQ(3u, nnAtomic);
 }
 
 TEST(NonNegativeCounterTest, Add) {
     cb::NonNegativeCounter<size_t> nnAtomic(1);
-    ASSERT_EQ(1, nnAtomic);
+    ASSERT_EQ(1u, nnAtomic);
 
-    EXPECT_EQ(3, nnAtomic += 2);
-    EXPECT_EQ(3, nnAtomic.fetch_add(2));
-    EXPECT_EQ(5, nnAtomic);
+    EXPECT_EQ(3u, nnAtomic += 2);
+    EXPECT_EQ(3u, nnAtomic.fetch_add(2));
+    EXPECT_EQ(5u, nnAtomic);
 }
 
 TEST(NonNegativeCounterTest, Decrement) {
     cb::NonNegativeCounter<size_t> nnAtomic(2);
-    ASSERT_EQ(2, nnAtomic);
+    ASSERT_EQ(2u, nnAtomic);
 
-    EXPECT_EQ(1, --nnAtomic);
-    EXPECT_EQ(1, nnAtomic--);
-    EXPECT_EQ(0, nnAtomic);
+    EXPECT_EQ(1u, --nnAtomic);
+    EXPECT_EQ(1u, nnAtomic--);
+    EXPECT_EQ(0u, nnAtomic);
 }
 
 TEST(NonNegativeCounterTest, Subtract) {
     cb::NonNegativeCounter<size_t> nnAtomic(4);
-    ASSERT_EQ(4, nnAtomic);
+    ASSERT_EQ(4u, nnAtomic);
 
-    EXPECT_EQ(2, nnAtomic -= 2);
-    EXPECT_EQ(2, nnAtomic.fetch_sub(2));
-    EXPECT_EQ(0, nnAtomic);
+    EXPECT_EQ(2u, nnAtomic -= 2);
+    EXPECT_EQ(2u, nnAtomic.fetch_sub(2));
+    EXPECT_EQ(0u, nnAtomic);
 }
 
 // Test that a NonNegativeCounter will clamp to zero.
 TEST(NonNegativeCounterTest, ClampsToZero) {
     cb::NonNegativeCounter<size_t, cb::ClampAtZeroUnderflowPolicy> nnAtomic(0);
 
-    EXPECT_EQ(0, --nnAtomic);
-    EXPECT_EQ(0, nnAtomic--);
-    EXPECT_EQ(0, nnAtomic);
+    EXPECT_EQ(0u, --nnAtomic);
+    EXPECT_EQ(0u, nnAtomic--);
+    EXPECT_EQ(0u, nnAtomic);
 
     nnAtomic = 5;
-    EXPECT_EQ(5, nnAtomic.fetch_sub(10)); // returns previous value
-    EXPECT_EQ(0, nnAtomic); // has been clamped to zero
+    EXPECT_EQ(5u, nnAtomic.fetch_sub(10)); // returns previous value
+    EXPECT_EQ(0u, nnAtomic); // has been clamped to zero
 }
 
 // Test the ThrowException policy.
@@ -75,11 +75,11 @@ TEST(NonNegativeCounterTest, ThrowExceptionPolicy) {
     cb::NonNegativeCounter<size_t, cb::ThrowExceptionUnderflowPolicy> nnAtomic(0);
 
     EXPECT_THROW(--nnAtomic, std::underflow_error);
-    EXPECT_EQ(0, nnAtomic);
+    EXPECT_EQ(0u, nnAtomic);
     EXPECT_THROW(nnAtomic--, std::underflow_error);
-    EXPECT_EQ(0, nnAtomic);
+    EXPECT_EQ(0u, nnAtomic);
 
     nnAtomic = 1;
     EXPECT_THROW(nnAtomic -= 2, std::underflow_error);
-    EXPECT_EQ(1, nnAtomic);
+    EXPECT_EQ(1u, nnAtomic);
 }

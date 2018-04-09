@@ -115,22 +115,22 @@ TEST(SizedBufferTest, Access) {
 
 TEST(SizedBufferTest, Capacity) {
     auto A = make_ccb("Hello, World!");
-    EXPECT_EQ(13, A.size());
+    EXPECT_EQ(13u, A.size());
     EXPECT_FALSE(A.empty());
     EXPECT_TRUE(make_ccb("").empty());
 }
 
 TEST(SizedBufferTest, Find) {
     auto A = make_ccb("Hello, World!");
-    EXPECT_EQ(0, A.find(make_ccb("Hello")));
-    EXPECT_EQ(7, A.find(make_ccb("World!")));
+    EXPECT_EQ(0u, A.find(make_ccb("Hello")));
+    EXPECT_EQ(7u, A.find(make_ccb("World!")));
     EXPECT_EQ(A.npos, A.find(make_ccb("Trond!")));
-    EXPECT_EQ(0, A.find(make_ccb("")));
+    EXPECT_EQ(0u, A.find(make_ccb("")));
 
     auto R = make_ccb("RepeatRepeatRepeat");
-    EXPECT_EQ(0, R.find(make_ccb("Repeat")));
-    EXPECT_EQ(6, R.find(make_ccb("Repeat"), 1));
-    EXPECT_EQ(12, R.find(make_ccb("Repeat"), 7));
+    EXPECT_EQ(0u, R.find(make_ccb("Repeat")));
+    EXPECT_EQ(6u, R.find(make_ccb("Repeat"), 1));
+    EXPECT_EQ(12u, R.find(make_ccb("Repeat"), 7));
 
     cb::const_char_buffer B;
     EXPECT_EQ(B.npos, B.find(make_ccb("")));
@@ -138,13 +138,13 @@ TEST(SizedBufferTest, Find) {
 
 TEST(SizedBufferTest, FindFirstOf) {
     auto A = make_ccb("Hello, World!");
-    EXPECT_EQ(0, A.find_first_of(make_ccb("Hello")));
-    EXPECT_EQ(1, A.find_first_of(make_ccb("ello")));
-    EXPECT_EQ(2, A.find_first_of(make_ccb("llo")));
-    EXPECT_EQ(2, A.find_first_of(make_ccb("lo")));
-    EXPECT_EQ(4, A.find_first_of(make_ccb("o")));
-    EXPECT_EQ(8, A.find_first_of(make_ccb("o"), 6));
-    EXPECT_EQ(12, A.find_first_of(make_ccb("!")));
+    EXPECT_EQ(0u, A.find_first_of(make_ccb("Hello")));
+    EXPECT_EQ(1u, A.find_first_of(make_ccb("ello")));
+    EXPECT_EQ(2u, A.find_first_of(make_ccb("llo")));
+    EXPECT_EQ(2u, A.find_first_of(make_ccb("lo")));
+    EXPECT_EQ(4u, A.find_first_of(make_ccb("o")));
+    EXPECT_EQ(8u, A.find_first_of(make_ccb("o"), 6));
+    EXPECT_EQ(12u, A.find_first_of(make_ccb("!")));
     EXPECT_EQ(A.npos, A.find_first_of(make_ccb("?")));
     EXPECT_EQ(A.npos, A.find_first_of(make_ccb("")));
     EXPECT_EQ(A.npos, A.find_first_of(make_ccb("H"), 5));

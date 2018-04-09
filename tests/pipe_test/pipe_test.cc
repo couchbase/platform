@@ -46,10 +46,10 @@ TEST_F(PipeTest, EnsureCapacity) {
 
     buffer.consume([](const void*, size_t size) -> ssize_t {
         // It should be empty..
-        EXPECT_EQ(0, size);
+        EXPECT_EQ(0u, size);
         return 0;
     });
-    EXPECT_EQ(0, buffer.rsize());
+    EXPECT_EQ(0u, buffer.rsize());
 
     // Make sure that it keep the data between the iterations, even if it isn't
     // at the beginning of the buffer
@@ -67,7 +67,7 @@ TEST_F(PipeTest, EnsureCapacity) {
         return 6; // "hello "
     });
 
-    EXPECT_EQ(5, buffer.rsize()); // The buffer should still contain world
+    EXPECT_EQ(5u, buffer.rsize()); // The buffer should still contain world
     EXPECT_EQ(buffer.capacity() - message.size(), buffer.wsize());
 
     buffer.ensureCapacity(3000);
@@ -110,7 +110,7 @@ TEST_F(PipeTest, ConsumeOverfow) {
 TEST_F(PipeTest, ProduceConsume) {
     buffer.ensureCapacity(100);
     const auto capacity = buffer.capacity();
-    EXPECT_EQ(3, buffer.produce([capacity](void* ptr, size_t size) -> ssize_t {
+    EXPECT_EQ(3u, buffer.produce([capacity](void* ptr, size_t size) -> ssize_t {
         EXPECT_EQ(capacity, size);
         ::memcpy(ptr, "abc", 3);
         return 3;
@@ -124,7 +124,7 @@ TEST_F(PipeTest, ProduceConsume) {
 
     // And 3 available..
     buffer.consume([](const void* ptr, size_t size) -> ssize_t {
-        EXPECT_EQ(3, size);
+        EXPECT_EQ(3u, size);
 
         // Let's read out the first (which should be an a)
         EXPECT_EQ('a', *static_cast<const char*>(ptr));
@@ -139,7 +139,7 @@ TEST_F(PipeTest, ProduceConsume) {
     });
 
     buffer.consume([](const void* ptr, size_t size) -> ssize_t {
-        EXPECT_EQ(2, size);
+        EXPECT_EQ(2u, size);
         // Let's read out the first (which should be an b)
         EXPECT_EQ('b', *static_cast<const char*>(ptr));
         return 1;
@@ -153,7 +153,7 @@ TEST_F(PipeTest, ProduceConsume) {
     });
 
     buffer.consume([](const void* ptr, size_t size) -> ssize_t {
-        EXPECT_EQ(1, size);
+        EXPECT_EQ(1u, size);
         // Let's read out the first (which should be an c)
         EXPECT_EQ('c', *static_cast<const char*>(ptr));
         // But let's not consume it at this time
@@ -171,7 +171,7 @@ TEST_F(PipeTest, ProduceConsume) {
     });
 
     buffer.consume([](const void* ptr, size_t size) -> ssize_t {
-        EXPECT_EQ(1, size);
+        EXPECT_EQ(1u, size);
         // Let's read out the first (which should be an c)
         EXPECT_EQ('c', *static_cast<const char*>(ptr));
         return 1;
@@ -196,6 +196,6 @@ TEST_F(PipeTest, RellocationSizes) {
 
     // Verify that we always double the size of the buffer
     for (int ii = 1; ii < 8; ii++) {
-        EXPECT_EQ(2048 << ii, pipe.ensureCapacity(pipe.capacity() + 1));
+        EXPECT_EQ(2048u << ii, pipe.ensureCapacity(pipe.capacity() + 1));
     }
 }
