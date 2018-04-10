@@ -61,9 +61,9 @@
 template <class Listener1>
 class ScopeTimer1 {
 public:
-    ScopeTimer1(Listener1&& listener1)
+    ScopeTimer1(Listener1&& listener1_)
         : startTime(ProcessClock::now()),
-          listener1(std::forward<Listener1>(listener1)) {
+          listener1(std::forward<Listener1>(listener1_)) {
         const auto startTime = ProcessClock::now();
         listener1.start(startTime);
     }
@@ -82,10 +82,10 @@ private:
 template <class Listener1, class Listener2>
 class ScopeTimer2 {
 public:
-    ScopeTimer2(Listener1&& listener1, Listener2&& listener2)
+    ScopeTimer2(Listener1&& listener1_, Listener2&& listener2_)
         : startTime(ProcessClock::now()),
-          listener1(std::forward<Listener1>(listener1)),
-          listener2(std::forward<Listener2>(listener2)) {
+          listener1(std::forward<Listener1>(listener1_)),
+          listener2(std::forward<Listener2>(listener2_)) {
         listener1.start(startTime);
         listener2.start(startTime);
     }

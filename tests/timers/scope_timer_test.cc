@@ -30,12 +30,15 @@ public:
 
     void start(ProcessClock::time_point time) {
         startTimes.emplace_back(time);
+        startCalled = true;
     }
 
     void stop(ProcessClock::time_point time) {
+        EXPECT_TRUE(startCalled);
         stopTimes.emplace_back(time);
     }
 
+    bool startCalled = false;
     std::vector<ProcessClock::time_point>& startTimes;
     std::vector<ProcessClock::time_point>& stopTimes;
 };
