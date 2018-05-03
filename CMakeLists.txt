@@ -2,6 +2,7 @@ CMAKE_MINIMUM_REQUIRED(VERSION 3.2)
 PROJECT(Platform LANGUAGES C CXX)
 
 INCLUDE(CheckFunctionExists)
+INCLUDE(CheckIncludeFile)
 INCLUDE(CheckIncludeFileCXX)
 INCLUDE(CheckSymbolExists)
 INCLUDE(CTest)
