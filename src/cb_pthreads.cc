@@ -330,11 +330,12 @@ cb_dlhandle_t cb_dlopen(const char *library, char **errmsg)
 {
     cb_dlhandle_t handle;
     char *buffer = NULL;
+    const int dlopen_flags = RTLD_NOW | RTLD_GLOBAL;
 
     if (library == NULL) {
-        handle = dlopen(NULL, RTLD_NOW | RTLD_LOCAL);
+        handle = dlopen(NULL, dlopen_flags);
     } else {
-        handle = dlopen(library, RTLD_NOW | RTLD_LOCAL);
+        handle = dlopen(library, dlopen_flags);
         if (handle == NULL) {
             buffer = reinterpret_cast<char*>(cb_malloc(strlen(library) + 20));
             if (buffer == NULL) {
@@ -345,7 +346,7 @@ cb_dlhandle_t cb_dlopen(const char *library, char **errmsg)
             }
 
             handle = dlopen(get_dll_name(library, buffer),
-                            RTLD_NOW | RTLD_LOCAL);
+                            dlopen_flags);
             cb_free(buffer);
         }
     }
