@@ -63,5 +63,12 @@ extern int getopt(int argc, char** argv, const char* optstring);
  */
 PLATFORM_PUBLIC_API
 void reset();
+
+/**
+ * This is used for unit tests to mute the unit tests from writing error
+ * messages to stderr
+ */
+PLATFORM_PUBLIC_API
+void mute_stderr();
 } // namespace getopt
 } // namespace cb

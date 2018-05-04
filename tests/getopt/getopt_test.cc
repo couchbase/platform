@@ -29,6 +29,7 @@ typedef std::vector<std::string> getoptvec;
 class GetoptTest : public ::testing::Test {
 protected:
     void SetUp() override {
+        cb::getopt::mute_stderr();
         cb::getopt::reset();
     }
 };
@@ -141,6 +142,115 @@ TEST_F(GetoptTest, TestLongOptions) {
     EXPECT_TRUE(first) << "--first not found";
     EXPECT_TRUE(second) << "--second not found";
     EXPECT_TRUE(third) << "--third not found";
+
+    release(argv, vec.size());
+}
+
+TEST_F(GetoptTest, TestLongOptionsWithArguments) {
+    static cb::getopt::option long_options[] = {
+            {"host", cb::getopt::required_argument, nullptr, 'h'},
+            {"port", cb::getopt::required_argument, nullptr, 'p'},
+            {nullptr, 0, nullptr, 0}};
+
+    getoptvec vec;
+
+    vec.push_back("TestLongOptionsWithArguments");
+    vec.push_back("--host=localhost");
+    vec.push_back("--port");
+    vec.push_back("11210");
+
+    auto argc = (int)vec.size();
+    auto** argv = vec2array(vec);
+
+    int option_index = 0;
+    int c;
+
+    std::string host;
+    std::string port;
+
+    while ((c = cb::getopt::getopt_long(
+                    argc, argv, "h:p:", long_options, &option_index)) != -1) {
+        switch (c) {
+        case 'h':
+            ASSERT_NE(nullptr, cb::getopt::optarg)
+                    << "host should have argument";
+            host.assign(cb::getopt::optarg);
+            break;
+        case 'p':
+            ASSERT_NE(nullptr, cb::getopt::optarg)
+                    << "port should have argument";
+            port.assign(cb::getopt::optarg);
+            break;
+        default:
+            FAIL() << "getopt_long returned " << char(c);
+        }
+    }
+
+    EXPECT_EQ(host, "localhost");
+    EXPECT_EQ(port, "11210");
+
+    release(argv, vec.size());
+}
+
+TEST_F(GetoptTest, TestLongOptionsWithMissingLastArguments) {
+    static cb::getopt::option long_options[] = {
+            {"port", cb::getopt::required_argument, nullptr, 'p'},
+            {nullptr, 0, nullptr, 0}};
+
+    getoptvec vec;
+
+    vec.push_back("TestLongOptionsWithMissingLastArguments");
+    vec.push_back("--port");
+
+    auto argc = (int)vec.size();
+    auto** argv = vec2array(vec);
+
+    int option_index = 0;
+    ASSERT_EQ('?',
+              cb::getopt::getopt_long(
+                      argc, argv, "p:", long_options, &option_index));
+
+    release(argv, vec.size());
+}
+
+TEST_F(GetoptTest, TestLongOptionsWithOptionalArguments) {
+    static cb::getopt::option long_options[] = {
+            {"none", cb::getopt::optional_argument, nullptr, 'n'},
+            {"with", cb::getopt::optional_argument, nullptr, 'w'},
+            {nullptr, 0, nullptr, 0}};
+
+    getoptvec vec;
+
+    vec.push_back("TestLongOptionsWithOptionalArguments");
+    vec.push_back("--none");
+    vec.push_back("--with=true");
+
+    auto argc = (int)vec.size();
+    auto** argv = vec2array(vec);
+
+    int option_index = 0;
+    int c;
+    bool none = false;
+    bool with = false;
+
+    while ((c = cb::getopt::getopt_long(
+                    argc, argv, "n:w:", long_options, &option_index)) != -1) {
+        switch (c) {
+        case 'n':
+            ASSERT_EQ(nullptr, cb::getopt::optarg);
+            none = true;
+            break;
+        case 'w':
+            ASSERT_STREQ("true", cb::getopt::optarg);
+            with = true;
+            break;
+        default:
+            FAIL() << "getopt_long returned " << char(c);
+        }
+    }
+
+    EXPECT_TRUE(none);
+    EXPECT_TRUE(with);
 
     release(argv, vec.size());
 }

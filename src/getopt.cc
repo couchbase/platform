@@ -15,59 +15,67 @@
  *   limitations under the License.
  */
 #define BUILDING_LIBPLATFORM 1
-#include <ctype.h>
 #include <platform/getopt.h>
-#include <stdio.h>
-#include <string.h>
+#include <cctype>
+#include <cstdio>
+#include <cstring>
+#include <string>
 
-namespace cb {
-namespace getopt {
+char* cb::getopt::optarg;
+int cb::getopt::opterr;
+int cb::getopt::optind = 1;
+int cb::getopt::optopt;
 
-char* optarg;
-int opterr;
-int optind = 1;
-int optopt;
+static bool silent = false;
+
+using namespace cb::getopt;
 
 static int parse_longopt(int argc,
                          char** argv,
-                         const struct option* longopts,
+                         const option* longopts,
                          int* longindex) {
-    const struct option* p;
-    char* name = argv[optind] + 2;
-    if (*name == '\0') {
+    std::string name{argv[optind] + 2};
+    if (name.empty()) {
         ++optind;
         return -1;
     }
 
-    optarg = strchr(name, '=');
-    if (optarg == NULL) {
-        // value comes next!
-        optarg = argv[optind + 1];
-    } else {
-        *optarg = '\0';
-        ++optarg;
+    auto idx = name.find('=');
+    bool resized = false;
+    if (idx != std::string::npos) {
+        name.resize(idx);
+        resized = true;
     }
 
-    for (p = longopts; p != NULL && p->name; ++p) {
-        if (strcmp(name, p->name) == 0) {
+    optarg = nullptr;
+    for (const auto* p = longopts; p != nullptr && p->name; ++p) {
+        if (name == p->name) {
             // This is it :)
-            if (p->has_arg) {
+            if (p->has_arg == required_argument) {
                 // we need a value!
-                if (optarg == argv[optind + 1]) {
-                    ++optind;
-                }
-                if (optarg == NULL || optind >= argc) {
-                    fprintf(stderr,
-                            "%s: option requires an argument -- %s\n",
-                            argv[0],
-                            name);
+                if (resized) {
+                    // the value was part of the string:
+                    optarg = argv[optind] + 2 + idx + 1;
+                } else if (++optind == argc) {
+                    if (!silent) {
+                        fprintf(stderr,
+                                "%s: option requires an argument -- %s\n",
+                                argv[0],
+                                name.c_str());
+                    }
                     return '?';
+                } else {
+                    // The option follows this entry
+                    optarg = argv[optind];
                 }
-
-            } else {
-                optarg = NULL;
-                ++optind;
+            } else if (p->has_arg == optional_argument) {
+                if (resized) {
+                    // the value was part of the string:
+                    // (the +3 is for the leading dashes and the equal sign
+                    optarg = argv[optind] + idx + 3;
+                }
             }
+            ++optind;
             return p->val;
         }
     }
@@ -78,11 +86,11 @@ static int parse_longopt(int argc,
     return '?';
 }
 
-int getopt_long(int argc,
-                char** argv,
-                const char* optstring,
-                const struct option* longopts,
-                int* longindex) {
+int cb::getopt::getopt_long(int argc,
+                            char** argv,
+                            const char* optstring,
+                            const option* longopts,
+                            int* longindex) {
     if (optind + 1 > argc) {
         // EOF
         return -1;
@@ -96,9 +104,11 @@ int getopt_long(int argc,
         // this is a long option
         return parse_longopt(argc, argv, longopts, longindex);
     } else if (argv[optind][2] != '\0') {
-        fprintf(stderr,
-                "You can't specify multiple options with this "
-                "implementation\n");
+        if (!silent) {
+            fprintf(stderr,
+                    "You can't specify multiple options with this "
+                    "implementation\n");
+        }
         return '?';
     } else {
         // this is a short option
@@ -106,36 +116,40 @@ int getopt_long(int argc,
         int idx = optind;
         optind++;
 
-        if (p == NULL) {
+        if (p == nullptr) {
             return '?';
         }
 
         if (*(p + 1) == ':') {
             optarg = argv[optind];
             optind++;
-            if (optarg == NULL || optind > argc) {
-                fprintf(stderr,
-                        "%s: option requires an argument -- %s\n",
-                        argv[0],
-                        argv[idx] + 1);
+            if (optarg == nullptr || optind > argc) {
+                if (!silent) {
+                    fprintf(stderr,
+                            "%s: option requires an argument -- %s\n",
+                            argv[0],
+                            argv[idx] + 1);
+                }
                 return '?';
             }
         } else {
-            optarg = NULL;
+            optarg = nullptr;
         }
         return argv[idx][1];
     }
 }
 
-int getopt(int argc, char** argv, const char* optstring) {
-    return getopt_long(argc, argv, optstring, NULL, NULL);
+int cb::getopt::getopt(int argc, char** argv, const char* optstring) {
+    return getopt_long(argc, argv, optstring, nullptr, nullptr);
 }
 
-void reset() {
+void cb::getopt::reset() {
     optarg = nullptr;
     opterr = 0;
     optind = 1;
     optopt = 0;
 }
-} // namespace getopt
-} // namespace cb
+
+void cb::getopt::mute_stderr() {
+    silent = true;
+}
