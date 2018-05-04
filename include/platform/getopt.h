@@ -1,6 +1,6 @@
 /* -*- Mode: C; tab-width: 4; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /*
- *     Copyright 2013 Couchbase, Inc.
+ *     Copyright 2018 Couchbase, Inc.
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -16,15 +16,20 @@
  */
 #pragma once
 
+/**
+ * This file contains a getopt implementation which is only used
+ * on Windows (but it is built on all platforms to make it easier
+ * to test ;)
+ */
+
 #include <platform/platform.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+namespace cb {
+namespace getopt {
 
-#define no_argument 0
-#define required_argument 1
-#define optional_argument 2
+const int no_argument = 0;
+const int required_argument = 1;
+const int optional_argument = 2;
 
 struct option {
     const char* name;
@@ -52,6 +57,5 @@ extern int getopt_long(int argc,
 PLATFORM_PUBLIC_API
 extern int getopt(int argc, char** argv, const char* optstring);
 
-#ifdef __cplusplus
-}
-#endif
+} // namespace getopt
+} // namespace cb

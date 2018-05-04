@@ -2,12 +2,11 @@
 #include <iostream>
 #include <cstdlib>
 #include <string.h>
-#include <getopt.h>
+#include <platform/getopt.h>
 #include <vector>
 #include <string>
 #include <platform/cbassert.h>
 #include <platform/cb_malloc.h>
-
 
 char **vec2array(const std::vector<std::string> &vec) {
     char **arr = new char*[vec.size()];
@@ -34,11 +33,11 @@ static void getopt_test_0(void) {
     int argc = (int)vec.size();
     char **argv = vec2array(vec);
 
-    cb_assert(optind == 1);
-    cb_assert('a' == getopt(argc, argv, "a"));
-    cb_assert(optind == 2);
-    cb_assert('?' == getopt(argc, argv, "a"));
-    cb_assert(optind == 3);
+    cb_assert(cb::getopt::optind == 1);
+    cb_assert('a' == cb::getopt::getopt(argc, argv, "a"));
+    cb_assert(cb::getopt::optind == 2);
+    cb_assert('?' == cb::getopt::getopt(argc, argv, "a"));
+    cb_assert(cb::getopt::optind == 3);
 
     release(argv, vec.size());
 }
@@ -51,9 +50,9 @@ static void getopt_test_1(void) {
     vec.push_back("-b");
     int argc = (int)vec.size();
     char **argv = vec2array(vec);
-    cb_assert('a' == getopt(argc, argv, "a"));
-    cb_assert(-1 == getopt(argc, argv, "a"));
-    cb_assert(optind == 3);
+    cb_assert('a' == cb::getopt::getopt(argc, argv, "a"));
+    cb_assert(-1 == cb::getopt::getopt(argc, argv, "a"));
+    cb_assert(cb::getopt::optind == 3);
 
     release(argv, vec.size());
 }
@@ -77,28 +76,28 @@ static void getopt_test_2(void) {
     int argc = (int)vec.size();
     char **argv = vec2array(vec);
 
-    cb_assert('E' == getopt(argc, argv, "E:T:e:vC:s"));
-    cb_assert(strcmp(argv[2], optarg) == 0);
-    cb_assert('T' == getopt(argc, argv, "E:T:e:vC:s"));
-    cb_assert(strcmp(argv[4], optarg) == 0);
-    cb_assert('e' == getopt(argc, argv, "E:T:e:vC:s"));
-    cb_assert(strcmp(argv[6], optarg) == 0);
-    cb_assert('v' == getopt(argc, argv, "E:T:e:vC:s"));
-    cb_assert('C' == getopt(argc, argv, "E:T:e:vC:s"));
-    cb_assert(strcmp(argv[9], optarg) == 0);
-    cb_assert('s' == getopt(argc, argv, "E:T:e:vC:s"));
-    cb_assert(-1 == getopt(argc, argv, "E:T:e:vC:s"));
-    cb_assert(optind == 11);
+    cb_assert('E' == cb::getopt::getopt(argc, argv, "E:T:e:vC:s"));
+    cb_assert(strcmp(argv[2], cb::getopt::optarg) == 0);
+    cb_assert('T' == cb::getopt::getopt(argc, argv, "E:T:e:vC:s"));
+    cb_assert(strcmp(argv[4], cb::getopt::optarg) == 0);
+    cb_assert('e' == cb::getopt::getopt(argc, argv, "E:T:e:vC:s"));
+    cb_assert(strcmp(argv[6], cb::getopt::optarg) == 0);
+    cb_assert('v' == cb::getopt::getopt(argc, argv, "E:T:e:vC:s"));
+    cb_assert('C' == cb::getopt::getopt(argc, argv, "E:T:e:vC:s"));
+    cb_assert(strcmp(argv[9], cb::getopt::optarg) == 0);
+    cb_assert('s' == cb::getopt::getopt(argc, argv, "E:T:e:vC:s"));
+    cb_assert(-1 == cb::getopt::getopt(argc, argv, "E:T:e:vC:s"));
+    cb_assert(cb::getopt::optind == 11);
 
     release(argv, vec.size());
 }
 
 static void getopt_long_test(void) {
-    static struct option long_options[] =
+    static cb::getopt::option long_options[] =
     {
-        {"first",  no_argument, 0, 'f'},
-        {"second", no_argument, 0, 's'},
-        {"third",  no_argument, 0, 't'},
+        {"first",  cb::getopt::no_argument, 0, 'f'},
+        {"second", cb::getopt::no_argument, 0, 's'},
+        {"third",  cb::getopt::no_argument, 0, 't'},
         {0, 0, 0, 0}
     };
 
@@ -119,7 +118,7 @@ static void getopt_long_test(void) {
     bool first, second, third;
     first = second = third = false;
 
-    while ( (c = getopt_long(argc, argv, "fst",
+    while ( (c = cb::getopt::getopt_long(argc, argv, "fst",
                              long_options, &option_index)) != -1 )  {
         switch (c) {
         case 'f':

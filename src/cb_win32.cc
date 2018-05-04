@@ -21,9 +21,11 @@
 #include <io.h>
 #include <phosphor/phosphor.h>
 #include <platform/cb_malloc.h>
+#include <platform/getopt.h>
 #include <platform/strerror.h>
-#include <stdio.h>
+#include <win32/getopt.h>
 #include <chrono>
+#include <cstdio>
 #include <thread>
 #include <vector>
 
@@ -348,4 +350,43 @@ int cb_rw_writer_exit(cb_rwlock_t *rw)
 {
     ReleaseSRWLockExclusive(rw);
     return 0;
+}
+
+// Wrapper into cb::getopt (which we now unit tests on all platforms)
+__declspec(dllexport)
+char* optarg;
+__declspec(dllexport)
+int opterr;
+__declspec(dllexport)
+int optind = 1;
+__declspec(dllexport)
+int optopt;
+
+__declspec(dllexport)
+int getopt_long(int argc,
+                char** argv,
+                const char* optstring,
+                const struct option* longopts,
+                int* longindex) {
+    auto ret = cb::getopt::getopt_long(
+            argc,
+            argv,
+            optstring,
+            reinterpret_cast<const cb::getopt::option*>(longopts),
+            longindex);
+    optarg = cb::getopt::optarg;
+    opterr = cb::getopt::opterr;
+    optind = cb::getopt::optind;
+    optopt = cb::getopt::optopt;
+    return ret;
+}
+
+__declspec(dllexport)
+int getopt(int argc, char** argv, const char* optstring) {
+    auto ret = cb::getopt::getopt(argc, argv, optstring);
+    optarg = cb::getopt::optarg;
+    opterr = cb::getopt::opterr;
+    optind = cb::getopt::optind;
+    optopt = cb::getopt::optopt;
+    return ret;
 }

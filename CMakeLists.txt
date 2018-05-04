@@ -91,8 +91,7 @@ GENERATE_EXPORT_HEADER(JSON_checker
 IF (WIN32)
    INCLUDE_DIRECTORIES(AFTER ${CMAKE_CURRENT_SOURCE_DIR}/include/win32)
    ADD_DEFINITIONS(-D_CRT_SECURE_NO_WARNINGS)
-   SET(PLATFORM_FILES src/getopt.c
-                      src/sockets.c
+   SET(PLATFORM_FILES src/sockets.c
                       src/cb_win32.cc
                       src/winrandom.c
                       src/memorymap_win32.cc
@@ -189,6 +188,7 @@ ADD_LIBRARY(platform_so SHARED ${PLATFORM_FILES}
                             src/crc32c.cc
                             src/crc32c_sse4_2.cc
                             src/crc32c_private.h
+                            src/getopt.cc
                             src/global_new_replacement.cc
                             src/histogram.cc
                             src/interrupt.cc
@@ -211,6 +211,7 @@ ADD_LIBRARY(platform_so SHARED ${PLATFORM_FILES}
                             include/platform/checked_snprintf.h
                             include/platform/corestore.h
                             include/platform/crc32c.h
+                            include/platform/getopt.h
                             include/platform/interrupt.h
                             include/platform/make_unique.h
                             include/platform/memorymap.h
