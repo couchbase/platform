@@ -57,5 +57,11 @@ extern int getopt_long(int argc,
 PLATFORM_PUBLIC_API
 extern int getopt(int argc, char** argv, const char* optstring);
 
+/**
+ * This is for unit tests only and used to reset the internal state
+ * of the library
+ */
+PLATFORM_PUBLIC_API
+void reset();
 } // namespace getopt
 } // namespace cb

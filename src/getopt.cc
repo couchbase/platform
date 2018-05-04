@@ -131,5 +131,11 @@ int getopt(int argc, char** argv, const char* optstring) {
     return getopt_long(argc, argv, optstring, NULL, NULL);
 }
 
+void reset() {
+    optarg = nullptr;
+    opterr = 0;
+    optind = 1;
+    optopt = 0;
+}
 } // namespace getopt
 } // namespace cb

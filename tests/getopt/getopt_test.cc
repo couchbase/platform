@@ -1,15 +1,16 @@
 /* -*- Mode: C++; tab-width: 4; c-basic-offset: 4; indent-tabs-mode: nil -*- */
-#include <iostream>
-#include <cstdlib>
-#include <string.h>
-#include <platform/getopt.h>
-#include <vector>
-#include <string>
-#include <platform/cbassert.h>
+#include <gtest/gtest.h>
 #include <platform/cb_malloc.h>
+#include <platform/cbassert.h>
+#include <platform/getopt.h>
+#include <cstdlib>
+#include <cstring>
+#include <iostream>
+#include <string>
+#include <vector>
 
 char **vec2array(const std::vector<std::string> &vec) {
-    char **arr = new char*[vec.size()];
+    auto** arr = new char*[vec.size()];
     for (unsigned int ii = 0; ii < (unsigned int)vec.size(); ++ii) {
         arr[ii] = cb_strdup(vec[ii].c_str());
     }
@@ -25,41 +26,46 @@ static void release(char **arr, size_t size) {
 
 typedef std::vector<std::string> getoptvec;
 
-static void getopt_test_0(void) {
+class GetoptTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        cb::getopt::reset();
+    }
+};
+
+TEST_F(GetoptTest, NormalWithOneUnknownProvided) {
     getoptvec vec;
     vec.push_back("program");
     vec.push_back("-a");
     vec.push_back("-b");
-    int argc = (int)vec.size();
-    char **argv = vec2array(vec);
-
-    cb_assert(cb::getopt::optind == 1);
-    cb_assert('a' == cb::getopt::getopt(argc, argv, "a"));
-    cb_assert(cb::getopt::optind == 2);
-    cb_assert('?' == cb::getopt::getopt(argc, argv, "a"));
-    cb_assert(cb::getopt::optind == 3);
+    auto argc = (int)vec.size();
+    auto** argv = vec2array(vec);
+    ASSERT_EQ(1, cb::getopt::optind);
+    ASSERT_EQ('a', cb::getopt::getopt(argc, argv, "a"));
+    ASSERT_EQ(2, cb::getopt::optind);
+    ASSERT_EQ('?', cb::getopt::getopt(argc, argv, "a"));
+    ASSERT_EQ(3, cb::getopt::optind);
 
     release(argv, vec.size());
 }
 
-static void getopt_test_1(void) {
+TEST_F(GetoptTest, NormalWithTermination) {
     getoptvec vec;
     vec.push_back("program");
     vec.push_back("-a");
     vec.push_back("--");
     vec.push_back("-b");
-    int argc = (int)vec.size();
-    char **argv = vec2array(vec);
-    cb_assert('a' == cb::getopt::getopt(argc, argv, "a"));
-    cb_assert(-1 == cb::getopt::getopt(argc, argv, "a"));
-    cb_assert(cb::getopt::optind == 3);
+    auto argc = (int)vec.size();
+    auto** argv = vec2array(vec);
+    ASSERT_EQ('a', cb::getopt::getopt(argc, argv, "a"));
+    ASSERT_EQ(-1, cb::getopt::getopt(argc, argv, "a"));
+    ASSERT_EQ(3, cb::getopt::optind);
 
     release(argv, vec.size());
 }
 
-static void getopt_test_2(void) {
+TEST_F(GetoptTest, RegressionTestFromEpEngine) {
     getoptvec vec;
-
     vec.push_back("..\\memcached\\engine_testapp");
     vec.push_back("-E");
     vec.push_back("ep.dll");
@@ -73,26 +79,26 @@ static void getopt_test_2(void) {
     vec.push_back("-s");
     vec.push_back("foo");
 
-    int argc = (int)vec.size();
-    char **argv = vec2array(vec);
+    auto argc = (int)vec.size();
+    auto** argv = vec2array(vec);
 
-    cb_assert('E' == cb::getopt::getopt(argc, argv, "E:T:e:vC:s"));
-    cb_assert(strcmp(argv[2], cb::getopt::optarg) == 0);
-    cb_assert('T' == cb::getopt::getopt(argc, argv, "E:T:e:vC:s"));
-    cb_assert(strcmp(argv[4], cb::getopt::optarg) == 0);
-    cb_assert('e' == cb::getopt::getopt(argc, argv, "E:T:e:vC:s"));
-    cb_assert(strcmp(argv[6], cb::getopt::optarg) == 0);
-    cb_assert('v' == cb::getopt::getopt(argc, argv, "E:T:e:vC:s"));
-    cb_assert('C' == cb::getopt::getopt(argc, argv, "E:T:e:vC:s"));
-    cb_assert(strcmp(argv[9], cb::getopt::optarg) == 0);
-    cb_assert('s' == cb::getopt::getopt(argc, argv, "E:T:e:vC:s"));
-    cb_assert(-1 == cb::getopt::getopt(argc, argv, "E:T:e:vC:s"));
-    cb_assert(cb::getopt::optind == 11);
+    ASSERT_EQ('E', cb::getopt::getopt(argc, argv, "E:T:e:vC:s"));
+    ASSERT_STREQ(argv[2], cb::getopt::optarg);
+    ASSERT_EQ('T', cb::getopt::getopt(argc, argv, "E:T:e:vC:s"));
+    ASSERT_STREQ(argv[4], cb::getopt::optarg);
+    ASSERT_EQ('e', cb::getopt::getopt(argc, argv, "E:T:e:vC:s"));
+    ASSERT_STREQ(argv[6], cb::getopt::optarg);
+    ASSERT_EQ('v', cb::getopt::getopt(argc, argv, "E:T:e:vC:s"));
+    ASSERT_EQ('C', cb::getopt::getopt(argc, argv, "E:T:e:vC:s"));
+    ASSERT_STREQ(argv[9], cb::getopt::optarg);
+    ASSERT_EQ('s', cb::getopt::getopt(argc, argv, "E:T:e:vC:s"));
+    ASSERT_EQ(-1, cb::getopt::getopt(argc, argv, "E:T:e:vC:s"));
+    ASSERT_EQ(11, cb::getopt::optind);
 
     release(argv, vec.size());
 }
 
-static void getopt_long_test(void) {
+TEST_F(GetoptTest, TestLongOptions) {
     static cb::getopt::option long_options[] =
     {
         {"first",  cb::getopt::no_argument, 0, 'f'},
@@ -109,8 +115,8 @@ static void getopt_long_test(void) {
     vec.push_back("--second");
     vec.push_back("--third");
 
-    int argc = (int)vec.size();
-    char **argv = vec2array(vec);
+    auto argc = (int)vec.size();
+    auto** argv = vec2array(vec);
 
     int option_index = 0;
     int c = 1;
@@ -132,37 +138,9 @@ static void getopt_long_test(void) {
             break;
         }
     }
-    cb_assert(first);
-    cb_assert(second);
-    cb_assert(third);
+    EXPECT_TRUE(first) << "--first not found";
+    EXPECT_TRUE(second) << "--second not found";
+    EXPECT_TRUE(third) << "--third not found";
 
     release(argv, vec.size());
-}
-
-int main(int argc, char **argv)
-{
-    if (argc != 2) {
-        std::cerr << "Usage: " << argv[0] << " [testcase]" << std::endl;
-        return 1;
-    }
-
-    switch (atoi(argv[1])) {
-    case 0:
-        getopt_test_0();
-        break;
-    case 1:
-        getopt_test_1();
-        break;
-    case 2:
-        getopt_test_2();
-        break;
-    case 3:
-        getopt_long_test();
-        break;
-    default:
-        std::cerr << "Unknown test case" << std::endl;
-        return 1;
-    }
-
-    return 0;
 }
