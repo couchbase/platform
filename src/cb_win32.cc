@@ -22,6 +22,7 @@
 #include <phosphor/phosphor.h>
 #include <platform/cb_malloc.h>
 #include <platform/getopt.h>
+#include <platform/platform.h>
 #include <platform/strerror.h>
 #include <win32/getopt.h>
 #include <chrono>
@@ -47,8 +48,7 @@ static DWORD WINAPI platform_thread_wrap(LPVOID arg)
     return 0;
 }
 
-
-__declspec(dllexport)
+PLATFORM_PUBLIC_API
 int cb_create_thread(cb_thread_t *id,
                      void (*func)(void *arg),
                      void *arg,
@@ -58,11 +58,11 @@ int cb_create_thread(cb_thread_t *id,
     return cb_create_named_thread(id, func, arg, detached, NULL);
 }
 
-__declspec(dllexport) int cb_create_named_thread(cb_thread_t* id,
-                                                 void (*func)(void* arg),
-                                                 void* arg,
-                                                 int detached,
-                                                 const char* name) {
+PLATFORM_PUBLIC_API int cb_create_named_thread(cb_thread_t* id,
+                                               void (*func)(void* arg),
+                                               void* arg,
+                                               int detached,
+                                               const char* name) {
     HANDLE handle;
 
     struct thread_execute *ctx;
@@ -89,7 +89,7 @@ __declspec(dllexport) int cb_create_named_thread(cb_thread_t* id,
     return 0;
 }
 
-__declspec(dllexport)
+PLATFORM_PUBLIC_API
 int cb_join_thread(cb_thread_t id)
 {
     // We've seen problems where we've had global std::unique_ptr's which
@@ -114,97 +114,97 @@ int cb_join_thread(cb_thread_t id)
     return 0;
 }
 
-__declspec(dllexport)
+PLATFORM_PUBLIC_API
 cb_thread_t cb_thread_self(void)
 {
     return GetCurrentThreadId();
 }
 
-__declspec(dllexport)
+PLATFORM_PUBLIC_API
 int cb_thread_equal(const cb_thread_t a, const cb_thread_t b)
 {
     return a == b;
 }
 
-__declspec(dllexport)
+PLATFORM_PUBLIC_API
 int cb_set_thread_name(const char*)
 {
     // Not implemented on WIN32
     return -1;
 }
 
-__declspec(dllexport)
+PLATFORM_PUBLIC_API
 int cb_get_thread_name(char*, size_t)
 {
     return -1;
 }
 
-__declspec(dllexport)
+PLATFORM_PUBLIC_API
 bool is_thread_name_supported(void)
 {
     return false;
 }
 
-__declspec(dllexport)
+PLATFORM_PUBLIC_API
 void cb_mutex_initialize(cb_mutex_t *mutex)
 {
     InitializeCriticalSection(mutex);
 }
 
-__declspec(dllexport)
+PLATFORM_PUBLIC_API
 void cb_mutex_destroy(cb_mutex_t *mutex)
 {
     DeleteCriticalSection(mutex);
 }
 
-__declspec(dllexport)
+PLATFORM_PUBLIC_API
 void cb_mutex_enter(cb_mutex_t *mutex)
 {
     EnterCriticalSection(mutex);
 }
 
-__declspec(dllexport)
+PLATFORM_PUBLIC_API
 int cb_mutex_try_enter(cb_mutex_t *mutex)
 {
     return TryEnterCriticalSection(mutex) ? 0 : -1;
 }
 
-__declspec(dllexport)
+PLATFORM_PUBLIC_API
 void cb_mutex_exit(cb_mutex_t *mutex)
 {
     LeaveCriticalSection(mutex);
 }
 
-__declspec(dllexport)
+PLATFORM_PUBLIC_API
 void cb_cond_initialize(cb_cond_t *cond)
 {
     InitializeConditionVariable(cond);
 }
 
-__declspec(dllexport)
+PLATFORM_PUBLIC_API
 void cb_cond_destroy(cb_cond_t *cond)
 {
     (void)cond;
 }
 
-__declspec(dllexport)
+PLATFORM_PUBLIC_API
 void cb_cond_wait(cb_cond_t *cond, cb_mutex_t *mutex)
 {
     SleepConditionVariableCS(cond, mutex, INFINITE);
 }
 
-__declspec(dllexport)
+PLATFORM_PUBLIC_API
 void cb_cond_timedwait(cb_cond_t *cond, cb_mutex_t *mutex, unsigned int msec) {
     SleepConditionVariableCS(cond, mutex, msec);
 }
 
-__declspec(dllexport)
+PLATFORM_PUBLIC_API
 void cb_cond_signal(cb_cond_t *cond)
 {
     WakeConditionVariable(cond);
 }
 
-__declspec(dllexport)
+PLATFORM_PUBLIC_API
 void cb_cond_broadcast(cb_cond_t *cond)
 {
     WakeAllConditionVariable(cond);
@@ -227,7 +227,7 @@ static const char *get_dll_name(const char *path, char *buffer)
     return buffer;
 }
 
-__declspec(dllexport)
+PLATFORM_PUBLIC_API
 cb_dlhandle_t cb_dlopen(const char *library, char **errmsg)
 {
     cb_dlhandle_t handle;
@@ -250,7 +250,7 @@ cb_dlhandle_t cb_dlopen(const char *library, char **errmsg)
     return handle;
 }
 
-__declspec(dllexport)
+PLATFORM_PUBLIC_API
 void *cb_dlsym(cb_dlhandle_t handle, const char *symbol, char **errmsg)
 {
     void *ret = GetProcAddress(reinterpret_cast<HMODULE>(handle), symbol);
@@ -262,19 +262,19 @@ void *cb_dlsym(cb_dlhandle_t handle, const char *symbol, char **errmsg)
     return ret;
 }
 
-__declspec(dllexport)
+PLATFORM_PUBLIC_API
 void cb_dlclose(cb_dlhandle_t handle)
 {
     FreeLibrary(reinterpret_cast<HMODULE>(handle));
 }
 
-__declspec(dllexport)
+PLATFORM_PUBLIC_API
 void usleep(unsigned int useconds)
 {
     std::this_thread::sleep_for(std::chrono::microseconds(useconds));
 }
 
-__declspec(dllexport)
+PLATFORM_PUBLIC_API
 int gettimeofday(struct timeval *tv, void *tz)
 {
     FILETIME ft;
@@ -305,47 +305,47 @@ int gettimeofday(struct timeval *tv, void *tz)
     return 0;
 }
 
-__declspec(dllexport)
+PLATFORM_PUBLIC_API
 int platform_set_binary_mode(FILE *fp)
 {
     return _setmode(_fileno(fp), _O_BINARY);
 }
 
-__declspec(dllexport)
+PLATFORM_PUBLIC_API
 void cb_rw_lock_initialize(cb_rwlock_t *rw)
 {
     InitializeSRWLock(rw);
 }
 
-__declspec(dllexport)
+PLATFORM_PUBLIC_API
 void cb_rw_lock_destroy(cb_rwlock_t *rw)
 {
     (void)rw;
     // Nothing todo on windows
 }
 
-__declspec(dllexport)
+PLATFORM_PUBLIC_API
 int cb_rw_reader_enter(cb_rwlock_t *rw)
 {
     AcquireSRWLockShared(rw);
     return 0;
 }
 
-__declspec(dllexport)
+PLATFORM_PUBLIC_API
 int cb_rw_reader_exit(cb_rwlock_t *rw)
 {
     ReleaseSRWLockShared(rw);
     return 0;
 }
 
-__declspec(dllexport)
+PLATFORM_PUBLIC_API
 int cb_rw_writer_enter(cb_rwlock_t *rw)
 {
     AcquireSRWLockExclusive(rw);
     return 0;
 }
 
-__declspec(dllexport)
+PLATFORM_PUBLIC_API
 int cb_rw_writer_exit(cb_rwlock_t *rw)
 {
     ReleaseSRWLockExclusive(rw);
@@ -353,16 +353,16 @@ int cb_rw_writer_exit(cb_rwlock_t *rw)
 }
 
 // Wrapper into cb::getopt (which we now unit tests on all platforms)
-__declspec(dllexport)
+PLATFORM_PUBLIC_API
 char* optarg;
-__declspec(dllexport)
+PLATFORM_PUBLIC_API
 int opterr;
-__declspec(dllexport)
+PLATFORM_PUBLIC_API
 int optind = 1;
-__declspec(dllexport)
+PLATFORM_PUBLIC_API
 int optopt;
 
-__declspec(dllexport)
+PLATFORM_PUBLIC_API
 int getopt_long(int argc,
                 char** argv,
                 const char* optstring,
@@ -381,7 +381,7 @@ int getopt_long(int argc,
     return ret;
 }
 
-__declspec(dllexport)
+PLATFORM_PUBLIC_API
 int getopt(int argc, char** argv, const char* optstring) {
     auto ret = cb::getopt::getopt(argc, argv, optstring);
     optarg = cb::getopt::optarg;

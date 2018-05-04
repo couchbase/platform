@@ -15,9 +15,10 @@
  *   limitations under the License.
  */
 #include "config.h"
+#include <platform/platform.h>
 #include <stdio.h>
 
-__declspec(dllexport)
+PLATFORM_PUBLIC_API
 void cb_initialize_sockets(void)
 {
     WSADATA wsaData;
@@ -27,7 +28,7 @@ void cb_initialize_sockets(void)
     }
 }
 
-__declspec(dllexport)
+PLATFORM_PUBLIC_API
 int sendmsg(SOCKET sock, const struct msghdr *msg, int flags)
 {
     /* @todo make this more optimal! */
