@@ -28,15 +28,13 @@ int cb::getopt::optopt;
 
 static bool silent = false;
 
-using namespace cb::getopt;
-
 static int parse_longopt(int argc,
                          char** argv,
-                         const option* longopts,
+                         const cb::getopt::option* longopts,
                          int* longindex) {
-    std::string name{argv[optind] + 2};
+    std::string name{argv[cb::getopt::optind] + 2};
     if (name.empty()) {
-        ++optind;
+        ++cb::getopt::optind;
         return -1;
     }
 
@@ -47,16 +45,16 @@ static int parse_longopt(int argc,
         resized = true;
     }
 
-    optarg = nullptr;
+    cb::getopt::optarg = nullptr;
     for (const auto* p = longopts; p != nullptr && p->name; ++p) {
         if (name == p->name) {
             // This is it :)
-            if (p->has_arg == required_argument) {
+            if (p->has_arg == cb::getopt::required_argument) {
                 // we need a value!
                 if (resized) {
                     // the value was part of the string:
-                    optarg = argv[optind] + 2 + idx + 1;
-                } else if (++optind == argc) {
+                    cb::getopt::optarg = argv[cb::getopt::optind] + 2 + idx + 1;
+                } else if (++cb::getopt::optind == argc) {
                     if (!silent) {
                         fprintf(stderr,
                                 "%s: option requires an argument -- %s\n",
@@ -66,44 +64,44 @@ static int parse_longopt(int argc,
                     return '?';
                 } else {
                     // The option follows this entry
-                    optarg = argv[optind];
+                    cb::getopt::optarg = argv[cb::getopt::optind];
                 }
-            } else if (p->has_arg == optional_argument) {
+            } else if (p->has_arg == cb::getopt::optional_argument) {
                 if (resized) {
                     // the value was part of the string:
                     // (the +3 is for the leading dashes and the equal sign
-                    optarg = argv[optind] + idx + 3;
+                    cb::getopt::optarg = argv[cb::getopt::optind] + idx + 3;
                 }
             }
-            ++optind;
+            ++cb::getopt::optind;
             return p->val;
         }
     }
 
     // Not found, we should increase optind too,
     // to continue getopt_long().
-    optind++;
+    cb::getopt::optind++;
     return '?';
 }
 
 int cb::getopt::getopt_long(int argc,
                             char** argv,
                             const char* optstring,
-                            const option* longopts,
+                            const cb::getopt::option* longopts,
                             int* longindex) {
-    if (optind + 1 > argc) {
+    if (cb::getopt::optind + 1 > argc) {
         // EOF
         return -1;
     }
 
-    if (argv[optind][0] != '-') {
+    if (argv[cb::getopt::optind][0] != '-') {
         return -1;
     }
 
-    if (argv[optind][1] == '-') {
+    if (argv[cb::getopt::optind][1] == '-') {
         // this is a long option
         return parse_longopt(argc, argv, longopts, longindex);
-    } else if (argv[optind][2] != '\0') {
+    } else if (argv[cb::getopt::optind][2] != '\0') {
         if (!silent) {
             fprintf(stderr,
                     "You can't specify multiple options with this "
@@ -112,18 +110,18 @@ int cb::getopt::getopt_long(int argc,
         return '?';
     } else {
         // this is a short option
-        const char* p = strchr(optstring, argv[optind][1]);
-        int idx = optind;
-        optind++;
+        const char* p = strchr(optstring, argv[cb::getopt::optind][1]);
+        int idx = cb::getopt::optind;
+        cb::getopt::optind++;
 
         if (p == nullptr) {
             return '?';
         }
 
         if (*(p + 1) == ':') {
-            optarg = argv[optind];
-            optind++;
-            if (optarg == nullptr || optind > argc) {
+            cb::getopt::optarg = argv[cb::getopt::optind];
+            cb::getopt::optind++;
+            if (cb::getopt::optarg == nullptr || cb::getopt::optind > argc) {
                 if (!silent) {
                     fprintf(stderr,
                             "%s: option requires an argument -- %s\n",
@@ -133,21 +131,21 @@ int cb::getopt::getopt_long(int argc,
                 return '?';
             }
         } else {
-            optarg = nullptr;
+            cb::getopt::optarg = nullptr;
         }
         return argv[idx][1];
     }
 }
 
 int cb::getopt::getopt(int argc, char** argv, const char* optstring) {
-    return getopt_long(argc, argv, optstring, nullptr, nullptr);
+    return cb::getopt::getopt_long(argc, argv, optstring, nullptr, nullptr);
 }
 
 void cb::getopt::reset() {
-    optarg = nullptr;
-    opterr = 0;
-    optind = 1;
-    optopt = 0;
+    cb::getopt::optarg = nullptr;
+    cb::getopt::opterr = 0;
+    cb::getopt::optind = 1;
+    cb::getopt::optopt = 0;
 }
 
 void cb::getopt::mute_stderr() {
