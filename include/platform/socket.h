@@ -34,6 +34,7 @@ typedef int sa_family_t;
 #define SHUT_RDWR SD_BOTH
 
 #else
+#include <netinet/in.h> // For in_port_t
 #include <sys/socket.h>
 typedef int SOCKET;
 #define SOCKET_ERROR -1
