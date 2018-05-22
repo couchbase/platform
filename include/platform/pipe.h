@@ -26,6 +26,7 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <sstream>
 #include <stdexcept>
 
 namespace cb {
@@ -246,9 +247,13 @@ public:
      */
     void produced(size_t nbytes) {
         if (write_head + nbytes > buffer.size()) {
-            throw std::logic_error(
-                    "Pipe::produced(): Produced bytes exceeds "
-                    "the number of available bytes");
+            std::stringstream ss;
+            ss << "Pipe::produced(): Produced bytes exceeds the number of "
+                  "available bytes. { \"nbytes\": "
+               << std::to_string(nbytes) << ","
+               << " \"buffer.size()\": " << std::to_string(buffer.size()) << ","
+               << " \"write_head\": " << std::to_string(write_head) << "}";
+            throw std::logic_error(ss.str());
         }
         write_head += nbytes;
     }
