@@ -368,6 +368,9 @@ int getopt_long(int argc,
                 const char* optstring,
                 const struct option* longopts,
                 int* longindex) {
+    cb::getopt::optind = optind;
+    cb::getopt::opterr = opterr;
+    cb::getopt::optopt = optopt;
     auto ret = cb::getopt::getopt_long(
             argc,
             argv,
@@ -383,6 +386,9 @@ int getopt_long(int argc,
 
 PLATFORM_PUBLIC_API
 int getopt(int argc, char** argv, const char* optstring) {
+    cb::getopt::optind = optind;
+    cb::getopt::opterr = opterr;
+    cb::getopt::optopt = optopt;
     auto ret = cb::getopt::getopt(argc, argv, optstring);
     optarg = cb::getopt::optarg;
     opterr = cb::getopt::opterr;
