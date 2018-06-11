@@ -1,3 +1,12 @@
+# LZ4 tags deprecated methods with a macro. Current version of LZ4
+# (v.1.8.0) gives an error under Clang when -std=c++14 is specified -
+# see https://github.com/lz4/lz4/pull/393. Disable the macro to avoid
+# this.
+if (LZ4_FOUND)
+  set_property(DIRECTORY APPEND PROPERTY
+    COMPILE_DEFINITIONS "LZ4_DISABLE_DEPRECATE_WARNINGS")
+endif()
+
 add_library(cbcompress SHARED
             ${Platform_SOURCE_DIR}/include/platform/compress.h
             ${Platform_SOURCE_DIR}/include/platform/compression/allocator.h
