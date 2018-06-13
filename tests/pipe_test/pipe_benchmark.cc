@@ -16,7 +16,7 @@
  */
 
 #include <benchmark/benchmark.h>
-#include <platform/make_unique.h>
+#include <memory>
 #include <platform/pipe.h>
 #include <algorithm>
 

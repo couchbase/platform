@@ -17,7 +17,6 @@
 
 #pragma once
 
-#include <platform/make_unique.h>
 #include <platform/platform.h>
 #include <platform/processclock.h>
 #include <relaxed_atomic.h>
@@ -27,6 +26,7 @@
 #include <cmath>
 #include <functional>
 #include <iostream>
+#include <memory>
 #include <numeric>
 #include <vector>
 

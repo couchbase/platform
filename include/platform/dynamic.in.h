@@ -59,8 +59,3 @@
 /* Workaround for C++ compilers which don't support the `noexcept` keyword
  */
 #define NOEXCEPT noexcept
-
-/**
- * Defined if std::make_unique is defined in <memory>
- */
-#cmakedefine HAVE_MAKE_UNIQUE

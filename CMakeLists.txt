@@ -46,13 +46,6 @@ CMAKE_POP_CHECK_STATE()
 
 CMAKE_PUSH_CHECK_STATE(RESET)
 
-CHECK_CXX_SOURCE_COMPILES("
-    #include <memory>
-    int main() {
-        return *std::make_unique<int>(0);
-    }" HAVE_MAKE_UNIQUE)
-CMAKE_POP_CHECK_STATE()
-
 CHECK_SYMBOL_EXISTS(gethrtime sys/time.h CB_DONT_NEED_GETHRTIME)
 CHECK_SYMBOL_EXISTS(htonll arpa/inet.h CB_DONT_NEED_BYTEORDER)
 CHECK_INCLUDE_FILE(cpuid.h HAVE_CPUID_H)
@@ -205,7 +198,6 @@ ADD_LIBRARY(platform_so SHARED ${PLATFORM_FILES}
                             include/platform/crc32c.h
                             include/platform/getopt.h
                             include/platform/interrupt.h
-                            include/platform/make_unique.h
                             include/platform/memorymap.h
                             include/platform/non_negative_counter.h
                             include/platform/platform.h
