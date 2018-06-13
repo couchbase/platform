@@ -100,17 +100,8 @@ IF (WIN32)
                       include/win32/getopt.h
                       include/win32/strings.h
                       include/win32/unistd.h)
-
-   # Allow to build on unsupported platorms (currently with MSVC 2017CE)
-   # and the FindCouchbaseDbgHelp macro didn't pick it up in the new location
-   # stuff has been moved around for the CE version. The library is only used
-   # for backtrace support which we can live without
-   CB_GET_SUPPORTED_PLATFORM(_supported_platform)
-   if (_supported_platform)
-       ADD_DEFINITIONS(-DHAVE_BACKTRACE_SUPPORT=1)
-       INCLUDE(FindCouchbaseDbgHelp)
-       LIST(APPEND PLATFORM_LIBRARIES "${DBGHELP_LIBRARY}")
-   endif ()
+   ADD_DEFINITIONS(-DHAVE_BACKTRACE_SUPPORT=1)
+   LIST(APPEND PLATFORM_LIBRARIES DbgHelp.lib)
 ELSE (WIN32)
    SET(PLATFORM_FILES src/cb_pthreads.cc src/urandom.c src/memorymap_posix.cc)
    SET_SOURCE_FILES_PROPERTIES(src/crc32c_sse4_2.cc PROPERTIES COMPILE_FLAGS -msse4.2)
