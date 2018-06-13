@@ -366,6 +366,8 @@ extern "C" {
         void *iov_base;
     };
 
+#define IOV_MAX 1024
+
     struct msghdr {
         void *msg_name;         /* Socket name */
         int msg_namelen;       /* Length of name */
