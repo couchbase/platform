@@ -38,7 +38,7 @@ TEST(Compression, TestSnappyCompression) {
     memset(input.data(), 'a', 8192);
 
     EXPECT_TRUE(cb::compression::deflate(
-            cb::compression::Algorithm::Snappy, input.data(), output));
+            cb::compression::Algorithm::Snappy, input, output));
     EXPECT_LT(output.size(), 8192u);
     EXPECT_NE(nullptr, output.data());
 
