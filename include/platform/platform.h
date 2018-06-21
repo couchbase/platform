@@ -323,24 +323,6 @@ extern "C" {
     PLATFORM_PUBLIC_API
     int cb_rw_writer_exit(cb_rwlock_t *rw);
 
-#ifndef CB_DONT_NEED_GETHRTIME
-    /**
-     * Get a high resolution time
-     *
-     * @return number of nanoseconds since some arbitrary time in the past
-     */
-    PLATFORM_PUBLIC_API
-    hrtime_t gethrtime(void);
-#endif
-
-    /**
-     * Get the period of the high resolution time clock.
-     *
-     * @return Period of the clock in nanoseconds.
-     */
-    PLATFORM_PUBLIC_API
-    hrtime_t gethrtime_period(void);
-
 #ifndef CB_DONT_NEED_BYTEORDER
     PLATFORM_PUBLIC_API
     uint64_t ntohll(uint64_t);

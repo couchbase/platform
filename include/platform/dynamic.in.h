@@ -2,7 +2,6 @@
 #pragma once
 
 #cmakedefine CB_DONT_NEED_BYTEORDER 1
-#cmakedefine CB_DONT_NEED_GETHRTIME 1
 
 /* Function attribute to be used where the return value should not be
  * ignored by the caller. For example: allocation functions where the
