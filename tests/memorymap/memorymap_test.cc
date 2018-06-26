@@ -1,6 +1,6 @@
 /* -*- Mode: C; tab-width: 4; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /*
- *     Copyright 2016 Couchbase, Inc
+ *     Copyright 2018 Couchbase, Inc
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -26,18 +26,12 @@
 #include <vector>
 #include "config.h"
 
-#ifdef WIN32
-#include <process.h>
-#define getpid() _getpid()
-#endif
-
-using namespace cb;
 std::string filename;
 
-static std::vector<uint8_t> readFile(void) {
+static std::vector<uint8_t> readFile() {
     std::vector<uint8_t> ret;
     FILE* fp = fopen(filename.c_str(), "rb");
-    cb_assert(fp != NULL);
+    cb_assert(fp != nullptr);
     cb_assert(fseek(fp, 0, SEEK_END) == 0);
     ret.resize(ftell(fp));
     cb_assert(fseek(fp, 0, SEEK_SET) == 0);
@@ -47,54 +41,47 @@ static std::vector<uint8_t> readFile(void) {
     return ret;
 }
 
-static void testReadonlyMapping(void) {
+using MemoryMappedFile = cb::io::MemoryMappedFile;
+using Mode = cb::io::MemoryMappedFile::Mode;
+
+static void testReadonlyMapping() {
     std::vector<uint8_t> before = readFile();
-    MemoryMappedFile mymap(filename.c_str(), MemoryMappedFile::Mode::RDONLY);
-    try {
-        mymap.open();
-    } catch (const std::exception& err) {
-        std::cerr << "ERROR: " << err.what() << std::endl;
-        exit(EXIT_FAILURE);
-    }
-    cb_assert(memcmp(before.data(), mymap.getRoot(), mymap.getSize()) == 0);
+    MemoryMappedFile mymap(filename, Mode::RDONLY);
+    auto content = mymap.content();
+    cb_assert(memcmp(before.data(), content.data(), content.size()) == 0);
 }
 
-static void testSharedMapping(void) {
+static void testSharedMapping() {
     std::vector<uint8_t> before = readFile();
-    MemoryMappedFile mymap(filename.c_str(), MemoryMappedFile::Mode::RW);
-    try {
-        mymap.open();
-    } catch (const std::exception& err) {
-        std::cerr << "ERROR: " << err.what() << std::endl;
-        exit(EXIT_FAILURE);
-    }
-    uint8_t* block = new uint8_t[mymap.getSize()];
-    memset(block, 0, mymap.getSize());
-    memset(mymap.getRoot(), 0, mymap.getSize());
-    cb_assert(memcmp(block, mymap.getRoot(), mymap.getSize()) == 0);
+    MemoryMappedFile mymap(filename.c_str(), Mode::RW);
+    auto content = mymap.content();
+    auto* block = new uint8_t[content.size()];
+    memset(block, 0, content.size());
+    std::fill(content.begin(), content.end(), 0);
+    cb_assert(memcmp(block, content.data(), content.size()) == 0);
     delete[] block;
     std::vector<uint8_t> after = readFile();
     cb_assert(before.size() == after.size());
     cb_assert(memcmp(before.data(), after.data(), before.size()) != 0);
 }
 
-static void createFile(void) {
+static void createFile() {
     std::vector<uint8_t> buffer;
     buffer.resize(16 * 1024);
     Couchbase::RandomGenerator generator(false);
     generator.getBytes(buffer.data(), buffer.size());
 
     std::stringstream fnm;
-    fnm << "memorymap-" << getpid() << ".txt";
+    fnm << "memorymap-" << cb_getpid() << ".txt";
     filename = fnm.str();
 
     FILE* fp = fopen(fnm.str().c_str(), "w");
-    cb_assert(fp != NULL);
+    cb_assert(fp != nullptr);
     cb_assert(fwrite(buffer.data(), 1, buffer.size(), fp) == buffer.size());
     fclose(fp);
 }
 
-int main(void) {
+int main() {
     createFile();
     testReadonlyMapping();
     testSharedMapping();
