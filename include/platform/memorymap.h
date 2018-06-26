@@ -22,7 +22,6 @@
 
 #include <cinttypes>
 #include <cstddef>
-#include <memory>
 #include <stdexcept>
 #include <string>
 
@@ -69,82 +68,4 @@ protected:
 };
 
 } // namespace io
-
-/**
- * For source compatibility we'll keep this class around while we move over
- * to the RIAA version
- */
-class PLATFORM_PUBLIC_API MemoryMappedFile {
-public:
-    enum class Mode : uint8_t {
-    /// Open the map with only read access
-    RDONLY,
-    /// Open the map with read and write access
-    RW
-    };
-    MemoryMappedFile() = delete;
-    MemoryMappedFile(MemoryMappedFile&) = delete;
-    MemoryMappedFile(const char* fname, const Mode& mode_)
-        : filename(fname), mode(mode_) {
-    }
-
-    /**
-     * Open the mapping.
-     * @throws std::exception (or one of the subclasses) if anything
-     *                        goes wrong
-     */
-    void open() {
-        switch (mode) {
-        case Mode::RDONLY:
-            mapping = std::make_unique<cb::io::MemoryMappedFile>(
-                    filename, cb::io::MemoryMappedFile::Mode::RDONLY);
-            break;
-        case Mode::RW:
-            mapping = std::make_unique<cb::io::MemoryMappedFile>(
-                    filename, cb::io::MemoryMappedFile::Mode::RW);
-            break;
-        }
-    }
-
-    /**
-     * Close the file mapping.. This invalidates the root pointer
-     * and the mapping should NOT be used after it is closed
-     * (it'll most likely cause a crash)
-     *
-     * @throws std::exception (or one of the subclasses) if anything
-     *                        goes wrong
-     */
-    void close() {
-        mapping.reset();
-    }
-
-    /**
-     * Get the address for the beginning of the pointer.
-     *
-     */
-    void* getRoot() const {
-        if (!mapping) {
-            throw std::logic_error(
-                "cb::MemoryMappedFile::getRoot(): open() not called");
-        }
-
-        return static_cast<void*>(mapping->content().data());
-    }
-
-    /**
-     * Get the size of the mapped segment
-     */
-    size_t getSize() const {
-        if (!mapping) {
-            throw std::logic_error(
-                "cb::MemoryMappedFile::getSize(): open() not called");
-        }
-        return mapping->content().size();
-    }
-
-protected:
-    std::string filename;
-    const Mode mode;
-    std::unique_ptr<cb::io::MemoryMappedFile> mapping;
-};
 }
