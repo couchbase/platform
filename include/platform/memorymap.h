@@ -1,6 +1,6 @@
 /* -*- Mode: C; tab-width: 4; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /*
- *     Copyright 2016 Couchbase, Inc
+ *     Copyright 2018 Couchbase, Inc
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -18,19 +18,61 @@
 #pragma once
 
 #include <platform/platform.h>
+#include <platform/sized_buffer.h>
 
-#include <inttypes.h>
-#include <stddef.h>
-#include <cstdio>
+#include <cinttypes>
+#include <cstddef>
+#include <memory>
 #include <stdexcept>
 #include <string>
 
 namespace cb {
+namespace io {
+
 /**
  * A class that implements memory mapping of a file. It allows for only
- * to different modes: Just read and read + write.
+ * two different modes: Just read and read + write.
  *
  * All mappings are shared to other processes
+ */
+class PLATFORM_PUBLIC_API MemoryMappedFile {
+public:
+    enum class Mode : uint8_t {
+        /// Open the map with only read access
+        RDONLY,
+        /// Open the map with read and write access
+        RW
+    };
+    ~MemoryMappedFile();
+    MemoryMappedFile(const std::string& fname, const Mode& mode_);
+
+    MemoryMappedFile() = delete;
+    MemoryMappedFile(MemoryMappedFile&) = delete;
+    MemoryMappedFile(MemoryMappedFile&&) = delete;
+
+    cb::char_buffer content() {
+        return mapping;
+    }
+
+    cb::const_char_buffer content() const {
+        return {mapping.data(), mapping.size()};
+    }
+
+protected:
+#ifdef WIN32
+    HANDLE filehandle = INVALID_HANDLE_VALUE;
+    HANDLE maphandle = INVALID_HANDLE_VALUE;
+#else
+    int filehandle = -1;
+#endif
+    cb::char_buffer mapping = {};
+};
+
+} // namespace io
+
+/**
+ * For source compatibility we'll keep this class around while we move over
+ * to the RIAA version
  */
 class PLATFORM_PUBLIC_API MemoryMappedFile {
 public:
@@ -40,16 +82,29 @@ public:
     /// Open the map with read and write access
     RW
     };
-    ~MemoryMappedFile();
-    MemoryMappedFile(const char* fname, const Mode& mode_);
-
+    MemoryMappedFile() = delete;
+    MemoryMappedFile(MemoryMappedFile&) = delete;
+    MemoryMappedFile(const char* fname, const Mode& mode_)
+        : filename(fname), mode(mode_) {
+    }
 
     /**
      * Open the mapping.
      * @throws std::exception (or one of the subclasses) if anything
      *                        goes wrong
      */
-    void open(void);
+    void open() {
+        switch (mode) {
+        case Mode::RDONLY:
+            mapping = std::make_unique<cb::io::MemoryMappedFile>(
+                    filename, cb::io::MemoryMappedFile::Mode::RDONLY);
+            break;
+        case Mode::RW:
+            mapping = std::make_unique<cb::io::MemoryMappedFile>(
+                    filename, cb::io::MemoryMappedFile::Mode::RW);
+            break;
+        }
+    }
 
     /**
      * Close the file mapping.. This invalidates the root pointer
@@ -59,43 +114,37 @@ public:
      * @throws std::exception (or one of the subclasses) if anything
      *                        goes wrong
      */
-    void close(void);
+    void close() {
+        mapping.reset();
+    }
 
     /**
      * Get the address for the beginning of the pointer.
      *
      */
-    void* getRoot(void) const {
-        if (root == nullptr) {
+    void* getRoot() const {
+        if (!mapping) {
             throw std::logic_error(
                 "cb::MemoryMappedFile::getRoot(): open() not called");
         }
-        return root;
+
+        return static_cast<void*>(mapping->content().data());
     }
 
     /**
      * Get the size of the mapped segment
      */
-    size_t getSize(void) const {
-        if (root == nullptr) {
+    size_t getSize() const {
+        if (!mapping) {
             throw std::logic_error(
                 "cb::MemoryMappedFile::getSize(): open() not called");
         }
-        return size;
+        return mapping->content().size();
     }
 
-private:
-    MemoryMappedFile(MemoryMappedFile&) = delete;
-
+protected:
     std::string filename;
-#ifdef WIN32
-    HANDLE filehandle;
-    HANDLE maphandle;
-#else
-    int filehandle;
-#endif
-    void* root;
-    size_t size;
     const Mode mode;
+    std::unique_ptr<cb::io::MemoryMappedFile> mapping;
 };
 }

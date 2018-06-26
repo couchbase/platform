@@ -448,7 +448,6 @@ uint64_t cb::io::maximizeFileDescriptors(uint64_t limit) {
 
 DIRUTILS_PUBLIC_API
 std::string cb::io::loadFile(const std::string& name) {
-    cb::MemoryMappedFile map(name.c_str(), cb::MemoryMappedFile::Mode::RDONLY);
-    map.open();
-    return std::string{reinterpret_cast<char*>(map.getRoot()), map.getSize()};
+    MemoryMappedFile map(name.c_str(), MemoryMappedFile::Mode::RDONLY);
+    return to_string(map.content());
 }
