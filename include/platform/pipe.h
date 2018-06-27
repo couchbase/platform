@@ -16,7 +16,7 @@
  */
 #pragma once
 
-#include <cJSON_utils.h>
+#include <nlohmann/json.hpp>
 #include <platform/cb_malloc.h>
 #include <platform/platform.h>
 #include <platform/sized_buffer.h>
@@ -367,13 +367,14 @@ public:
     /**
      * Get the (internal) properties of the pipe
      */
-    unique_cJSON_ptr to_json() const {
-        unique_cJSON_ptr ret(cJSON_CreateObject());
-        cJSON_AddUintPtrToObject(ret.get(), "buffer", uintptr_t(buffer.data()));
-        cJSON_AddNumberToObject(ret.get(), "size", buffer.size());
-        cJSON_AddNumberToObject(ret.get(), "read_head", read_head);
-        cJSON_AddNumberToObject(ret.get(), "write_head", write_head);
-        cJSON_AddBoolToObject(ret.get(), "empty", empty());
+    nlohmann::json to_json() {
+        nlohmann::json ret;
+        ret["buffer"] = uintptr_t(buffer.data());
+        ret["size"] = buffer.size();
+        ret["read_head"] = read_head;
+        ret["write_head"] = write_head;
+        ret["empty"] = empty();
+
         return ret;
     }
 
