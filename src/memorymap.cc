@@ -49,6 +49,11 @@ MemoryMappedFile::MemoryMappedFile(const std::string& filename,
     sz.LowPart = fad.nFileSizeLow;
     auto size = (size_t)sz.QuadPart;
 
+    if (size == 0) {
+        // Empty file, no need to open file handles
+        return;
+    }
+
     DWORD openMode;
     DWORD protection;
     DWORD mapMode;
@@ -133,6 +138,11 @@ MemoryMappedFile::MemoryMappedFile(const std::string& filename,
                                         filename + ") failed");
     }
     auto size = size_t(st.st_size);
+
+    if (size == 0) {
+        // Empty file, no need to open file handles
+        return;
+    }
 
     int openMode;
     int protection = PROT_READ;
