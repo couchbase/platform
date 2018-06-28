@@ -41,7 +41,8 @@ MemoryMappedFile::MemoryMappedFile(const std::string& filename,
         throw std::system_error(
                 GetLastError(),
                 std::system_category(),
-                "cb::io::MemoryMappedFile() GetFileAttributesEx() failed");
+                "cb::io::MemoryMappedFile() GetFileAttributesEx(" + filename +
+                        ") failed");
     }
     LARGE_INTEGER sz;
     sz.HighPart = fad.nFileSizeHigh;
@@ -74,10 +75,10 @@ MemoryMappedFile::MemoryMappedFile(const std::string& filename,
                             nullptr);
 
     if (filehandle == INVALID_HANDLE_VALUE) {
-        throw std::system_error(
-                GetLastError(),
-                std::system_category(),
-                "cb::io::MemoryMappedFile(): CreateFile() failed");
+        throw std::system_error(GetLastError(),
+                                std::system_category(),
+                                "cb::io::MemoryMappedFile(): CreateFile(" +
+                                        filename + ") failed");
     }
 
     maphandle = CreateFileMapping(filehandle, nullptr, mapMode, 0, 0, nullptr);
@@ -102,7 +103,8 @@ MemoryMappedFile::MemoryMappedFile(const std::string& filename,
         throw std::system_error(
                 error,
                 std::system_category(),
-                "cb::io::MemoryMappedFile(): MapViewOfFile() failed");
+                "cb::io::MemoryMappedFile(): MapViewOfFile() for file " +
+                        filename + " failed");
     }
 
     mapping = {static_cast<char*>(root), size};
@@ -125,10 +127,10 @@ MemoryMappedFile::MemoryMappedFile(const std::string& filename,
                                    const Mode& mode) {
     struct stat st;
     if (stat(filename.c_str(), &st) == -1) {
-        throw std::system_error(
-                errno,
-                std::system_category(),
-                "cb::io::MemoryMappedFile::open: stat() failed");
+        throw std::system_error(errno,
+                                std::system_category(),
+                                "cb::io::MemoryMappedFile::open: stat(" +
+                                        filename + ") failed");
     }
     auto size = size_t(st.st_size);
 
@@ -154,9 +156,10 @@ MemoryMappedFile::MemoryMappedFile(const std::string& filename,
     }
 
     if ((filehandle = ::open(filename.c_str(), openMode)) == -1) {
-        throw std::system_error(errno,
-                                std::system_category(),
-                                "cb::io::MemoryMappedFile(): open() failed");
+        throw std::system_error(
+                errno,
+                std::system_category(),
+                "cb::io::MemoryMappedFile(): open(" + filename + ") failed");
     }
 
     auto* root = mmap(
@@ -167,7 +170,8 @@ MemoryMappedFile::MemoryMappedFile(const std::string& filename,
         filehandle = -1;
         throw std::system_error(error,
                                 std::system_category(),
-                                "cb::io::MemoryMappedFile(): mmap() failed");
+                                "cb::io::MemoryMappedFile(): mmap() of file " +
+                                        filename + " failed");
     }
 
     mapping = {static_cast<char*>(root), size};
