@@ -21,6 +21,8 @@ extern "C" {
 #include <stdbool.h>
 #endif
 
+#include <platform/visibility.h>
+
 typedef void (*write_cb_t)(void *ctx, const char *frame);
 
 /**
