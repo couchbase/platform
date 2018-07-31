@@ -34,11 +34,11 @@ class WriterLock;
 class RWLock {
 public:
     RWLock() {
-        cb_rw_lock_initialize(&lock);
+        cb_rw_lock_initialize(&rwlock);
     }
 
     ~RWLock() {
-        cb_rw_lock_destroy(&lock);
+        cb_rw_lock_destroy(&rwlock);
     }
 
     /**
@@ -61,9 +61,29 @@ public:
         return writer();
     }
 
+    /// Allows use of std::shared_lock RAII wrapper
+    void lock_shared() {
+        readerLock();
+    }
+
+    /// Allows use of std::shared_lock RAII wrapper
+    void unlock_shared() {
+        readerUnlock();
+    }
+
+    /// Allows use of std::unique_lock RAII wrapper
+    void lock() {
+        writerLock();
+    }
+
+    /// Allows use of std::unique_lock RAII wrapper
+    void unlock() {
+        writerUnlock();
+    }
+
 protected:
     void readerLock() {
-        auto locked = cb_rw_reader_enter(&lock);
+        auto locked = cb_rw_reader_enter(&rwlock);
         if (locked != 0) {
             throw std::runtime_error(std::to_string(locked) +
                                      " returned by cb_rw_reader_enter()");
@@ -71,7 +91,7 @@ protected:
     }
 
     void readerUnlock() {
-        int unlocked = cb_rw_reader_exit(&lock);
+        int unlocked = cb_rw_reader_exit(&rwlock);
         if (unlocked != 0) {
             throw std::runtime_error(std::to_string(unlocked) +
                                      " returned by cb_rw_reader_exit()");
@@ -79,7 +99,7 @@ protected:
     }
 
     void writerLock() {
-        int locked = cb_rw_writer_enter(&lock);
+        int locked = cb_rw_writer_enter(&rwlock);
         if (locked != 0) {
             throw std::runtime_error(std::to_string(locked) +
                                      " returned by cb_rw_writer_enter()");
@@ -87,7 +107,7 @@ protected:
     }
 
     void writerUnlock() {
-        int unlocked = cb_rw_writer_exit(&lock);
+        int unlocked = cb_rw_writer_exit(&rwlock);
         if (unlocked != 0) {
             throw std::runtime_error(std::to_string(unlocked) +
                                      " returned by cb_rw_writer_exit()");
@@ -95,7 +115,7 @@ protected:
     }
 
 private:
-    cb_rwlock_t lock;
+    cb_rwlock_t rwlock;
 
     RWLock(const RWLock&) = delete;
     void operator=(const RWLock&) = delete;
