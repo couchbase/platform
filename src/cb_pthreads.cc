@@ -294,25 +294,6 @@ void cb_cond_timedwait(cb_cond_t *cond, cb_mutex_t *mutex, unsigned int ms)
     }
 }
 
-#ifdef __APPLE__
-static const char *get_dll_name(const char *path, char *buffer)
-{
-    if (strstr(path, ".dylib") != nullptr) {
-        return path;
-    }
-
-    strcpy(buffer, path);
-
-    char* ptr = strstr(buffer, ".so");
-    if (ptr != NULL) {
-        sprintf(ptr, ".dylib");
-        return buffer;
-    }
-
-    strcat(buffer, ".dylib");
-    return buffer;
-}
-#else
 static const char *get_dll_name(const char *path, char *buffer)
 {
     auto* ptr = strstr(path, ".so");
@@ -324,7 +305,6 @@ static const char *get_dll_name(const char *path, char *buffer)
     strcat(buffer, ".so");
     return buffer;
 }
-#endif
 
 cb_dlhandle_t cb_dlopen(const char *library, char **errmsg)
 {
