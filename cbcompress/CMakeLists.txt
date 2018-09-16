@@ -58,7 +58,8 @@ if (COUCHBASE_PLATFORM_BUILD_UNIT_TESTS)
     target_include_directories(platform-compression-bench
                                PRIVATE
                                ${SNAPPY_INCLUDE_DIR}
-                               $<$<BOOL:${LZ4_FOUND}>:${LZ4_INCLUDE_DIR}>)
+                               $<$<BOOL:${LZ4_FOUND}>:${LZ4_INCLUDE_DIR}>
+                               ${benchmark_SOURCE_DIR}/include)
     target_link_libraries(platform-compression-bench
                           ${SNAPPY_LIBRARIES}
                           $<$<BOOL:${LZ4_FOUND}>:${LZ4_LIBRARIES}>
