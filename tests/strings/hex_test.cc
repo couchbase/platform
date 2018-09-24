@@ -60,3 +60,12 @@ TEST(Hex, ToHexUint64) {
     val = 0;
     EXPECT_EQ("0x0000000000000000", cb::to_hex(val));
 }
+
+TEST(Hex, ToHexByteBuffer) {
+    std::vector<uint8_t> buffer(4);
+    for (auto& c : buffer) {
+        c = 0xa5;
+    }
+    EXPECT_EQ("0xa5 0xa5 0xa5 0xa5",
+              cb::to_hex({buffer.data(), buffer.size()}));
+}

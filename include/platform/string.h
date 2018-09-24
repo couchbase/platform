@@ -45,4 +45,7 @@ std::string to_hex(uint32_t val);
 PLATFORM_PUBLIC_API
 std::string to_hex(uint64_t val);
 
+PLATFORM_PUBLIC_API
+std::string to_hex(const_byte_buffer buffer);
+
 } // namespace cb

@@ -18,6 +18,8 @@
 #include <platform/string.h>
 
 #include <cinttypes>
+#include <iomanip>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 
@@ -79,4 +81,19 @@ std::string cb::to_hex(uint64_t val) {
     char buf[32];
     snprintf(buf, sizeof(buf), "0x%016" PRIx64, val);
     return std::string{buf};
+}
+
+PLATFORM_PUBLIC_API
+std::string cb::to_hex(cb::const_byte_buffer buffer) {
+    if (buffer.empty()) {
+        return "";
+    }
+    std::stringstream ss;
+    for (const auto& c : buffer) {
+        ss << "0x" << std::hex << std::setfill('0') << std::setw(2)
+           << uint32_t(c) << " ";
+    }
+    auto ret = ss.str();
+    ret.resize(ret.size() - 1);
+    return ret;
 }
