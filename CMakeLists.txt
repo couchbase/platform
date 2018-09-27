@@ -166,7 +166,7 @@ ADD_LIBRARY(platform_so SHARED ${PLATFORM_FILES}
                             src/memorymap.cc
                             src/processclock.cc
                             src/strerror.cc
-                            src/string.cc
+                            src/string_hex.cc
                             src/strnstr.cc
                             src/sysinfo.cc
                             src/thread.cc
@@ -195,7 +195,7 @@ ADD_LIBRARY(platform_so SHARED ${PLATFORM_FILES}
                             include/platform/rwlock.h
                             include/platform/sized_buffer.h
                             include/platform/strerror.h
-                            include/platform/string.h
+                            include/platform/string_hex.h
                             include/platform/sysinfo.h
                             include/platform/thread.h
                             include/platform/timeutils.h

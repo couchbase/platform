@@ -16,7 +16,7 @@
  */
 
 #include <gtest/gtest.h>
-#include <platform/string.h>
+#include <platform/string_hex.h>
 
 TEST(Hex, InputStringTooLong) {
     std::stringstream ss;

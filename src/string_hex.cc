@@ -15,7 +15,7 @@
  *   limitations under the License.
  */
 
-#include <platform/string.h>
+#include <platform/string_hex.h>
 
 #include <cinttypes>
 #include <iomanip>

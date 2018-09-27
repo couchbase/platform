@@ -16,7 +16,7 @@
  */
 #include <platform/uuid.h>
 
-#include <platform/string.h>
+#include <platform/string_hex.h>
 #include <iomanip>
 #include <random>
 #include <sstream>

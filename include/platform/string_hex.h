@@ -18,8 +18,8 @@
 
 #include <platform/visibility.h>
 
-#include <cstdint>
 #include "sized_buffer.h"
+#include <cstdint>
 
 namespace cb {
 /**
