@@ -51,4 +51,5 @@
  *                             (or snprintf returned -1)
  */
 PLATFORM_PUBLIC_API
-int checked_snprintf(char* str, const size_t size, const char* format, ...);
+int checked_snprintf(char* str, const size_t size, const char* format, ...)
+CB_FORMAT_PRINTF(3, 4);
