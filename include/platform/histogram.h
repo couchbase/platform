@@ -18,7 +18,6 @@
 #pragma once
 
 #include <platform/platform.h>
-#include <platform/processclock.h>
 #include <relaxed_atomic.h>
 
 #include <algorithm>
@@ -407,15 +406,15 @@ public:
         : histogram(histogram) {
     }
 
-    void start(ProcessClock::time_point start_) {
+    void start(std::chrono::steady_clock::time_point start_) {
         startTime = start_;
     }
 
-    void stop(ProcessClock::time_point end);
+    void stop(std::chrono::steady_clock::time_point end);
 
 private:
     MicrosecondHistogram& histogram;
-    ProcessClock::time_point startTime;
+    std::chrono::steady_clock::time_point startTime;
 };
 
 /**
@@ -443,27 +442,32 @@ public:
                       const char* n = nullptr,
                       std::ostream* o = nullptr)
         : dest(d),
-          start((dest) ? ProcessClock::now() : ProcessClock::time_point()),
+          start((dest) ? std::chrono::steady_clock::now()
+                       : std::chrono::steady_clock::time_point()),
           name(n),
           out(o) {
     }
 
     ~GenericBlockTimer() {
         if (dest) {
-            auto spent = ProcessClock::now() - start;
+            auto spent = std::chrono::steady_clock::now() - start;
             dest->add(std::chrono::duration_cast<std::chrono::microseconds>(spent));
             log(spent, name, out);
         }
     }
 
-    static void log(ProcessClock::duration spent,
+    static void log(std::chrono::steady_clock::duration spent,
                     const char* name,
                     std::ostream* o) {
         if (o && name) {
             *o << name << "\t" << spent.count() << "\n";
         }
         if (THRESHOLD_MS > 0) {
-            const auto msec = std::make_unsigned<ProcessClock::rep>::type(std::chrono::duration_cast<std::chrono::milliseconds>(spent).count());
+            const auto msec =
+                    std::make_unsigned<std::chrono::steady_clock::rep>::type(
+                            std::chrono::duration_cast<
+                                    std::chrono::milliseconds>(spent)
+                                    .count());
             if (name != nullptr && msec > THRESHOLD_MS) {
                 std::cerr << "BlockTimer<" << name
                           << "> Took too long: " << msec << "ms" << std::endl;
@@ -473,7 +477,7 @@ public:
 
 private:
     HISTOGRAM* dest;
-    ProcessClock::time_point start;
+    std::chrono::steady_clock::time_point start;
     const char* name;
     std::ostream* out;
 };

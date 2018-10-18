@@ -92,7 +92,7 @@ template class PLATFORM_PUBLIC_API Histogram<UnsignedMicroseconds, cb::duration_
 // if inline would trigger an implicit instantiation of MicrosecondHistogram,
 // which causes linker errors for any target which includes histogram.h and not
 // histogram.cc
-void MicrosecondStopwatch::stop(ProcessClock::time_point end) {
+void MicrosecondStopwatch::stop(std::chrono::steady_clock::time_point end) {
     const auto spent = end - startTime;
     histogram.add(std::chrono::duration_cast<std::chrono::microseconds>(spent));
 }

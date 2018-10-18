@@ -21,9 +21,9 @@
 #include <platform/processclock.h>
 
 TEST(DefaultProcessClockSourceTest, SensibleBounds) {
-    auto a = cb::ProcessClock::now();
+    auto a = std::chrono::steady_clock::now();
     auto b = cb::defaultProcessClockSource().now();
-    auto c = cb::ProcessClock::now();
+    auto c = std::chrono::steady_clock::now();
 
     EXPECT_LE(a, b);
     EXPECT_LE(b, c);

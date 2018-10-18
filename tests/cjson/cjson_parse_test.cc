@@ -2,7 +2,6 @@
 
 #include <platform/cb_malloc.h>
 #include <platform/platform.h>
-#include <platform/processclock.h>
 
 #include <assert.h>
 #include <cJSON.h>
@@ -13,6 +12,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <chrono>
 
 static int spool(FILE *fp, char *dest, size_t size)
 {
@@ -68,7 +68,7 @@ static char *load_file(const char *file)
     return data;
 }
 
-static void report(ProcessClock::duration duration) {
+static void report(std::chrono::steady_clock::duration duration) {
     const char* const extensions[] = {" ns", " usec", " ms", " s", NULL};
     int id = 0;
     auto time = duration.count();
@@ -107,13 +107,13 @@ int main(int argc, char **argv) {
 
     data = load_file(fname);
 
-    auto start = ProcessClock::now();
+    auto start = std::chrono::steady_clock::now();
     for (ii = 0; ii < num; ++ii) {
         cJSON *ptr = cJSON_Parse(data);
         assert(ptr != NULL);
         cJSON_Delete(ptr);
     }
-    auto delta = ProcessClock::now() - start;
+    auto delta = std::chrono::steady_clock::now() - start;
 
     report(delta / num);
 

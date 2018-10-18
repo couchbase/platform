@@ -23,30 +23,30 @@
 
 class MockTimer {
 public:
-    MockTimer(std::vector<ProcessClock::time_point>& startTimes,
-              std::vector<ProcessClock::time_point>& stopTimes)
+    MockTimer(std::vector<std::chrono::steady_clock::time_point>& startTimes,
+              std::vector<std::chrono::steady_clock::time_point>& stopTimes)
         : startTimes(startTimes), stopTimes(stopTimes) {
     }
 
-    void start(ProcessClock::time_point time) {
+    void start(std::chrono::steady_clock::time_point time) {
         startTimes.emplace_back(time);
         startCalled = true;
     }
 
-    void stop(ProcessClock::time_point time) {
+    void stop(std::chrono::steady_clock::time_point time) {
         EXPECT_TRUE(startCalled);
         stopTimes.emplace_back(time);
     }
 
     bool startCalled = false;
-    std::vector<ProcessClock::time_point>& startTimes;
-    std::vector<ProcessClock::time_point>& stopTimes;
+    std::vector<std::chrono::steady_clock::time_point>& startTimes;
+    std::vector<std::chrono::steady_clock::time_point>& stopTimes;
 };
 
 class ScopeTimerTest : public ::testing::Test {
 protected:
-    std::vector<ProcessClock::time_point> start;
-    std::vector<ProcessClock::time_point> stop;
+    std::vector<std::chrono::steady_clock::time_point> start;
+    std::vector<std::chrono::steady_clock::time_point> stop;
 };
 
 TEST_F(ScopeTimerTest, SingleListener) {

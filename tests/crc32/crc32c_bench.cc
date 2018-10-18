@@ -22,10 +22,10 @@
 //
 
 #include <platform/platform.h>
-#include <platform/processclock.h>
 #include <platform/timeutils.h>
 
 #include <stdint.h>
+#include <chrono>
 #include <cstring>
 #include <iomanip>
 #include <iostream>
@@ -39,7 +39,7 @@ extern uint32_t crc32c_sw(const uint8_t* buf, size_t len, uint32_t crc_in);
 extern uint32_t crc32c_hw(const uint8_t* buf, size_t len, uint32_t crc_in);
 extern uint32_t crc32c_hw_1way(const uint8_t* buf, size_t len, uint32_t crc_in);
 
-using DurationVector = std::vector<ProcessClock::duration>;
+using DurationVector = std::vector<std::chrono::steady_clock::duration>;
 typedef uint32_t (*crc32c_function)(const uint8_t* buf, size_t len, uint32_t crc_in);
 
 static std::vector<std::string> column_heads(0);
@@ -61,9 +61,10 @@ void crc_results_banner() {
     std::cout << std::endl;
 }
 
-std::string gib_per_sec(size_t test_size, ProcessClock::duration t) {
+std::string gib_per_sec(size_t test_size,
+                        std::chrono::steady_clock::duration t) {
     double gib_per_sec = 0.0;
-    if (t != ProcessClock::duration::zero()) {
+    if (t != std::chrono::steady_clock::duration::zero()) {
         auto one_sec = std::chrono::nanoseconds(std::chrono::seconds(1));
         auto how_many_per_sec = one_sec / t;
 
@@ -79,8 +80,8 @@ std::string gib_per_sec(size_t test_size, ProcessClock::duration t) {
 // Return a/b with an 'x' appended
 // Allows us to print 2.0x when a is twice the size of b
 //
-std::string get_ratio_string(ProcessClock::duration a,
-                             ProcessClock::duration b) {
+std::string get_ratio_string(std::chrono::steady_clock::duration a,
+                             std::chrono::steady_clock::duration b) {
     double ratio = static_cast<double>(a.count()) / b.count();
     std::stringstream ss;
     ss << std::fixed << std::setprecision(3) << ratio << "x";
@@ -91,7 +92,7 @@ void crc_results(size_t test_size,
                  DurationVector& timings_sw,
                  DurationVector& timings_hw,
                  DurationVector& timings_hw_opt) {
-    ProcessClock::duration avg_sw(0), avg_hw(0), avg_hw_opt(0);
+    std::chrono::steady_clock::duration avg_sw(0), avg_hw(0), avg_hw_opt(0);
     for(auto duration : timings_sw) {
         avg_sw += duration;
     }
@@ -130,10 +131,11 @@ void crc_bench_core(const uint8_t* buffer,
                     crc32c_function crc32c_fn,
                     DurationVector& timings) {
     for (int i = 0; i < iterations; i++) {
-        const auto start = ProcessClock::now();
+        const auto start = std::chrono::steady_clock::now();
         crc32c_fn(buffer, len, 0);
-        const auto end = ProcessClock::now();
-        timings.push_back((end - start) + ProcessClock::duration(1));
+        const auto end = std::chrono::steady_clock::now();
+        timings.push_back((end - start) +
+                          std::chrono::steady_clock::duration(1));
     }
 }
 
@@ -162,11 +164,12 @@ int main() {
     // Print a notice if the clock duration is probably too big
     // to measure the smaller tests. 20 seems about right from
     // running on a variety of systems.
-    if (ProcessClock::duration(1) > std::chrono::nanoseconds(20)) {
+    if (std::chrono::steady_clock::duration(1) > std::chrono::nanoseconds(20)) {
         std::cout << "Note: The small tests maybe too fast to observe with "
                   << "this system's clock. The clock duration "
                   << "on this system is "
-                  << cb::time2text(ProcessClock::duration(1)) << std::endl;
+                  << cb::time2text(std::chrono::steady_clock::duration(1))
+                  << std::endl;
     }
 
     crc_results_banner();

@@ -17,7 +17,8 @@
 
 #pragma once
 
-#include <platform/processclock.h>
+#include <chrono>
+#include <utility>
 
 /**
  * Timer wrappers which provides a RAII-style mechanism for timing the duration
@@ -30,10 +31,11 @@
  * the time (just once at start and stop); and then passes it onto each
  * listener.
  *
- * On construction, it reads the current time of the ProcessClock; and calls the
- * start() method in each passed in listener object.
- * On destruction (i.e. when this object goes out of scope), reads
- * ProcessClock::now a second time, and calls end() on each listener object.
+ * On construction, it reads the current time of the std::chrono::steady_clock;
+ * and calls the start() method in each passed in listener object. On
+ * destruction (i.e. when this object goes out of scope), reads
+ * std::chrono::steady_clock::now a second time, and calls end() on each
+ * listener object.
  *
  * Example usage:
  *
@@ -62,19 +64,19 @@ template <class Listener1>
 class ScopeTimer1 {
 public:
     ScopeTimer1(Listener1&& listener1_)
-        : startTime(ProcessClock::now()),
+        : startTime(std::chrono::steady_clock::now()),
           listener1(std::forward<Listener1>(listener1_)) {
-        const auto startTime = ProcessClock::now();
+        const auto startTime = std::chrono::steady_clock::now();
         listener1.start(startTime);
     }
 
     ~ScopeTimer1() {
-        const auto endTime = ProcessClock::now();
+        const auto endTime = std::chrono::steady_clock::now();
         listener1.stop(endTime);
     }
 
 private:
-    const ProcessClock::time_point startTime;
+    const std::chrono::steady_clock::time_point startTime;
     Listener1 listener1;
 };
 
@@ -83,7 +85,7 @@ template <class Listener1, class Listener2>
 class ScopeTimer2 {
 public:
     ScopeTimer2(Listener1&& listener1_, Listener2&& listener2_)
-        : startTime(ProcessClock::now()),
+        : startTime(std::chrono::steady_clock::now()),
           listener1(std::forward<Listener1>(listener1_)),
           listener2(std::forward<Listener2>(listener2_)) {
         listener1.start(startTime);
@@ -91,13 +93,13 @@ public:
     }
 
     ~ScopeTimer2() {
-        const auto endTime = ProcessClock::now();
+        const auto endTime = std::chrono::steady_clock::now();
         listener1.stop(endTime);
         listener2.stop(endTime);
     }
 
 private:
-    const ProcessClock::time_point startTime;
+    const std::chrono::steady_clock::time_point startTime;
     Listener1 listener1;
     Listener2 listener2;
 };

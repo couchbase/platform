@@ -17,8 +17,8 @@
 
 #include <platform/processclock.h>
 
-cb::ProcessClock::time_point cb::DefaultProcessClockSource::now() {
-    return cb::ProcessClock::now();
+std::chrono::steady_clock::time_point cb::DefaultProcessClockSource::now() {
+    return std::chrono::steady_clock::now();
 }
 
 static cb::DefaultProcessClockSource clockSource;
@@ -28,7 +28,7 @@ cb::DefaultProcessClockSource& cb::defaultProcessClockSource() {
 }
 
 std::chrono::nanoseconds cb::to_ns_since_epoch(
-        const ProcessClock::time_point& tp) {
+        const std::chrono::steady_clock::time_point& tp) {
     return std::chrono::duration_cast<std::chrono::nanoseconds>(
                                                          tp.time_since_epoch());
 }

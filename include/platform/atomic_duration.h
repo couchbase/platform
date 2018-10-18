@@ -19,8 +19,8 @@
 
 #include "config.h"
 
-#include <platform/processclock.h>
 #include <atomic>
+#include <chrono>
 
 namespace cb {
 /* Wrapper class around std::atomic. It provides atomic operations
@@ -31,10 +31,10 @@ namespace cb {
 class AtomicDuration {
 public:
     AtomicDuration() {
-        store(ProcessClock::duration::zero());
+        store(std::chrono::steady_clock::duration::zero());
     }
 
-    AtomicDuration(ProcessClock::duration initial) {
+    AtomicDuration(std::chrono::steady_clock::duration initial) {
         store(initial);
     }
 
@@ -42,60 +42,65 @@ public:
         store(other.load());
     }
 
-    operator ProcessClock::duration() const {
+    operator std::chrono::steady_clock::duration() const {
         return load();
     }
 
-    ProcessClock::duration load() const {
-        return ProcessClock::duration(value.load(std::memory_order_relaxed));
+    std::chrono::steady_clock::duration load() const {
+        return std::chrono::steady_clock::duration(
+                value.load(std::memory_order_relaxed));
     }
 
-    void store(ProcessClock::duration desired) {
+    void store(std::chrono::steady_clock::duration desired) {
         value.store(desired.count(), std::memory_order_relaxed);
     }
 
-    ProcessClock::duration fetch_add(ProcessClock::duration arg) {
-        return ProcessClock::duration(
+    std::chrono::steady_clock::duration fetch_add(
+            std::chrono::steady_clock::duration arg) {
+        return std::chrono::steady_clock::duration(
                 value.fetch_add(arg.count(), std::memory_order_relaxed));
     }
 
-    ProcessClock::duration fetch_sub(ProcessClock::duration arg) {
-        return ProcessClock::duration(
+    std::chrono::steady_clock::duration fetch_sub(
+            std::chrono::steady_clock::duration arg) {
+        return std::chrono::steady_clock::duration(
                 value.fetch_sub(arg.count(), std::memory_order_relaxed));
     }
 
-    AtomicDuration& operator=(ProcessClock::duration val) {
+    AtomicDuration& operator=(std::chrono::steady_clock::duration val) {
         store(val);
         return *this;
     }
 
-    AtomicDuration& operator+=(ProcessClock::duration rhs) {
+    AtomicDuration& operator+=(std::chrono::steady_clock::duration rhs) {
         fetch_add(rhs);
         return *this;
     }
 
-    AtomicDuration& operator-=(ProcessClock::duration rhs) {
+    AtomicDuration& operator-=(std::chrono::steady_clock::duration rhs) {
         fetch_sub(rhs);
         return *this;
     }
 
-    ProcessClock::duration operator++() {
-        return fetch_add(ProcessClock::duration(1)) + ProcessClock::duration(1);
+    std::chrono::steady_clock::duration operator++() {
+        return fetch_add(std::chrono::steady_clock::duration(1)) +
+               std::chrono::steady_clock::duration(1);
     }
 
-    ProcessClock::duration operator++(int) {
-        return fetch_add(ProcessClock::duration(1));
+    std::chrono::steady_clock::duration operator++(int) {
+        return fetch_add(std::chrono::steady_clock::duration(1));
     }
 
-    ProcessClock::duration operator--() {
-        return fetch_sub(ProcessClock::duration(1)) - ProcessClock::duration(1);
+    std::chrono::steady_clock::duration operator--() {
+        return fetch_sub(std::chrono::steady_clock::duration(1)) -
+               std::chrono::steady_clock::duration(1);
     }
 
-    ProcessClock::duration operator--(int) {
-        return fetch_sub(ProcessClock::duration(1));
+    std::chrono::steady_clock::duration operator--(int) {
+        return fetch_sub(std::chrono::steady_clock::duration(1));
     }
 
 private:
-    std::atomic<ProcessClock::duration::rep> value;
+    std::atomic<std::chrono::steady_clock::duration::rep> value;
 };
 }

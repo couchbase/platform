@@ -1,6 +1,6 @@
 /* -*- Mode: C++; tab-width: 4; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /*
- *     Copyright 2016 Couchbase, Inc.
+ *     Copyright 2018 Couchbase, Inc.
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -23,32 +23,26 @@
 
 namespace cb {
 
-/**
- * ProcessClock provides an interface to std::chrono::steady_clock.
- * The steady_clock is not related to wall clock time and cannot be decreased.
- * This is useful when we want a task to run at a set interval regardless if
- * the system wall clock is changed.
- */
-using ProcessClock = std::chrono::steady_clock;
-
 // Simple wrapper function that returns std::chrono::nanoseconds
-// given a ProcessClock::time_point
+// given a std::chrono::steady_clock::time_point
 PLATFORM_PUBLIC_API
-std::chrono::nanoseconds to_ns_since_epoch(const ProcessClock::time_point& tp);
+std::chrono::nanoseconds to_ns_since_epoch(
+        const std::chrono::steady_clock::time_point& tp);
 
 /**
- * Interface for a source of 'now' for the ProcessClock to allow
+ * Interface for a source of 'now' for the std::chrono::steady_clock to allow
  * for dependency injection of time.
  */
 struct PLATFORM_PUBLIC_API ProcessClockSource {
-    virtual ProcessClock::time_point now() = 0;
+    virtual std::chrono::steady_clock::time_point now() = 0;
 };
 
 /**
- * Default 'now' source for ProcessClock, simply proxies ProcessClock::now()
+ * Default 'now' source for std::chrono::steady_clock, simply
+ * proxies std::chrono::steady_clock::now()
  */
 struct PLATFORM_PUBLIC_API DefaultProcessClockSource : ProcessClockSource {
-    ProcessClock::time_point now() override;
+    std::chrono::steady_clock::time_point now() override;
 };
 
 /**
@@ -58,11 +52,8 @@ PLATFORM_PUBLIC_API
 DefaultProcessClockSource& defaultProcessClockSource();
 }
 
-// Import ProcessClock and to_ns_since_epoch into global namespace
-using ProcessClock = cb::ProcessClock;
-
 PLATFORM_PUBLIC_API
 inline std::chrono::nanoseconds to_ns_since_epoch(
-        const ProcessClock::time_point& tp) {
+        const std::chrono::steady_clock::time_point& tp) {
     return cb::to_ns_since_epoch(tp);
 }

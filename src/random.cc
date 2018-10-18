@@ -17,10 +17,10 @@
 #include "config.h"
 
 #include <platform/platform.h>
-#include <platform/processclock.h>
 #include <platform/random.h>
 #include <platform/strerror.h>
 
+#include <chrono>
 #include <mutex>
 #include <sstream>
 #include <stdexcept>
@@ -86,7 +86,7 @@ uint64_t Couchbase::RandomGenerator::next(void) {
       return ret;
    }
 
-   return ProcessClock::now().time_since_epoch().count();
+   return std::chrono::steady_clock::now().time_since_epoch().count();
 }
 
 PLATFORM_PUBLIC_API

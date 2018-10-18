@@ -16,8 +16,8 @@
  */
 #include "config.h"
 
-#include <platform/processclock.h>
 #include <string.h>
+#include <chrono>
 #include <cinttypes>
 
 #ifdef WIN32
@@ -37,7 +37,7 @@ char* cb_mktemp(char* pattern) {
     if (ptr == NULL) {
         return NULL;
     }
-    auto counter = ProcessClock::now().time_since_epoch().count();
+    auto counter = std::chrono::steady_clock::now().time_since_epoch().count();
 
     do {
         ++counter;
