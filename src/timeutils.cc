@@ -1,6 +1,6 @@
 /* -*- Mode: C++; tab-width: 4; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /*
- *     Copyright 2015 Couchbase, Inc.
+ *     Copyright 2018 Couchbase, Inc.
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -16,6 +16,8 @@
  */
 
 #include <platform/timeutils.h>
+#include <cctype>
+#include <stdexcept>
 
 std::string cb::time2text(std::chrono::nanoseconds time2convert) {
     const char* const extensions[] = {" ns", " us", " ms", " s", nullptr};
@@ -48,4 +50,51 @@ std::string cb::time2text(std::chrono::nanoseconds time2convert) {
     }
 
     return ret;
+}
+
+std::chrono::nanoseconds cb::text2time(const std::string& text) {
+    std::size_t pos = 0;
+    auto value = std::stoi(text, &pos);
+
+    // trim off whitespace between the number and the textual description
+    while (std::isspace(text[pos])) {
+        ++pos;
+    }
+
+    std::string specifier{text.substr(pos)};
+    // Trim off trailing whitespace
+    pos = specifier.find(' ');
+    if (pos != std::string::npos) {
+        specifier.resize(pos);
+    }
+
+    if (specifier.empty()) {
+        return std::chrono::milliseconds(value);
+    }
+
+    if (specifier == "ns" || specifier == "nanoseconds") {
+        return std::chrono::nanoseconds(value);
+    }
+
+    if (specifier == "us" || specifier == "microseconds") {
+        return std::chrono::microseconds(value);
+    }
+
+    if (specifier == "ms" || specifier == "milliseconds") {
+        return std::chrono::milliseconds(value);
+    }
+
+    if (specifier == "s" || specifier == "seconds") {
+        return std::chrono::seconds(value);
+    }
+
+    if (specifier == "m" || specifier == "minutes") {
+        return std::chrono::minutes(value);
+    }
+
+    if (specifier == "h" || specifier == "hours") {
+        return std::chrono::hours(value);
+    }
+
+    throw std::invalid_argument("cb::text2time: Invalid format: " + text);
 }
