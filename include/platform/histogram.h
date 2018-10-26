@@ -178,38 +178,6 @@ private:
 };
 
 /**
- * A bin generator that generates buckets from a sequence of T where
- * each bin is from [v[n], v[n+1]).
- */
-template <typename T, template <class> class Limits = std::numeric_limits>
-class FixedInputGenerator {
-public:
-
-    /**
-     * Get a FixedInputGenerator with the given sequence of bin starts.
-     */
-    FixedInputGenerator(std::vector<T>& input)
-        : it(input.begin()),
-          end(input.end()) { }
-
-    typename Histogram<T, Limits>::value_type operator()() {
-        if (it + 1 >= end) {
-            throw std::overflow_error("FixedInputGenerator::operator()"
-                                              "would overflow input sequence");
-        }
-        T current = *it;
-        ++it;
-        T next = *it;
-        return std::make_unique<typename Histogram<T, Limits>::bin_type>(
-                current, next);
-    }
-
-private:
-    typename std::vector<T>::iterator it;
-    const typename std::vector<T>::iterator end;
-};
-
-/**
  * A bin generator that [n^i, n^(i+1)).
  */
 template <typename T, template <class> class Limits = std::numeric_limits>

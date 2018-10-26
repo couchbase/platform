@@ -75,24 +75,6 @@ TEST(HistoTest, Basic) {
     EXPECT_EQ(0u, histo.total());
 }
 
-TEST(HistoTest, FixedInput) {
-    std::vector<int> figinput;
-    figinput.push_back(1);
-    figinput.push_back(10);
-    figinput.push_back(100);
-    figinput.push_back(1000);
-    figinput.push_back(10000);
-    FixedInputGenerator<int> fig(figinput);
-    Histogram<int> histo(fig, 4);
-
-    std::string expected("{Histogram: [-2147483648, 1) = 0, "
-                         "[1, 10) = 0, [10, 100) = 0, [100, 1000) = 0, "
-                         "[1000, 10000) = 0, [10000, 2147483647) = 0}");
-    std::stringstream s;
-    s << histo;
-    EXPECT_EQ(expected, s.str());
-}
-
 TEST(HistoTest, Exponential) {
     ExponentialGenerator<int> gen(0, 10.0);
     Histogram<int> histo(gen, 5);
