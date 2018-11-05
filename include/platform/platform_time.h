@@ -25,17 +25,14 @@
 #include <stdint.h>
 #include <time.h>
 
+#include <folly/portability/SysTime.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 #ifdef WIN32
-#include <winsock2.h>
-
 typedef unsigned __int64 hrtime_t;
-
-PLATFORM_PUBLIC_API
-int gettimeofday(struct timeval* tv, void* tz);
 #else
 #include <sys/time.h>
 #ifndef __sun

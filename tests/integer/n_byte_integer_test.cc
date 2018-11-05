@@ -19,7 +19,7 @@
 
 #include <platform/n_byte_integer.h>
 
-#include <gtest/gtest.h>
+#include <folly/portability/GTest.h>
 
 TEST(NByteCounterTest, basic) {
     cb::UnsignedNByteInteger<6> counter;

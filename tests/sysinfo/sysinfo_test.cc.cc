@@ -14,7 +14,7 @@
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
  */
-#include <gtest/gtest.h>
+#include <folly/portability/GTest.h>
 
 #include <platform/sysinfo.h>
 #include <platform/checked_snprintf.h>

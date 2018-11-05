@@ -15,7 +15,7 @@
  *   limitations under the License.
  */
 
-#include <gtest/gtest.h>
+#include <folly/portability/GTest.h>
 #include <platform/bitset.h>
 
 enum TestStates { s1, s2, s3, s4, s5, s6, s7, end };

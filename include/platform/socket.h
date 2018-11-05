@@ -27,7 +27,6 @@
 #include <platform/socket-visibility.h>
 
 #ifdef WIN32
-#include <winsock2.h>
 #include <ws2tcpip.h>
 typedef int in_port_t;
 typedef int sa_family_t;
@@ -35,7 +34,7 @@ typedef int sa_family_t;
 #define SHUT_RD SD_RECEIVE
 #define SHUT_WR SD_SEND
 #define SHUT_RDWR SD_BOTH
-typedef long ssize_t;
+typedef SSIZE_T ssize_t;
 #else
 #include <netinet/in.h> // For in_port_t
 #include <sys/socket.h>

@@ -20,8 +20,8 @@
  * as required by Win32 which doesn't have <getopt.h>
  */
 
+#include <folly/portability/GTest.h>
 #include <getopt.h>
-#include <gtest/gtest.h>
 #include <array>
 
 // Under Win32 we alias cb::getopt() to getopt(), as Win32 doesn't have

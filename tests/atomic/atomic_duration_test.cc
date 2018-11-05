@@ -17,7 +17,7 @@
 
 #include <platform/atomic_duration.h>
 
-#include <gtest/gtest.h>
+#include <folly/portability/GTest.h>
 
 TEST(AtomicDurationTest, Constructors) {
     // Test the constructors. Implicitly tests load() and store() functions.

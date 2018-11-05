@@ -21,7 +21,7 @@
 
 #include "config.h"
 
-#include <gtest/gtest.h>
+#include <folly/portability/GTest.h>
 #include <platform/backtrace.h>
 #include <platform/cbassert.h>
 #include <stdio.h>

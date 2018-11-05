@@ -19,7 +19,7 @@
 
 #include <JSON_checker.h>
 #include <benchmark/benchmark.h>
-#include <gtest/gtest.h>
+#include <folly/portability/GTest.h>
 
 static void BM_JSONCheckerNoop(benchmark::State& state) {
     JSON_checker::Validator validator;

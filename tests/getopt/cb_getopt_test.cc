@@ -19,7 +19,7 @@
  * Unit tests for the cb::getopt implementation of getopt / getopt_long.
  */
 
-#include <gtest/gtest.h>
+#include <folly/portability/GTest.h>
 #include <platform/cb_malloc.h>
 #include <platform/cbassert.h>
 #include <platform/getopt.h>

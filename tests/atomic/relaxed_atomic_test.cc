@@ -19,7 +19,7 @@
 
 #include <relaxed_atomic.h>
 
-#include <gtest/gtest.h>
+#include <folly/portability/GTest.h>
 
 // Test that we can use RelaxedAtomic<T> in STL containers.
 TEST(RelaxedAtomicTest, STLContainer) {

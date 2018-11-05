@@ -15,7 +15,7 @@
  *   limitations under the License.
  */
 
-#include <gtest/gtest.h>
+#include <folly/portability/GTest.h>
 #include <platform/sized_buffer.h>
 
 #include <unordered_set>

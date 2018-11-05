@@ -15,7 +15,7 @@
  *   limitations under the License.
  */
 
-#include <gtest/gtest.h>
+#include <folly/portability/GTest.h>
 #include <platform/string_hex.h>
 
 TEST(Hex, InputStringTooLong) {

@@ -17,7 +17,7 @@
 
 #include <platform/corestore.h>
 
-#include <gtest/gtest.h>
+#include <folly/portability/GTest.h>
 
 #include <atomic>
 #include <iostream>

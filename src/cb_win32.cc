@@ -141,37 +141,6 @@ bool is_thread_name_supported(void)
 }
 
 PLATFORM_PUBLIC_API
-int gettimeofday(struct timeval *tv, void *tz)
-{
-    FILETIME ft;
-    uint64_t usecs;
-    LARGE_INTEGER li;
-    uint64_t secs;
-
-    assert(tz == NULL); /* I don't support that right now */
-    assert(tv != NULL); /* I don't support that right now */
-
-    GetSystemTimeAsFileTime(&ft);
-    li.LowPart = ft.dwLowDateTime;
-    li.HighPart = ft.dwHighDateTime;
-    usecs = li.QuadPart;
-
-    // FILETIME is 100 nanosecs from from 1. jan 1601
-    // convert it to usecs..
-    usecs /= 10;
-
-    secs = usecs / 1000000;
-    tv->tv_usec = usecs % 1000000;
-
-    // gettimeofday use 1st january 1970, subtract the secs
-    // between the dates
-    secs -= 11644473600;
-    tv->tv_sec = (unsigned long)secs;
-
-    return 0;
-}
-
-PLATFORM_PUBLIC_API
 void cb_rw_lock_initialize(cb_rwlock_t *rw)
 {
     InitializeSRWLock(rw);

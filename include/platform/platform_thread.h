@@ -24,35 +24,7 @@
 
 #ifdef WIN32
 
-#ifndef WIN32_LEAN_AND_MEAN
-
-/*
- * "windows.h" is a bucket header file that will include a ton of typically used
- * types, threading stuff, socket stuff and probably a couple of kitchen sinks.
- * Including only the headers you need isn't really a thing in Windows for some
- * reason, you're supposed to just include "windows.h" and be done with it. This
- * would be fine if they properly guarded everything so you didn't end up with
- * redifinition errors when you include "winsock2.h" after.
- *
- * Defining WIN32_LEAN_AND_MEAN will tweak the include of "windows.h" and cause
- * it to not include things such as "winsock2.h", this prevents a redfinition
- * error of sockaddr and allows us to include "winsock2.h" after we include
- * this file.
- *
- */
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#undef WIN32_LEAN_AND_MEAN
-
-#else
-
-/**
- * We've already got WIN32_LEAN_AND_MEAN, leave it defined in case someone else
- * is using it.
- */
-#include <windows.h>
-
-#endif // WIN32_LEAN_AND_MEAN
+#include <folly/portability/Windows.h>
 
 typedef DWORD cb_thread_t;
 typedef SRWLOCK cb_rwlock_t;

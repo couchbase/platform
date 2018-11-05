@@ -17,7 +17,7 @@
 
 #include <platform/pipe.h>
 
-#include <gtest/gtest.h>
+#include <folly/portability/GTest.h>
 
 class PipeTest : public ::testing::Test {
 protected:

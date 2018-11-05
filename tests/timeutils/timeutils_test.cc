@@ -17,7 +17,7 @@
 #include <platform/timeutils.h>
 #include <chrono>
 
-#include <gtest/gtest.h>
+#include <folly/portability/GTest.h>
 
 using cb::text2time;
 using cb::time2text;

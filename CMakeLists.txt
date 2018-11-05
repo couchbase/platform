@@ -123,7 +123,8 @@ TARGET_INCLUDE_DIRECTORIES(platform_headers INTERFACE
         # indirectly by any targets linking against platform_headers (because
         # a number of platform's public headers include it).
         ${Platform_BINARY_DIR}/src
-        ${Platform_BINARY_DIR}/include)
+        ${Platform_BINARY_DIR}/include
+        ${FOLLY_INCLUDE_DIR})
 
 LIST(APPEND PLATFORM_FILES
   ${CMAKE_CURRENT_BINARY_DIR}/src/config.h
@@ -190,6 +191,7 @@ LIST(APPEND PLATFORM_FILES
 # Note that in general external users should link 'platform' and not
 # 'platform_so' - see below.
 add_library(platform_so SHARED)
+target_link_libraries(platform_so PUBLIC ${FOLLY_LIBRARIES})
 target_link_libraries(platform_so PRIVATE phosphor)
 
 # 'platform' - the library clients should normally link to.
@@ -248,7 +250,8 @@ foreach(platform ${platform_VARIANTS})
   TARGET_LINK_LIBRARIES(${platform_so} PUBLIC
     ${COUCHBASE_NETWORK_LIBS})
 
-  TARGET_INCLUDE_DIRECTORIES(${platform_so} PUBLIC include)
+
+  TARGET_INCLUDE_DIRECTORIES(${platform_so} PUBLIC include ${FOLLY_INCLUDE_DIR})
   # TODO: Add a TARGET_INCLUDE_DIRECTORIES(PUBLIC) to phosphor; then the
   # following line can be removed:
   TARGET_INCLUDE_DIRECTORIES(${platform_so} PRIVATE ${phosphor_SOURCE_DIR}/include)
@@ -284,7 +287,7 @@ ADD_LIBRARY(dirutils SHARED
             src/dirutils.cc
             include/platform/dirutils.h)
 SET_TARGET_PROPERTIES(dirutils PROPERTIES SOVERSION 0.1.0)
-TARGET_LINK_LIBRARIES(dirutils platform)
+TARGET_LINK_LIBRARIES(dirutils platform ${CMAKE_DL_LIBS})
 GENERATE_EXPORT_HEADER(dirutils
                        EXPORT_MACRO_NAME DIRUTILS_PUBLIC_API
                        EXPORT_FILE_NAME ${CMAKE_CURRENT_BINARY_DIR}/include/platform/dirutils-visibility.h)

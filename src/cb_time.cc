@@ -29,7 +29,7 @@
 #endif
 
 #if defined(WIN32)
-#include <Windows.h>
+#include <folly/portability/Windows.h>
 #endif
 
 static std::atomic_int timeofday_offset { 0 };

@@ -17,7 +17,7 @@
 
 #include <platform/scope_timer.h>
 
-#include <gtest/gtest.h>
+#include <folly/portability/GTest.h>
 
 #include <vector>
 

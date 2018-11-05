@@ -17,7 +17,7 @@
 
 #include <thread>
 
-#include <gtest/gtest.h>
+#include <folly/portability/GTest.h>
 #include <platform/processclock.h>
 
 TEST(DefaultProcessClockSourceTest, SensibleBounds) {

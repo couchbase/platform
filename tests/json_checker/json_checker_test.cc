@@ -17,9 +17,9 @@
 
 #include "config.h"
 
-#include <gtest/gtest.h>
-#include <iostream>
 #include <JSON_checker.h>
+#include <folly/portability/GTest.h>
+#include <iostream>
 
 class DeprecatedInterfaceValidatorTest : public ::testing::Test {
 };

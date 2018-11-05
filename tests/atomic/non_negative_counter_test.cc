@@ -19,7 +19,7 @@
 
 #include <platform/non_negative_counter.h>
 
-#include <gtest/gtest.h>
+#include <folly/portability/GTest.h>
 
 TEST(NonNegativeCounterTest, Increment) {
     cb::NonNegativeCounter<size_t> nnAtomic(1);

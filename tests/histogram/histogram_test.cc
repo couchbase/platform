@@ -28,7 +28,7 @@
 #include <thread>
 
 #include "config.h"
-#include <gtest/gtest.h>
+#include <folly/portability/GTest.h>
 
 class PopulatedSamples {
 public:
