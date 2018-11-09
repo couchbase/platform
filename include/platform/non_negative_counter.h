@@ -28,18 +28,21 @@ namespace cb {
 /// Policy class for handling underflow by clamping the value at zero.
 template <class T>
 struct ClampAtZeroUnderflowPolicy {
-    void underflow(T& newValue) {
-        newValue = 0;
+    void underflow(T& desired, T current, T arg) {
+        desired = 0;
     }
 };
 
-/// Policy class for handling underflow by throwing an exception.
+/// Policy class for handling underflow by throwing an exception. Prints the
+/// previous value stored in the counter and the argument (the value that we
+// were attempting to subtract)
 template <class T>
 struct ThrowExceptionUnderflowPolicy {
-    void underflow(T& newValue) {
+    void underflow(T& desired, T current, T arg) {
         using std::to_string;
-        throw std::underflow_error("ThrowExceptionUnderflowPolicy newValue:" +
-                                   to_string(newValue));
+        throw std::underflow_error("ThrowExceptionUnderflowPolicy current:" +
+                                   to_string(current) + " arg:" +
+                                   to_string(arg));
     }
 };
 
@@ -95,18 +98,22 @@ public:
     }
 
     T fetch_sub(T arg) {
-        T expected = load();
+        T current = load();
         T desired;
         do {
-            if (expected < arg) {
-                UnderflowPolicy<T>::underflow(desired);
+            if (current < arg) {
+                UnderflowPolicy<T>::underflow(desired, current, arg);
             } else {
-                desired = expected - arg;
+                desired = current - arg;
             }
+            // Attempt to set the atomic value to desired. If the atomic value
+            // is not the same as current then it has changed during
+            // operation. compare_exchange_weak will reload the new value
+            // into current if it fails, and we will retry.
         } while (!value.compare_exchange_weak(
-                expected, desired, std::memory_order_relaxed));
+                current, desired, std::memory_order_relaxed));
 
-        return expected;
+        return current;
     }
 
     T exchange(T arg) {
@@ -149,7 +156,10 @@ public:
     T operator--() {
         T previous = fetch_sub(1);
         if (previous == 0) {
-            UnderflowPolicy<T>::underflow(previous);
+            // If we are doing a clamp underflow we can pass in previous,
+            // it's already 0 and we are returning 0. If we are going to
+            // throw, we want to print previous.
+            UnderflowPolicy<T>::underflow(previous, previous, 1);
             return 0;
         }
         return previous - 1;
