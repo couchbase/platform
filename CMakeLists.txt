@@ -104,6 +104,7 @@ ELSE (WIN32)
 
    SET(LIB_M m)
 ENDIF (WIN32)
+LIST(REMOVE_DUPLICATES PLATFORM_LIBRARIES)
 
 TARGET_LINK_LIBRARIES(cJSON PRIVATE platform ${LIB_M})
 
@@ -139,93 +140,72 @@ TARGET_INCLUDE_DIRECTORIES(platform_headers INTERFACE
         ${Platform_BINARY_DIR}/src
         ${Platform_BINARY_DIR}/include)
 
+LIST(APPEND PLATFORM_FILES
+  ${CMAKE_CURRENT_BINARY_DIR}/src/config.h
+  src/base64.cc
+  src/getpid.c
+  src/random.cc
+  src/backtrace.c
+  src/byte_buffer_dump.cc
+  src/byteorder.c
+  src/cb_malloc.cc
+  src/cb_mktemp.cc
+  src/cb_time.cc
+  src/cbassert.c
+  src/checked_snprintf.cc
+  src/crc32c.cc
+  src/crc32c_sse4_2.cc
+  src/crc32c_private.h
+  src/getopt.cc
+  src/global_new_replacement.cc
+  src/histogram.cc
+  src/interrupt.cc
+  src/memorymap.cc
+  src/processclock.cc
+  src/strerror.cc
+  src/string_hex.cc
+  src/strnstr.cc
+  src/sysinfo.cc
+  src/thread.cc
+  src/timeutils.cc
+  src/uuid.cc
+  include/platform/atomic_duration.h
+  include/platform/backtrace.h
+  include/platform/base64.h
+  include/platform/bitset.h
+  include/platform/byte_buffer_dump.h
+  include/platform/cacheline_padded.h
+  include/platform/cb_malloc.h
+  include/platform/cbassert.h
+  include/platform/checked_snprintf.h
+  include/platform/corestore.h
+  include/platform/crc32c.h
+  include/platform/getopt.h
+  include/platform/interrupt.h
+  include/platform/memorymap.h
+  include/platform/non_negative_counter.h
+  include/platform/platform.h
+  include/platform/pipe.h
+  include/platform/processclock.h
+  include/platform/random.h
+  include/platform/ring_buffer.h
+  include/platform/rwlock.h
+  include/platform/sized_buffer.h
+  include/platform/strerror.h
+  include/platform/string_hex.h
+  include/platform/sysinfo.h
+  include/platform/thread.h
+  include/platform/timeutils.h
+  include/platform/uuid.h
+  ${Platform_BINARY_DIR}/include/platform/visibility.h
+)
+
 # platform_so - the 'real' platform shared library containing our various
 # platform abstraction functionality.
 # Note that in general external users should link 'platform' and not
 # 'platform_so' - see below.
-ADD_LIBRARY(platform_so SHARED ${PLATFORM_FILES}
-                            ${CMAKE_CURRENT_BINARY_DIR}/src/config.h
-                            src/base64.cc
-                            src/getpid.c
-                            src/random.cc
-                            src/backtrace.c
-                            src/byte_buffer_dump.cc
-                            src/byteorder.c
-                            src/cb_malloc.cc
-                            src/cb_mktemp.cc
-                            src/cb_time.cc
-                            src/cbassert.c
-                            src/checked_snprintf.cc
-                            src/crc32c.cc
-                            src/crc32c_sse4_2.cc
-                            src/crc32c_private.h
-                            src/getopt.cc
-                            src/global_new_replacement.cc
-                            src/histogram.cc
-                            src/interrupt.cc
-                            src/memorymap.cc
-                            src/processclock.cc
-                            src/strerror.cc
-                            src/string_hex.cc
-                            src/strnstr.cc
-                            src/sysinfo.cc
-                            src/thread.cc
-                            src/timeutils.cc
-                            src/uuid.cc
-                            include/platform/atomic_duration.h
-                            include/platform/backtrace.h
-                            include/platform/base64.h
-                            include/platform/bitset.h
-                            include/platform/byte_buffer_dump.h
-                            include/platform/cacheline_padded.h
-                            include/platform/cb_malloc.h
-                            include/platform/cbassert.h
-                            include/platform/checked_snprintf.h
-                            include/platform/corestore.h
-                            include/platform/crc32c.h
-                            include/platform/getopt.h
-                            include/platform/interrupt.h
-                            include/platform/memorymap.h
-                            include/platform/non_negative_counter.h
-                            include/platform/platform.h
-                            include/platform/pipe.h
-                            include/platform/processclock.h
-                            include/platform/random.h
-                            include/platform/ring_buffer.h
-                            include/platform/rwlock.h
-                            include/platform/sized_buffer.h
-                            include/platform/strerror.h
-                            include/platform/string_hex.h
-                            include/platform/sysinfo.h
-                            include/platform/thread.h
-                            include/platform/timeutils.h
-                            include/platform/uuid.h
-                            ${Platform_BINARY_DIR}/include/platform/visibility.h)
-GENERATE_EXPORT_HEADER(platform_so
-                       EXPORT_MACRO_NAME PLATFORM_PUBLIC_API
-                       EXPORT_FILE_NAME ${Platform_BINARY_DIR}/include/platform/visibility.h)
-
-LIST(APPEND PLATFORM_LIBRARIES "phosphor")
-LIST(REMOVE_DUPLICATES PLATFORM_LIBRARIES)
-TARGET_LINK_LIBRARIES(platform_so PRIVATE
-        platform_headers
-        gsl_lite
-        ${MALLOC_LIBRARIES}
-        ${PLATFORM_LIBRARIES})
-
-# Link publically with COUCHBASE_NETWORK_LIBS - strictly speaking this
-# shouldn't be necessary, however a number of downstream components
-# (e.g. couchstore targets) rely on platform to make available
-# htons/htonl (via Ws2_32) etc when building on Windows.
-# Until all such targets are # updated to link directly to Ws2_32, we
-# link publically.
-TARGET_LINK_LIBRARIES(platform_so PUBLIC
-        ${COUCHBASE_NETWORK_LIBS})
-
-TARGET_INCLUDE_DIRECTORIES(platform_so PUBLIC include)
-# TODO: Add a TARGET_INCLUDE_DIRECTORIES(PUBLIC) to phosphor; then the
-# following line can be removed:
-TARGET_INCLUDE_DIRECTORIES(platform_so PRIVATE ${phosphor_SOURCE_DIR}/include)
+add_library(platform_so SHARED)
+target_link_libraries(platform_so PRIVATE phosphor)
 
 # 'platform' - the library clients should normally link to.
 #
@@ -239,20 +219,79 @@ TARGET_INCLUDE_DIRECTORIES(platform_so PRIVATE ${phosphor_SOURCE_DIR}/include)
 #    new/delete pair.
 # By giving all clients of platform the global new/delete automatically we
 # avoid these problems.
-ADD_LIBRARY(platform STATIC src/global_new_replacement.cc)
-SET_TARGET_PROPERTIES(platform PROPERTIES POSITION_INDEPENDENT_CODE true)
-TARGET_LINK_LIBRARIES(platform platform_headers platform_so)
+add_library(platform STATIC)
 
-# On OS X 10.11 we need to remove the default rpath settings in order to all
-# us to load the platform library from Python scripts that are run out of
-# /usr/bin/python. We can remove this once we ship our own Python.
-IF (APPLE)
-    SET_TARGET_PROPERTIES(platform_so
-                          PROPERTIES
-                          INSTALL_RPATH "")
-ENDIF ()
+if(CB_SANITIZERS)
+  # Define an additional variant of platform libs which has the
+  # sanitizers disabled.  This allows targets which require platform,
+  # but which are incompatible with the sanitizers (e.g. Erlang NIFs)
+  # to still be built and run when we are building the rest of the
+  # Server with Sanitizer support.
+  add_library(platform_unsanitized_so SHARED)
+  target_link_libraries(platform_unsanitized_so PRIVATE phosphor_unsanitized)
+  remove_sanitizers(platform_unsanitized_so)
 
-SET_TARGET_PROPERTIES(platform_so PROPERTIES SOVERSION 0.1.0)
+  add_library(platform_unsanitized STATIC)
+  remove_sanitizers(platform_unsanitized)
+
+  set(platform_VARIANTS platform platform_unsanitized)
+else()
+  # For convenience define a 'platform_unsanitized' alias even when
+  # the sanitizers are disabled (so targets which need an unsanitized
+  # platform can unconditionally link against this).
+  add_library(platform_unsanitized ALIAS platform)
+
+  set(platform_VARIANTS platform)
+endif()
+
+foreach(platform ${platform_VARIANTS})
+  set(platform_so ${platform}_so)
+  target_sources(${platform_so} PRIVATE ${PLATFORM_FILES})
+
+  TARGET_LINK_LIBRARIES(${platform_so} PRIVATE
+    platform_headers
+    gsl_lite
+    ${MALLOC_LIBRARIES}
+    ${PLATFORM_LIBRARIES})
+
+  # Link publically with COUCHBASE_NETWORK_LIBS - strictly speaking this
+  # shouldn't be necessary, however a number of downstream components
+  # (e.g. couchstore targets) rely on platform to make available
+  # htons/htonl (via Ws2_32) etc when building on Windows.
+  # Until all such targets are updated to link directly to Ws2_32, we
+  # link publically.
+  TARGET_LINK_LIBRARIES(${platform_so} PUBLIC
+    ${COUCHBASE_NETWORK_LIBS})
+
+  TARGET_INCLUDE_DIRECTORIES(${platform_so} PUBLIC include)
+  # TODO: Add a TARGET_INCLUDE_DIRECTORIES(PUBLIC) to phosphor; then the
+  # following line can be removed:
+  TARGET_INCLUDE_DIRECTORIES(${platform_so} PRIVATE ${phosphor_SOURCE_DIR}/include)
+
+  # On OS X 10.11 we need to remove the default rpath settings in order to all
+  # us to load the platform library from Python scripts that are run out of
+  # /usr/bin/python. We can remove this once we ship our own Python.
+  IF (APPLE)
+    SET_TARGET_PROPERTIES(${platform_so}
+      PROPERTIES
+      INSTALL_RPATH "")
+  ENDIF ()
+  SET_TARGET_PROPERTIES(${platform_so} PROPERTIES SOVERSION 0.1.0)
+
+  INSTALL(TARGETS ${platform_so}
+    RUNTIME DESTINATION bin
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib)
+
+
+  target_sources(${platform} PRIVATE src/global_new_replacement.cc)
+  SET_TARGET_PROPERTIES(${platform} PROPERTIES POSITION_INDEPENDENT_CODE true)
+  TARGET_LINK_LIBRARIES(${platform} platform_headers ${platform_so})
+endforeach()
+
+GENERATE_EXPORT_HEADER(platform_so
+                       EXPORT_MACRO_NAME PLATFORM_PUBLIC_API
+                       EXPORT_FILE_NAME ${Platform_BINARY_DIR}/include/platform/visibility.h)
 
 # TODO: Given dirutils now links with platform (for cbmalloc &
 # global_new_replacement) we can probably just merge it into platform.
@@ -285,7 +324,7 @@ SET_TARGET_PROPERTIES(breakpad_wrapper PROPERTIES COMPILE_FLAGS "-Dplatform_so_E
 TARGET_LINK_LIBRARIES(breakpad_wrapper
                       ${BREAKPAD_LIBRARIES} platform_headers)
 
-INSTALL(TARGETS breakpad_wrapper cJSON JSON_checker platform_so dirutils
+INSTALL(TARGETS breakpad_wrapper cJSON JSON_checker dirutils
         RUNTIME DESTINATION bin
         LIBRARY DESTINATION lib
         ARCHIVE DESTINATION lib)
