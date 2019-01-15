@@ -69,34 +69,40 @@ class NonNegativeCounter : public UnderflowPolicy<T> {
             "NonNegativeCounter should only be templated over unsigned types");
 
 public:
-    NonNegativeCounter() {
+    NonNegativeCounter() noexcept {
         store(0);
     }
 
-    NonNegativeCounter(const T& initial) {
+    NonNegativeCounter(const T& initial) noexcept {
         store(initial);
     }
 
-    NonNegativeCounter(const NonNegativeCounter& other) {
+    NonNegativeCounter(const NonNegativeCounter& other) noexcept {
         store(other.load());
     }
 
-    operator T() const {
+    operator T() const noexcept {
         return load();
     }
 
-    T load() const {
+    T load() const noexcept {
         return value.load(std::memory_order_relaxed);
     }
 
-    void store(T desired) {
+    void store(T desired) noexcept {
         value.store(desired, std::memory_order_relaxed);
     }
 
-    T fetch_add(T arg) {
+    T fetch_add(T arg) noexcept {
         return value.fetch_add(arg, std::memory_order_relaxed);
     }
 
+    /**
+     * Subtract 'arg' from the current value. If the new value would underflow
+     * then calls underflow() on the selected UnderflowPolicy.
+     *
+     * Note: Not marked 'noexcept' as underflow() could throw.
+     */
     T fetch_sub(T arg) {
         T current = load();
         T desired;
@@ -116,21 +122,21 @@ public:
         return current;
     }
 
-    T exchange(T arg) {
+    T exchange(T arg) noexcept {
         return value.exchange(arg, std::memory_order_relaxed);
     }
 
-    NonNegativeCounter& operator=(const NonNegativeCounter& rhs) {
+    NonNegativeCounter& operator=(const NonNegativeCounter& rhs) noexcept {
         store(rhs.load());
         return *this;
     }
 
-    NonNegativeCounter& operator+=(const T rhs) {
+    NonNegativeCounter& operator+=(const T rhs) noexcept {
         fetch_add(rhs);
         return *this;
     }
 
-    NonNegativeCounter& operator+=(const NonNegativeCounter& rhs) {
+    NonNegativeCounter& operator+=(const NonNegativeCounter& rhs) noexcept {
         fetch_add(rhs.load());
         return *this;
     }
@@ -145,11 +151,11 @@ public:
         return *this;
     }
 
-    T operator++() {
+    T operator++() noexcept {
         return fetch_add(1) + 1;
     }
 
-    T operator++(int) {
+    T operator++(int)noexcept {
         return fetch_add(1);
     }
 
@@ -169,7 +175,7 @@ public:
         return fetch_sub(1);
     }
 
-    NonNegativeCounter& operator=(T val) {
+    NonNegativeCounter& operator=(T val) noexcept {
         store(val);
         return *this;
     }
