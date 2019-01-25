@@ -1,6 +1,6 @@
 /* -*- Mode: C++; tab-width: 4; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /*
- *     Copyright 2016 Couchbase, Inc.
+ *     Copyright 2019 Couchbase, Inc
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -14,15 +14,17 @@
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
  */
-#pragma once
 
-#include <iosfwd>
-#include <platform/platform.h>
 #include <platform/sized_buffer.h>
+#include <ostream>
 
 PLATFORM_PUBLIC_API
-std::ostream& operator<<(std::ostream& out, const cb::byte_buffer& buffer);
+std::string cb::to_string(cb::const_char_buffer cb) {
+    return std::string{cb.data(), cb.size()};
+}
 
 PLATFORM_PUBLIC_API
-std::ostream& operator<<(std::ostream& out, const cb::const_byte_buffer& buffer);
-
+std::ostream& cb::operator<<(std::ostream& os,
+                             const cb::const_char_buffer& cb) {
+    return os.write(cb.data(), cb.size());
+}

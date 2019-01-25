@@ -162,6 +162,7 @@ LIST(APPEND PLATFORM_FILES
   src/interrupt.cc
   src/memorymap.cc
   src/processclock.cc
+  src/sized_buffer.cc
   src/strerror.cc
   src/string_hex.cc
   src/strnstr.cc

@@ -51,11 +51,6 @@ uint64_t cb::from_hex(cb::const_char_buffer buffer) {
 }
 
 PLATFORM_PUBLIC_API
-std::string cb::to_string(cb::const_char_buffer cb) {
-    return std::string{cb.data(), cb.size()};
-}
-
-PLATFORM_PUBLIC_API
 std::string cb::to_hex(uint8_t val) {
     char buf[32];
     snprintf(buf, sizeof(buf), "0x%02" PRIx8, val);

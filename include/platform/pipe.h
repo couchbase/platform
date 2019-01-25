@@ -25,8 +25,8 @@
 #include <cinttypes>
 #include <cstdint>
 #include <functional>
+#include <iosfwd>
 #include <memory>
-#include <sstream>
 #include <stdexcept>
 
 namespace cb {

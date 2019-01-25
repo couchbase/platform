@@ -28,7 +28,7 @@
 #include <type_traits>
 #include <typeinfo>
 #include <vector>
-#include <ostream>
+#include <iosfwd>
 
 namespace cb {
 
@@ -390,10 +390,9 @@ inline bool operator==(const_char_buffer lhs, const char* rhs) {
     return lhs.compare(const_char_buffer(rhs)) == 0;
 }
 
-inline std::ostream& operator<<(std::ostream& os,
-                                cb::const_char_buffer& constCharBuffer) {
-    return os << to_string(constCharBuffer);
-}
+PLATFORM_PUBLIC_API
+std::ostream& operator<<(std::ostream& os,
+                         const cb::const_char_buffer& cb);
 
 } // namespace cb
 
