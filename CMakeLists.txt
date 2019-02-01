@@ -307,7 +307,7 @@ GENERATE_EXPORT_HEADER(dirutils
 
 IF (BREAKPAD_FOUND)
    ADD_DEFINITIONS(-DHAVE_BREAKPAD)
-   INCLUDE_DIRECTORIES(AFTER ${BREAKPAD_INCLUDE_DIR})
+   INCLUDE_DIRECTORIES(AFTER ${BREAKPAD_INCLUDE_DIR} SYSTEM)
    # Breakpad has headers (which are dependencies for our breakpad integration
    # code) that don't compile cleanly as C++11, so the GNU standard is
    # used instead.
