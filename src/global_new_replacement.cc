@@ -82,7 +82,7 @@ void operator delete(void* ptr) NOEXCEPT {
 }
 
 void operator delete(void* ptr, std::size_t size) NOEXCEPT {
-    cb_sized_free(ptr, size);
+    cb_free(ptr);
 }
 
 void* operator new[](std::size_t count) {
@@ -98,7 +98,7 @@ void operator delete[](void *ptr) NOEXCEPT {
 }
 
 void operator delete[](void *ptr, std::size_t size) NOEXCEPT {
-    cb_sized_free(ptr, size);
+    cb_free(ptr);
 }
 
 /* As we have a global new replacement, libraries could end up calling the

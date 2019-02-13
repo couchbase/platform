@@ -80,17 +80,6 @@ PLATFORM_PUBLIC_API void cb_free(void* ptr) throwspec {
     return MEM_ALLOC(free)(ptr);
 }
 
-PLATFORM_PUBLIC_API void cb_sized_free(void* ptr, size_t size) throwspec {
-    cb_invoke_delete_hook(ptr);
-#if defined(HAVE_JEMALLOC_SDALLOCX)
-    if (ptr != nullptr) {
-        MEM_ALLOC(sdallocx)(ptr, size, /* no flags */ 0);
-    }
-#else
-    MEM_ALLOC(free)(ptr);
-#endif
-}
-
 PLATFORM_PUBLIC_API char* cb_strdup(const char* s1) {
     size_t len = std::strlen(s1);
     char* result = static_cast<char*>(cb_malloc(len + 1));
