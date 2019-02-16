@@ -15,6 +15,7 @@
  *   limitations under the License.
  */
 #include "config.h"
+#include <platform/cb_malloc.h>
 #include <platform/dirutils.h>
 
 #ifdef _MSC_VER
@@ -23,6 +24,7 @@
 #else
 
 #include <dirent.h>
+#include <dlfcn.h>
 #include <unistd.h>
 
 #endif
@@ -451,3 +453,120 @@ std::string cb::io::loadFile(const std::string& name) {
     MemoryMappedFile map(name.c_str(), MemoryMappedFile::Mode::RDONLY);
     return to_string(map.content());
 }
+
+namespace cb {
+namespace io {
+
+LibraryHandle::~LibraryHandle() = default;
+
+class LibraryHandleImpl : public LibraryHandle {
+public:
+    LibraryHandleImpl(std::string soname) : soname(std::move(soname)) {
+        if (LibraryHandleImpl::soname.empty()) {
+            throw std::invalid_argument(
+                    "LibraryHandleImpl: shared object name cannot be empty");
+        }
+        openDynamicLibrary();
+    }
+
+    ~LibraryHandleImpl() override {
+#ifdef WIN32
+        FreeLibrary(handle);
+#else
+        dlclose(handle);
+#endif
+    }
+
+    void* findSymbol(const std::string& symbol) const override {
+#ifdef WIN32
+        auto* ret = GetProcAddress(handle, symbol.c_str());
+        if (ret == nullptr) {
+            throw std::runtime_error(cb_strerror());
+        }
+#else
+        // Clear the error status
+        dlerror();
+        void* ret = dlsym(handle, symbol.c_str());
+        const auto* error = dlerror();
+        if (ret == nullptr && error != nullptr) {
+            throw std::runtime_error(error);
+        }
+#endif
+        return ret;
+    }
+
+    std::string getName() const override {
+        return soname;
+    }
+
+protected:
+    void openDynamicLibrary() {
+#ifdef WIN32
+        sanitizePath(soname);
+        handle = LoadLibrary(soname.c_str());
+        if (handle == nullptr) {
+            auto alternative = getAlternativeSoName();
+            if (alternative != soname) {
+                soname = std::move(alternative);
+                handle = LoadLibrary(soname.c_str());
+            }
+
+            if (handle == nullptr) {
+                throw std::runtime_error(cb_strerror());
+            }
+        }
+#else
+        const int dlopen_flags = RTLD_NOW | RTLD_GLOBAL;
+        handle = dlopen(soname.c_str(), dlopen_flags);
+        if (handle == nullptr) {
+            auto alternative = getAlternativeSoName();
+            if (alternative != soname) {
+                soname = std::move(alternative);
+                handle = dlopen(soname.c_str(), dlopen_flags);
+            }
+
+            if (handle == nullptr) {
+                throw std::runtime_error(dlerror());
+            }
+        }
+#endif
+    }
+
+    // We might want to add .so or .dylib to the name if it isn't there
+    std::string getAlternativeSoName() {
+#ifdef WIN32
+        const std::string ext = ".dll";
+#elif defined(__APPLE__)
+        const std::string ext = ".dylib";
+#else
+        const std::string ext = ".so";
+#endif
+        if (soname.find(ext) != std::string::npos) {
+            // already fixed
+            return soname;
+        }
+
+        auto index = soname.find(".so");
+        if (index != std::string::npos) {
+            auto ret = soname.substr(0, index) + ext;
+            return ret;
+        }
+
+        return soname + ext;
+    }
+
+    std::string soname;
+#ifdef WIN32
+    HMODULE handle;
+#else
+    void* handle = nullptr;
+#endif
+};
+
+DIRUTILS_PUBLIC_API
+std::unique_ptr<LibraryHandle> loadLibrary(const std::string& filename) {
+    return std::make_unique<LibraryHandleImpl>(filename);
+}
+
+} // namespace io
+} // namespace cb

@@ -262,3 +262,78 @@ TEST_F(IoTest, maximizeFileDescriptors) {
                     << "the same max limit two times in a row";
     }
 }
+
+TEST(LoadLibrary, NoLibrary) {
+    try {
+        cb::io::loadLibrary({});
+        FAIL() << "An exception should be thrown";
+    } catch (const std::exception& exp) {
+        EXPECT_STREQ("LibraryHandleImpl: shared object name cannot be empty",
+                     exp.what());
+    }
+}
+
+TEST(LoadLibrary, UnknownLibrary) {
+    try {
+        cb::io::loadLibrary("itwouldsuckifthisexists");
+        FAIL() << "An exception should be thrown";
+    } catch (const std::exception& exp) {
+    }
+}
+
+TEST(LoadLibrary, ValidTestLibrary) {
+    auto lib = cb::io::loadLibrary("./platform-dirutils-test-library");
+
+#ifdef WIN32
+    EXPECT_EQ(".\\platform-dirutils-test-library", lib->getName());
+#elif defined(__APPLE__)
+    EXPECT_EQ("./platform-dirutils-test-library.dylib", lib->getName());
+#else
+    EXPECT_EQ("./platform-dirutils-test-library.so", lib->getName());
+#endif
+}
+
+TEST(LoadLibrary, ValidTestLibraryWithSoExtension) {
+    auto lib = cb::io::loadLibrary("./platform-dirutils-test-library.so");
+
+#ifdef WIN32
+    EXPECT_EQ(".\\platform-dirutils-test-library.dll", lib->getName());
+#elif defined(__APPLE__)
+    EXPECT_EQ("./platform-dirutils-test-library.dylib", lib->getName());
+#else
+    EXPECT_EQ("./platform-dirutils-test-library.so", lib->getName());
+#endif
+}
+
+TEST(LoadLibrary, FindSymbol) {
+    auto lib = cb::io::loadLibrary("./platform-dirutils-test-library.so");
+
+    // Check that we can lookup a value
+    const auto* valueptr = lib->find<const int*>("value");
+    EXPECT_EQ(5, *valueptr);
+
+    // Lookup the getter
+    auto getValue = lib->find<int (*)()>("getValue");
+    EXPECT_EQ(5, getValue());
+
+    // And the setter
+    auto setValue = lib->find<void (*)(int)>("setValue");
+    setValue(100);
+    EXPECT_EQ(100, *valueptr);
+    EXPECT_EQ(100, getValue());
+}
+
+TEST(LoadLibrary, Unload) {
+    // Unload and load the library and verify that when we reload it the
+    // static variables get reset
+    auto lib = cb::io::loadLibrary("./platform-dirutils-test-library.so");
+    const auto* valueptr = lib->find<const int*>("value");
+    EXPECT_EQ(5, *valueptr);
+    *const_cast<int*>(valueptr) = 100;
+    EXPECT_EQ(100, *valueptr);
+    lib.reset();
+
+    lib = cb::io::loadLibrary("./platform-dirutils-test-library.so");
+    valueptr = lib->find<const int*>("value");
+    EXPECT_EQ(5, *valueptr);
+}

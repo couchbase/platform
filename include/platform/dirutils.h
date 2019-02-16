@@ -18,6 +18,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -148,5 +149,46 @@ inline void sanitizePath(std::string& path) {
  */
 DIRUTILS_PUBLIC_API
 std::string loadFile(const std::string& name);
-}
-}
+
+/**
+ * A representation for a dynamic loaded library
+ */
+class LibraryHandle {
+public:
+    /// Can't be copied
+    LibraryHandle(LibraryHandle&) = delete;
+    virtual ~LibraryHandle();
+
+    /**
+     * Try to find the named symbol in the library
+     *
+     * @param symbol the symbol to search for
+     * @return pointer to the symbol
+     * @throws std::exception if an error occurrs or the symbol isn't found
+     */
+    template <typename T>
+    T find(const std::string& symbol_name) const {
+        return reinterpret_cast<T>(findSymbol(symbol_name));
+    }
+
+    /// get the name of the loaded library
+    virtual std::string getName() const = 0;
+
+protected:
+    virtual void* findSymbol(const std::string& symbol) const = 0;
+    LibraryHandle() = default;
+};
+
+/**
+ * Load a dynamic library
+ *
+ * @param filename The name of the library to load
+ * @return a handle to the loaded library. Closing the library invalidates
+ *         all symbols
+ * @throws std::exception if an error occurs (file not found or missing
+ *                        dependencies / symbols)
+ */
+DIRUTILS_PUBLIC_API
+std::unique_ptr<LibraryHandle> loadLibrary(const std::string& filename);
+} // namespace io
+} // namespace cb
