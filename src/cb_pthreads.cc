@@ -20,7 +20,6 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <dlfcn.h>
 #include <memory>
 #include <new>
 #include <platform/cb_malloc.h>
@@ -292,84 +291,6 @@ void cb_cond_timedwait(cb_cond_t *cond, cb_mutex_t *mutex, unsigned int ms)
         throw std::system_error(rv, std::system_category(),
                                 "Failed to do timed wait on condition variable");
     }
-}
-
-#ifdef __APPLE__
-static const char *get_dll_name(const char *path, char *buffer)
-{
-    if (strstr(path, ".dylib") != nullptr) {
-        return path;
-    }
-
-    strcpy(buffer, path);
-
-    char* ptr = strstr(buffer, ".so");
-    if (ptr != NULL) {
-        sprintf(ptr, ".dylib");
-        return buffer;
-    }
-
-    strcat(buffer, ".dylib");
-    return buffer;
-}
-#else
-static const char *get_dll_name(const char *path, char *buffer)
-{
-    auto* ptr = strstr(path, ".so");
-    if (ptr != nullptr) {
-        return path;
-    }
-
-    strcpy(buffer, path);
-    strcat(buffer, ".so");
-    return buffer;
-}
-#endif
-
-cb_dlhandle_t cb_dlopen(const char *library, char **errmsg)
-{
-    cb_dlhandle_t handle;
-    char *buffer = NULL;
-    const int dlopen_flags = RTLD_NOW | RTLD_GLOBAL;
-
-    if (library == NULL) {
-        handle = dlopen(NULL, dlopen_flags);
-    } else {
-        handle = dlopen(library, dlopen_flags);
-        if (handle == NULL) {
-            buffer = reinterpret_cast<char*>(cb_malloc(strlen(library) + 20));
-            if (buffer == NULL) {
-                if (*errmsg) {
-                    *errmsg = cb_strdup("Failed to allocate memory");
-                }
-                return NULL;
-            }
-
-            handle = dlopen(get_dll_name(library, buffer),
-                            dlopen_flags);
-            cb_free(buffer);
-        }
-    }
-
-    if (handle == NULL && errmsg != NULL) {
-        *errmsg = cb_strdup(dlerror());
-    }
-
-    return handle;
-}
-
-void *cb_dlsym(cb_dlhandle_t handle, const char *symbol, char **errmsg)
-{
-    void *ret = dlsym(handle, symbol);
-    if (ret == NULL && errmsg) {
-        *errmsg = cb_strdup(dlerror());
-    }
-    return ret;
-}
-
-void cb_dlclose(cb_dlhandle_t handle)
-{
-    dlclose(handle);
 }
 
 int platform_set_binary_mode(FILE *fp)

@@ -331,17 +331,6 @@ extern "C" {
     uint64_t htonll(uint64_t);
 #endif
 
-    typedef void *cb_dlhandle_t;
-
-    PLATFORM_PUBLIC_API
-    cb_dlhandle_t cb_dlopen(const char *library, char **errmsg);
-
-    PLATFORM_PUBLIC_API
-    void *cb_dlsym(cb_dlhandle_t handle, const char *symbol, char **errmsg);
-
-    PLATFORM_PUBLIC_API
-    void cb_dlclose(cb_dlhandle_t handle);
-
 #ifdef WIN32
     struct iovec {
         size_t iov_len;

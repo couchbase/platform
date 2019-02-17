@@ -210,64 +210,6 @@ void cb_cond_broadcast(cb_cond_t *cond)
     WakeAllConditionVariable(cond);
 }
 
-static const char *get_dll_name(const char *path, char *buffer)
-{
-    if (strstr(path, ".dll") != nullptr) {
-        return path;
-    }
-
-    strcpy(buffer, path);
-    char *ptr = strstr(buffer, ".so");
-    if (ptr != NULL) {
-        sprintf(ptr, ".dll");
-        return buffer;
-    }
-
-    strcat(buffer, ".dll");
-    return buffer;
-}
-
-PLATFORM_PUBLIC_API
-cb_dlhandle_t cb_dlopen(const char *library, char **errmsg)
-{
-    cb_dlhandle_t handle;
-
-    if (library == NULL) {
-        if (errmsg != NULL) {
-            *errmsg = cb_strdup("Open self is not supported");
-        }
-        return NULL;
-    }
-
-    std::vector<char> buffer(strlen(library) + 20, 0);
-
-    handle = LoadLibrary(get_dll_name(library, buffer.data()));
-    if (handle == NULL && errmsg != NULL) {
-        std::string reason = cb_strerror();
-        *errmsg = cb_strdup(reason.c_str());
-    }
-
-    return handle;
-}
-
-PLATFORM_PUBLIC_API
-void *cb_dlsym(cb_dlhandle_t handle, const char *symbol, char **errmsg)
-{
-    void *ret = GetProcAddress(reinterpret_cast<HMODULE>(handle), symbol);
-    if (ret == NULL && errmsg) {
-        std::string reason = cb_strerror();
-        *errmsg = cb_strdup(reason.c_str());
-    }
-
-    return ret;
-}
-
-PLATFORM_PUBLIC_API
-void cb_dlclose(cb_dlhandle_t handle)
-{
-    FreeLibrary(reinterpret_cast<HMODULE>(handle));
-}
-
 PLATFORM_PUBLIC_API
 void usleep(unsigned int useconds)
 {
