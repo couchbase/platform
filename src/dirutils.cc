@@ -536,8 +536,6 @@ protected:
     std::string getAlternativeSoName() {
 #ifdef WIN32
         const std::string ext = ".dll";
-#elif defined(__APPLE__)
-        const std::string ext = ".dylib";
 #else
         const std::string ext = ".so";
 #endif
@@ -546,11 +544,13 @@ protected:
             return soname;
         }
 
+#ifdef WIN32
         auto index = soname.find(".so");
         if (index != std::string::npos) {
             auto ret = soname.substr(0, index) + ext;
             return ret;
         }
+#endif
 
         return soname + ext;
     }

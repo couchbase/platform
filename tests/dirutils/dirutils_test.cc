@@ -286,8 +286,6 @@ TEST(LoadLibrary, ValidTestLibrary) {
 
 #ifdef WIN32
     EXPECT_EQ(".\\platform-dirutils-test-library", lib->getName());
-#elif defined(__APPLE__)
-    EXPECT_EQ("./platform-dirutils-test-library.dylib", lib->getName());
 #else
     EXPECT_EQ("./platform-dirutils-test-library.so", lib->getName());
 #endif
@@ -298,8 +296,6 @@ TEST(LoadLibrary, ValidTestLibraryWithSoExtension) {
 
 #ifdef WIN32
     EXPECT_EQ(".\\platform-dirutils-test-library.dll", lib->getName());
-#elif defined(__APPLE__)
-    EXPECT_EQ("./platform-dirutils-test-library.dylib", lib->getName());
 #else
     EXPECT_EQ("./platform-dirutils-test-library.so", lib->getName());
 #endif
