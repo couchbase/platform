@@ -151,7 +151,6 @@ LIST(APPEND PLATFORM_FILES
   src/sized_buffer.cc
   src/strerror.cc
   src/string_hex.cc
-  src/strnstr.cc
   src/sysinfo.cc
   src/thread.cc
   src/timeutils.cc

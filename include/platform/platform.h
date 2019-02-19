@@ -127,16 +127,6 @@ extern "C" {
     cb_thread_t cb_thread_self(void);
 
     /**
-     * Check if two cb_thread_t objects represent the same thread
-     *
-     * @param a the first thread
-     * @param b the second thread
-     * @return nonzero if the two objects represent the same object, 0 otherwise
-     */
-    PLATFORM_PUBLIC_API
-    int cb_thread_equal(const cb_thread_t a, const cb_thread_t b);
-
-    /**
      * Sets the current threads' name.
      *
      * This method tries to set the current threads name by using
@@ -198,15 +188,6 @@ extern "C" {
     void cb_mutex_enter(cb_mutex_t *mutex);
 
     /**
-     * Try to enter a locked section
-     *
-     * @param mutex the mutex protecting this section
-     * @return 0 if the mutex was obtained, -1 otherwise
-     */
-    PLATFORM_PUBLIC_API
-    int cb_mutex_try_enter(cb_mutex_t *mutex);
-
-    /**
      * Exit a locked section
      *
      * @param mutex the mutex protecting this section
@@ -245,23 +226,6 @@ extern "C" {
      */
     PLATFORM_PUBLIC_API
     void cb_cond_wait(cb_cond_t *cond, cb_mutex_t *mutex);
-
-    /**
-     * Wait for a condition variable to be signaled, but give up after a
-     * given time.
-     *
-     * The mutex must be in a locked state, and this method will release
-     * the mutex and wait for the condition variable to be signaled in an
-     * atomic operation.
-     *
-     * The mutex is locked when the method returns.
-     *
-     * @param cond the condition variable to wait for
-     * @param mutex the locked mutex protecting the critical section
-     * @param ms the number of milliseconds to wait.
-     */
-    PLATFORM_PUBLIC_API
-    void cb_cond_timedwait(cb_cond_t *cond, cb_mutex_t *mutex, unsigned int ms);
 
     /**
      * Singal a single thread waiting for a condition variable
@@ -478,26 +442,4 @@ extern "C" {
 
 #ifdef __cplusplus
 }
-
-namespace cb {
-/**
- * Search for a string within a string (which may not be '\0' terminated)
- *
- * @param haystack The buffer to search in
- * @param needle The string to search for
- * @param len The number of bytes in haystack
- * @return pointer to the first occurrence of needle in haystack, or
- *                 nullptr if not found.
- */
-PLATFORM_PUBLIC_API
-char* strnstr(char* haystack, const char* needle, size_t len) CB_ATTR_NONNULL(1, 2);
-
-inline const char* strnstr(const char* haystack,
-                           const char* needle,
-                           size_t len) {
-    return const_cast<const char*>(strnstr(const_cast<char*>(haystack),
-                                           needle, len));
-}
-}
-
 #endif

@@ -130,11 +130,6 @@ cb_thread_t cb_thread_self(void)
     return pthread_self();
 }
 
-int cb_thread_equal(const cb_thread_t a, const cb_thread_t b)
-{
-    return pthread_equal(a, b);
-}
-
 int cb_set_thread_name(const char* name)
 {
 #if defined(__APPLE__)
@@ -205,10 +200,6 @@ void cb_mutex_enter(cb_mutex_t *mutex)
     }
 }
 
-int cb_mutex_try_enter(cb_mutex_t *mutex) {
-    return pthread_mutex_trylock(mutex) == 0 ? 0 : -1;
-}
-
 void cb_mutex_exit(cb_mutex_t *mutex)
 {
     int rv = pthread_mutex_unlock(mutex);
@@ -260,36 +251,6 @@ void cb_cond_broadcast(cb_cond_t *cond)
     if (rv != 0) {
         throw std::system_error(rv, std::system_category(),
                                 "Failed to broadcast condition variable");
-    }
-}
-
-void cb_cond_timedwait(cb_cond_t *cond, cb_mutex_t *mutex, unsigned int ms)
-{
-    struct timespec ts;
-    struct timeval tp;
-    uint64_t wakeup;
-
-    memset(&ts, 0, sizeof(ts));
-
-    /*
-     * Unfortunately pthreads don't support relative sleeps so we need
-     * to convert back to an absolute time...
-     */
-    gettimeofday(&tp, NULL);
-    wakeup = ((uint64_t)(tp.tv_sec) * 1000) + (tp.tv_usec / 1000) + ms;
-    /* Round up for sub ms */
-    if ((tp.tv_usec % 1000) > 499) {
-        ++wakeup;
-    }
-
-    ts.tv_sec = wakeup / 1000;
-    wakeup %= 1000;
-    ts.tv_nsec = wakeup * 1000000;
-
-    int rv = pthread_cond_timedwait(cond, mutex, &ts);
-    if (rv != 0 && rv != ETIMEDOUT) {
-        throw std::system_error(rv, std::system_category(),
-                                "Failed to do timed wait on condition variable");
     }
 }
 

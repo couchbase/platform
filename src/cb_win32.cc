@@ -121,12 +121,6 @@ cb_thread_t cb_thread_self(void)
 }
 
 PLATFORM_PUBLIC_API
-int cb_thread_equal(const cb_thread_t a, const cb_thread_t b)
-{
-    return a == b;
-}
-
-PLATFORM_PUBLIC_API
 int cb_set_thread_name(const char*)
 {
     // Not implemented on WIN32
@@ -164,12 +158,6 @@ void cb_mutex_enter(cb_mutex_t *mutex)
 }
 
 PLATFORM_PUBLIC_API
-int cb_mutex_try_enter(cb_mutex_t *mutex)
-{
-    return TryEnterCriticalSection(mutex) ? 0 : -1;
-}
-
-PLATFORM_PUBLIC_API
 void cb_mutex_exit(cb_mutex_t *mutex)
 {
     LeaveCriticalSection(mutex);
@@ -191,11 +179,6 @@ PLATFORM_PUBLIC_API
 void cb_cond_wait(cb_cond_t *cond, cb_mutex_t *mutex)
 {
     SleepConditionVariableCS(cond, mutex, INFINITE);
-}
-
-PLATFORM_PUBLIC_API
-void cb_cond_timedwait(cb_cond_t *cond, cb_mutex_t *mutex, unsigned int msec) {
-    SleepConditionVariableCS(cond, mutex, msec);
 }
 
 PLATFORM_PUBLIC_API
