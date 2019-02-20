@@ -140,60 +140,6 @@ bool is_thread_name_supported(void)
 }
 
 PLATFORM_PUBLIC_API
-void cb_mutex_initialize(cb_mutex_t *mutex)
-{
-    InitializeCriticalSection(mutex);
-}
-
-PLATFORM_PUBLIC_API
-void cb_mutex_destroy(cb_mutex_t *mutex)
-{
-    DeleteCriticalSection(mutex);
-}
-
-PLATFORM_PUBLIC_API
-void cb_mutex_enter(cb_mutex_t *mutex)
-{
-    EnterCriticalSection(mutex);
-}
-
-PLATFORM_PUBLIC_API
-void cb_mutex_exit(cb_mutex_t *mutex)
-{
-    LeaveCriticalSection(mutex);
-}
-
-PLATFORM_PUBLIC_API
-void cb_cond_initialize(cb_cond_t *cond)
-{
-    InitializeConditionVariable(cond);
-}
-
-PLATFORM_PUBLIC_API
-void cb_cond_destroy(cb_cond_t *cond)
-{
-    (void)cond;
-}
-
-PLATFORM_PUBLIC_API
-void cb_cond_wait(cb_cond_t *cond, cb_mutex_t *mutex)
-{
-    SleepConditionVariableCS(cond, mutex, INFINITE);
-}
-
-PLATFORM_PUBLIC_API
-void cb_cond_signal(cb_cond_t *cond)
-{
-    WakeConditionVariable(cond);
-}
-
-PLATFORM_PUBLIC_API
-void cb_cond_broadcast(cb_cond_t *cond)
-{
-    WakeAllConditionVariable(cond);
-}
-
-PLATFORM_PUBLIC_API
 void usleep(unsigned int useconds)
 {
     std::this_thread::sleep_for(std::chrono::microseconds(useconds));

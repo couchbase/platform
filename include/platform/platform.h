@@ -46,9 +46,7 @@ extern "C" {
 
 #ifdef WIN32
     typedef DWORD cb_thread_t;
-    typedef CRITICAL_SECTION cb_mutex_t;
     typedef SRWLOCK cb_rwlock_t;
-    typedef CONDITION_VARIABLE cb_cond_t;
     typedef long ssize_t;
     typedef unsigned __int64 hrtime_t;
 #define CB_DONT_NEED_BYTEORDER 1
@@ -59,8 +57,6 @@ extern "C" {
 #define DIRECTORY_SEPARATOR_CHARACTER '/'
 
     typedef pthread_t cb_thread_t;
-    typedef pthread_mutex_t cb_mutex_t;
-    typedef pthread_cond_t cb_cond_t;
     typedef pthread_rwlock_t cb_rwlock_t;
 
 #ifndef __sun
@@ -156,92 +152,6 @@ extern "C" {
      */
     PLATFORM_PUBLIC_API
     bool is_thread_name_supported(void);
-
-    /***********************************************************************
-     *                      Mutex related functions                        *
-     **********************************************************************/
-    /**
-     * Initialize a mutex.
-     *
-     * We don't have <b>any</b> static initializers, so the mutex <b>must</b>
-     * be initialized by calling this function before being used.
-     *
-     * @param mutex the mutex object to initialize
-     */
-    PLATFORM_PUBLIC_API
-    void cb_mutex_initialize(cb_mutex_t *mutex);
-
-    /**
-     * Destroy (and release all allocated resources) a mutex.
-     *
-     * @param mutex the mutex object to destroy
-     */
-    PLATFORM_PUBLIC_API
-    void cb_mutex_destroy(cb_mutex_t *mutex);
-
-    /**
-     * Enter a locked section
-     *
-     * @param mutex the mutex protecting this section
-     */
-    PLATFORM_PUBLIC_API
-    void cb_mutex_enter(cb_mutex_t *mutex);
-
-    /**
-     * Exit a locked section
-     *
-     * @param mutex the mutex protecting this section
-     */
-    PLATFORM_PUBLIC_API
-    void cb_mutex_exit(cb_mutex_t *mutex);
-
-    /***********************************************************************
-     *                 Condition variable related functions                *
-     **********************************************************************/
-    /**
-     * Initialize a condition variable
-     * @param cond the condition variable to initialize
-     */
-    PLATFORM_PUBLIC_API
-    void cb_cond_initialize(cb_cond_t *cond);
-
-    /**
-     * Destroy and release all allocated resources for a condition variable
-     * @param cond the condition variable to destroy
-     */
-    PLATFORM_PUBLIC_API
-    void cb_cond_destroy(cb_cond_t *cond);
-
-    /**
-     * Wait for a condition variable to be signaled.
-     *
-     * The mutex must be in a locked state, and this method will release
-     * the mutex and wait for the condition variable to be signaled in an
-     * atomic operation.
-     *
-     * The mutex is locked when the method returns.
-     *
-     * @param cond the condition variable to wait for
-     * @param mutex the locked mutex protecting the critical section
-     */
-    PLATFORM_PUBLIC_API
-    void cb_cond_wait(cb_cond_t *cond, cb_mutex_t *mutex);
-
-    /**
-     * Singal a single thread waiting for a condition variable
-     *
-     * @param cond the condition variable to signal
-     */
-    PLATFORM_PUBLIC_API
-    void cb_cond_signal(cb_cond_t *cond);
-
-    /**
-     * Singal all threads waiting for on condition variable
-     *
-     * @param cond the condition variable to signal
-     */
-    PLATFORM_PUBLIC_API
-    void cb_cond_broadcast(cb_cond_t *cond);
 
     /***********************************************************************
      *                 Reader/Writer lock  related functions               *
