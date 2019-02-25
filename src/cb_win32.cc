@@ -140,12 +140,6 @@ bool is_thread_name_supported(void)
 }
 
 PLATFORM_PUBLIC_API
-void usleep(unsigned int useconds)
-{
-    std::this_thread::sleep_for(std::chrono::microseconds(useconds));
-}
-
-PLATFORM_PUBLIC_API
 int gettimeofday(struct timeval *tv, void *tz)
 {
     FILETIME ft;
