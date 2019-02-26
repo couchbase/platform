@@ -16,14 +16,16 @@
  */
 #include "config.h"
 
+#include <platform/cb_malloc.h>
+#include <platform/strerror.h>
+#include <platform/platform_thread.h>
+
 #include <cerrno>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <memory>
 #include <new>
-#include <platform/cb_malloc.h>
-#include <platform/strerror.h>
 #include <stdexcept>
 #include <string>
 #include <sys/time.h>

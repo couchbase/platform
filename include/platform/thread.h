@@ -16,8 +16,10 @@
  */
 #pragma once
 
+#include <platform/platform_thread.h>
+#include <platform/visibility.h>
+
 #include <atomic>
-#include <platform/platform.h>
 #include <condition_variable>
 #include <mutex>
 #include <string>

@@ -16,7 +16,8 @@
  */
 #pragma once
 
-#include <platform/platform.h>
+#include <platform/platform_thread.h>
+
 #include <stdexcept>
 #include <string>
 

@@ -22,7 +22,7 @@
 #include <phosphor/phosphor.h>
 #include <platform/cb_malloc.h>
 #include <platform/getopt.h>
-#include <platform/platform.h>
+#include <platform/platform_thread.h>
 #include <platform/strerror.h>
 #include <win32/getopt.h>
 #include <chrono>

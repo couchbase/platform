@@ -170,6 +170,7 @@ LIST(APPEND PLATFORM_FILES
   include/platform/memorymap.h
   include/platform/non_negative_counter.h
   include/platform/platform.h
+  include/platform/platform_thread.h
   include/platform/pipe.h
   include/platform/processclock.h
   include/platform/random.h
