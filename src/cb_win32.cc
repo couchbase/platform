@@ -23,6 +23,7 @@
 #include <platform/cb_malloc.h>
 #include <platform/getopt.h>
 #include <platform/platform_thread.h>
+#include <platform/platform_time.h>
 #include <platform/strerror.h>
 #include <win32/getopt.h>
 #include <chrono>

@@ -29,7 +29,7 @@
 #include <errno.h>
 #include <string.h>
 
-#include <platform/platform.h>
+#include <platform/platform_time.h>
 
 static std::atomic_int timeofday_offset { 0 };
 static std::atomic_uint uptime_offset{0};
