@@ -31,10 +31,13 @@
 
 #include <platform/memorymap.h>
 #include <platform/strerror.h>
+
+#include <sys/stat.h>
+
+#include <chrono>
+#include <limits>
 #include <stdio.h>
 #include <string.h>
-#include <sys/stat.h>
-#include <limits>
 #include <system_error>
 
 static std::string split(const std::string& input, bool directory) {
@@ -362,6 +365,35 @@ std::string cb::io::mktemp(const std::string& prefix) {
     }
 
     return std::string {cb_mktemp(const_cast<char*>(pattern.data()))};
+}
+
+char* cb::io::mkdtemp(char* prefix) {
+    char* pattern = prefix;
+    char* ptr = strstr(prefix, "XXXXXX");
+    if (ptr == NULL) {
+        throw std::runtime_error("Need to include XXXXXX in directory name");
+    }
+
+    int searching = 1;
+    auto counter = std::chrono::steady_clock::now().time_since_epoch().count();
+
+    do {
+        ++counter;
+        sprintf(ptr, "%06" PRIu64, static_cast<uint64_t>(counter) % 1000000);
+
+#ifdef WIN32
+        if (CreateDirectory(pattern, nullptr)) {
+            searching = 0;
+        }
+#else
+        if (mkdir(pattern, S_IREAD | S_IWRITE | S_IEXEC) == 0) {
+            searching = 0;
+        }
+#endif
+
+    } while (searching);
+
+    return pattern;
 }
 
 std::string cb::io::getcwd(void) {

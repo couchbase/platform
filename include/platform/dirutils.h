@@ -91,7 +91,7 @@ DIRUTILS_PUBLIC_API
 void mkdirp(const std::string& directory);
 
 /**
- * Create a unique temporary filename with the given prefix.
+ * Create a unique temporary file with the given prefix.
  *
  * This method is implemented by using cb_mktemp, but the caller
  * does not need to add the XXXXXX in the filename.
@@ -101,6 +101,18 @@ void mkdirp(const std::string& directory);
  */
 DIRUTILS_PUBLIC_API
 std::string mktemp(const std::string& prefix);
+
+/**
+ * Create a unique temporary directory with the given prefix.
+ *
+ * The caller needs to add the XXXXXX to the directory name.
+ *
+ * @param prefix The prefix to use in the directory name.
+ * @return The unique directory name
+ * @throws std::runtime_error if no "XXXXXX" is present in the name
+ */
+DIRUTILS_PUBLIC_API
+char* mkdtemp(char* prefix);
 
 /**
  * Get the name of the current working directory
