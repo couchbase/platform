@@ -129,7 +129,6 @@ TARGET_INCLUDE_DIRECTORIES(platform_headers INTERFACE
 LIST(APPEND PLATFORM_FILES
   ${CMAKE_CURRENT_BINARY_DIR}/src/config.h
   src/base64.cc
-  src/getpid.c
   src/random.cc
   src/backtrace.c
   src/byte_buffer_dump.cc

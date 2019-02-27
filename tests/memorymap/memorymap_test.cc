@@ -14,7 +14,10 @@
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
  */
+#include "config.h"
+
 #include <platform/cbassert.h>
+#include <platform/dirutils.h>
 #include <platform/memorymap.h>
 #include <platform/random.h>
 #include <stdlib.h>
@@ -24,7 +27,6 @@
 #include <iostream>
 #include <sstream>
 #include <vector>
-#include "config.h"
 
 std::string filename;
 
@@ -71,11 +73,8 @@ static void createFile() {
     Couchbase::RandomGenerator generator(false);
     generator.getBytes(buffer.data(), buffer.size());
 
-    std::stringstream fnm;
-    fnm << "memorymap-" << cb_getpid() << ".txt";
-    filename = fnm.str();
-
-    FILE* fp = fopen(fnm.str().c_str(), "w");
+    filename = cb::io::mktemp("memorymap-");
+    FILE* fp = fopen(filename.c_str(), "w");
     cb_assert(fp != nullptr);
     cb_assert(fwrite(buffer.data(), 1, buffer.size(), fp) == buffer.size());
     fclose(fp);
