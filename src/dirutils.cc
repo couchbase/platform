@@ -367,13 +367,18 @@ std::string cb::io::mktemp(const std::string& prefix) {
     return std::string {cb_mktemp(const_cast<char*>(pattern.data()))};
 }
 
-char* cb::io::mkdtemp(char* prefix) {
-    char* pattern = prefix;
-    char* ptr = strstr(prefix, "XXXXXX");
-    if (ptr == NULL) {
-        throw std::runtime_error("Need to include XXXXXX in directory name");
+std::string cb::io::mkdtemp(const std::string& prefix) {
+    static const std::string patternmask{"XXXXXX"};
+    std::string pattern = prefix;
+
+    auto index = pattern.find(patternmask);
+    char* ptr;
+    if (index == pattern.npos) {
+        index = pattern.size();
+        pattern.append(patternmask);
     }
 
+    ptr = const_cast<char*>(pattern.data()) + index;
     int searching = 1;
     auto counter = std::chrono::steady_clock::now().time_since_epoch().count();
 
@@ -382,11 +387,11 @@ char* cb::io::mkdtemp(char* prefix) {
         sprintf(ptr, "%06" PRIu64, static_cast<uint64_t>(counter) % 1000000);
 
 #ifdef WIN32
-        if (CreateDirectory(pattern, nullptr)) {
+        if (CreateDirectory(pattern.c_str(), nullptr)) {
             searching = 0;
         }
 #else
-        if (mkdir(pattern, S_IREAD | S_IWRITE | S_IEXEC) == 0) {
+        if (mkdir(pattern.c_str(), S_IREAD | S_IWRITE | S_IEXEC) == 0) {
             searching = 0;
         }
 #endif

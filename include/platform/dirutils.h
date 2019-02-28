@@ -105,14 +105,13 @@ std::string mktemp(const std::string& prefix);
 /**
  * Create a unique temporary directory with the given prefix.
  *
- * The caller needs to add the XXXXXX to the directory name.
+ * It works similar to mktemp
  *
  * @param prefix The prefix to use in the directory name.
  * @return The unique directory name
- * @throws std::runtime_error if no "XXXXXX" is present in the name
  */
 DIRUTILS_PUBLIC_API
-char* mkdtemp(char* prefix);
+std::string mkdtemp(const std::string& prefix);
 
 /**
  * Get the name of the current working directory
