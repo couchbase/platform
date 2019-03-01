@@ -15,6 +15,7 @@
  *   limitations under the License.
  */
 
+#include <platform/platform_socket.h>
 #include <platform/socket.h>
 
 #include <event2/util.h>

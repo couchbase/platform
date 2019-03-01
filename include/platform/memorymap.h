@@ -17,7 +17,7 @@
 
 #pragma once
 
-#include <platform/platform.h>
+#include <platform/platform_socket.h>
 #include <platform/sized_buffer.h>
 
 #include <cinttypes>

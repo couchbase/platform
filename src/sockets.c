@@ -15,7 +15,7 @@
  *   limitations under the License.
  */
 #include "config.h"
-#include <platform/platform.h>
+#include <platform/platform_socket.h>
 #include <stdio.h>
 
 PLATFORM_PUBLIC_API

@@ -1,6 +1,6 @@
 /* -*- Mode: C++; tab-width: 4; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /*
- *     Copyright 2017 Couchbase, Inc.
+ *     Copyright 2019 Couchbase, Inc.
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -14,7 +14,6 @@
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
  */
-#pragma once
 
 /**
  * This is a wrapping layer on top of BSD sockets to hide away the difference
@@ -22,6 +21,11 @@
  * use void etc). This allows us to hide all of the platform difference in
  * one place and not have to do #ifdef's all over the place
  */
+#pragma once
+
+#include <platform/platform.h>
+#include <platform/platform_socket.h>
+#include <platform/socket-visibility.h>
 
 #ifdef WIN32
 #include <winsock2.h>
@@ -41,9 +45,6 @@ typedef int SOCKET;
 #define INVALID_SOCKET -1
 #define SOCKETPAIR_AF AF_UNIX
 #endif
-
-#include <platform/platform.h>
-#include <platform/socket-visibility.h>
 
 #include <cerrno>
 #include <cstdint>
