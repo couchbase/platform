@@ -134,7 +134,6 @@ LIST(APPEND PLATFORM_FILES
   src/byte_buffer_dump.cc
   src/byteorder.c
   src/cb_malloc.cc
-  src/cb_mktemp.cc
   src/cb_time.cc
   src/cbassert.c
   src/checked_snprintf.cc

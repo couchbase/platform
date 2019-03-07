@@ -45,20 +45,6 @@ extern "C" {
     PLATFORM_PUBLIC_API
     int platform_set_binary_mode(FILE* fp);
 
-    /**
-     * Some of our platforms complain on not using mkstemp. Instead of
-     * having the test in all programs we're just going to use this
-     * method instead.
-     *
-     * @param pattern The input pattern for the filename. It should end
-     *                with six X's that will be replaced with the unique
-     *                filename. The file will be created.
-     * @return pattern on success, NULL upon failure. Check errno for
-     *                 the reason.
-     */
-    PLATFORM_PUBLIC_API
-    char* cb_mktemp(char* pattern);
-
 #ifdef __cplusplus
 }
 #endif

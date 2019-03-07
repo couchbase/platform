@@ -25,6 +25,7 @@
 
 #include <dirent.h>
 #include <dlfcn.h>
+#include <fcntl.h>
 #include <unistd.h>
 
 #endif
@@ -360,11 +361,43 @@ void cb::io::mkdirp(const std::string& directory) {
 std::string cb::io::mktemp(const std::string& prefix) {
     static const std::string patternmask{"XXXXXX"};
     std::string pattern = prefix;
-    if (pattern.find(patternmask) == pattern.npos) {
+
+    auto index = pattern.find(patternmask);
+    if (index == pattern.npos) {
+        index = pattern.size();
         pattern.append(patternmask);
     }
 
-    return std::string {cb_mktemp(const_cast<char*>(pattern.data()))};
+    auto* ptr = const_cast<char*>(pattern.data()) + index;
+    auto counter = std::chrono::steady_clock::now().time_since_epoch().count();
+
+    do {
+        ++counter;
+        sprintf(ptr, "%06" PRIu64, static_cast<uint64_t>(counter) % 1000000);
+
+#ifdef WIN32
+        HANDLE handle = CreateFile(pattern.c_str(),
+                                   GENERIC_READ | GENERIC_WRITE,
+                                   0,
+                                   NULL,
+                                   CREATE_NEW,
+                                   FILE_ATTRIBUTE_NORMAL,
+                                   NULL);
+        if (handle != INVALID_HANDLE_VALUE) {
+            CloseHandle(handle);
+            return pattern;
+        }
+#else
+        int fd = open(pattern.c_str(),
+                      O_WRONLY | O_EXCL | O_CREAT,
+                      S_IRUSR | S_IWUSR);
+        if (fd != -1) {
+            close(fd);
+            return pattern;
+        }
+#endif
+
+    } while (true);
 }
 
 std::string cb::io::mkdtemp(const std::string& prefix) {
