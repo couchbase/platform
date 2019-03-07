@@ -310,6 +310,11 @@ public:
         return bins.end();
     }
 
+    size_t getMemFootPrint() const {
+        return sizeof(Histogram) + ((sizeof(bin_type) +
+                sizeof(value_type)) * bins.size());
+    }
+
 private:
 
     template<typename G>
