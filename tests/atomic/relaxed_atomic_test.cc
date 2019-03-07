@@ -23,7 +23,7 @@
 
 // Test that we can use RelaxedAtomic<T> in STL containers.
 TEST(RelaxedAtomicTest, STLContainer) {
-    std::vector<Couchbase::RelaxedAtomic<uint64_t>> vec;
+    std::vector<cb::RelaxedAtomic<uint64_t>> vec;
 
     // Check we can populate a std::vector with assign()
     vec.assign(3, 1);
@@ -37,7 +37,7 @@ TEST(RelaxedAtomicTest, STLContainer) {
 }
 
 TEST(RelaxedAtomicTest, setIfSmaller) {
-    Couchbase::RelaxedAtomic<uint8_t> val;
+    cb::RelaxedAtomic<uint8_t> val;
     val.store(10);
 
     // Check we don't store larger numbers
@@ -48,43 +48,43 @@ TEST(RelaxedAtomicTest, setIfSmaller) {
     val.setIfSmaller(5);
     EXPECT_EQ(5u, val.load());
 
-    Couchbase::RelaxedAtomic<uint8_t> smaller;
+    cb::RelaxedAtomic<uint8_t> smaller;
     smaller.store(3);
 
-    // Check we can correctly store from another Couchbase::RelaxedAtomic
+    // Check we can correctly store from another cb::RelaxedAtomic
     val.setIfSmaller(smaller);
     EXPECT_EQ(3u, val.load());
 }
 
 TEST(RelaxedAtomicTest, setAdd) {
-    Couchbase::RelaxedAtomic<uint8_t> val;
+    cb::RelaxedAtomic<uint8_t> val;
     val.store(5);
 
     // Check we can add to the value
     val.setAdd(10);
     EXPECT_EQ(15u, val.load());
 
-    Couchbase::RelaxedAtomic<uint8_t> add;
+    cb::RelaxedAtomic<uint8_t> add;
     add.store(5);
 
-    // Check we can add from another Couchbase::RelaxedAtomic
+    // Check we can add from another cb::RelaxedAtomic
     val.setAdd(add);
     EXPECT_EQ(20u, val.load());
 }
 
 TEST(RelaxedAtomicTest, setSub) {
-    Couchbase::RelaxedAtomic<uint8_t> val;
+    cb::RelaxedAtomic<uint8_t> val;
     val.store(10);
 
     // Check we can subtract from the value
     val.setSub(5);
     EXPECT_EQ(5u, val.load());
 
-    Couchbase::RelaxedAtomic<uint8_t> sub;
+    cb::RelaxedAtomic<uint8_t> sub;
     sub.store(2);
 
     // Check we can subtract from the value from another
-    // Couchbase::RelaxedAtomic
+    // cb::RelaxedAtomic
     val.setSub(sub);
     EXPECT_EQ(3u, val.load());
 }

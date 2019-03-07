@@ -119,7 +119,7 @@ private:
         return value >= _start && (value < _end || value == Limits<T>::max());
     }
 
-    Couchbase::RelaxedAtomic<size_t> _count;
+    cb::RelaxedAtomic<size_t> _count;
     T _start;
     T _end;
 };
