@@ -18,6 +18,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <cstdio>
 #include <memory>
 #include <string>
 #include <vector>
@@ -167,6 +168,15 @@ inline void sanitizePath(std::string& path) {
  */
 DIRUTILS_PUBLIC_API
 std::string loadFile(const std::string& name);
+
+/**
+ * Set the file mode to BINARY
+ *
+ * @param fp the file stream to update
+ * @throws std::system_error if an error occurs
+ */
+DIRUTILS_PUBLIC_API
+void setBinaryMode(FILE* fp);
 
 /**
  * A representation for a dynamic loaded library

@@ -174,12 +174,6 @@ bool is_thread_name_supported(void)
 #endif
 }
 
-int platform_set_binary_mode(FILE *fp)
-{
-    (void)fp;
-    return 0;
-}
-
 void cb_rw_lock_initialize(cb_rwlock_t *rw)
 {
     int rv = pthread_rwlock_init(rw, NULL);

@@ -26,22 +26,5 @@
 
 #ifdef WIN32
 #include <winsock2.h>
-#endif
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#ifdef WIN32
-    typedef long ssize_t;
+typedef long ssize_t;
 #endif // WIN32
-
-    /*
-     * Set mode to binary
-     */
-    PLATFORM_PUBLIC_API
-    int platform_set_binary_mode(FILE* fp);
-
-#ifdef __cplusplus
-}
-#endif

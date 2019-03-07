@@ -172,12 +172,6 @@ int gettimeofday(struct timeval *tv, void *tz)
 }
 
 PLATFORM_PUBLIC_API
-int platform_set_binary_mode(FILE *fp)
-{
-    return _setmode(_fileno(fp), _O_BINARY);
-}
-
-PLATFORM_PUBLIC_API
 void cb_rw_lock_initialize(cb_rwlock_t *rw)
 {
     InitializeSRWLock(rw);

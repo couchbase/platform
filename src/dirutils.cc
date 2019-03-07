@@ -21,11 +21,11 @@
 #ifdef _MSC_VER
 #include <direct.h>
 #define rmdir _rmdir
+#include <io.h> // _setmode
 #else
 
 #include <dirent.h>
 #include <dlfcn.h>
-#include <fcntl.h>
 #include <unistd.h>
 
 #endif
@@ -33,12 +33,12 @@
 #include <platform/memorymap.h>
 #include <platform/strerror.h>
 
-#include <sys/stat.h>
-
-#include <chrono>
-#include <limits>
+#include <fcntl.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/stat.h>
+#include <chrono>
+#include <limits>
 #include <system_error>
 
 static std::string split(const std::string& input, bool directory) {
@@ -522,6 +522,17 @@ DIRUTILS_PUBLIC_API
 std::string cb::io::loadFile(const std::string& name) {
     MemoryMappedFile map(name.c_str(), MemoryMappedFile::Mode::RDONLY);
     return to_string(map.content());
+}
+
+void cb::io::setBinaryMode(FILE* fp) {
+#ifdef WIN32
+    if (_setmode(_fileno(fp), _O_BINARY) == -1) {
+        throw std::system_error(
+                errno, std::system_category(), "cb::io::setBinaryMode");
+    }
+#else
+    (void)fp;
+#endif
 }
 
 namespace cb {
