@@ -34,9 +34,6 @@ extern "C" {
 
 #ifdef WIN32
     typedef long ssize_t;
-#define DIRECTORY_SEPARATOR_CHARACTER '\\'
-#else
-#define DIRECTORY_SEPARATOR_CHARACTER '/'
 #endif // WIN32
 
     /*

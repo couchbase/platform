@@ -26,6 +26,13 @@
 
 namespace cb {
 namespace io {
+
+#ifdef WIN32
+const char DirectorySeparator{'\\'};
+#else
+const char DirectorySeparator{'/'};
+#endif
+
 /**
  * Return the directory part of an absolute path
  */
