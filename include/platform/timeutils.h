@@ -16,7 +16,7 @@
  */
 #pragma once
 
-#include <platform/platform.h>
+#include <platform/visibility.h>
 #include <chrono>
 #include <string>
 
@@ -35,7 +35,7 @@ namespace cb {
  * @return a string representation of the timestamp
  */
 PLATFORM_PUBLIC_API
-std::string time2text(const std::chrono::nanoseconds time);
+std::string time2text(std::chrono::nanoseconds time);
 
 /**
  * Try to parse the string. It should be of the following format:

@@ -15,7 +15,6 @@
  *   limitations under the License.
  */
 #include "config.h"
-#include <platform/platform.h>
 #include <platform/strerror.h>
 
 #ifdef WIN32

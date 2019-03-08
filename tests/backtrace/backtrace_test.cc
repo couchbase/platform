@@ -21,12 +21,12 @@
 
 #include "config.h"
 
-#include <cstring>
+#include <gtest/gtest.h>
+#include <platform/backtrace.h>
+#include <platform/cbassert.h>
 #include <stdio.h>
 #include <string.h>
-#include <platform/backtrace.h>
-
-#include <gtest/gtest.h>
+#include <cstring>
 
 #ifdef WIN32
     #define NOINLINE __declspec(noinline)

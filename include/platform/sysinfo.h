@@ -16,7 +16,8 @@
  */
 #pragma once
 
-#include <platform/platform.h>
+#include <platform/visibility.h>
+#include <cstddef>
 
 namespace cb {
 

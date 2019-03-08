@@ -21,7 +21,6 @@
 // hardware versions can be checked.
 //
 
-#include <platform/platform.h>
 #include <platform/timeutils.h>
 
 #include <stdint.h>

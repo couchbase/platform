@@ -16,11 +16,12 @@
  */
 
 #include <platform/memorymap.h>
-#include <platform/platform.h>
 #include <stdexcept>
 #include <system_error>
 
-#ifndef WIN32
+#ifdef WIN32
+#include <Windows.h>
+#else
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <sys/stat.h>

@@ -36,7 +36,8 @@
 
 #include "config.h"
 
-#include <platform/platform.h>
+#include <platform/dynamic.h>
+#include <platform/visibility.h>
 
 #include <stdlib.h>
 

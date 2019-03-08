@@ -17,7 +17,7 @@
 
 #pragma once
 
-#include <platform/platform.h>
+#include <platform/visibility.h>
 #include <relaxed_atomic.h>
 
 #include <algorithm>

@@ -16,7 +16,6 @@
  */
 #include "config.h"
 
-#include <platform/platform.h>
 #include <platform/random.h>
 #include <platform/strerror.h>
 

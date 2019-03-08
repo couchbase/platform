@@ -16,8 +16,20 @@
  */
 #pragma once
 
-#include <platform/platform.h>
+#include <platform/visibility.h>
 #include <string>
+
+#ifdef WIN32
+// Need DWORD
+#ifndef WIN32_LEAN_AND_MEAN
+#define DO_UNDEF_WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <Windows.h>
+#ifdef DO_UNDEF_WIN32_LEAN_AND_MEAN
+#undef WIN32_LEAN_AND_MEAN
+#endif
+#endif
 
 /**
  * Get a textual string of the current system error code (GetLastError

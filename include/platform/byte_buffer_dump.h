@@ -16,9 +16,9 @@
  */
 #pragma once
 
-#include <iosfwd>
-#include <platform/platform.h>
 #include <platform/sized_buffer.h>
+#include <platform/visibility.h>
+#include <iosfwd>
 
 PLATFORM_PUBLIC_API
 std::ostream& operator<<(std::ostream& out, const cb::byte_buffer& buffer);

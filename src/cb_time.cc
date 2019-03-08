@@ -17,7 +17,12 @@
 
 #include "config.h"
 
+#include <platform/platform_time.h>
 #include <atomic>
+#include <cerrno>
+#include <cstdio>
+#include <cstring>
+
 #if defined(__APPLE__)
 #include <mach/mach_time.h>
 #endif
@@ -25,11 +30,6 @@
 #if defined(WIN32)
 #include <Windows.h>
 #endif
-
-#include <errno.h>
-#include <string.h>
-
-#include <platform/platform_time.h>
 
 static std::atomic_int timeofday_offset { 0 };
 static std::atomic_uint uptime_offset{0};

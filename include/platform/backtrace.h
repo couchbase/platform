@@ -15,6 +15,8 @@
  *   limitations under the License.
  */
 
+#include <stdio.h>
+
 #ifdef __cplusplus
 extern "C" {
 #else

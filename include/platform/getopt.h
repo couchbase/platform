@@ -22,7 +22,7 @@
  * to test ;)
  */
 
-#include <platform/platform.h>
+#include <platform/visibility.h>
 
 namespace cb {
 namespace getopt {

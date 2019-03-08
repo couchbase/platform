@@ -16,8 +16,8 @@
  */
 #pragma once
 
-#include <platform/platform.h>
 #include <platform/sized_buffer.h>
+#include <platform/visibility.h>
 
 #include <string>
 #include <vector>

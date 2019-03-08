@@ -49,4 +49,3 @@ typedef long long int64_t;
 #include <stdlib.h>
 #include <sys/types.h>
 
-#include <platform/platform.h>

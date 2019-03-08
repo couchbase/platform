@@ -4,7 +4,6 @@
 if (NOT WIN32)
    add_executable(platform-interrupt-test
                   ${Platform_SOURCE_DIR}/include/platform/interrupt.h
-                  ${Platform_SOURCE_DIR}/include/platform/platform.h
                   interrupt_test.cc)
    target_link_libraries(platform-interrupt-test platform)
    add_test(platform-interrupt-test

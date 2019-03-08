@@ -16,7 +16,7 @@
  */
 #pragma once
 
-#include <platform/platform.h>
+#include <platform/visibility.h>
 
 #ifdef __cplusplus
 extern "C" {

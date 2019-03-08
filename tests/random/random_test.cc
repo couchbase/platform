@@ -18,7 +18,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <platform/platform.h>
 #include <platform/random.h>
 
 using namespace Couchbase;

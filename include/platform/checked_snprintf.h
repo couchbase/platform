@@ -16,8 +16,10 @@
  */
 #pragma once
 
+#include <platform/dynamic.h>
+#include <platform/visibility.h>
 #include <cstdarg>
-#include <platform/platform.h>
+#include <cstddef>
 
 /**
  * This is a checked version of snprintf that will throw exceptions. It

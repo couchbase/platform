@@ -19,8 +19,6 @@
 
 #include <stdarg.h>
 
-#include <platform/platform.h>
-
 /*
 * We have a fair amount of use of this file in our code base.
 * Let's just make a dummy file to aviod a lot of #ifdefs

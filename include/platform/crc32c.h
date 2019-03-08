@@ -28,9 +28,9 @@
 //
 
 #pragma once
-#include <stdint.h>
+#include <platform/visibility.h>
 #include <stddef.h>
-#include <platform/platform.h>
+#include <stdint.h>
 
 //
 // This module requires X86 for the HW assisted version of the function.

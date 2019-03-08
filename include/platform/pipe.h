@@ -18,7 +18,6 @@
 
 #include <nlohmann/json.hpp>
 #include <platform/cb_malloc.h>
-#include <platform/platform.h>
 #include <platform/sized_buffer.h>
 
 #include <algorithm>
@@ -28,6 +27,10 @@
 #include <iosfwd>
 #include <memory>
 #include <stdexcept>
+
+#ifdef WIN32
+typedef long ssize_t;
+#endif
 
 namespace cb {
 

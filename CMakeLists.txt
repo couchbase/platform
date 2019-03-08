@@ -168,7 +168,6 @@ LIST(APPEND PLATFORM_FILES
   include/platform/interrupt.h
   include/platform/memorymap.h
   include/platform/non_negative_counter.h
-  include/platform/platform.h
   include/platform/platform_socket.h
   include/platform/platform_thread.h
   include/platform/platform_time.h
