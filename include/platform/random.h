@@ -15,84 +15,24 @@
  *   limitations under the License.
  */
 #pragma once
-#ifdef WIN32
-#include <windows.h>
-#include <wincrypt.h>
-#endif
 
 #include <platform/visibility.h>
-#include <stdint.h>
+#include <cstddef>
+#include <cstdint>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+namespace cb {
+class RandomGeneratorProvider;
 
-#ifdef WIN32
-    typedef HCRYPTPROV cb_rand_t;
-#else
-    typedef int cb_rand_t;
-#endif
-    /*
-     * Upon errors windows users should look at GetLastError, and
-     * others should look at errno if they want more detailed
-     * information.
-     */
+/**
+ * The RandomGenerator use windows crypto framework on windows and
+ * /dev/urandom on the other platforms in order to get random data.
+ */
+class PLATFORM_PUBLIC_API RandomGenerator {
+public:
+    RandomGenerator();
 
-    /**
-     * Open a random generator
-     *
-     * @param handle pointer to the handle to open
-     * @param return 0 on success -1 on failure
-     */
-    PLATFORM_PUBLIC_API
-    int cb_rand_open(cb_rand_t *handle);
+    uint64_t next();
 
-    /**
-     * Get random bytes from the random generator
-     *
-     * @param handle the handle used to read data from
-     * @param dest where to store the random bytes
-     * @param nbytes the number of bytes to get
-     * @param return 0 on success -1 on failure
-     */
-    PLATFORM_PUBLIC_API
-    int cb_rand_get(cb_rand_t handle, void *dest, size_t nbytes);
-
-    /**
-     * Close a random generator
-     *
-     * @param handle The random generator to close
-     */
-    PLATFORM_PUBLIC_API
-    int cb_rand_close(cb_rand_t handle);
-
-#ifdef __cplusplus
-}
-
-namespace Couchbase {
-    class RandomGeneratorProvider;
-
-    class RandomGenerator {
-    public:
-        PLATFORM_PUBLIC_API
-        RandomGenerator(bool);
-
-        PLATFORM_PUBLIC_API
-        ~RandomGenerator();
-
-        PLATFORM_PUBLIC_API
-        uint64_t next(void);
-
-        PLATFORM_PUBLIC_API
-        bool getBytes(void *dest, size_t size);
-
-        PLATFORM_PUBLIC_API
-        const RandomGeneratorProvider *getProvider(void) const;
-
-    private:
-        bool shared;
-        RandomGeneratorProvider *provider;
-    };
-}
-
-#endif
+    bool getBytes(void* dest, size_t size);
+};
+} // namespace cb

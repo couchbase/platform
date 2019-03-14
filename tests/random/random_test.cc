@@ -14,121 +14,53 @@
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
  */
-#include <iostream>
-#include <stdlib.h>
-#include <string.h>
-
 #include <platform/random.h>
+#include <cstdlib>
+#include <cstring>
+#include <iostream>
+#include <memory>
 
-using namespace Couchbase;
-using namespace std;
+using cb::RandomGenerator;
+using std::cerr;
+using std::endl;
 
-static int test_c_interface(void) {
-    cb_rand_t r;
+static int basic_rand_tests(RandomGenerator& r1, RandomGenerator& r2) {
+    uint64_t v1 = r1.next();
+    uint64_t v2 = r2.next();
+    if (v1 == v2) {
+        cerr << "I did not expect the random generators to return the"
+             << " same value" << endl;
+        return -1;
+    }
+
     char buffer[1024];
-    size_t ii;
-
-    if (cb_rand_open(&r) == -1) {
-        cerr << "Failed to initialize random generator" << endl;
-        return -1;
-    }
     memset(buffer, 0, sizeof(buffer));
-    if (cb_rand_get(r, buffer, sizeof(buffer)) == -1) {
-        cerr << "Failed to read random bytes" << endl;
-        cb_rand_close(r);
-        return -1;
-    }
+    if (r1.getBytes(buffer, sizeof(buffer))) {
+        size_t ii;
 
-    /* In theory it may return 1k of 0 so we may have a false positive */
-    for (ii = 0; ii < (size_t)sizeof(buffer); ++ii) {
-        if (buffer[ii] != 0) {
-            break;
+        for (ii = 0; ii < (size_t)sizeof(buffer); ++ii) {
+            if (buffer[ii] != 0) {
+                break;
+            }
         }
-    }
-    if (ii == (size_t)sizeof(buffer)) {
-        cerr << "I got 1k of 0 (or it isn't working)" << endl;
-        cb_rand_close(r);
-        return -1;
-    }
 
-    if (cb_rand_close(r) == -1) {
-        cerr << "rand close failed" << endl;
-        return -1;
+        if (ii == (size_t)sizeof(buffer)) {
+            cerr << "I got 1k of 0 (or it isn't working)" << endl;
+
+            return -1;
+        }
     }
 
     return 0;
 }
 
-static int basic_rand_tests(RandomGenerator *r1,  RandomGenerator *r2) {
-   uint64_t v1 = r1->next();
-   uint64_t v2 = r2->next();
-   if (v1 == v2) {
-       cerr << "I did not expect the random generators to return the"
-                 << " same value" << endl;
-       return -1;
-   }
+int main() {
+    auto r1 = std::make_unique<RandomGenerator>();
+    auto r2 = std::make_unique<RandomGenerator>();
 
-   char buffer[1024];
-   memset(buffer, 0, sizeof(buffer));
-   if (r1->getBytes(buffer, sizeof(buffer))) {
-       size_t ii;
+    if (basic_rand_tests(*r1, *r2) != 0) {
+        return -1;
+    }
 
-       for (ii = 0; ii < (size_t)sizeof(buffer); ++ii) {
-           if (buffer[ii] != 0) {
-               break;
-           }
-       }
-
-       if (ii == (size_t)sizeof(buffer)) {
-           cerr << "I got 1k of 0 (or it isn't working)" << endl;
-
-           return -1;
-       }
-   }
-
-   return 0;
-}
-
-static int test_cc_interface(void) {
-   RandomGenerator *r1 = new RandomGenerator(false);
-   RandomGenerator *r2 = new RandomGenerator(false);
-
-   if (r1->getProvider() == r2->getProvider()) {
-       cerr << "The random generators should not share a provider"
-                 << endl;
-       return -1;
-   }
-
-   if (basic_rand_tests(r1, r2) != 0) {
-       return -1;
-   }
-
-   delete r1;
-   delete r2;
-
-   r1 = new RandomGenerator(true);
-   r2 = new RandomGenerator(true);
-
-   if (r1->getProvider() != r2->getProvider()) {
-       cerr << "The shared random generators should share a provider"
-                 << endl;
-       return -1;
-   }
-
-   if (basic_rand_tests(r1, r2) != 0) {
-       return -1;
-   }
-
-   delete r1;
-   delete r2;
-
-   return 0;
-}
-
-int main(int argc, char **argv)
-{
-   int c_error = test_c_interface();
-   int cc_error = test_cc_interface();
-
-   return (c_error== 0 && cc_error == 0) ? 0 : -1;
+    return 0;
 }

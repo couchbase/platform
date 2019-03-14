@@ -75,14 +75,13 @@ IF (WIN32)
    ADD_DEFINITIONS(-D_CRT_SECURE_NO_WARNINGS)
    SET(PLATFORM_FILES src/sockets.c
                       src/cb_win32.cc
-                      src/winrandom.c
                       include/win32/getopt.h
                       include/win32/strings.h
                       include/win32/unistd.h)
    ADD_DEFINITIONS(-DHAVE_BACKTRACE_SUPPORT=1)
    LIST(APPEND PLATFORM_LIBRARIES DbgHelp.lib)
 ELSE (WIN32)
-   SET(PLATFORM_FILES src/cb_pthreads.cc src/urandom.c)
+   SET(PLATFORM_FILES src/cb_pthreads.cc)
    SET_SOURCE_FILES_PROPERTIES(src/crc32c_sse4_2.cc PROPERTIES COMPILE_FLAGS -msse4.2)
    LIST(APPEND PLATFORM_LIBRARIES "pthread")
 

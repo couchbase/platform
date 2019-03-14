@@ -70,7 +70,7 @@ static void testSharedMapping() {
 static void createFile() {
     std::vector<uint8_t> buffer;
     buffer.resize(16 * 1024);
-    Couchbase::RandomGenerator generator(false);
+    cb::RandomGenerator generator;
     generator.getBytes(buffer.data(), buffer.size());
 
     filename = cb::io::mktemp("memorymap-");

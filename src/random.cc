@@ -17,83 +17,95 @@
 #include "config.h"
 
 #include <platform/random.h>
-#include <platform/strerror.h>
 
+#include <cerrno>
 #include <chrono>
+#include <memory>
 #include <mutex>
-#include <sstream>
-#include <stdexcept>
+#include <system_error>
 
-namespace Couchbase {
-   class RandomGeneratorProvider {
+#ifdef WIN32
+#include <wincrypt.h>
+#include <windows.h>
+#else
+#include <fcntl.h>
+#endif
 
-   public:
-      RandomGeneratorProvider() {
-         if (cb_rand_open(&provider) == -1) {
-            std::stringstream ss;
-            std::string reason = cb_strerror();
-            ss << "Failed to initialize random generator: " << reason;
-            throw std::runtime_error(ss.str());
-         }
-      }
+namespace cb {
+class RandomGeneratorProvider {
+public:
+    RandomGeneratorProvider() {
+#ifdef WIN32
+        if (!CryptAcquireContext(&handle,
+                                 NULL,
+                                 NULL,
+                                 PROV_RSA_FULL,
+                                 CRYPT_VERIFYCONTEXT | CRYPT_SILENT)) {
+            throw std::system_error(int(GetLastError()),
+                                    std::system_category(),
+                                    "RandomGeneratorProvider::Failed to "
+                                    "initialize random generator");
+        }
+#else
+        if ((handle = open("/dev/urandom", O_RDONLY)) == -1) {
+            throw std::system_error(errno,
+                                    std::system_category(),
+                                    "RandomGeneratorProvider::Failed to "
+                                    "initialize random generator");
+        }
+#endif
+    }
 
-      virtual ~RandomGeneratorProvider() {
-         (void)cb_rand_close(provider);
-      }
+    virtual ~RandomGeneratorProvider() {
+#ifdef WIN32
+        CryptReleaseContext(handle, 0);
+#else
+        close(handle);
+#endif
+    }
 
-      virtual bool getBytes(void *dest, size_t size) {
-         return cb_rand_get(provider, dest, size) == 0;
-      }
+    bool getBytes(void* dest, size_t size) {
+        std::lock_guard<std::mutex> lock(mutex);
+#ifdef WIN32
+        return CryptGenRandom(handle, (DWORD)size, static_cast<BYTE*>(dest));
+#else
+        return size_t(read(handle, dest, size)) == size;
+#endif
+    }
 
-   protected:
-      cb_rand_t provider;
-   };
+protected:
+#ifdef WIN32
+    HCRYPTPROV handle{};
+#else
+    int handle = -1;
+#endif
+    std::mutex mutex;
+};
 
-   class SharedRandomGeneratorProvider : public RandomGeneratorProvider {
-   public:
-      virtual bool getBytes(void *dest, size_t size) {
-         std::lock_guard<std::mutex> lock(mutex);
-         return RandomGeneratorProvider::getBytes(dest, size);
-      }
+std::mutex shared_provider_lock;
+std::unique_ptr<RandomGeneratorProvider> shared_provider;
 
-   private:
-      std::mutex mutex;
-   };
+RandomGenerator::RandomGenerator() {
+    if (!shared_provider) {
+        // This might be the first one, lets lock and create
+        std::lock_guard<std::mutex> guard(shared_provider_lock);
+        if (!shared_provider) {
+            shared_provider = std::make_unique<RandomGeneratorProvider>();
+        }
+    }
 }
 
-PLATFORM_PUBLIC_API
-Couchbase::RandomGenerator::RandomGenerator(bool s) : shared(s) {
-   if (shared) {
-      static SharedRandomGeneratorProvider singleton_provider;
-      provider = &singleton_provider;
-   } else {
-      provider = new RandomGeneratorProvider();
-   }
+uint64_t RandomGenerator::next() {
+    uint64_t ret;
+    if (getBytes(&ret, sizeof(ret))) {
+        return ret;
+    }
+
+    return std::chrono::steady_clock::now().time_since_epoch().count();
 }
 
-PLATFORM_PUBLIC_API
-Couchbase::RandomGenerator::~RandomGenerator() {
-   if (!shared) {
-      delete provider;
-   }
+bool RandomGenerator::getBytes(void* dest, size_t size) {
+    return shared_provider->getBytes(dest, size);
 }
 
-PLATFORM_PUBLIC_API
-uint64_t Couchbase::RandomGenerator::next(void) {
-   uint64_t ret;
-   if (provider->getBytes(&ret, sizeof(ret))) {
-      return ret;
-   }
-
-   return std::chrono::steady_clock::now().time_since_epoch().count();
-}
-
-PLATFORM_PUBLIC_API
-bool Couchbase::RandomGenerator::getBytes(void *dest, size_t size) {
-   return provider->getBytes(dest, size);
-}
-
-PLATFORM_PUBLIC_API
-const Couchbase::RandomGeneratorProvider *Couchbase::RandomGenerator::getProvider(void) const {
-   return provider;
-}
+} // namespace Couchbase
