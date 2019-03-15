@@ -25,10 +25,14 @@
 #include <system_error>
 
 #ifdef WIN32
-#include <wincrypt.h>
+// We need to include windows.h _before_ wincrypt.h
+#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+
+#include <wincrypt.h>
 #else
 #include <fcntl.h>
+#include <unistd.h>
 #endif
 
 namespace cb {

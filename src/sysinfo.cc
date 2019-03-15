@@ -17,6 +17,11 @@
 
 #include "config.h"
 
+#ifdef WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#endif
+
 #ifdef HAVE_CPUID_H
 #include <cpuid.h>
 #endif
@@ -24,6 +29,7 @@
 #include <platform/sysinfo.h>
 #include <algorithm>
 #include <cctype>
+#include <cstring>
 #include <stdexcept>
 #include <system_error>
 

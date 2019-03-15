@@ -17,6 +17,12 @@
 
 #include "config.h"
 
+#ifdef WIN32
+#include <winsock2.h>
+#else
+#include <arpa/inet.h>
+#endif
+
 #include <platform/cb_malloc.h>
 #include <platform/compress.h>
 #include <snappy.h>

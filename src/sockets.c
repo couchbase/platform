@@ -17,6 +17,7 @@
 #include "config.h"
 #include <platform/platform_socket.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 PLATFORM_PUBLIC_API
 void cb_initialize_sockets(void)

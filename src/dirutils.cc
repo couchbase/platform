@@ -26,6 +26,7 @@
 
 #include <dirent.h>
 #include <dlfcn.h>
+#include <sys/resource.h>
 #include <unistd.h>
 
 #endif

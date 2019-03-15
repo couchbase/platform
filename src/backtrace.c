@@ -17,10 +17,13 @@
 
 #include "config.h"
 
+#include <inttypes.h>
 #include <platform/backtrace.h>
 #include <strings.h>
 
 #if defined(WIN32) && defined(HAVE_BACKTRACE_SUPPORT)
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
 #include <Dbghelp.h>
 #endif
 
