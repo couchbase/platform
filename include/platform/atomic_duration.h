@@ -17,8 +17,6 @@
 
 #pragma once
 
-#include "config.h"
-
 #include <atomic>
 #include <chrono>
 
@@ -103,4 +101,4 @@ public:
 private:
     std::atomic<std::chrono::steady_clock::duration::rep> value;
 };
-}
+} // namespace cb
