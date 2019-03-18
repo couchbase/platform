@@ -29,6 +29,7 @@
 #include <platform/sysinfo.h>
 #include <algorithm>
 #include <cctype>
+#include <cstdlib>
 #include <cstring>
 #include <stdexcept>
 #include <system_error>
