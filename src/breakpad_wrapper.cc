@@ -118,7 +118,7 @@ bool breakpad_write_minidump(void) {
 
 PLATFORM_PUBLIC_API
 uintptr_t breakpad_get_write_minidump_addr() {
-    return (uintptr_t)NULL;
+    return 0;
 }
 
 #endif /* defined(HAVE_BREAKPAD) */
