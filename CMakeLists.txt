@@ -180,7 +180,6 @@ LIST(APPEND PLATFORM_FILES
   include/platform/base64.h
   include/platform/bitset.h
   include/platform/byte_buffer_dump.h
-  include/platform/cacheline_padded.h
   include/platform/cb_malloc.h
   include/platform/cbassert.h
   include/platform/checked_snprintf.h
