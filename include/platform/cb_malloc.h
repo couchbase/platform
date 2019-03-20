@@ -34,8 +34,6 @@
 
 #pragma once
 
-#include "config.h"
-
 #include <platform/dynamic.h>
 #include <platform/visibility.h>
 

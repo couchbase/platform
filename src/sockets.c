@@ -14,7 +14,6 @@
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
  */
-#include "config.h"
 #include <platform/platform_socket.h>
 #include <stdio.h>
 #include <stdlib.h>

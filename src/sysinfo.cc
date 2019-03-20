@@ -14,9 +14,6 @@
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
  */
-
-#include "config.h"
-
 #ifdef WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>

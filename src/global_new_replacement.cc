@@ -47,8 +47,6 @@
  * https://github.com/jemalloc/jemalloc/commit/2319152d9f5d9b33eebc36a50ccf4239f31c1ad9
  */
 
-#include "config.h"
-
 #include <platform/cb_malloc.h>
 
 #include <cstdlib>

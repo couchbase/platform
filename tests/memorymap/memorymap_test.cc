@@ -14,8 +14,6 @@
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
  */
-#include "config.h"
-
 #include <platform/cbassert.h>
 #include <platform/dirutils.h>
 #include <platform/memorymap.h>

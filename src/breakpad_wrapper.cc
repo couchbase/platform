@@ -20,8 +20,6 @@
 * Breakpad.
 */
 
-#include "config.h"
-
 #include <breakpad_wrapper/breakpad_wrapper.h>
 
 #if defined(HAVE_BREAKPAD)

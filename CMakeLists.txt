@@ -48,8 +48,34 @@ CMAKE_PUSH_CHECK_STATE(RESET)
 
 CHECK_SYMBOL_EXISTS(htonll arpa/inet.h CB_DONT_NEED_BYTEORDER)
 CHECK_INCLUDE_FILE(cpuid.h HAVE_CPUID_H)
-CONFIGURE_FILE (${CMAKE_CURRENT_SOURCE_DIR}/src/config.cmake.h
-                ${CMAKE_CURRENT_BINARY_DIR}/src/config.h)
+
+if (HAVE_BACKTRACE)
+  add_definitions(-DHAVE_BACKTRACE=1)
+endif()
+
+if (HAVE_DLADDR)
+  add_definitions(-DHAVE_DLADDR=1)
+endif()
+
+if (HAVE_PTHREAD_SETNAME_NP)
+  add_definitions(-DHAVE_PTHREAD_SETNAME_NP=1)
+endif()
+
+if (HAVE_PTHREAD_GETNAME_NP)
+  add_definitions(-DHAVE_PTHREAD_GETNAME_NP=1)
+endif()
+
+if (HAVE_SCHED_GETAFFINITY)
+  add_definitions(-DHAVE_SCHED_GETAFFINITY=1)
+endif()
+
+if (HAVE_SCHED_GETCPU)
+  add_definitions(-DHAVE_SCHED_GETCPU=1)
+endif()
+
+if (HAVE_CPUID_H)
+  add_definitions(-DHAVE_CPUID_H=1)
+endif()
 
 CONFIGURE_FILE (${CMAKE_CURRENT_SOURCE_DIR}/include/platform/dynamic.in.h
                 ${CMAKE_CURRENT_BINARY_DIR}/include/platform/dynamic.h)
@@ -97,6 +123,7 @@ IF (NOT DEFINED COUCHBASE_NETWORK_LIBS)
    IF (WIN32)
       SET(COUCHBASE_NETWORK_LIBS "Ws2_32")
    ELSEIF ("${CMAKE_SYSTEM_NAME}" STREQUAL "SunOS")
+      add_definitions(-D_POSIX_PTHREAD_SEMANTICS=1)
       SET(COUCHBASE_NETWORK_LIBS socket nsl)
    ENDIF (WIN32)
 ENDIF (NOT DEFINED COUCHBASE_NETWORK_LIBS)
@@ -119,15 +146,10 @@ endif()
 ADD_LIBRARY(platform_headers INTERFACE)
 TARGET_INCLUDE_DIRECTORIES(platform_headers INTERFACE
         include
-        # "config.h" (which resides in ${Platform_BINARY_DIR}/src) is needed
-        # indirectly by any targets linking against platform_headers (because
-        # a number of platform's public headers include it).
-        ${Platform_BINARY_DIR}/src
         ${Platform_BINARY_DIR}/include
         ${FOLLY_INCLUDE_DIR})
 
 LIST(APPEND PLATFORM_FILES
-  ${CMAKE_CURRENT_BINARY_DIR}/src/config.h
   src/base64.cc
   src/random.cc
   src/backtrace.c

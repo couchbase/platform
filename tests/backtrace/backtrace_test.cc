@@ -18,9 +18,6 @@
 /* Test for print_backtrace - Setup a call stack of (at least) 3 frames,
  * then call print_backtrace; verifying that we get at least 3 frames.
  */
-
-#include "config.h"
-
 #include <folly/portability/GTest.h>
 #include <platform/backtrace.h>
 #include <platform/cbassert.h>
