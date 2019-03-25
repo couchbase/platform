@@ -87,12 +87,3 @@ template class PLATFORM_PUBLIC_API Histogram<uint32_t>;
 template class PLATFORM_PUBLIC_API Histogram<size_t>;
 template class PLATFORM_PUBLIC_API Histogram<int>;
 template class PLATFORM_PUBLIC_API Histogram<UnsignedMicroseconds, cb::duration_limits>;
-
-// This is non-inline because it requires the definition of histogram and hence
-// if inline would trigger an implicit instantiation of MicrosecondHistogram,
-// which causes linker errors for any target which includes histogram.h and not
-// histogram.cc
-void MicrosecondStopwatch::stop(std::chrono::steady_clock::time_point end) {
-    const auto spent = end - startTime;
-    histogram.add(std::chrono::duration_cast<std::chrono::microseconds>(spent));
-}

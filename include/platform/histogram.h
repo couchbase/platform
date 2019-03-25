@@ -364,18 +364,17 @@ using MicrosecondHistogram =
         Histogram<UnsignedMicroseconds, cb::duration_limits>;
 
 /**
- * Adapter class to assist in recording the duration of an event into
- * MicrosecondHistograms; which don't have start() / stop() methods.
+ * Adapter class template to assist in recording the duration of an event into
+ * Histogram T that has an add method T::add(std::chrono::microseconds v);
+ * which don't have start() / stop() methods.
  *
  * This class will record the startTime when start() is called; then when end()
  * is called it will calculate the duration and pass that to Histogram.
- *
- * @tparam Histogram Type to record the duration into.
- *
  */
-class PLATFORM_PUBLIC_API MicrosecondStopwatch {
+ template<typename T>
+class MicrosecondStopwatch {
 public:
-    MicrosecondStopwatch(MicrosecondHistogram& histogram)
+    MicrosecondStopwatch(T& histogram)
         : histogram(histogram) {
     }
 
@@ -383,10 +382,13 @@ public:
         startTime = start_;
     }
 
-    void stop(std::chrono::steady_clock::time_point end);
+    void stop(std::chrono::steady_clock::time_point end) {
+        const auto spent = end - startTime;
+        histogram.add(std::chrono::duration_cast<std::chrono::microseconds>(spent));
+    }
 
 private:
-    MicrosecondHistogram& histogram;
+    T& histogram;
     std::chrono::steady_clock::time_point startTime;
 };
 
