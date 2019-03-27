@@ -78,6 +78,7 @@ typedef uint64_t crc_max_size_t;
 // CRC32-C implementation using SSE4.2 acceleration
 // no pipeline optimisation.
 //
+PLATFORM_PUBLIC_API
 uint32_t crc32c_hw_1way(const uint8_t* buf, size_t len, uint32_t crc_in) {
     crc_max_size_t crc = static_cast<crc_max_size_t>(~crc_in);
     // use crc32-byte instruction until the buf pointer is 8-byte aligned
@@ -163,6 +164,7 @@ uint32_t crc32c_hw_short_block(const uint8_t* buf, size_t len, uint32_t crc_in) 
 // A parallelised crc32c issuing 3 crc at once.
 // Generally 3 crc instructions can be issued at once.
 //
+PLATFORM_PUBLIC_API
 uint32_t crc32c_hw(const uint8_t* buf, size_t len, uint32_t crc_in) {
     // if len is less than the long block it's faster to just process using 3way short-block
     if (len < 3*LONG_BLOCK) {

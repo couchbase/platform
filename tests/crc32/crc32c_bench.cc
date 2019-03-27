@@ -15,16 +15,13 @@
  *   limitations under the License.
  */
 
-//
 // Benchmark the crc32c functions
-// We extern the symbols directly so software and the tuned/untuned
-// hardware versions can be checked.
-//
 
+#include <platform/crc32c.h>
 #include <platform/timeutils.h>
 
-#include <stdint.h>
 #include <chrono>
+#include <cstdint>
 #include <cstring>
 #include <iomanip>
 #include <iostream>
@@ -32,11 +29,6 @@
 #include <sstream>
 #include <string>
 #include <vector>
-
-// extern directly to the hw/sw versions
-extern uint32_t crc32c_sw(const uint8_t* buf, size_t len, uint32_t crc_in);
-extern uint32_t crc32c_hw(const uint8_t* buf, size_t len, uint32_t crc_in);
-extern uint32_t crc32c_hw_1way(const uint8_t* buf, size_t len, uint32_t crc_in);
 
 using DurationVector = std::vector<std::chrono::steady_clock::duration>;
 typedef uint32_t (*crc32c_function)(const uint8_t* buf, size_t len, uint32_t crc_in);

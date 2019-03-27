@@ -19,18 +19,13 @@
 // Generate a CRC-32C (Castagnolia)
 // CRC polynomial of 0x1EDC6F41
 //
-// When available a hardware assisted function is used for increased performance.
+// When available a hardware assisted function is used for increased
+// performance.
 //
-// This module provides one function:
-//
-// uint32_t crc32c(const uint8_t* bug, size_t len, uint32_t crc_in)
-//
-//
-
 #pragma once
 #include <platform/visibility.h>
-#include <stddef.h>
-#include <stdint.h>
+#include <cstddef>
+#include <cstdint>
 
 //
 // This module requires X86 for the HW assisted version of the function.
@@ -43,18 +38,14 @@
 #error "crc32c requires X86 SSE4.2 for hardware acceleration"
 #endif
 
-#ifdef CRC32C_UNIT_TEST
-#undef PLATFORM_PUBLIC_API
-#define PLATFORM_PUBLIC_API
-#endif
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 PLATFORM_PUBLIC_API
-uint32_t crc32c (const uint8_t* buf, size_t len, uint32_t crc_in);
+uint32_t crc32c(const uint8_t* buf, size_t len, uint32_t crc_in);
 
-#ifdef __cplusplus
-}
-#endif
+// The following methods are used by unit testing to force the calculation
+// of the checksum by using a given implementation.
+PLATFORM_PUBLIC_API
+uint32_t crc32c_sw(const uint8_t* buf, size_t len, uint32_t crc_in);
+PLATFORM_PUBLIC_API
+uint32_t crc32c_hw(const uint8_t* buf, size_t len, uint32_t crc_in);
+PLATFORM_PUBLIC_API
+uint32_t crc32c_hw_1way(const uint8_t* buf, size_t len, uint32_t crc_in);
