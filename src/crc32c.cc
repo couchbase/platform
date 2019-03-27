@@ -51,23 +51,19 @@
 //  i) Use static initialistion instead of pthread_once.
 //
 
-#include "platform/crc32c.h"
 #include "crc32c_private.h"
+#include <platform/crc32c.h>
+#include <array>
+#include <cstddef>
+#include <cstdint>
+#include <limits>
 
-#include <stdint.h>
-#include <stddef.h>
-
-// select header file for cpuid.
+ // select header file for cpuid.
 #if defined(WIN32)
 #include <intrin.h>
 #elif defined(__clang__) || defined(__GNUC__)
 #include <cpuid.h>
 #endif
-
-#include <limits>
-#include <array>
-
-typedef uint32_t (*crc32c_function) (const uint8_t* buf, size_t len, uint32_t crc_in);
 
 static bool setup_tables();
 static bool tables_setup = setup_tables();
@@ -359,11 +355,16 @@ bool setup_tables() {
     return true;
 }
 
+typedef uint32_t (*crc32c_function)(const uint8_t* buf,
+                                    size_t len,
+                                    uint32_t crc_in);
+
 //
 // Return the appropriate function for the platform.
 // If SSE4.2 is available then hardware acceleration is used.
 //
 crc32c_function setup_crc32c() {
+#if defined(__x86_64__) || defined(_M_X64) || defined(_M_IX86)
     const uint32_t SSE42 = 0x00100000;
 
     crc32c_function f = crc32c_sw;
@@ -381,6 +382,10 @@ crc32c_function setup_crc32c() {
     }
 
     return f;
+#else
+    // No hardware support
+    return crc32c_sw;
+#endif
 }
 
 static crc32c_function safe_crc32c = setup_crc32c();

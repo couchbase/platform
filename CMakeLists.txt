@@ -101,6 +101,7 @@ IF (WIN32)
    ADD_DEFINITIONS(-D_CRT_SECURE_NO_WARNINGS)
    SET(PLATFORM_FILES src/sockets.c
                       src/cb_win32.cc
+                      src/crc32c_sse4_2.cc
                       include/win32/getopt.h
                       include/win32/strings.h
                       include/win32/unistd.h)
@@ -108,7 +109,13 @@ IF (WIN32)
    LIST(APPEND PLATFORM_LIBRARIES DbgHelp.lib)
 ELSE (WIN32)
    SET(PLATFORM_FILES src/cb_pthreads.cc)
-   SET_SOURCE_FILES_PROPERTIES(src/crc32c_sse4_2.cc PROPERTIES COMPILE_FLAGS -msse4.2)
+   # We don't know the output of uname -p on all of our supported platforms
+   # so check if it's PPC64
+   if (NOT CMAKE_SYSTEM_PROCESSOR EQUAL "^ppc64")
+      list(APPEND PLATFORM_FILES src/crc32c_sse4_2.cc)
+      set_source_files_properties(src/crc32c_sse4_2.cc
+                                  PROPERTIES COMPILE_FLAGS -msse4.2)
+   endif()
    LIST(APPEND PLATFORM_LIBRARIES "pthread")
 
    IF (NOT APPLE)
@@ -160,7 +167,6 @@ LIST(APPEND PLATFORM_FILES
   src/cbassert.c
   src/checked_snprintf.cc
   src/crc32c.cc
-  src/crc32c_sse4_2.cc
   src/crc32c_private.h
   src/getopt.cc
   src/global_new_replacement.cc

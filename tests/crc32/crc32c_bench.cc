@@ -36,17 +36,19 @@ typedef uint32_t (*crc32c_function)(const uint8_t* buf, size_t len, uint32_t crc
 static std::vector<std::string> column_heads(0);
 
 void crc_results_banner() {
-    column_heads.push_back("Data size (bytes) ");
-    column_heads.push_back("SW ns      ");
-    column_heads.push_back("SW GiB/s   ");
-    column_heads.push_back("HW ns      ");
-    column_heads.push_back("HW GiB/s   ");
-    column_heads.push_back("HW vs SW ");
-    column_heads.push_back("HW opt ns  ");
-    column_heads.push_back("HW opt GiB/s ");
-    column_heads.push_back("HW vs HW opt ");
-    column_heads.push_back("SW vs HW opt ");
-    for (auto str : column_heads) {
+    column_heads.emplace_back("Data size (bytes) ");
+    column_heads.emplace_back("SW ns      ");
+    column_heads.emplace_back("SW GiB/s   ");
+#ifdef CB_CRC32_HW_SUPPORTED
+    column_heads.emplace_back("HW ns      ");
+    column_heads.emplace_back("HW GiB/s   ");
+    column_heads.emplace_back("HW vs SW ");
+    column_heads.emplace_back("HW opt ns  ");
+    column_heads.emplace_back("HW opt GiB/s ");
+    column_heads.emplace_back("HW vs HW opt ");
+    column_heads.emplace_back("SW vs HW opt ");
+#endif
+    for (const auto& str : column_heads) {
         std::cout << str << ": ";
     }
     std::cout << std::endl;
@@ -83,24 +85,27 @@ void crc_results(size_t test_size,
                  DurationVector& timings_sw,
                  DurationVector& timings_hw,
                  DurationVector& timings_hw_opt) {
-    std::chrono::steady_clock::duration avg_sw(0), avg_hw(0), avg_hw_opt(0);
+    std::chrono::steady_clock::duration avg_sw(0);
     for(auto duration : timings_sw) {
         avg_sw += duration;
     }
+    avg_sw = avg_sw / timings_sw.size();
+    std::vector<std::string> rows(0);
+    rows.push_back(std::to_string(test_size));
+    rows.push_back(cb::time2text(avg_sw));
+    rows.push_back(gib_per_sec(test_size, avg_sw));
+
+#ifdef CB_CRC32_HW_SUPPORTED
+    std::chrono::steady_clock::duration avg_hw(0), avg_hw_opt(0);
     for(auto duration : timings_hw) {
         avg_hw += duration;
     }
     for(auto duration : timings_hw_opt) {
         avg_hw_opt += duration;
     }
-    avg_sw = avg_sw / timings_sw.size();
     avg_hw = avg_hw / timings_hw.size();
     avg_hw_opt = avg_hw_opt / timings_hw.size();
 
-    std::vector<std::string> rows(0);
-    rows.push_back(std::to_string(test_size));
-    rows.push_back(cb::time2text(avg_sw));
-    rows.push_back(gib_per_sec(test_size, avg_sw));
     rows.push_back(cb::time2text(avg_hw));
     rows.push_back(gib_per_sec(test_size, avg_hw));
     rows.push_back(get_ratio_string(avg_sw, avg_hw));
@@ -108,6 +113,7 @@ void crc_results(size_t test_size,
     rows.push_back(gib_per_sec(test_size, avg_hw_opt));
     rows.push_back(get_ratio_string(avg_hw, avg_hw_opt));
     rows.push_back(get_ratio_string(avg_sw, avg_hw_opt));
+#endif
 
     for (size_t ii = 0; ii < column_heads.size(); ii++) {
         std::string spacer(column_heads[ii].length() - rows[ii].length(), ' ');
@@ -142,12 +148,13 @@ void crc_bench(size_t len,
     }
     DurationVector timings_sw, timings_hw, timings_hw_opt;
     crc_bench_core(data+unalignment, len, iterations, crc32c_sw, timings_sw);
+#ifdef CB_CRC32_HW_SUPPORTED
     crc_bench_core(data+unalignment, len, iterations, crc32c_hw_1way, timings_hw);
     crc_bench_core(data+unalignment, len, iterations, crc32c_hw, timings_hw_opt);
+#endif
     delete [] data;
 
     crc_results(len, timings_sw, timings_hw, timings_hw_opt);
-
 }
 
 int main() {

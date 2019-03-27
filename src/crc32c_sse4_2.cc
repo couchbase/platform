@@ -51,16 +51,17 @@
 //  h) Custom cpuid code works for GCC(<4.8), CLANG and MSVC.
 //  i) Use static initialistion instead of pthread_once.
 //
+#if !defined(__x86_64__) && !defined(_M_X64) && !defined(_M_IX86)
+#error "crc32c requires X86 SSE4.2 for hardware acceleration"
+#endif
 
-#include "platform/crc32c.h"
 #include "crc32c_private.h"
+#include <platform/crc32c.h>
 
 // select header file for crc instructions.
 #if defined(WIN32)
 #include <nmmintrin.h>
-#elif defined(__clang__)
-#include <smmintrin.h>
-#elif defined(__GNUC__)
+#elif defined(__clang__) || defined(__GNUC__)
 #include <smmintrin.h>
 #endif
 

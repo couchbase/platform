@@ -27,15 +27,8 @@
 #include <cstddef>
 #include <cstdint>
 
-//
-// This module requires X86 for the HW assisted version of the function.
-// For now this #error is here because there's been no requirement for
-// a portable/non-X86 version of this function in Couchbase.
-// To fix will require refactoring to hide the X86 dependencies when
-// built on another platform.
-//
-#if !defined(__x86_64__) && !defined(_M_X64) && !defined(_M_IX86)
-#error "crc32c requires X86 SSE4.2 for hardware acceleration"
+#if defined(__x86_64__) || defined(_M_X64) || defined(_M_IX86)
+#define CB_CRC32_HW_SUPPORTED 1
 #endif
 
 PLATFORM_PUBLIC_API
@@ -45,7 +38,9 @@ uint32_t crc32c(const uint8_t* buf, size_t len, uint32_t crc_in);
 // of the checksum by using a given implementation.
 PLATFORM_PUBLIC_API
 uint32_t crc32c_sw(const uint8_t* buf, size_t len, uint32_t crc_in);
+#ifdef CB_CRC32_HW_SUPPORTED
 PLATFORM_PUBLIC_API
 uint32_t crc32c_hw(const uint8_t* buf, size_t len, uint32_t crc_in);
 PLATFORM_PUBLIC_API
 uint32_t crc32c_hw_1way(const uint8_t* buf, size_t len, uint32_t crc_in);
+#endif
