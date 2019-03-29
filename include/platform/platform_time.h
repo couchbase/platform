@@ -35,9 +35,7 @@ extern "C" {
 typedef unsigned __int64 hrtime_t;
 #else
 #include <sys/time.h>
-#ifndef __sun
 typedef uint64_t hrtime_t;
-#endif // __sun
 #endif // WIN32
 
 /**

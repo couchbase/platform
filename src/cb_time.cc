@@ -49,8 +49,8 @@ uint64_t cb_get_monotonic_seconds() {
     }
 
     seconds = (double)time * timebase.numer / timebase.denom * 1e-9;
-#elif defined(__linux__) || defined(__sun) || defined(__FreeBSD__)
-    /* Linux and Solaris can use clock_gettime */
+#elif defined(__linux__)
+    /* Linux can use clock_gettime */
     struct timespec tm;
     if (clock_gettime(CLOCK_MONOTONIC, &tm) == -1) {
         fprintf(stderr, "clock_gettime failed, aborting program: %s",

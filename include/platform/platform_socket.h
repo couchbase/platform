@@ -29,10 +29,6 @@
 #include <winsock2.h>
 #endif
 
-#ifdef __sun
-#include <arpa/inet.h>
-#endif
-
 #ifdef __cplusplus
 extern "C" {
 #endif

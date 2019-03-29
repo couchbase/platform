@@ -39,7 +39,7 @@
 
 #include <stdlib.h>
 
-#if !defined(__cplusplus) || defined(__sun) || defined(__FreeBSD__)
+#if !defined(__cplusplus)
 #define throwspec
 #else
 #define throwspec throw()
