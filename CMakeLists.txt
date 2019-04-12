@@ -158,6 +158,7 @@ LIST(APPEND PLATFORM_FILES
   src/base64.cc
   src/random.cc
   src/byte_buffer_dump.cc
+  src/cb_arena_malloc.cc
   src/cb_malloc.cc
   src/cb_time.cc
   src/checked_snprintf.cc
@@ -241,6 +242,13 @@ foreach(platform_cbassert_variant ${platform_cbassert_VARIANTS})
     target_link_libraries(${platform_cbassert_variant} PRIVATE ${CMAKE_DL_LIBS})
   endif()
 endforeach()
+
+if (MEMORY_ALLOCATOR STREQUAL "jemalloc")
+LIST(APPEND PLATFORM_FILES src/je_arena_corelocal_tracker.cc)
+LIST(APPEND PLATFORM_FILES src/je_arena_malloc.cc)
+endif()
+# Always build the system_arena code for simpler concurrent development
+LIST(APPEND PLATFORM_FILES src/system_arena_malloc.cc)
 
 # platform_so - the 'real' platform shared library containing our various
 # platform abstraction functionality.
