@@ -157,6 +157,33 @@ void SystemArenaMalloc::releaseMemory(const ArenaMallocClient& client) {
     (void)client;
 }
 
+bool SystemArenaMalloc::getStats(
+        const ArenaMallocClient& client,
+        std::unordered_map<std::string, size_t>& statsMap) {
+    statsMap["allocated"] = allocated[client.index];
+    return true;
+}
+
+bool SystemArenaMalloc::getGlobalStats(
+        std::unordered_map<std::string, size_t>& statsMap) {
+    statsMap["allocated"] = allocated[0];
+    return true;
+}
+
+void SystemArenaMalloc::getDetailedStats(const cb::char_buffer& buffer) {
+}
+
+std::pair<size_t, size_t> SystemArenaMalloc::getFragmentationStats(
+        const cb::ArenaMallocClient& client) {
+    size_t alloc = allocated[client.index];
+    return {alloc, alloc};
+}
+
+std::pair<size_t, size_t> SystemArenaMalloc::getGlobalFragmentationStats() {
+    size_t alloc = allocated[0];
+    return {alloc, alloc};
+}
+
 void SystemArenaMalloc::addAllocation(void* ptr) {
     if (canTrackAllocations()) {
         auto client = currentClient;

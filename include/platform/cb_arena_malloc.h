@@ -45,8 +45,10 @@
 #pragma once
 
 #include <platform/cb_arena_malloc_client.h>
+#include <platform/sized_buffer.h>
 
 #include <memory>
+#include <unordered_map>
 
 #if defined(HAVE_JEMALLOC)
 #include "je_arena_malloc.h"
@@ -239,6 +241,68 @@ public:
      */
     static void releaseMemory(const ArenaMallocClient& client) {
         Impl::releaseMemory(client);
+    }
+
+    /**
+     * Get a map of allocation stats for the given client.
+     * @param client The client for which stats are needed
+     * @param[out] statsMap a reference to a map to write to.
+     * @return true if some stats are missing
+     */
+    static bool getStats(const ArenaMallocClient& client,
+                         std::unordered_map<std::string, size_t>& statsMap) {
+        return Impl::getStats(client, statsMap);
+    }
+
+    /**
+     * Get a map of allocation stats for the arena used for allocations made
+     * after calling switchFromClient
+     * @param[out] statsMap a reference to a map to write to.
+     */
+    static bool getGlobalStats(
+            std::unordered_map<std::string, size_t>& statsMap) {
+        return Impl::getGlobalStats(statsMap);
+    }
+
+    /**
+     * Return a detailed, human readable allocator statistic blob
+     * @param buffer to write to
+     */
+    static void getDetailedStats(const cb::char_buffer& buffer) {
+        return Impl::getDetailedStats(buffer);
+    }
+
+    /**
+     * Returns two values which can be used for calculating fragmentation:
+     *  1) total allocated
+     *  2) total resident
+     *
+     * 100% utilisation or 0% fragmentation would be when 1 and 2 are equal.
+     *
+     * @param client The client to get stats for
+     * @return a pair, first is the total allocated and second is the total
+     *         resident.
+     */
+    static std::pair<size_t, size_t> getFragmentationStats(
+            const ArenaMallocClient& client) {
+        return Impl::getFragmentationStats(client);
+    }
+
+    /**
+     * Returns two values which can be used for calculating fragmentation:
+     *  1) total allocated
+     *  2) total resident
+     *
+     * 100% utilisation or 0% fragmentation would be when 1 and 2 are equal.
+     *
+     * This method returns the fragmentation stats for the arena holding non
+     * bucket allocations.
+     *
+     * @return a pair, first is the total allocated and second is the total
+     *         resident.
+     */
+    static std::pair<size_t, size_t> getGlobalFragmentationStats() {
+        return Impl::getGlobalFragmentationStats();
     }
 };
 

@@ -29,13 +29,12 @@
 
 namespace cb {
 
-// For each client we store the following three pieces of information.
+// For each client we store the following information.
 //
-// 1) A folly::ThreadCachedInt which is used to accumulate the thread's
-//    allocation total.
-// 2) A thread allocation threshold. A signed 64-bit counter for how much we
+// 1) A CoreStore to track 'per core' current allocation total
+// 2) A core allocation threshold. A signed 64-bit counter for how much we
 //    will allow 1) to accumulate before a) updating the estimate 3) and b)
-//    clearing the thread count.
+//    clearing the core count.
 // 3) Estimated memory - a signed 64-bit counter of how much the client has
 //    allocated. This value is updated by a) a thread reaching the per thread
 //    allocation threshold, or b) a call to getPreciseAllocated. This counter

@@ -27,8 +27,4 @@
 #define strcasecmp(a, b) _stricmp(a, b)
 #endif
 
-#ifndef snprintf
-#define snprintf _snprintf
-#endif
-
 #endif

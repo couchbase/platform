@@ -21,12 +21,14 @@
 #include <platform/cb_arena_malloc_client.h>
 #include <platform/je_arena_corelocal_tracker.h>
 #include <platform/non_negative_counter.h>
+#include <platform/sized_buffer.h>
 #include <platform/visibility.h>
 
 #include <array>
 #include <atomic>
 #include <memory>
 #include <mutex>
+#include <unordered_map>
 
 namespace cb {
 
@@ -78,6 +80,15 @@ public:
 
     static void releaseMemory();
     static void releaseMemory(const ArenaMallocClient& client);
+
+    static bool getStats(const ArenaMallocClient& client,
+                         std::unordered_map<std::string, size_t>& statsMap);
+    static bool getGlobalStats(
+            std::unordered_map<std::string, size_t>& statsMap);
+    static void getDetailedStats(const cb::char_buffer& buffer);
+    static std::pair<size_t, size_t> getFragmentationStats(
+            const ArenaMallocClient& client);
+    static std::pair<size_t, size_t> getGlobalFragmentationStats();
 
 protected:
     static void clientRegistered(const ArenaMallocClient& client) {

@@ -34,8 +34,6 @@
 #endif
 #endif
 
-#include <string>
-
 // User-registered new and delete hooks, these are generally null except for
 // test code.
 cb_malloc_new_hook_t cb_new_hook = nullptr;

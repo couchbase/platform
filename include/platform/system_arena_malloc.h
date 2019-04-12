@@ -20,11 +20,13 @@
 #include <folly/Synchronized.h>
 #include <platform/cb_arena_malloc_client.h>
 #include <platform/non_negative_counter.h>
+#include <platform/sized_buffer.h>
 #include <platform/visibility.h>
 
 #include <array>
 #include <atomic>
 #include <mutex>
+#include <unordered_map>
 
 namespace cb {
 template <class t>
@@ -82,6 +84,15 @@ public:
 
     static void releaseMemory();
     static void releaseMemory(const ArenaMallocClient& client);
+
+    static bool getStats(const ArenaMallocClient& client,
+                         std::unordered_map<std::string, size_t>& statsMap);
+    static bool getGlobalStats(
+            std::unordered_map<std::string, size_t>& statsMap);
+    static void getDetailedStats(const cb::char_buffer& buffer);
+    static std::pair<size_t, size_t> getFragmentationStats(
+            const ArenaMallocClient& client);
+    static std::pair<size_t, size_t> getGlobalFragmentationStats();
 
 private:
     static void addAllocation(void* ptr);
