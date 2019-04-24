@@ -1,6 +1,6 @@
 /* -*- Mode: C++; tab-width: 4; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /*
- *     Copyright 2017 Couchbase, Inc.
+ *     Copyright 2019 Couchbase, Inc.
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 #pragma once
 
 #include <folly/portability/SysTypes.h>
-#include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 #include <platform/cb_malloc.h>
 #include <platform/sized_buffer.h>
 
@@ -82,7 +82,7 @@ namespace cb {
  * the read_head catch up with the write_head they're both set to 0 (the
  * beginning of the buffer).
  */
-class Pipe {
+class PLATFORM_PUBLIC_API Pipe {
 public:
     /**
      * Initialize a pipe with the given buffer size (default empty).
@@ -245,18 +245,7 @@ public:
     /**
      * A number of bytes was made available for the consumer
      */
-    void produced(size_t nbytes) {
-        if (write_head + nbytes > buffer.size()) {
-            std::stringstream ss;
-            ss << "Pipe::produced(): Produced bytes exceeds the number of "
-                  "available bytes. { \"nbytes\": "
-               << std::to_string(nbytes) << ","
-               << " \"buffer.size()\": " << std::to_string(buffer.size()) << ","
-               << " \"write_head\": " << std::to_string(write_head) << "}";
-            throw std::logic_error(ss.str());
-        }
-        write_head += nbytes;
-    }
+    void produced(size_t nbytes);
 
     /**
      * Try to consume data from the buffer by providing a callback function
@@ -367,16 +356,7 @@ public:
     /**
      * Get the (internal) properties of the pipe
      */
-    nlohmann::json to_json() {
-        nlohmann::json ret;
-        ret["buffer"] = uintptr_t(buffer.data());
-        ret["size"] = buffer.size();
-        ret["read_head"] = read_head;
-        ret["write_head"] = write_head;
-        ret["empty"] = empty();
-
-        return ret;
-    }
+    nlohmann::json to_json();
 
 protected:
     /**

@@ -170,6 +170,7 @@ LIST(APPEND PLATFORM_FILES
   src/histogram.cc
   src/interrupt.cc
   src/memorymap.cc
+  src/pipe.cc
   src/processclock.cc
   src/sized_buffer.cc
   src/strerror.cc
