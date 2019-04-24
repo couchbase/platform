@@ -34,6 +34,13 @@ TEST(NonNegativeCounterTest, Add) {
     EXPECT_EQ(3u, nnAtomic += 2);
     EXPECT_EQ(3u, nnAtomic.fetch_add(2));
     EXPECT_EQ(5u, nnAtomic);
+
+    // Adding a negative should subtract from the value
+    EXPECT_EQ(5u, nnAtomic.fetch_add(-2));
+    EXPECT_EQ(3u, nnAtomic);
+
+    EXPECT_EQ(3u, nnAtomic.fetch_add(-3));
+    EXPECT_EQ(0u, nnAtomic);
 }
 
 TEST(NonNegativeCounterTest, Decrement) {
@@ -52,6 +59,10 @@ TEST(NonNegativeCounterTest, Subtract) {
     EXPECT_EQ(2u, nnAtomic -= 2);
     EXPECT_EQ(2u, nnAtomic.fetch_sub(2));
     EXPECT_EQ(0u, nnAtomic);
+
+    EXPECT_EQ(2u, nnAtomic -= -2);
+    EXPECT_EQ(2u, nnAtomic.fetch_sub(-2));
+    EXPECT_EQ(4u, nnAtomic);
 }
 
 // Test that a NonNegativeCounter will clamp to zero.
@@ -65,6 +76,10 @@ TEST(NonNegativeCounterTest, ClampsToZero) {
     nnAtomic = 5;
     EXPECT_EQ(5u, nnAtomic.fetch_sub(10)); // returns previous value
     EXPECT_EQ(0u, nnAtomic); // has been clamped to zero
+
+    nnAtomic = 5;
+    EXPECT_EQ(5u, nnAtomic.fetch_add(-10)); // return previous value
+    EXPECT_EQ(0u, nnAtomic); // has been clamped to zero
 }
 
 // Test the ThrowException policy.
@@ -76,7 +91,13 @@ TEST(NonNegativeCounterTest, ThrowExceptionPolicy) {
     EXPECT_THROW(nnAtomic--, std::underflow_error);
     EXPECT_EQ(0u, nnAtomic);
 
-    nnAtomic = 1;
+    EXPECT_THROW(nnAtomic.fetch_add(-1), std::underflow_error);
+    EXPECT_EQ(0u, nnAtomic);
+
+    EXPECT_THROW(nnAtomic += -1, std::underflow_error);
+    EXPECT_EQ(0u, nnAtomic);
+
     EXPECT_THROW(nnAtomic -= 2, std::underflow_error);
-    EXPECT_EQ(1u, nnAtomic);
+    EXPECT_EQ(0u, nnAtomic);
 }
+

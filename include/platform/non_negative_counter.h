@@ -17,6 +17,7 @@
 #pragma once
 
 #include <atomic>
+#include <limits>
 #include <stdexcept>
 #include <string>
 #include <type_traits>
@@ -26,7 +27,9 @@ namespace cb {
 /// Policy class for handling underflow by clamping the value at zero.
 template <class T>
 struct ClampAtZeroUnderflowPolicy {
-    void underflow(T& desired, T current, T arg) {
+    using SignedT = typename std::make_signed<T>::type;
+
+    void underflow(T& desired, T current, SignedT arg) {
         desired = 0;
     }
 };
@@ -36,7 +39,9 @@ struct ClampAtZeroUnderflowPolicy {
 // were attempting to subtract)
 template <class T>
 struct ThrowExceptionUnderflowPolicy {
-    void underflow(T& desired, T current, T arg) {
+    using SignedT = typename std::make_signed<T>::type;
+
+    void underflow(T& desired, T current, SignedT arg) {
         using std::to_string;
         throw std::underflow_error("ThrowExceptionUnderflowPolicy current:" +
                                    to_string(current) + " arg:" +
@@ -56,8 +61,13 @@ using DefaultUnderflowPolicy = ClampAtZeroUnderflowPolicy<T>;
 
 /**
  * The NonNegativeCounter class wraps std::atomic<> and prevents it
- * underflowing. By default will clamp the value at 0 on underflow, but
- * behaviour can be customized by specifying a different UnderflowPolicy class.
+ * underflowing over overflowing. By default will clamp the value at 0 on
+ * underflow, but behaviour can be customized by specifying a different
+ * UnderflowPolicy class. Same for overflow.
+ *
+ * Even though this counter can only be templated on unsigned types, it has the
+ * maximum value of the corresponding signed type. This is because we need to
+ * allow and check the addition of negative values.
  */
 template <typename T,
           template <class> class UnderflowPolicy = DefaultUnderflowPolicy>
@@ -65,6 +75,8 @@ class NonNegativeCounter : public UnderflowPolicy<T> {
     static_assert(
             std::is_unsigned<T>::value,
             "NonNegativeCounter should only be templated over unsigned types");
+
+    using SignedT = typename std::make_signed<T>::type;
 
 public:
     NonNegativeCounter() noexcept {
@@ -91,8 +103,36 @@ public:
         value.store(desired, std::memory_order_relaxed);
     }
 
-    T fetch_add(T arg) noexcept {
-        return value.fetch_add(arg, std::memory_order_relaxed);
+    /**
+     * Add 'arg' to the current value. If the new value would underflow (i.e. if
+     * arg was negative and current less than arg) then calls underflow() on the
+     * selected UnderflowPolicy.
+     *
+     * Note: Not marked 'noexcept' as underflow() could throw.
+     */
+    T fetch_add(SignedT arg) {
+        T current = load();
+        T desired;
+        do {
+            if (arg < 0) {
+                desired = current - T(std::abs(arg));
+                if (SignedT(current) + arg < 0) {
+                    UnderflowPolicy<T>::underflow(desired, current, arg);
+                }
+            } else {
+                desired = current + T(arg);
+                if (desired > std::numeric_limits<SignedT>::max()) {
+                    UnderflowPolicy<T>::underflow(desired, current, arg);
+                }
+            }
+            // Attempt to set the atomic value to desired. If the atomic value
+            // is not the same as current then it has changed during
+            // operation. compare_exchange_weak will reload the new value
+            // into current if it fails, and we will retry.
+        } while (!value.compare_exchange_weak(
+                current, desired, std::memory_order_relaxed));
+
+        return current;
     }
 
     /**
@@ -101,14 +141,18 @@ public:
      *
      * Note: Not marked 'noexcept' as underflow() could throw.
      */
-    T fetch_sub(T arg) {
+    T fetch_sub(SignedT arg) {
         T current = load();
         T desired;
         do {
-            if (current < arg) {
-                UnderflowPolicy<T>::underflow(desired, current, arg);
+            if (arg < 0) {
+                desired = current + T(std::abs(arg));
             } else {
-                desired = current - arg;
+                desired = current - T(arg);
+            }
+
+            if (desired > std::numeric_limits<SignedT>::max()) {
+                UnderflowPolicy<T>::underflow(desired, current, arg);
             }
             // Attempt to set the atomic value to desired. If the atomic value
             // is not the same as current then it has changed during
@@ -129,12 +173,12 @@ public:
         return *this;
     }
 
-    NonNegativeCounter& operator+=(const T rhs) noexcept {
+    NonNegativeCounter& operator+=(const T rhs) {
         fetch_add(rhs);
         return *this;
     }
 
-    NonNegativeCounter& operator+=(const NonNegativeCounter& rhs) noexcept {
+    NonNegativeCounter& operator+=(const NonNegativeCounter& rhs) {
         fetch_add(rhs.load());
         return *this;
     }
@@ -149,11 +193,11 @@ public:
         return *this;
     }
 
-    T operator++() noexcept {
+    T operator++() {
         return fetch_add(1) + 1;
     }
 
-    T operator++(int)noexcept {
+    T operator++(int) {
         return fetch_add(1);
     }
 
