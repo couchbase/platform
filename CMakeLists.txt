@@ -316,24 +316,24 @@ GENERATE_EXPORT_HEADER(dirutils
                        EXPORT_MACRO_NAME DIRUTILS_PUBLIC_API
                        EXPORT_FILE_NAME ${CMAKE_CURRENT_BINARY_DIR}/include/platform/dirutils-visibility.h)
 
-IF (BREAKPAD_FOUND)
-   ADD_DEFINITIONS(-DHAVE_BREAKPAD)
-   INCLUDE_DIRECTORIES(AFTER ${BREAKPAD_INCLUDE_DIR} SYSTEM)
+# To simplify usage we always build breakpad_wrapper; it'll just
+# do nothing on targets which don't have Breakpad.
+add_library(breakpad_wrapper SHARED
+            src/breakpad_wrapper.cc
+            include/breakpad_wrapper/breakpad_wrapper.h)
+set_target_properties(breakpad_wrapper PROPERTIES COMPILE_FLAGS "-Dplatform_so_EXPORTS")
+if (BREAKPAD_FOUND)
+   target_compile_definitions(breakpad_wrapper PRIVATE -DHAVE_BREAKPAD)
+   target_include_directories(breakpad_wrapper PRIVATE SYSTEM AFTER ${BREAKPAD_INCLUDE_DIR})
+endif (BREAKPAD_FOUND)
+
+if (UNIX)
    # Breakpad has headers (which are dependencies for our breakpad integration
    # code) that don't compile cleanly as C++11, so the GNU standard is
    # used instead.
-   IF (UNIX)
-      set_source_files_properties(src/breakpad_wrapper.cc PROPERTIES COMPILE_FLAGS ${CB_GNU_CXX11_OPTION})
-   ENDIF (UNIX)
-ENDIF (BREAKPAD_FOUND)
-
-# To simplify usage we always build breakpad_wrapper; it'll just
-# do nothing on targets which don't have Breakpad.
-ADD_LIBRARY(breakpad_wrapper SHARED
-            src/breakpad_wrapper.cc
-            include/breakpad_wrapper/breakpad_wrapper.h)
-SET_TARGET_PROPERTIES(breakpad_wrapper PROPERTIES COMPILE_FLAGS "-Dplatform_so_EXPORTS")
-TARGET_LINK_LIBRARIES(breakpad_wrapper
+   set_source_files_properties(src/breakpad_wrapper.cc PROPERTIES COMPILE_FLAGS ${CB_GNU_CXX11_OPTION})
+endif (UNIX)
+target_link_libraries(breakpad_wrapper
                       ${BREAKPAD_LIBRARIES} platform_headers)
 
 INSTALL(TARGETS breakpad_wrapper JSON_checker dirutils
