@@ -75,7 +75,16 @@ void* operator new(std::size_t count) {
     return result;
 }
 
+void* operator new(std::size_t count, const std::nothrow_t& tag) NOEXCEPT {
+    void* result = cb_malloc(count);
+    return result;
+}
+
 void operator delete(void* ptr) NOEXCEPT {
+    cb_free(ptr);
+}
+
+void operator delete(void* ptr, const std::nothrow_t& tag)NOEXCEPT {
     cb_free(ptr);
 }
 
@@ -91,12 +100,21 @@ void* operator new[](std::size_t count) {
     return result;
 }
 
+void* operator new[](std::size_t count, const std::nothrow_t& tag) NOEXCEPT {
+    void* result = cb_malloc(count);
+    return result;
+}
+
 void operator delete[](void *ptr) NOEXCEPT {
     cb_free(ptr);
 }
 
 void operator delete[](void *ptr, std::size_t size) NOEXCEPT {
     cb_sized_free(ptr, size);
+}
+
+void operator delete[](void* ptr, const std::nothrow_t& tag) NOEXCEPT {
+    cb_free(ptr);
 }
 
 /* As we have a global new replacement, libraries could end up calling the
