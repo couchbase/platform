@@ -106,7 +106,6 @@ IF (WIN32)
                       include/win32/strings.h
                       include/win32/unistd.h)
    ADD_DEFINITIONS(-DHAVE_BACKTRACE_SUPPORT=1)
-   LIST(APPEND PLATFORM_LIBRARIES DbgHelp.lib)
 ELSE (WIN32)
    SET(PLATFORM_FILES src/cb_pthreads.cc)
    # We don't know the output of uname -p on all of our supported platforms
@@ -123,8 +122,8 @@ ELSE (WIN32)
    ENDIF(NOT APPLE)
 
    SET(LIB_M m)
+   LIST(REMOVE_DUPLICATES PLATFORM_LIBRARIES)
 ENDIF (WIN32)
-LIST(REMOVE_DUPLICATES PLATFORM_LIBRARIES)
 
 IF (NOT DEFINED COUCHBASE_NETWORK_LIBS)
    IF (WIN32)
@@ -158,12 +157,10 @@ TARGET_INCLUDE_DIRECTORIES(platform_headers INTERFACE
 LIST(APPEND PLATFORM_FILES
   src/base64.cc
   src/random.cc
-  src/backtrace.c
   src/byte_buffer_dump.cc
   src/byteorder.c
   src/cb_malloc.cc
   src/cb_time.cc
-  src/cbassert.c
   src/checked_snprintf.cc
   src/crc32c.cc
   src/crc32c_private.h
@@ -182,12 +179,10 @@ LIST(APPEND PLATFORM_FILES
   src/timeutils.cc
   src/uuid.cc
   include/platform/atomic_duration.h
-  include/platform/backtrace.h
   include/platform/base64.h
   include/platform/bitset.h
   include/platform/byte_buffer_dump.h
   include/platform/cb_malloc.h
-  include/platform/cbassert.h
   include/platform/checked_snprintf.h
   include/platform/corestore.h
   include/platform/crc32c.h
@@ -212,6 +207,19 @@ LIST(APPEND PLATFORM_FILES
   include/platform/uuid.h
   ${Platform_BINARY_DIR}/include/platform/visibility.h
 )
+
+add_library(platform_cbassert STATIC
+            src/backtrace.c
+            src/cbassert.c
+            include/platform/backtrace.h
+            include/platform/cbassert.h)
+target_include_directories(platform_cbassert PRIVATE include)
+set_target_properties(platform_cbassert PROPERTIES POSITION_INDEPENDENT_CODE true)
+if (WIN32)
+target_link_libraries(platform_cbassert PRIVATE DbgHelp.lib)
+else()
+target_link_libraries(platform_cbassert PRIVATE ${CMAKE_DL_LIBS})
+endif()
 
 # platform_so - the 'real' platform shared library containing our various
 # platform abstraction functionality.
@@ -275,7 +283,8 @@ foreach(platform ${platform_VARIANTS})
   # Until all such targets are updated to link directly to Ws2_32, we
   # link publically.
   TARGET_LINK_LIBRARIES(${platform_so} PUBLIC
-    ${COUCHBASE_NETWORK_LIBS})
+    ${COUCHBASE_NETWORK_LIBS}
+    platform_cbassert)
 
 
   TARGET_INCLUDE_DIRECTORIES(${platform_so} SYSTEM PUBLIC ${FOLLY_INCLUDE_DIR})

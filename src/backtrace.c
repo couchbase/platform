@@ -115,7 +115,6 @@ static void describe_address(char* msg, size_t len, void* addr) {
 #endif // WIN32
 }
 
-PLATFORM_PUBLIC_API
 void print_backtrace(write_cb_t write_cb, void* context) {
     void* frames[MAX_FRAMES];
 #if defined(WIN32)
@@ -139,7 +138,6 @@ void print_backtrace(write_cb_t write_cb, void* context) {
 
 #else // if defined(HAVE_BACKTRACE_SUPPORT)
 
-PLATFORM_PUBLIC_API
 void print_backtrace(write_cb_t write_cb, void* context) {
     write_cb(context, "<backtrace not supported on this platform>");
 }
@@ -150,7 +148,6 @@ static void print_to_file_cb(void* ctx, const char* frame) {
     fprintf(ctx, "\t%s\n", frame);
 }
 
-PLATFORM_PUBLIC_API
 void print_backtrace_to_file(FILE* stream) {
     print_backtrace(print_to_file_cb, stream);
 }
@@ -181,7 +178,6 @@ static void memory_cb(void* ctx, const char* frame) {
     }
 }
 
-PLATFORM_PUBLIC_API
 bool print_backtrace_to_buffer(const char *indent, char *buffer, size_t size) {
     struct context c = {
         .indent = indent,

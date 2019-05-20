@@ -17,12 +17,10 @@
 #pragma once
 
 #include <platform/dynamic.h>
-#include <platform/visibility.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-    PLATFORM_PUBLIC_API
     void cb_assert_die(const char *expression, const char *file, int line)
         CB_ATTR_NORETURN;
 #ifdef __cplusplus

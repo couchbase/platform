@@ -23,8 +23,6 @@ extern "C" {
 #include <stdbool.h>
 #endif
 
-#include <platform/visibility.h>
-
 typedef void (*write_cb_t)(void *ctx, const char *frame);
 
 /**
@@ -32,13 +30,11 @@ typedef void (*write_cb_t)(void *ctx, const char *frame);
  * `write_cb` function is called with `context` and a string describing
  * the frame.
  */
-PLATFORM_PUBLIC_API
 void print_backtrace(write_cb_t write_cb, void* context);
 
 /**
  * Convenience function - prints a backtrace to the specified FILE.
  */
-PLATFORM_PUBLIC_API
 void print_backtrace_to_file(FILE* stream);
 
 /**
@@ -48,7 +44,6 @@ void print_backtrace_to_file(FILE* stream);
  * @param buffer the buffer to populate with the backtrace
  * @param size the size of the input buffer
  */
-PLATFORM_PUBLIC_API
 bool print_backtrace_to_buffer(const char *indent, char *buffer, size_t size);
 
 
