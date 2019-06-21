@@ -55,3 +55,24 @@ TEST(NByteCounterTest, underflow) {
     counter -= 1;
     EXPECT_EQ(0x0000ffffffffffff, counter);
 }
+
+TEST(NByteCounterTest, byteSwap) {
+    cb::UnsignedNByteInteger<6> counter(0x123456789ABC);
+    auto swapped = counter.byteSwap();
+    EXPECT_EQ(0xBC9A78563412, swapped);
+}
+
+TEST(NByteCounterTest, ntoh) {
+    cb::UnsignedNByteInteger<6> counter(12345);
+    EXPECT_EQ(0x3039, counter);
+
+    auto networkOrder = counter.hton();
+    if (folly::kIsLittleEndian) {
+        EXPECT_EQ(0x393000000000, networkOrder);
+    } else {
+        EXPECT_EQ(0x3039, counter);
+    }
+
+    auto hostOrder = networkOrder.ntoh();
+    EXPECT_EQ(0x3039, hostOrder);
+}

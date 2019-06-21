@@ -16,6 +16,8 @@
  */
 #pragma once
 
+#include <folly/Portability.h>
+
 #include <algorithm>
 #include <array>
 
@@ -78,6 +80,24 @@ public:
 
     uint64_t operator--(int) {
         return fetch_sub(1);
+    }
+
+    UnsignedNByteInteger byteSwap() const {
+        auto ret = UnsignedNByteInteger<N>();
+        std::reverse_copy(counter.begin(), counter.end(), ret.counter.begin());
+        return ret;
+    }
+
+    UnsignedNByteInteger hton() const {
+        if (folly::kIsLittleEndian) {
+            return byteSwap();
+        }
+
+        return *this;
+    }
+
+    UnsignedNByteInteger ntoh() const {
+        return hton();
     }
 
 private:
