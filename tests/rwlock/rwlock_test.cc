@@ -64,29 +64,50 @@ struct LockPair {
 };
 
 /// Lock types to test for exclusive access.
-using LockTypes = ::testing::Types<
 // macOS's C++ standard library doesn't appear to have annotations
 // for std::mutex etc - so TSan fails to detect lock-order issues.
-// Only test these mutext types on non-macOS.
+// As such some combinations cannot be checked on macOS.
+using LockTypes = ::testing::Types<
+// Identity tests (same - same)
 #if !defined(__APPLE__)
-        // Identity tests (same - same)
         LockPair<std::mutex, std::mutex>,
         LockPair<std::shared_timed_mutex, std::shared_timed_mutex>,
+        LockPair<folly::SharedMutex, folly::SharedMutex>,
+#endif
         LockPair<cb::RWLock, cb::RWLock>,
 
-        // Combination of each mutex type with every other.
+// Each mutex with each other mutex, in both orders (A,B) & (B,A).
+// While you'd _think_ that it would be sufficient to just check each
+// pair once, given in the test we call:
+//     A.lock(),
+//     B.lock(),
+//     unlock
+//     ...
+//     B.lock(),
+//     A.lock()
+// It turns out that on macOS at least TSan can detect lock inversions
+// in _one_ order but not the other -  ¯\_(ツ)_/¯
+#if !defined(__APPLE__)
         LockPair<std::mutex, std::shared_timed_mutex>,
         LockPair<std::mutex, cb::RWLock>,
         LockPair<std::mutex, folly::SharedMutex>,
+
+        LockPair<std::shared_timed_mutex, std::mutex>,
+        LockPair<std::shared_timed_mutex, cb::RWLock>,
+        LockPair<std::shared_timed_mutex, folly::SharedMutex>,
+#endif
+
+        LockPair<cb::RWLock, std::mutex>,
+#if !defined(__APPLE__)
         LockPair<cb::RWLock, std::shared_timed_mutex>,
+#endif
         LockPair<cb::RWLock, folly::SharedMutex>,
-        LockPair<folly::SharedMutex, std::shared_timed_mutex>,
-#endif // defined(__APPLE__)
-        // Curiously, macOS _can_ detect issues with
-        // <folly::SharedMutex,std::mutex>, but not in the reverse order
-        // <std::mutex, folly::SharedMutex>
+
         LockPair<folly::SharedMutex, std::mutex>,
-        LockPair<folly::SharedMutex, folly::SharedMutex>>;
+#if !defined(__APPLE__)
+        LockPair<folly::SharedMutex, std::shared_timed_mutex>,
+#endif
+        LockPair<folly::SharedMutex, cb::RWLock>>;
 
 /// Lock types to test for shared access
 using SharedLockTypes = ::testing::Types<
