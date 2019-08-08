@@ -46,50 +46,44 @@ TEST_F(CoreStoreTest, test) {
     EXPECT_EQ(1u, count);
 }
 
-int ArrayTest::cpuCount;
-int ArrayTest::cpuIndex;
+unsigned ArrayTest::cpuCount;
+unsigned ArrayTest::cpuIndex;
 
-TEST_P(ArrayTest, testCoreArraySize) {
+size_t ArrayTest::getCpuIndex(size_t c) {
+    auto index = folly::AccessSpreader<ManualTag>::current(c);
+    return index;
+};
+
+int ArrayTest::testingGetCpu(unsigned* cpu,
+                             unsigned* node,
+                             void* /* unused */) {
+    if (cpu) {
+        *cpu = ArrayTest::cpuIndex;
+    }
+
+    if (node) {
+        *node = ArrayTest::cpuIndex;
+    }
+    // Return value not checked
+    return 0;
+}
+
+TEST_F(ArrayTest, testCoreArraySize) {
     // Check we have the correct number of elements in the coreArray
-    EXPECT_EQ(getExpectedArrSizeParam(), corestore->size());
-}
-
-TEST_P(ArrayTest, testCoreArrayIndex) {
-    // Insert a unique value into each element that we should have created, then
-    // check for correctness
-    for (int i = 0; i < getExpectedArrSizeParam(); i++) {
-        cpuIndex = i;
-        corestore->get() = i;
-    }
-
-    for (int i = 0; i < getExpectedArrSizeParam(); i++) {
-        cpuIndex = i;
-        EXPECT_EQ(i, corestore->get());
+    for (int i = 0; i < 200; ++i) {
+        cpuCount = i;
+        corestore = std::make_unique<
+                CoreStore<uint8_t, &getCpuCount, &getCpuIndex>>();
+        EXPECT_EQ(getCpuCount(), corestore->size());
     }
 }
 
-TEST_P(ArrayTest, testIncreaseCpuCount) {
-    // Insert a unique value into each element that we should have created
-    for (int i = 0; i < getExpectedArrSizeParam(); i++) {
+TEST_F(ArrayTest, testCpuGTCoreArraySize) {
+    cpuCount = 4;
+    corestore =
+            std::make_unique<CoreStore<uint8_t, &getCpuCount, &getCpuIndex>>();
+    for (int i = 0; i < 200; ++i) {
         cpuIndex = i;
-        corestore->get() = i;
-    }
-
-    // Overrun the bounds of the coreArray, the bitmask should map us correctly
-    // to the modulus of the new index value
-    for (int i = 0; i <= 4 * getExpectedArrSizeParam(); i++) {
-        cpuIndex = i;
-        EXPECT_EQ(i % getExpectedArrSizeParam(), corestore->get());
+        EXPECT_EQ(0, corestore->get());
     }
 }
-
-INSTANTIATE_TEST_CASE_P(CoreStoreArrayTest,
-                        ArrayTest,
-                        ::testing::Values(std::make_tuple(1, 1),
-                                          std::make_tuple(2, 2),
-                                          std::make_tuple(3, 4),
-                                          std::make_tuple(4, 4),
-                                          std::make_tuple(5, 8),
-                                          std::make_tuple(6, 8),
-                                          std::make_tuple(7, 8),
-                                          std::make_tuple(8, 8)), );

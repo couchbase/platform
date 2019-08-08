@@ -23,7 +23,6 @@
 #include <memory>
 
 class CoreStoreTest : public ::testing::Test {
-public:
 };
 
 /**
@@ -32,25 +31,27 @@ public:
  * different cores and the expected number of array elements that should be
  * allocated.
  */
-class ArrayTest : public CoreStoreTest,
-                  public ::testing::WithParamInterface<
-                          std::tuple</*coreCount*/ uint8_t,
-                                     /*expectedArraySize*/ uint8_t>> {
+class ArrayTest : public CoreStoreTest {
+public:
+    /**
+     * Cpu count value that we can modify to determine how large a coreArray we
+     * should make in the corestore
+     */
+    static unsigned cpuCount;
+
+    /**
+     * Cpu index value that we can modify to tell corestore/Folly's
+     * AccessSpreader which CPU is being used
+     */
+    static unsigned cpuIndex;
+
+    /**
+     * Linux style getCPU func, used instead of the real/VDSO function to inject
+     * a specific value to test. Required to use our ManualTag AccessSpreader.
+     */
+    static int testingGetCpu(unsigned* cpu, unsigned* node, void* /*unused*/);
+
 protected:
-    void SetUp() override {
-        cpuCount = getCpuCountParam();
-        corestore = std::make_unique<
-                CoreStore<uint8_t, &getCpuCount, &getCpuIndex>>();
-    }
-
-    uint8_t getCpuCountParam() {
-        return std::get<0>(GetParam());
-    }
-
-    uint8_t getExpectedArrSizeParam() {
-        return std::get<1>(GetParam());
-    }
-
     /**
      * Static functions and members so that we can inject interesting values
      * in place of real cpu counts and indexes
@@ -58,11 +59,7 @@ protected:
     static size_t getCpuCount() {
         return cpuCount;
     };
-    static size_t getCpuIndex() {
-        return cpuIndex;
-    };
-    static int cpuCount;
-    static int cpuIndex;
+    static size_t getCpuIndex(size_t);
 
     /**
      * Unique ptr to our corestore that we want to test so that we can
@@ -70,3 +67,31 @@ protected:
      */
     std::unique_ptr<CoreStore<uint8_t, &getCpuCount, &getCpuIndex>> corestore;
 };
+
+/**
+ * Ripped this from folly's test class to allow us to manually tell it which CPU
+ * it should think we are using.
+ */
+#ifdef FOLLY_TLS
+#define DECLARE_SPREADER_TAG(tag, locality, func)        \
+    namespace {                                          \
+    template <typename dummy>                            \
+    struct tag {};                                       \
+    }                                                    \
+    namespace folly {                                    \
+    template <>                                          \
+    const CacheLocality& CacheLocality::system<tag>() {  \
+        static auto* inst = new CacheLocality(locality); \
+        return *inst;                                    \
+    }                                                    \
+    template <>                                          \
+    Getcpu::Func AccessSpreader<tag>::pickGetcpuFunc() { \
+        return func;                                     \
+    }                                                    \
+    template struct AccessSpreader<tag>;                 \
+    }
+
+DECLARE_SPREADER_TAG(ManualTag,
+                     CacheLocality::uniform(ArrayTest::cpuCount),
+                     ArrayTest::testingGetCpu)
+#endif
