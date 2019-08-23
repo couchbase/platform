@@ -116,12 +116,24 @@ private:
     /// @return the current value as a uint64_t
     uint64_t load() const {
         uint64_t value = 0;
-        std::copy_n(counter.begin(), N, reinterpret_cast<uint8_t*>(&value));
+        if (folly::kIsLittleEndian) {
+            std::copy_n(counter.begin(), N, reinterpret_cast<uint8_t*>(&value));
+        } else {
+            std::copy_n(counter.begin(),
+                        N,
+                        ((8 - N) + reinterpret_cast<uint8_t*>(&value)));
+        }
         return value;
     }
 
     void store(uint64_t value) {
-        std::copy_n(reinterpret_cast<uint8_t*>(&value), N, counter.begin());
+        if (folly::kIsLittleEndian) {
+            std::copy_n(reinterpret_cast<uint8_t*>(&value), N, counter.begin());
+        } else {
+            std::copy_n((reinterpret_cast<uint8_t*>(&value) + (8 - N)),
+                        N,
+                        counter.begin());
+        }
     }
 
     /// The current value of the n-byte integer
