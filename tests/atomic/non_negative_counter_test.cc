@@ -82,6 +82,18 @@ TEST(NonNegativeCounterTest, ClampsToZero) {
     EXPECT_EQ(0u, nnAtomic); // has been clamped to zero
 }
 
+// Test that attempting to construct or assign a negative value is rejected.
+TEST(NonNegativeCounterTest, ClampsToZeroAssignment) {
+    cb::NonNegativeCounter<size_t, cb::ClampAtZeroUnderflowPolicy> nnAtomic(-1);
+    EXPECT_EQ(0u, nnAtomic) << "Construction with of negative number should clamped to zero";
+
+    // Reset to different value before next test.
+    nnAtomic = 10;
+
+    nnAtomic = -2;
+    EXPECT_EQ(0u, nnAtomic) << "Assignment of negative number should have been clamped to zero";
+}
+
 // Test the ThrowException policy.
 TEST(NonNegativeCounterTest, ThrowExceptionPolicy) {
     cb::NonNegativeCounter<size_t, cb::ThrowExceptionUnderflowPolicy> nnAtomic(0);
@@ -101,3 +113,11 @@ TEST(NonNegativeCounterTest, ThrowExceptionPolicy) {
     EXPECT_EQ(0u, nnAtomic);
 }
 
+// Test that attempting to construct or assign a negative value is rejected.
+TEST(NonNegativeCounterTest, ThrowExceptionPolicyAssignment) {
+    using ThrowingCounter = cb::NonNegativeCounter<size_t, cb::ThrowExceptionUnderflowPolicy>;
+    EXPECT_THROW(ThrowingCounter(-1), std::underflow_error) << "Construction with of negative number should throw";
+
+    ThrowingCounter nnAtomic(10);
+    EXPECT_THROW(nnAtomic = -2, std::underflow_error) << "Assignment of negative number should throw";
+}

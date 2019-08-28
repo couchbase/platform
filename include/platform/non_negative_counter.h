@@ -83,7 +83,7 @@ public:
         store(0);
     }
 
-    NonNegativeCounter(const T& initial) noexcept {
+    NonNegativeCounter(T initial) {
         store(initial);
     }
 
@@ -99,7 +99,10 @@ public:
         return value.load(std::memory_order_relaxed);
     }
 
-    void store(T desired) noexcept {
+    void store(T desired) {
+        if (desired > std::numeric_limits<SignedT>::max()) {
+            UnderflowPolicy<T>::underflow(desired, load(), desired);
+        }
         value.store(desired, std::memory_order_relaxed);
     }
 
@@ -169,7 +172,7 @@ public:
     }
 
     NonNegativeCounter& operator=(const NonNegativeCounter& rhs) noexcept {
-        store(rhs.load());
+        value.store(rhs.load(), std::memory_order_relaxed);
         return *this;
     }
 
@@ -217,7 +220,7 @@ public:
         return fetch_sub(1);
     }
 
-    NonNegativeCounter& operator=(T val) noexcept {
+    NonNegativeCounter& operator=(T val) {
         store(val);
         return *this;
     }
