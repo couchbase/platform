@@ -21,10 +21,10 @@
 
 TEST(AtomicDurationTest, Constructors) {
     // Test the constructors. Implicitly tests load() and store() functions.
-    cb::AtomicDuration atomicDurationDefault;
-    cb::AtomicDuration atomicDurationValue(
+    cb::AtomicDuration<> atomicDurationDefault;
+    cb::AtomicDuration<> atomicDurationValue(
             std::chrono::steady_clock::duration(20));
-    cb::AtomicDuration atomicDurationCopy(atomicDurationValue);
+    cb::AtomicDuration<> atomicDurationCopy(atomicDurationValue);
 
     ASSERT_EQ(std::chrono::steady_clock::duration::zero(),
               atomicDurationDefault.load());
@@ -34,7 +34,8 @@ TEST(AtomicDurationTest, Constructors) {
 }
 
 TEST(AtomicDurationTest, FetchAdd) {
-    cb::AtomicDuration atomicDuration(std::chrono::steady_clock::duration(10));
+    cb::AtomicDuration<> atomicDuration(
+            std::chrono::steady_clock::duration(10));
     EXPECT_EQ(std::chrono::steady_clock::duration(10),
               atomicDuration.fetch_add(std::chrono::steady_clock::duration(
                       5))); // returns previous value
@@ -42,7 +43,8 @@ TEST(AtomicDurationTest, FetchAdd) {
 }
 
 TEST(AtomicDurationTest, FetchSub) {
-    cb::AtomicDuration atomicDuration(std::chrono::steady_clock::duration(10));
+    cb::AtomicDuration<> atomicDuration(
+            std::chrono::steady_clock::duration(10));
     EXPECT_EQ(std::chrono::steady_clock::duration(10),
               atomicDuration.fetch_sub(std::chrono::steady_clock::duration(
                       5))); // returns previous value
@@ -50,48 +52,55 @@ TEST(AtomicDurationTest, FetchSub) {
 }
 
 TEST(AtomicDurationTest, TypeCastOperator) {
-    cb::AtomicDuration atomicDuration(std::chrono::steady_clock::duration(10));
+    cb::AtomicDuration<> atomicDuration(
+            std::chrono::steady_clock::duration(10));
     EXPECT_EQ(std::chrono::steady_clock::duration(10),
               static_cast<std::chrono::steady_clock::duration>(atomicDuration));
 }
 
 TEST(AtomicDurationTest, AssignOperator) {
-    cb::AtomicDuration atomicDuration;
+    cb::AtomicDuration<> atomicDuration;
     atomicDuration = std::chrono::steady_clock::duration(10);
     EXPECT_EQ(std::chrono::steady_clock::duration(10), atomicDuration.load());
 }
 
 TEST(AtomicDurationTest, AddAssignOperator) {
-    cb::AtomicDuration atomicDuration(std::chrono::steady_clock::duration(10));
+    cb::AtomicDuration<> atomicDuration(
+            std::chrono::steady_clock::duration(10));
     atomicDuration += std::chrono::steady_clock::duration(5);
     EXPECT_EQ(std::chrono::steady_clock::duration(15), atomicDuration.load());
 }
 
 TEST(AtomicDurationTest, SubtractAssignOperator) {
-    cb::AtomicDuration atomicDuration(std::chrono::steady_clock::duration(10));
+    cb::AtomicDuration<> atomicDuration(
+            std::chrono::steady_clock::duration(10));
     atomicDuration -= std::chrono::steady_clock::duration(5);
     EXPECT_EQ(std::chrono::steady_clock::duration(5), atomicDuration.load());
 }
 
 TEST(AtomicDurationTest, PreIncrement) {
-    cb::AtomicDuration atomicDuration(std::chrono::steady_clock::duration(10));
+    cb::AtomicDuration<> atomicDuration(
+            std::chrono::steady_clock::duration(10));
     EXPECT_EQ(std::chrono::steady_clock::duration(11), ++atomicDuration);
 }
 
 TEST(AtomicDurationTest, PostIncrement) {
-    cb::AtomicDuration atomicDuration(std::chrono::steady_clock::duration(10));
+    cb::AtomicDuration<> atomicDuration(
+            std::chrono::steady_clock::duration(10));
     EXPECT_EQ(std::chrono::steady_clock::duration(10),
               atomicDuration++); // returns previous value
     EXPECT_EQ(std::chrono::steady_clock::duration(11), atomicDuration.load());
 }
 
 TEST(AtomicDurationTest, PreDecrement) {
-    cb::AtomicDuration atomicDuration(std::chrono::steady_clock::duration(10));
+    cb::AtomicDuration<> atomicDuration(
+            std::chrono::steady_clock::duration(10));
     EXPECT_EQ(std::chrono::steady_clock::duration(9), --atomicDuration);
 }
 
 TEST(AtomicDurationTest, PostDecrement) {
-    cb::AtomicDuration atomicDuration(std::chrono::steady_clock::duration(10));
+    cb::AtomicDuration<> atomicDuration(
+            std::chrono::steady_clock::duration(10));
     EXPECT_EQ(std::chrono::steady_clock::duration(10),
               atomicDuration--); // returns previous value
     EXPECT_EQ(std::chrono::steady_clock::duration(9), atomicDuration.load());

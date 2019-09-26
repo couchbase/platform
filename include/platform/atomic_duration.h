@@ -24,8 +24,10 @@ namespace cb {
 /* Wrapper class around std::atomic. It provides atomic operations
  * for std::chrono durations by operating on the underlying value
  * obtained from the duration's count().
- * It uses relaxed memory ordering, so it is suitable for statistics use only.
+ * Defaults to relaxed memory ordering, suitable for statistics.
  */
+template <std::memory_order MemoryOrder =
+                  std::memory_order::memory_order_relaxed>
 class AtomicDuration {
 public:
     AtomicDuration() {
@@ -45,24 +47,23 @@ public:
     }
 
     std::chrono::steady_clock::duration load() const {
-        return std::chrono::steady_clock::duration(
-                value.load(std::memory_order_relaxed));
+        return std::chrono::steady_clock::duration(value.load(MemoryOrder));
     }
 
     void store(std::chrono::steady_clock::duration desired) {
-        value.store(desired.count(), std::memory_order_relaxed);
+        value.store(desired.count(), MemoryOrder);
     }
 
     std::chrono::steady_clock::duration fetch_add(
             std::chrono::steady_clock::duration arg) {
         return std::chrono::steady_clock::duration(
-                value.fetch_add(arg.count(), std::memory_order_relaxed));
+                value.fetch_add(arg.count(), MemoryOrder));
     }
 
     std::chrono::steady_clock::duration fetch_sub(
             std::chrono::steady_clock::duration arg) {
         return std::chrono::steady_clock::duration(
-                value.fetch_sub(arg.count(), std::memory_order_relaxed));
+                value.fetch_sub(arg.count(), MemoryOrder));
     }
 
     AtomicDuration& operator=(std::chrono::steady_clock::duration val) {
