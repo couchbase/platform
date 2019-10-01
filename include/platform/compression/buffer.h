@@ -95,6 +95,11 @@ public:
         return size_;
     }
 
+    /// Is this buffer empty or not
+    bool empty() const {
+        return size_ == 0;
+    }
+
     /**
      * Get the capacity of the buffer
      */
