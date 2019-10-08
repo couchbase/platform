@@ -127,12 +127,12 @@ public:
      * Convenience operator to get a sized buffer pointing into the
      * buffer owned by this buffer
      */
-    operator cb::const_char_buffer() {
+    operator cb::const_char_buffer() const {
         return cb::const_char_buffer{data(), size()};
     }
 
-    operator cb::const_byte_buffer() {
-        return cb::const_byte_buffer{reinterpret_cast<uint8_t*>(data()),
+    operator cb::const_byte_buffer() const {
+        return cb::const_byte_buffer{reinterpret_cast<const uint8_t*>(data()),
                                      size()};
     }
 
