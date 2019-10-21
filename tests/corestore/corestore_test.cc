@@ -52,7 +52,7 @@ unsigned ArrayTest::cpuIndex;
 size_t ArrayTest::getCpuIndex(size_t c) {
     auto index = folly::AccessSpreader<ManualTag>::current(c);
     return index;
-};
+}
 
 int ArrayTest::testingGetCpu(unsigned* cpu,
                              unsigned* node,
