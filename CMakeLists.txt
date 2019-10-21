@@ -148,10 +148,12 @@ endif()
 # the single .cc file for the code it is testing, but needs the prototype(s)
 # of that .cc file.
 ADD_LIBRARY(platform_headers INTERFACE)
+TARGET_INCLUDE_DIRECTORIES(platform_headers SYSTEM INTERFACE
+                           ${FOLLY_INCLUDE_DIR})
+
 TARGET_INCLUDE_DIRECTORIES(platform_headers INTERFACE
         include
-        ${Platform_BINARY_DIR}/include
-        ${FOLLY_INCLUDE_DIR})
+        ${Platform_BINARY_DIR}/include)
 
 LIST(APPEND PLATFORM_FILES
   src/base64.cc
@@ -276,7 +278,8 @@ foreach(platform ${platform_VARIANTS})
     ${COUCHBASE_NETWORK_LIBS})
 
 
-  TARGET_INCLUDE_DIRECTORIES(${platform_so} PUBLIC include ${FOLLY_INCLUDE_DIR})
+  TARGET_INCLUDE_DIRECTORIES(${platform_so} SYSTEM PUBLIC ${FOLLY_INCLUDE_DIR})
+  TARGET_INCLUDE_DIRECTORIES(${platform_so} PUBLIC include)
   # TODO: Add a TARGET_INCLUDE_DIRECTORIES(PUBLIC) to phosphor; then the
   # following line can be removed:
   TARGET_INCLUDE_DIRECTORIES(${platform_so} PRIVATE ${phosphor_SOURCE_DIR}/include)
