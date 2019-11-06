@@ -160,7 +160,6 @@ LIST(APPEND PLATFORM_FILES
   src/random.cc
   src/backtrace.c
   src/byte_buffer_dump.cc
-  src/byteorder.c
   src/cb_malloc.cc
   src/cb_time.cc
   src/cbassert.c
