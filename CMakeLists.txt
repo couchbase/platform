@@ -207,18 +207,42 @@ LIST(APPEND PLATFORM_FILES
   ${Platform_BINARY_DIR}/include/platform/visibility.h
 )
 
-add_library(platform_cbassert STATIC
-            src/backtrace.c
-            src/cbassert.c
-            include/platform/backtrace.h
-            include/platform/cbassert.h)
-target_include_directories(platform_cbassert PRIVATE include)
-set_target_properties(platform_cbassert PROPERTIES POSITION_INDEPENDENT_CODE true)
-if (WIN32)
-target_link_libraries(platform_cbassert PRIVATE DbgHelp.lib)
+# Build a separate static library for cbassert/backtrace
+LIST(APPEND CBASSERT_FILES
+  src/backtrace.c
+  src/cbassert.c
+  include/platform/backtrace.h
+  include/platform/cbassert.h)
+
+add_library(platform_cbassert STATIC)
+
+# If the build has sanitizers enabled generate two libraries
+# If the build does not, build one library but use an alias to make it look like
+# two.
+if(CB_SANITIZERS)
+  add_library(platform_cbassert_unsanitized STATIC)
+  remove_sanitizers(platform_cbassert_unsanitized)
+  set(platform_cbassert_VARIANTS
+      platform_cbassert
+      platform_cbassert_unsanitized)
 else()
-target_link_libraries(platform_cbassert PRIVATE ${CMAKE_DL_LIBS})
-endif()
+  add_library(platform_cbassert_unsanitized ALIAS platform_cbassert)
+  set(platform_cbassert_VARIANTS platform_cbassert)
+endif(CB_SANITIZERS)
+
+foreach(platform_cbassert_variant ${platform_cbassert_VARIANTS})
+  target_sources(${platform_cbassert_variant} PRIVATE ${CBASSERT_FILES})
+  target_include_directories(${platform_cbassert_variant} PRIVATE include)
+  set_target_properties(${platform_cbassert_variant}
+                        PROPERTIES
+                        POSITION_INDEPENDENT_CODE
+                        true)
+  if (WIN32)
+    target_link_libraries(${platform_cbassert_variant} PRIVATE DbgHelp.lib)
+  else()
+    target_link_libraries(${platform_cbassert_variant} PRIVATE ${CMAKE_DL_LIBS})
+  endif()
+endforeach()
 
 # platform_so - the 'real' platform shared library containing our various
 # platform abstraction functionality.
@@ -283,6 +307,12 @@ foreach(platform ${platform_VARIANTS})
     ${MALLOC_LIBRARIES}
     ${PLATFORM_LIBRARIES})
 
+  if(platform MATCHES "unsanitized")
+    set(cbassert_lib platform_cbassert_unsanitized)
+  else()
+    set(cbassert_lib platform_cbassert)
+  endif()
+
   # Link publically with COUCHBASE_NETWORK_LIBS - strictly speaking this
   # shouldn't be necessary, however a number of downstream components
   # (e.g. couchstore targets) rely on platform to make available
@@ -291,8 +321,7 @@ foreach(platform ${platform_VARIANTS})
   # link publically.
   TARGET_LINK_LIBRARIES(${platform_so} PUBLIC
     ${COUCHBASE_NETWORK_LIBS}
-    platform_cbassert)
-
+    ${cbassert_lib})
 
   TARGET_INCLUDE_DIRECTORIES(${platform_so} SYSTEM PUBLIC ${FOLLY_INCLUDE_DIR})
   TARGET_INCLUDE_DIRECTORIES(${platform_so} PUBLIC include)
@@ -314,7 +343,6 @@ foreach(platform ${platform_VARIANTS})
     RUNTIME DESTINATION bin
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib)
-
 
   target_sources(${platform} PRIVATE src/global_new_replacement.cc)
   SET_TARGET_PROPERTIES(${platform} PROPERTIES POSITION_INDEPENDENT_CODE true)
