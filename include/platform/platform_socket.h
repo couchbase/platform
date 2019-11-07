@@ -61,14 +61,20 @@ void cb_initialize_sockets(void);
 #define cb_initialize_sockets()
 #endif // WIN32
 
-#ifndef CB_DONT_NEED_BYTEORDER
-PLATFORM_PUBLIC_API
-uint64_t ntohll(uint64_t);
-
-PLATFORM_PUBLIC_API
-uint64_t htonll(uint64_t);
-#endif
-
 #ifdef __cplusplus
 }
 #endif
+
+#ifndef CB_DONT_NEED_BYTEORDER
+#include <folly/Bits.h>
+
+PLATFORM_PUBLIC_API
+inline uint64_t ntohll(uint64_t x) {
+    return folly::Endian::big(x);
+}
+
+PLATFORM_PUBLIC_API
+inline uint64_t htonll(uint64_t x) {
+    return folly::Endian::big(x);
+}
+#endif // CB_DONT_NEED_BYTEORDER
