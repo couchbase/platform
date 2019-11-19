@@ -69,7 +69,7 @@ static void *platform_thread_wrap(void *arg)
 {
     std::unique_ptr<CouchbaseThread> context(reinterpret_cast<CouchbaseThread*>(arg));
     context->run();
-    return NULL;
+    return nullptr;
 }
 
 int cb_create_thread(cb_thread_t *id,
@@ -78,7 +78,7 @@ int cb_create_thread(cb_thread_t *id,
                      int detached)
 {
     // Implemented in terms of cb_create_named_thread; without a name.
-    return cb_create_named_thread(id, func, arg, detached, NULL);
+    return cb_create_named_thread(id, func, arg, detached, nullptr);
 }
 
 int cb_create_named_thread(cb_thread_t *id, cb_thread_main_func func, void *arg,
@@ -122,7 +122,7 @@ int cb_join_thread(cb_thread_t id)
         throw std::runtime_error("cb_join_thread: can't try to join self");
     }
 
-    return pthread_join(id, NULL);
+    return pthread_join(id, nullptr);
 }
 
 cb_thread_t cb_thread_self(void)
@@ -174,7 +174,7 @@ bool is_thread_name_supported(void)
 
 void cb_rw_lock_initialize(cb_rwlock_t *rw)
 {
-    int rv = pthread_rwlock_init(rw, NULL);
+    int rv = pthread_rwlock_init(rw, nullptr);
     if (rv != 0) {
         throw std::system_error(rv, std::system_category(),
                                 "Failed to initialize rw lock");

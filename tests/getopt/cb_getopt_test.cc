@@ -122,10 +122,10 @@ TEST_F(GetoptTest, RegressionTestFromEpEngine) {
 
 TEST_F(GetoptTest, TestLongOptions) {
     static cb::getopt::option long_options[] = {
-            {"first", cb::getopt::no_argument, 0, 'f'},
-            {"second", cb::getopt::no_argument, 0, 's'},
-            {"third", cb::getopt::no_argument, 0, 't'},
-            {0, 0, 0, 0}};
+            {"first", cb::getopt::no_argument, nullptr, 'f'},
+            {"second", cb::getopt::no_argument, nullptr, 's'},
+            {"third", cb::getopt::no_argument, nullptr, 't'},
+            {nullptr, 0, nullptr, 0}};
 
     getoptvec vec;
 

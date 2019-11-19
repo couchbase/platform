@@ -70,7 +70,7 @@ uint64_t cb_get_monotonic_seconds() {
     obtain a timeval structure containing the current time since EPOCH.
 */
 int cb_get_timeofday(struct timeval *tv) {
-    int rv = gettimeofday(tv, NULL);
+    int rv = gettimeofday(tv, nullptr);
     tv->tv_sec += timeofday_offset.load(std::memory_order_relaxed);
     return rv;
 }
@@ -100,7 +100,7 @@ int cb_gmtime_r(const time_t *clock, struct tm *result)
 #ifdef WIN32
     return gmtime_s(result, clock) == 0 ? 0 : -1;
 #else
-    return gmtime_r(clock, result) == NULL ? -1 : 0;
+    return gmtime_r(clock, result) == nullptr ? -1 : 0;
 #endif
 }
 
@@ -109,6 +109,6 @@ int cb_localtime_r(const time_t *clock, struct tm *result)
 #ifdef WIN32
     return localtime_s(result, clock) == 0 ? 0 : -1;
 #else
-    return localtime_r(clock, result) == NULL ? -1 : 0;
+    return localtime_r(clock, result) == nullptr ? -1 : 0;
 #endif
 }

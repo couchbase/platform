@@ -27,13 +27,13 @@ std::string cb::time2text(std::chrono::nanoseconds time2convert) {
     while (time > 9999) {
         ++id;
         time /= 1000;
-        if (extensions[id + 1] == NULL) {
+        if (extensions[id + 1] == nullptr) {
             break;
         }
     }
 
     std::string ret;
-    if (extensions[id + 1] == NULL && time > 599) {
+    if (extensions[id + 1] == nullptr && time > 599) {
         int hour = static_cast<int>(time / 3600);
         time -= hour * 3600;
         int min = static_cast<int>(time / 60);

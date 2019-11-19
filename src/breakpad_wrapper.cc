@@ -115,9 +115,9 @@ void breakpad_initialize(const char* minidump_dir) {
     if (handler != nullptr) {
         delete handler;
     }
-    handler = new ExceptionHandler(descriptor, /*filter*/NULL,
+    handler = new ExceptionHandler(descriptor, /*filter*/nullptr,
                                    dumpCallback,
-                                   /*callback-context*/NULL,
+                                   /*callback-context*/nullptr,
                                    /*install_handler*/false, /*server_fd*/-1);
 #endif /* defined({OS}) */
 }

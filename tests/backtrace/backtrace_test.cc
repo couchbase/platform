@@ -45,7 +45,7 @@ static void* expected_ctx = (void*)0xcbdb;
 
 static void write_callback(void* ctx, const char* frame) {
     cb_assert(ctx == expected_ctx);
-    cb_assert(frame != NULL);
+    cb_assert(frame != nullptr);
     cb_assert(strlen(frame) > 0);
     printf("%s\n", frame);
     frames++;

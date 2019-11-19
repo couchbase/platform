@@ -117,9 +117,9 @@ std::vector<std::string> cb::io::findFilesWithPrefix(const std::string& dir,
                                                      const std::string& name) {
     std::vector<std::string> files;
     DIR* dp = opendir(dir.c_str());
-    if (dp != NULL) {
+    if (dp != nullptr) {
         struct dirent* de;
-        while ((de = readdir(dp)) != NULL) {
+        while ((de = readdir(dp)) != nullptr) {
             std::string fnm(de->d_name);
             if (fnm == "." || fnm == "..") {
                 continue;
@@ -178,10 +178,10 @@ std::vector<std::string> cb::io::findFilesContaining(const std::string& dir,
                                                             const std::string& name) {
     std::vector<std::string> files;
     DIR* dp = opendir(dir.c_str());
-    if (dp != NULL) {
+    if (dp != nullptr) {
         struct dirent* de;
-        while ((de = readdir(dp)) != NULL) {
-            if (name.empty() || strstr(de->d_name, name.c_str()) != NULL) {
+        while ((de = readdir(dp)) != nullptr) {
+            if (name.empty() || strstr(de->d_name, name.c_str()) != nullptr) {
                 std::string fnm(de->d_name);
                 if (fnm != "." && fnm != "..") {
                     std::string entry = dir;
