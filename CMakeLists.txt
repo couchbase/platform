@@ -168,7 +168,6 @@ LIST(APPEND PLATFORM_FILES
   src/histogram.cc
   src/interrupt.cc
   src/memorymap.cc
-  src/pipe.cc
   src/processclock.cc
   src/sized_buffer.cc
   src/strerror.cc
@@ -192,7 +191,6 @@ LIST(APPEND PLATFORM_FILES
   include/platform/platform_socket.h
   include/platform/platform_thread.h
   include/platform/platform_time.h
-  include/platform/pipe.h
   include/platform/processclock.h
   include/platform/random.h
   include/platform/ring_buffer.h
