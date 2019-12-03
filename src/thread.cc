@@ -16,10 +16,10 @@
  */
 #include <platform/thread.h>
 
-Couchbase::Thread::Thread(const std::string& name_)
-    : name(name_),
-      state(ThreadState::Stopped) {
+#include <utility>
 
+Couchbase::Thread::Thread(std::string name_)
+    : name(std::move(name_)), state(ThreadState::Stopped) {
 }
 
 Couchbase::Thread::~Thread() {

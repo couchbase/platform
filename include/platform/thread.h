@@ -105,7 +105,7 @@ namespace Couchbase {
          *
          * @param name_ the name of the thread
          */
-        Thread(const std::string& name_);
+        Thread(std::string name_);
 
         /**
          * It is not allowed to copy a Thread object
