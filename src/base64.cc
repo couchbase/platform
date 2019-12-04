@@ -101,7 +101,7 @@ static void encode_rest(const uint8_t* s, std::string& result, size_t num) {
  * @param d pointer to the output stream
  */
 static void encode_triplet(const uint8_t* s, std::string& str) {
-    uint32_t val = (uint32_t)((*s << 16) | (*(s + 1) << 8) | (*(s + 2)));
+    auto val = (uint32_t)((*s << 16) | (*(s + 1) << 8) | (*(s + 2)));
     str.push_back((char)code[(val >> 18) & 63]);
     str.push_back((char)code[(val >> 12) & 63]);
     str.push_back((char)code[(val >> 6) & 63]);
@@ -202,7 +202,7 @@ std::vector<uint8_t> decode(const cb::const_char_buffer blob) {
     size_t estimate = blob.size() * 0.75;
     destination.reserve(estimate + 3);
 
-    const uint8_t* in = reinterpret_cast<const uint8_t*>(blob.data());
+    const auto* in = reinterpret_cast<const uint8_t*>(blob.data());
     size_t offset = 0;
     while (offset < blob.size()) {
         if (std::isspace((int)*in)) {

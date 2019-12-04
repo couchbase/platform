@@ -57,7 +57,7 @@ uint32_t incrementing_32(uint8_t* buf, size_t len) {
 
 uint32_t decrementing_32(uint8_t* buf, size_t len) {
     assert(len == 32);
-    uint8_t val = static_cast<uint8_t>(len-1);
+    auto val = static_cast<uint8_t>(len-1);
     for (size_t ii = 0; ii < len; ii++) {
         buf[ii] = val--;
     }
@@ -145,7 +145,7 @@ bool run_test_function(uint8_t* buffer, int len, test_function test, std::string
 
 
 int main() {
-    uint8_t* buffer = new uint8_t[33];
+    auto* buffer = new uint8_t[33];
     bool pass = true;
     pass &= run_test_function(buffer, 32, zero_32, "Zero 32");
     pass &= run_test_function(buffer+1, 32, zero_32, "Zero 32 - unaligned");

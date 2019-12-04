@@ -28,7 +28,7 @@ void cb::uuid::random(cb::uuid::uuid_t& uuid) {
     std::uniform_int_distribution<uint64_t> dis;
 
     // The uuid is 16 bytes, which is the same as two 64 bit integers
-    uint64_t* ptr = reinterpret_cast<uint64_t*>(uuid.data());
+    auto* ptr = reinterpret_cast<uint64_t*>(uuid.data());
     ptr[0] = dis(gen);
     ptr[1] = dis(gen);
 

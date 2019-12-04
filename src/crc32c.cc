@@ -178,7 +178,7 @@ static inline uint64_t crc32c_sw_inner(uint64_t crc, const uint8_t* buffer) {
 // No optimisation
 //
 uint32_t crc32c_sw_1way(const uint8_t* buf, size_t len, uint32_t crc_in) {
-    uint64_t crc = static_cast<uint64_t>(~crc_in);
+    auto crc = static_cast<uint64_t>(~crc_in);
 
     while ((reinterpret_cast<uintptr_t>(buf) & ALIGN64_MASK) != 0 && len > 0) {
         crc = crc32c_sw_lookup_table[0][(crc ^ *buf) & 0xff] ^ (crc >> 8);

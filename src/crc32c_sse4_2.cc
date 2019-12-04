@@ -81,7 +81,7 @@ typedef uint64_t crc_max_size_t;
 //
 PLATFORM_PUBLIC_API
 uint32_t crc32c_hw_1way(const uint8_t* buf, size_t len, uint32_t crc_in) {
-    crc_max_size_t crc = static_cast<crc_max_size_t>(~crc_in);
+    auto crc = static_cast<crc_max_size_t>(~crc_in);
     // use crc32-byte instruction until the buf pointer is 8-byte aligned
     while ((reinterpret_cast<uintptr_t>(buf) & ALIGN64_MASK) != 0 && len > 0) {
         crc = _mm_crc32_u8(static_cast<uint32_t>(crc), *buf);

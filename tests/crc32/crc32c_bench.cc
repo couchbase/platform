@@ -61,7 +61,7 @@ std::string gib_per_sec(size_t test_size,
         auto one_sec = std::chrono::nanoseconds(std::chrono::seconds(1));
         auto how_many_per_sec = one_sec / t;
 
-        double bytes_per_sec = static_cast<double>(test_size * how_many_per_sec);
+        auto bytes_per_sec = static_cast<double>(test_size * how_many_per_sec);
         gib_per_sec = bytes_per_sec/(1024.0*1024.0*1024.0);
     }
     std::stringstream ss;
@@ -139,11 +139,11 @@ void crc_bench_core(const uint8_t* buffer,
 void crc_bench(size_t len,
                int iterations,
                int unalignment) {
-    uint8_t* data = new uint8_t[len+unalignment];
+    auto* data = new uint8_t[len+unalignment];
     std::mt19937 twister(static_cast<int>(len));
     std::uniform_int_distribution<> dis(0, 0xff);
     for (size_t data_index = 0; data_index < len; data_index++) {
-        uint8_t data_value = static_cast<uint8_t>(dis(twister));
+        auto data_value = static_cast<uint8_t>(dis(twister));
         data[data_index] = data_value;
     }
     DurationVector timings_sw, timings_hw, timings_hw_opt;
