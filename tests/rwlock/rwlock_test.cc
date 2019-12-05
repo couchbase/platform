@@ -32,7 +32,7 @@
 template <typename Locks>
 class LockDeathTest : public ::testing::Test {
 public:
-    void SetUp() {
+    void SetUp() override {
         // Check out preconditions - require that TSan is configured to halt
         // immediately on an error.
         auto* tsanOptions = getenv("TSAN_OPTIONS");
