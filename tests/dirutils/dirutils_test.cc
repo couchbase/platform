@@ -225,10 +225,27 @@ TEST_F(IoTest, getcwd) {
 }
 
 TEST_F(IoTest, mkdirp) {
-#ifndef WIN32
-    EXPECT_THROW(cb::io::mkdirp("/it/would/suck/if/I/could/create/this"),
-                 std::runtime_error);
+    std::string path{"/it/would/suck/if/I/could/create/this"};
+
+#ifdef WIN32
+    // Try to use an invalid drive on Windows
+    bool found = false;
+    for (int ii = 'D'; ii < 'Z'; ++ii) {
+        std::string drive;
+        drive.push_back((char)ii);
+        drive.push_back(':');
+        if (!cb::io::isDirectory(drive)) {
+            found = true;
+            path = drive + path;
+            break;
+        }
+    }
+    if (!found) {
+        FAIL() << "Failed to locate an unused drive";
+    }
 #endif
+    EXPECT_THROW(cb::io::mkdirp(path), std::runtime_error);
+
     EXPECT_NO_THROW(cb::io::mkdirp("."));
     EXPECT_NO_THROW(cb::io::mkdirp("/"));
     EXPECT_NO_THROW(cb::io::mkdirp("foo/bar"));
