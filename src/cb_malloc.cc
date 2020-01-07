@@ -41,6 +41,18 @@
 cb_malloc_new_hook_t cb_new_hook = nullptr;
 cb_malloc_delete_hook_t cb_delete_hook = nullptr;
 
+static inline void cb_invoke_new_hook(const void* ptr, size_t size) {
+    if (cb_new_hook != nullptr) {
+        cb_new_hook(ptr, size);
+    }
+}
+
+static inline void cb_invoke_delete_hook(const void* ptr) {
+    if (cb_delete_hook != nullptr) {
+        cb_delete_hook(ptr);
+    }
+}
+
 PLATFORM_PUBLIC_API void* cb_malloc(size_t size) throw() {
     void* ptr = cb::ArenaMalloc::malloc(size);
     cb_invoke_new_hook(ptr, size);
@@ -124,14 +136,4 @@ bool cb_remove_delete_hook(cb_malloc_delete_hook_t f) {
     }
 }
 
-void cb_invoke_new_hook(const void* ptr, size_t size) {
-    if (cb_new_hook != nullptr) {
-        cb_new_hook(ptr, size);
-    }
-}
 
-void cb_invoke_delete_hook(const void* ptr) {
-    if (cb_delete_hook != nullptr) {
-        cb_delete_hook(ptr);
-    }
-}

@@ -114,9 +114,4 @@ PLATFORM_PUBLIC_API bool cb_remove_new_hook(cb_malloc_new_hook_t f);
 PLATFORM_PUBLIC_API bool cb_add_delete_hook(cb_malloc_delete_hook_t f);
 PLATFORM_PUBLIC_API bool cb_remove_delete_hook(cb_malloc_delete_hook_t f);
 
-/* Functions to call the new / delete hooks; if they are non-null. */
-PLATFORM_PUBLIC_API void cb_invoke_new_hook(const void* ptr, size_t size);
-
-PLATFORM_PUBLIC_API void cb_invoke_delete_hook(const void* ptr);
-
 #endif // __cplusplus
