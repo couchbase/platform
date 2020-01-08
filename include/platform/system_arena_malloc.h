@@ -55,7 +55,7 @@ class PLATFORM_PUBLIC_API SystemArenaMalloc {
 public:
     static ArenaMallocClient registerClient(bool threadCache);
     static void unregisterClient(const ArenaMallocClient& client);
-    static void switchToClient(const ArenaMallocClient& client);
+    static void switchToClient(const ArenaMallocClient& client, bool tcache);
     static void switchFromClient();
     static void setAllocatedThreshold(const ArenaMallocClient& client) {
         // Does nothing
@@ -75,7 +75,7 @@ public:
         return false;
 #endif
     }
-    static void setTCacheEnabled(bool value);
+    static bool setTCacheEnabled(bool value);
 
 private:
     static void addAllocation(void* ptr);

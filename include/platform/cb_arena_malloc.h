@@ -84,10 +84,20 @@ public:
     /**
      * Switch to the given client, all subsequent memory allocations made by
      * the current thread will be accounted to the client.
+     *
+     * Note on thread cache (tcache). It is permitted to have clients with their
+     * own tcache on/off, which is acheived by changing the value in the client
+     * object, doing so is global to the client on all threads that execute the
+     * client. Additionally we need to be able to switch tcache off for a single
+     * thread, that is what the optional tcache parameter achieves.
+     *
      * @param client The client to account to.
+     * @param tcache The caller can switch to the client and turn off tcache
+     *               for the current thread only.
      */
-    static void switchToClient(const ArenaMallocClient& client) {
-        Impl::switchToClient(client);
+    static void switchToClient(const ArenaMallocClient& client,
+                               bool tcache = true) {
+        Impl::switchToClient(client, tcache);
     }
 
     /**
@@ -178,9 +188,11 @@ public:
      * setting, i.e. set to false and no one should ever see use of a tcache.
      * Only JEMalloc implementation currently handles this, other
      * implementations ignore the call.
-     * @param value true if thread caching is enabled
+     *
+     * @param value true if thread caching should be enabled, false to disable
+     * @return the old value of tcache
      */
-    static void setTCacheEnabled(bool value) {
+    static bool setTCacheEnabled(bool value) {
         return Impl::setTCacheEnabled(value);
     }
 };

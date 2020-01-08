@@ -43,7 +43,7 @@ class PLATFORM_PUBLIC_API _JEArenaMalloc {
 public:
     static ArenaMallocClient registerClient(bool threadCache);
     static void unregisterClient(const ArenaMallocClient& client);
-    static void switchToClient(const ArenaMallocClient& client);
+    static void switchToClient(const ArenaMallocClient& client, bool tcache);
     static void switchFromClient();
     static void setAllocatedThreshold(const ArenaMallocClient& client) {
         trackingImpl::setAllocatedThreshold(client);
@@ -64,7 +64,7 @@ public:
     static constexpr bool canTrackAllocations() {
         return true;
     }
-    static void setTCacheEnabled(bool value);
+    static bool setTCacheEnabled(bool value);
 
     static void initialiseForNewThread(const ArenaMallocClient& client) {
         // thread initialise is always done without memory tracking to avoid

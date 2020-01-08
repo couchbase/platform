@@ -198,7 +198,7 @@ PLATFORM_PUBLIC_API void JEArenaMalloc::unregisterClient(
 
 template <>
 PLATFORM_PUBLIC_API void JEArenaMalloc::switchToClient(
-        const ArenaMallocClient& client) {
+        const ArenaMallocClient& client, bool tcache) {
     auto& tld = ThreadLocalData::get();
     if (client.index == NoClientIndex) {
         tld.getCurrentClient().setup(
@@ -208,8 +208,10 @@ PLATFORM_PUBLIC_API void JEArenaMalloc::switchToClient(
     }
 
     int tcacheFlags = MALLOCX_TCACHE_NONE;
-    // client can change tcache setting, but tcacheEnabled will override
-    if (client.threadCache && tcacheEnabled) {
+    // client can change tcache setting via their client object or for a single
+    // swicthToClient call.
+    // AND all inputs together, if any is false then no tcache
+    if (tcache && client.threadCache && tcacheEnabled) {
         tcacheFlags = MALLOCX_TCACHE(tld.getTCacheID(client));
     } else {
         // tcache is disabled but we still need to trigger a call to initialise
@@ -228,7 +230,7 @@ PLATFORM_PUBLIC_API void JEArenaMalloc::switchToClient(
 template <>
 PLATFORM_PUBLIC_API void JEArenaMalloc::switchFromClient() {
     // Set to 0, no client, all tracking/allocations go to default arena/tcache
-    switchToClient({0, NoClientIndex, tcacheEnabled});
+    switchToClient({0, NoClientIndex, tcacheEnabled}, tcacheEnabled);
 }
 
 template <>
@@ -290,8 +292,10 @@ size_t JEArenaMalloc::malloc_usable_size(void* ptr) {
 }
 
 template <>
-void JEArenaMalloc::setTCacheEnabled(bool value) {
+bool JEArenaMalloc::setTCacheEnabled(bool value) {
+    bool oldValue = tcacheEnabled;
     tcacheEnabled = value;
+    return oldValue;
 }
 
 void ThreadLocalDataDestroy::operator()(ThreadLocalData* ptr) {

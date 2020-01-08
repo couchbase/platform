@@ -76,13 +76,15 @@ void SystemArenaMalloc::unregisterClient(const ArenaMallocClient& client) {
     clients.wlock()->at(client.index).reset();
 }
 
-void SystemArenaMalloc::switchToClient(const ArenaMallocClient& client) {
+void SystemArenaMalloc::switchToClient(const ArenaMallocClient& client,
+                                       bool tcache) {
     currentClient = client;
+    (void)tcache; // no use in system allocator
 }
 
 void SystemArenaMalloc::switchFromClient() {
     // Set to arena 0, no client, all tracking is disabled
-    switchToClient({0, false, 0});
+    switchToClient({0, false, 0}, false /*tcache unused here*/);
 }
 
 size_t SystemArenaMalloc::getPreciseAllocated(const ArenaMallocClient& client) {
@@ -133,8 +135,9 @@ size_t SystemArenaMalloc::malloc_usable_size(void* ptr) {
             "SystemArenaMalloc::malloc_usable_size cannot be called");
 }
 
-void SystemArenaMalloc::setTCacheEnabled(bool value) {
+bool SystemArenaMalloc::setTCacheEnabled(bool value) {
     (void)value; // ignored
+    return false;
 }
 
 void SystemArenaMalloc::addAllocation(void* ptr) {
