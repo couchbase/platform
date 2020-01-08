@@ -150,6 +150,13 @@ int SystemArenaMalloc::setProperty(const char* name,
     return 0;
 }
 
+void SystemArenaMalloc::releaseMemory() {
+}
+
+void SystemArenaMalloc::releaseMemory(const ArenaMallocClient& client) {
+    (void)client;
+}
+
 void SystemArenaMalloc::addAllocation(void* ptr) {
     if (canTrackAllocations()) {
         auto client = currentClient;

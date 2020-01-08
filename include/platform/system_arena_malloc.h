@@ -80,6 +80,9 @@ public:
     static bool getProperty(const char* name, size_t& value);
     static int setProperty(const char* name, const void* newp, size_t newlen);
 
+    static void releaseMemory();
+    static void releaseMemory(const ArenaMallocClient& client);
+
 private:
     static void addAllocation(void* ptr);
     static void removeAllocation(void* ptr);

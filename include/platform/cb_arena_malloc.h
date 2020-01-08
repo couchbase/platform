@@ -225,6 +225,21 @@ public:
     static int setProperty(const char* name, const void* newp, size_t newlen) {
         return Impl::setProperty(name, newp, newlen);
     }
+
+    /**
+     * Request that unused memory is released from the process for all arenas
+     */
+    static void releaseMemory() {
+        Impl::releaseMemory();
+    }
+
+    /**
+     * Request that unused memory is released from the process for the clients
+     * arena
+     */
+    static void releaseMemory(const ArenaMallocClient& client) {
+        Impl::releaseMemory(client);
+    }
 };
 
 using ArenaMalloc = _ArenaMalloc<ARENA_ALLOC>;

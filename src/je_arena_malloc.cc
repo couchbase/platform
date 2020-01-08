@@ -311,6 +311,19 @@ int JEArenaMalloc::setProperty(const char* name,
     return je_mallctl(name, nullptr, 0, const_cast<void*>(newp), newlen);
 }
 
+#define STRINGIFY_HELPER(x) #x
+#define STRINGIFY(x) STRINGIFY_HELPER(x)
+template <>
+void JEArenaMalloc::releaseMemory() {
+    setProperty("arena." STRINGIFY(MALLCTL_ARENAS_ALL) ".purge", nullptr, 0);
+}
+
+template <>
+void JEArenaMalloc::releaseMemory(const ArenaMallocClient& client) {
+    std::string purgeKey = "arena." + std::to_string(client.arena) + ".purge";
+    setProperty(purgeKey.c_str(), nullptr, 0);
+}
+
 void ThreadLocalDataDestroy::operator()(ThreadLocalData* ptr) {
     ptr->~ThreadLocalData();
     // de-allocate from the default arena
