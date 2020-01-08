@@ -140,6 +140,16 @@ bool SystemArenaMalloc::setTCacheEnabled(bool value) {
     return false;
 }
 
+bool SystemArenaMalloc::getProperty(const char* name, size_t& value) {
+    return false;
+}
+
+int SystemArenaMalloc::setProperty(const char* name,
+                                   const void* newp,
+                                   size_t newlen) {
+    return 0;
+}
+
 void SystemArenaMalloc::addAllocation(void* ptr) {
     if (canTrackAllocations()) {
         auto client = currentClient;

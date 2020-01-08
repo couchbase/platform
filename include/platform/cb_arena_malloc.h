@@ -196,6 +196,35 @@ public:
     static bool setTCacheEnabled(bool value) {
         return Impl::setTCacheEnabled(value);
     }
+
+    /**
+     * Get the value of an allocator size_t property.
+     *
+     * This is a thin wrapper for invoking je_mallctl or do nothing on system
+     * allocator builds.
+     *
+     * @param name The name of the parameter to get (maps to mallctl name)
+     * @param[out] value size_t to write to if successful (maps to mallctl oldp)
+     * @return true if the call was successful
+     */
+    static bool getProperty(const char* name, size_t& value) {
+        return Impl::getProperty(name, value);
+    }
+
+    /**
+     * Set the value of an allocator property.
+     *
+     * This is a thin wrapper for invoking je_mallctl or do nothing on system
+     * allocator builds.
+     *
+     * @param name The name of the parameter to get (maps to mallctl name)
+     * @param newp new value to write to if successful (maps to mallctl newp)
+     * @param newlen length of the newp data
+     * @return the value returned by mallctl, consult jemalloc for info
+     */
+    static int setProperty(const char* name, const void* newp, size_t newlen) {
+        return Impl::setProperty(name, newp, newlen);
+    }
 };
 
 using ArenaMalloc = _ArenaMalloc<ARENA_ALLOC>;

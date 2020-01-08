@@ -73,6 +73,9 @@ public:
         trackingImpl::initialiseForNewThread(client);
     }
 
+    static bool getProperty(const char* name, size_t& value);
+    static int setProperty(const char* name, const void* newp, size_t newlen);
+
 protected:
     static void clientRegistered(const ArenaMallocClient& client) {
         trackingImpl::clientRegistered(client);

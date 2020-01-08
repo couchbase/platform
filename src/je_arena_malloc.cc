@@ -298,6 +298,19 @@ bool JEArenaMalloc::setTCacheEnabled(bool value) {
     return oldValue;
 }
 
+template <>
+bool JEArenaMalloc::getProperty(const char* name, size_t& value) {
+    size_t size = sizeof(size_t);
+    return je_mallctl(name, &value, &size, NULL, 0);
+}
+
+template <>
+int JEArenaMalloc::setProperty(const char* name,
+                               const void* newp,
+                               size_t newlen) {
+    return je_mallctl(name, nullptr, 0, const_cast<void*>(newp), newlen);
+}
+
 void ThreadLocalDataDestroy::operator()(ThreadLocalData* ptr) {
     ptr->~ThreadLocalData();
     // de-allocate from the default arena
