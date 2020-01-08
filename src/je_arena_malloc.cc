@@ -287,8 +287,8 @@ void JEArenaMalloc::sized_free(void* ptr, size_t size) {
 }
 
 template <>
-size_t JEArenaMalloc::malloc_usable_size(void* ptr) {
-    return je_sallocx(ptr, 0);
+size_t JEArenaMalloc::malloc_usable_size(const void* ptr) {
+    return je_sallocx(const_cast<void*>(ptr), 0);
 }
 
 template <>

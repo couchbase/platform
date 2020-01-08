@@ -125,11 +125,11 @@ void SystemArenaMalloc::sized_free(void* ptr, size_t size) {
     SystemArenaMalloc::free(ptr);
 }
 
-size_t SystemArenaMalloc::malloc_usable_size(void* ptr) {
+size_t SystemArenaMalloc::malloc_usable_size(const void* ptr) {
 #if defined(HAVE_JEMALLOC)
-    return je_malloc_usable_size(ptr);
+    return je_malloc_usable_size(const_cast<void*>(ptr));
 #elif defined(HAVE_MALLOC_USABLE_SIZE)
-    return ::malloc_usable_size(ptr);
+    return ::malloc_usable_size(const_cast<void*>(ptr));
 #endif
     throw std::runtime_error(
             "SystemArenaMalloc::malloc_usable_size cannot be called");

@@ -67,7 +67,7 @@ public:
     static void* realloc(void* ptr, size_t size);
     static void free(void* ptr);
     static void sized_free(void* ptr, size_t size);
-    static size_t malloc_usable_size(void* ptr);
+    static size_t malloc_usable_size(const void* ptr);
     static constexpr bool canTrackAllocations() {
 #if defined(HAVE_JEMALLOC) || defined(HAVE_MALLOC_USABLE_SIZE)
         return true;

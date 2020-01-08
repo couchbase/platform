@@ -169,12 +169,13 @@ public:
         Impl::sized_free(ptr, size);
     }
 
-#if defined(HAVE_MALLOC_USABLE_SIZE)
-    /// @return the real size of the allocation
-    static size_t malloc_usable_size(void* ptr) {
+    /**
+     * @throws runtime_error if there is no malloc_usable_size to call
+     * @return the real size of the allocation (ptr argument)
+     */
+    static size_t malloc_usable_size(const void* ptr) {
         return Impl::malloc_usable_size(ptr);
     }
-#endif
 
     /**
      * @return true if the ArenaMalloc can correctly track allocations
