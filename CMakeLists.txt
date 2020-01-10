@@ -259,14 +259,6 @@ add_library(platform_so SHARED)
 target_link_libraries(platform_so PUBLIC ${FOLLY_LIBRARIES})
 target_link_libraries(platform_so PRIVATE phosphor)
 
-if (NOT WIN32)
-  # Enable the more efficient TLS model
-  set_target_properties(platform_so
-                        PROPERTIES
-                        COMPILE_FLAGS
-                        -ftls-model=initial-exec)
-endif(NOT WIN32)
-
 # 'platform' - the library clients should normally link to.
 #
 # 'platform' is a static library, which itself links to the main platform_so
