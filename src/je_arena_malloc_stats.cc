@@ -128,7 +128,7 @@ void cb::JEArenaMalloc::getDetailedStats(const cb::char_buffer& buffer) {
             st->buffer[0] = '\0';
             return;
         }
-        if (len > st->buffer.len) {
+        if (std::size_t(len) > st->buffer.len) {
             /* insufficient space - have to crop output. Note we reserved enough
                space (see below) to be able to write an error if this occurs. */
             sprintf(st->buffer.buf, cropped_error);
