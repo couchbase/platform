@@ -86,21 +86,16 @@ struct CurrentClient {
  *                 methods for pushing the correct flags (arena) to jemalloc.
  * tcacheIds - An array of jemalloc thread cache identifiers, each thread:client
  *             needs its own id.
+ *
+ * Note this is a struct to reduce the number of tls_get_addr calls when it is
+ * used. If this struct is made a class, or wrapped in a CachelinePadded, or
+ * uses a class member all accesses to the object require multiple TLS reads
+ * (a guard variable comes into play).
+ * Using a much simpler struct/POD and the compiler does single calls
+ * to retrieve the address of the per thread object.
  */
-class ThreadLocalData {
+struct ThreadLocalData {
 public:
-    /**
-     * Destruct the store which results in je_mallctl(tcache.destroy) for each
-     * tcache in the store.
-     */
-    ~ThreadLocalData() noexcept(false);
-
-    /**
-     * Get the ThreadLocalData for the calling thread. This method will call
-     * make() if no ThreadLocalData exists yet.
-     */
-    static ThreadLocalData& get();
-
     /**
      * @return a tcache to use for the given client
      */
@@ -110,24 +105,17 @@ public:
         return currentClient;
     }
 
+    static ThreadLocalData& get() {
+        static thread_local ThreadLocalData tld = {};
+        return tld;
+    }
+
 private:
-    /**
-     * Make a new ThreadLocalData, this is always created in the default arena
-     */
-    static ThreadLocalData* make();
-    CurrentClient currentClient;
+    CurrentClient currentClient = {0, NoClientIndex};
 
-    /// Actual array of identifiers, 0 means no tcache has been created
-    std::array<uint16_t, ArenaMallocMaxClients> tcacheIds;
+    /// Actual array of identifiers, value of 0 means no tcache has been created
+    uint16_t tcacheIds[ArenaMallocMaxClients] = {0};
 };
-
-/// unique_ptr destructor for the thread_local tcache store
-struct ThreadLocalDataDestroy {
-    void operator()(ThreadLocalData* ptr);
-};
-
-static thread_local std::unique_ptr<ThreadLocalData, ThreadLocalDataDestroy>
-        tld;
 
 /**
  * A structure for mapping a client to an arena
@@ -216,9 +204,8 @@ PLATFORM_PUBLIC_API void JEArenaMalloc::unregisterClient(
 template <>
 PLATFORM_PUBLIC_API void JEArenaMalloc::switchToClient(
         const ArenaMallocClient& client, bool tcache) {
-    auto& tld = ThreadLocalData::get();
     if (client.index == NoClientIndex) {
-        tld.getCurrentClient().setup(
+        ThreadLocalData::get().getCurrentClient().setup(
                 client.threadCache && tcacheEnabled ? 0 : MALLOCX_TCACHE_NONE,
                 NoClientIndex);
         return;
@@ -229,19 +216,20 @@ PLATFORM_PUBLIC_API void JEArenaMalloc::switchToClient(
     // swicthToClient call.
     // AND all inputs together, if any is false then no tcache
     if (tcache && client.threadCache && tcacheEnabled) {
-        tcacheFlags = MALLOCX_TCACHE(tld.getTCacheID(client));
+        tcacheFlags =
+                MALLOCX_TCACHE(ThreadLocalData::get().getTCacheID(client));
     } else {
         // tcache is disabled but we still need to trigger a call to initialise
         // the per thread tracker, which is a side affect of tcache creation.
         // So call get (which will create a tcache), but we don't add it to the
         // flags so tcache is still MALLOCX_TCACHE_NONE
-        tld.getTCacheID(client);
+        ThreadLocalData::get().getTCacheID(client);
     }
 
     // Set the malloc flags to the correct arena + tcache setting and set the
     // client index
-    tld.getCurrentClient().setup(MALLOCX_ARENA(client.arena) | tcacheFlags,
-                                 client.index);
+    ThreadLocalData::get().getCurrentClient().setup(
+            MALLOCX_ARENA(client.arena) | tcacheFlags, client.index);
 }
 
 template <>
@@ -255,15 +243,15 @@ void* JEArenaMalloc::malloc(size_t size) {
     if (size == 0) {
         size = 8;
     }
-    auto& c = ThreadLocalData::get().getCurrentClient();
+    auto c = ThreadLocalData::get().getCurrentClient();
     memAllocated(c.index, size);
     return je_mallocx(size, c.mallocFlags);
 }
 
 template <>
 void* JEArenaMalloc::calloc(size_t nmemb, size_t size) {
-    auto& c = ThreadLocalData::get().getCurrentClient();
-    memAllocated(c.index, size);
+    auto c = ThreadLocalData::get().getCurrentClient();
+    memAllocated(c.index, nmemb * size);
     return je_mallocx(nmemb * size, c.mallocFlags | MALLOCX_ZERO);
 }
 
@@ -273,7 +261,7 @@ void* JEArenaMalloc::realloc(void* ptr, size_t size) {
         size = 8;
     }
 
-    auto& c = ThreadLocalData::get().getCurrentClient();
+    auto c = ThreadLocalData::get().getCurrentClient();
 
     if (!ptr) {
         memAllocated(c.index, size);
@@ -288,7 +276,7 @@ void* JEArenaMalloc::realloc(void* ptr, size_t size) {
 template <>
 void JEArenaMalloc::free(void* ptr) {
     if (ptr) {
-        auto& c = ThreadLocalData::get().getCurrentClient();
+        auto c = ThreadLocalData::get().getCurrentClient();
         memDeallocated(c.index, ptr);
         je_dallocx(ptr, c.mallocFlags);
     }
@@ -297,7 +285,7 @@ void JEArenaMalloc::free(void* ptr) {
 template <>
 void JEArenaMalloc::sized_free(void* ptr, size_t size) {
     if (ptr) {
-        auto& c = ThreadLocalData::get().getCurrentClient();
+        auto c = ThreadLocalData::get().getCurrentClient();
         memDeallocated(c.index, size);
         je_sdallocx(ptr, size, c.mallocFlags);
     }
@@ -341,44 +329,6 @@ void JEArenaMalloc::releaseMemory(const ArenaMallocClient& client) {
     setProperty(purgeKey.c_str(), nullptr, 0);
 }
 
-void ThreadLocalDataDestroy::operator()(ThreadLocalData* ptr) {
-    ptr->~ThreadLocalData();
-    // de-allocate from the default arena
-    je_dallocx((void*)ptr, 0);
-}
-
-ThreadLocalData::~ThreadLocalData() noexcept(false) {
-    for (auto tc : tcacheIds) {
-        if (tc) {
-            unsigned tcache = tc;
-            size_t sz = sizeof(unsigned);
-            if (je_mallctl("tcache.destroy", nullptr, 0, (void*)&tcache, sz) !=
-                0) {
-                throw std::logic_error(
-                        "JEArenaMalloc::TCacheDestroy: Could not "
-                        "destroy "
-                        "tcache");
-            }
-        }
-    }
-}
-
-ThreadLocalData* ThreadLocalData::make() {
-    // Always create in the default arena/cache (and zero init)
-    auto* vptr =
-            (ThreadLocalData*)je_mallocx(sizeof(ThreadLocalData), MALLOCX_ZERO);
-    return new (vptr) ThreadLocalData();
-}
-
-ThreadLocalData& ThreadLocalData::get() {
-    auto* arrayPtr = tld.get();
-    if (!arrayPtr) {
-        arrayPtr = make();
-        tld.reset(arrayPtr);
-    }
-    return *arrayPtr;
-}
-
 uint16_t ThreadLocalData::getTCacheID(const ArenaMallocClient& client) {
     // If no tcache exists one must be created (id:0 means no tcache)
     if (!tcacheIds[client.index]) {
@@ -387,7 +337,7 @@ uint16_t ThreadLocalData::getTCacheID(const ArenaMallocClient& client) {
         int rv = je_mallctl("tcache.create", (void*)&tcache, &sz, nullptr, 0);
         if (rv != 0) {
             throw std::runtime_error(
-                    "JThreadLocalData::get: Could not create tcache. rv:" +
+                    "ThreadLocalData::getTCacheID: tcache.create failed rv:" +
                     std::to_string(rv));
         }
         tcacheIds[client.index] = tcache;
