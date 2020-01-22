@@ -342,12 +342,31 @@ uint16_t ThreadLocalData::getTCacheID(const ArenaMallocClient& client) {
         }
         tcacheIds[client.index] = tcache;
 
-        // We are using the creation of the tcache for this client as a trigger
-        // that this is the first allocation for this client on this thread. In
-        // this case we must call initialiseForNewThread which the tracker can
-        // hook into and if required do any thread initialisation. Note that
-        // this function will also ensure that the current client is NoClient
-        JEArenaMalloc::initialiseForNewThread(client);
+        // We need to be sure that all allocated tcaches are destroyed at thread
+        // exit, do this by using a destruct function attached to a unique_ptr.
+        struct ThreadLocalDataDestroy {
+            void operator()(ThreadLocalData* ptr) {
+                for (auto tc : ptr->tcacheIds) {
+                    if (tc) {
+                        unsigned tcache = tc;
+                        size_t sz = sizeof(unsigned);
+                        if (je_mallctl("tcache.destroy",
+                                       nullptr,
+                                       0,
+                                       (void*)&tcache,
+                                       sz) != 0) {
+                            throw std::logic_error(
+                                    "JEArenaMalloc::ThreadLocalDataDestroy: "
+                                    "Could not "
+                                    "destroy "
+                                    "tcache");
+                        }
+                    }
+                }
+            }
+        };
+        thread_local std::unique_ptr<ThreadLocalData, ThreadLocalDataDestroy>
+                destroyTcache{this};
     }
     return tcacheIds[client.index];
 }

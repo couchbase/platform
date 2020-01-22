@@ -68,13 +68,6 @@ public:
     }
     static bool setTCacheEnabled(bool value);
 
-    static void initialiseForNewThread(const ArenaMallocClient& client) {
-        // thread initialise is always done without memory tracking to avoid
-        // any infinite recursion from subsequent allocations
-        switchFromClient();
-        trackingImpl::initialiseForNewThread(client);
-    }
-
     static bool getProperty(const char* name, size_t& value);
     static int setProperty(const char* name, const void* newp, size_t newlen);
 

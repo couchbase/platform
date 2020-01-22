@@ -63,10 +63,6 @@ void JEArenaCoreLocalTracker::clientRegistered(
     setAllocatedThreshold(client);
 }
 
-void JEArenaCoreLocalTracker::initialiseForNewThread(
-        const ArenaMallocClient& client) {
-}
-
 size_t JEArenaCoreLocalTracker::getPreciseAllocated(
         const ArenaMallocClient& client) {
     for (auto& core : coreAllocated[client.index]) {
