@@ -75,6 +75,12 @@ PLATFORM_PUBLIC_API size_t cb_malloc_usable_size(void* ptr) throwspec;
 
 PLATFORM_PUBLIC_API char* cb_strdup(const char* s1);
 
+/**
+ * @return 1 if cb_malloc is directed through cb::ArenaMalloc
+ */
+PLATFORM_PUBLIC_API
+int cb_malloc_is_using_arenas();
+
 #ifdef __cplusplus
 } // extern "C"
 #endif

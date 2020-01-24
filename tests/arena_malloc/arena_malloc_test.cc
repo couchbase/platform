@@ -24,6 +24,10 @@
 
 #include <vector>
 
+TEST(ArenaMalloc, cb_malloc_is_using_arenas) {
+    EXPECT_TRUE(cb_malloc_is_using_arenas());
+}
+
 TEST(ArenaMalloc, basicUsage) {
     // JEMalloc will 'lazy' deallocate, so thread cache should be off, with
     // thread caching on we would observe larger allocations than we requested

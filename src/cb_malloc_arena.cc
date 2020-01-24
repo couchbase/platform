@@ -25,8 +25,8 @@
 /* Irrespective of how jemalloc was configured on this platform,
  * don't rename je_FOO to FOO.
  */
-#  define JEMALLOC_NO_RENAME
-#  include <jemalloc/jemalloc.h>
+#define JEMALLOC_NO_RENAME
+#include <jemalloc/jemalloc.h>
 
 #else /* system allocator */
 #if defined(HAVE_MALLOC_USABLE_SIZE)
@@ -95,6 +95,11 @@ PLATFORM_PUBLIC_API size_t cb_malloc_usable_size(void* ptr) throw() {
 }
 #endif
 
+PLATFORM_PUBLIC_API
+int cb_malloc_is_using_arenas() {
+    return 1;
+}
+
 /*
  * Allocation / deallocation hook functions.
  */
@@ -133,5 +138,3 @@ bool cb_remove_delete_hook(cb_malloc_delete_hook_t f) {
         return false;
     }
 }
-
-

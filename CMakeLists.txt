@@ -154,12 +154,26 @@ TARGET_INCLUDE_DIRECTORIES(platform_headers INTERFACE
         include
         ${Platform_BINARY_DIR}/include)
 
+if (WIN32)
+  # WIN2 platform.dll:
+  #  provide cb_malloc directly (that uses arena tracking with jemalloc/malloc
+  #  depending on the build configuration)
+  set(CB_MALLOC_IMPL src/cb_malloc_arena.cc)
+elseif (UNIX)
+  # UNIX platform.so:
+  #  provide a weakly defined cb_malloc that uses std::malloc. Targets desiring
+  #  JeMalloc and the tracking allocator will need to also link to
+  #  platform_cb_malloc.
+  set(CB_MALLOC_IMPL src/cb_malloc_stdlib.cc)
+else ()
+  message(FATAL_ERROR "Unsupported system")
+endif (WIN32)
+
 LIST(APPEND PLATFORM_FILES
   src/base64.cc
   src/random.cc
   src/byte_buffer_dump.cc
   src/cb_arena_malloc.cc
-  src/cb_malloc.cc
   src/cb_time.cc
   src/checked_snprintf.cc
   src/crc32c.cc
@@ -177,6 +191,7 @@ LIST(APPEND PLATFORM_FILES
   src/thread.cc
   src/timeutils.cc
   src/uuid.cc
+  ${CB_MALLOC_IMPL}
   include/platform/atomic_duration.h
   include/platform/base64.h
   include/platform/bitset.h
@@ -345,9 +360,30 @@ foreach(platform ${platform_VARIANTS})
     ARCHIVE DESTINATION lib)
 
   target_sources(${platform} PRIVATE src/global_new_replacement.cc)
+
   SET_TARGET_PROPERTIES(${platform} PROPERTIES POSITION_INDEPENDENT_CODE true)
   TARGET_LINK_LIBRARIES(${platform} platform_headers ${platform_so})
 endforeach()
+
+if (WIN32)
+  # Windows: create an empty interface library so targets can specify they link
+  # to platform_cb_malloc_arena, but it is a no-op on WIN32.
+  add_library(platform_cb_malloc_arena INTERFACE)
+elseif (UNIX)
+  # On UNIX any targets that want the full memory tracking allocator and/or
+  # JeMalloc must link against this extra library. This library will give
+  # the target a strong symbol for cb_malloc, overriding the weak symbol within
+  # platform_so.so
+  add_library(platform_cb_malloc_arena STATIC src/cb_malloc_arena.cc)
+  target_link_libraries(platform_cb_malloc_arena platform ${MALLOC_LIBRARIES})
+  set_target_properties(platform_cb_malloc_arena PROPERTIES
+                                           POSITION_INDEPENDENT_CODE true)
+  target_include_directories(platform_cb_malloc_arena PUBLIC include)
+else ()
+  message(FATAL_ERROR "Unsupported system")
+endif (WIN32)
+
+
 
 GENERATE_EXPORT_HEADER(platform_so
                        EXPORT_MACRO_NAME PLATFORM_PUBLIC_API
