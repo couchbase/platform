@@ -14,10 +14,16 @@
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
  */
-#include <platform/backtrace.h>
 #include <platform/cbassert.h>
-#include <stdlib.h>
+#include <platform/backtrace.h>
+
+#if defined(WIN32)
+#include <folly/portability/Windows.h>
+#include <crtdbg.h>
+#endif
+
 #include <stdio.h>
+#include <stdlib.h>
 
 #if defined(WIN32) || ( defined(HAVE_BACKTRACE) && defined(HAVE_DLADDR))
 #  define HAVE_BACKTRACE_SUPPORT 1
@@ -42,3 +48,24 @@ void cb_assert_die(const char *expression, const char *file, int line)
     fflush(stderr);
     abort();
 }
+
+#if defined(WIN32)
+
+int backtraceReportHook( int reportType, char *message, int *returnValue ) {
+    fprintf(stderr, message);
+    fprintf(stderr, "Called from:\n");
+    print_backtrace(write_callback, NULL);
+    return FALSE;
+}
+
+void setupWindowsDebugCRTAssertHandling() {
+    _CrtSetReportMode(_CRT_ASSERT, _CRTDBG_MODE_FILE | _CRTDBG_MODE_WNDW);
+    _CrtSetReportFile(_CRT_ASSERT, _CRTDBG_FILE_STDERR );
+    _CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_FILE | _CRTDBG_MODE_WNDW);
+    _CrtSetReportFile(_CRT_ERROR, _CRTDBG_FILE_STDERR );
+    _CrtSetReportHook(backtraceReportHook);
+}
+#else
+void setupWindowsDebugCRTAssertHandling() {
+}
+#endif
