@@ -231,6 +231,7 @@ endif(CB_SANITIZERS)
 
 foreach(platform_cbassert_variant ${platform_cbassert_VARIANTS})
   target_sources(${platform_cbassert_variant} PRIVATE ${CBASSERT_FILES})
+  target_include_directories(${platform_cbassert_variant} SYSTEM PRIVATE ${FOLLY_INCLUDE_DIR})
   target_include_directories(${platform_cbassert_variant} PRIVATE include)
   set_target_properties(${platform_cbassert_variant}
                         PROPERTIES

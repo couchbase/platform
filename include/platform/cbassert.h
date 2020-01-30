@@ -29,3 +29,20 @@ extern "C" {
 
 #define cb_assert(e)  \
     ((void)((e) ? (void)0 : cb_assert_die(#e, __FILE__, __LINE__)))
+
+/**
+ * If running on Windows with a Debug build, direct error and assertion
+ * messages from the CRT to stderr, in addition to the default GUI dialog
+ * box.
+ * Also includes a backtrace of the error.
+ * Ensures that errors from Debug-mode tests etc are visible even if running
+ * in a non-graphical mode (e.g. Jenkins CV job).
+ * No-op on non-Windows, non-Debug build.
+ */
+#ifdef __cplusplus
+extern "C" {
+#endif
+    void setupWindowsDebugCRTAssertHandling(void);
+#ifdef __cplusplus
+}
+#endif
