@@ -25,7 +25,7 @@
 // Helper function for calling mallctl
 static int getJemallocStat(const std::string& property, size_t* value) {
     size_t size = sizeof(*value);
-    return je_mallctl(property.c_str(), value, &size, NULL, 0);
+    return je_mallctl(property.c_str(), value, &size, nullptr, 0);
 }
 
 // Helper function for calling jemalloc epoch.

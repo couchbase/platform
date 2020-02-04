@@ -306,14 +306,14 @@ bool JEArenaMalloc::setTCacheEnabled(bool value) {
 template <>
 bool JEArenaMalloc::getProperty(const char* name, size_t& value) {
     size_t size = sizeof(size_t);
-    return je_mallctl(name, &value, &size, NULL, 0);
+    return je_mallctl(name, &value, &size, nullptr, 0);
 }
 
 template <>
 int JEArenaMalloc::setProperty(const char* name,
                                const void* newp,
                                size_t newlen) {
-    return je_mallctl(name, nullptr, 0, const_cast<void*>(newp), newlen);
+    return je_mallctl(name, nullptr, nullptr, const_cast<void*>(newp), newlen);
 }
 
 #define STRINGIFY_HELPER(x) #x
@@ -352,7 +352,7 @@ uint16_t ThreadLocalData::getTCacheID(const ArenaMallocClient& client) {
                         size_t sz = sizeof(unsigned);
                         if (je_mallctl("tcache.destroy",
                                        nullptr,
-                                       0,
+                                       nullptr,
                                        (void*)&tcache,
                                        sz) != 0) {
                             throw std::logic_error(
