@@ -100,7 +100,7 @@ public:
     }
 
     void store(T desired) {
-        if (desired > std::numeric_limits<SignedT>::max()) {
+        if (desired > T(std::numeric_limits<SignedT>::max())) {
             UnderflowPolicy<T>::underflow(desired, load(), desired);
         }
         value.store(desired, std::memory_order_relaxed);
@@ -124,7 +124,7 @@ public:
                 }
             } else {
                 desired = current + T(arg);
-                if (desired > std::numeric_limits<SignedT>::max()) {
+                if (desired > T(std::numeric_limits<SignedT>::max())) {
                     UnderflowPolicy<T>::underflow(desired, current, arg);
                 }
             }
@@ -154,7 +154,7 @@ public:
                 desired = current - T(arg);
             }
 
-            if (desired > std::numeric_limits<SignedT>::max()) {
+            if (desired > T(std::numeric_limits<SignedT>::max())) {
                 UnderflowPolicy<T>::underflow(desired, current, arg);
             }
             // Attempt to set the atomic value to desired. If the atomic value
