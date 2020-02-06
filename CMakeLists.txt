@@ -263,6 +263,7 @@ if (MEMORY_ALLOCATOR STREQUAL "jemalloc")
 LIST(APPEND PLATFORM_FILES src/je_arena_corelocal_tracker.cc)
 LIST(APPEND PLATFORM_FILES src/je_arena_malloc.cc)
 LIST(APPEND PLATFORM_FILES src/je_arena_malloc_stats.cc)
+LIST(APPEND PLATFORM_FILES src/je_malloc_conf.cc)
 endif()
 # Always build the system_arena code for simpler concurrent development
 LIST(APPEND PLATFORM_FILES src/system_arena_malloc.cc)

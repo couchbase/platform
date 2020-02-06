@@ -37,4 +37,11 @@ void ArenaMallocClient::setEstimateUpdateThreshold(size_t maxDataSize,
             size_t(std::numeric_limits<uint32_t>::max()),
             size_t(maxDataSize * (percentage / 100.0) / cb::get_cpu_count())));
 }
+
+#if defined(HAVE_JEMALLOC)
+template class PLATFORM_PUBLIC_API _ArenaMalloc<JEArenaMalloc>;
+#else
+template class PLATFORM_PUBLIC_API _ArenaMalloc<SystemArenaMalloc>;
+#endif
+
 } // namespace cb
