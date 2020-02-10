@@ -39,9 +39,9 @@ void ArenaMallocClient::setEstimateUpdateThreshold(size_t maxDataSize,
 }
 
 #if defined(HAVE_JEMALLOC)
-template class PLATFORM_PUBLIC_API _ArenaMalloc<JEArenaMalloc>;
+template class _ArenaMalloc<JEArenaMalloc>;
 #else
-template class PLATFORM_PUBLIC_API _ArenaMalloc<SystemArenaMalloc>;
+template class _ArenaMalloc<SystemArenaMalloc>;
 #endif
 
 } // namespace cb
