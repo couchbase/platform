@@ -263,7 +263,6 @@ if (MEMORY_ALLOCATOR STREQUAL "jemalloc")
 LIST(APPEND PLATFORM_FILES src/je_arena_corelocal_tracker.cc)
 LIST(APPEND PLATFORM_FILES src/je_arena_malloc.cc)
 LIST(APPEND PLATFORM_FILES src/je_arena_malloc_stats.cc)
-LIST(APPEND PLATFORM_FILES src/je_malloc_conf.cc)
 endif()
 # Always build the system_arena code for simpler concurrent development
 LIST(APPEND PLATFORM_FILES src/system_arena_malloc.cc)
@@ -375,7 +374,11 @@ elseif (UNIX)
   # JeMalloc must link against this extra library. This library will give
   # the target a strong symbol for cb_malloc, overriding the weak symbol within
   # platform_so.so
-  add_library(platform_cb_malloc_arena STATIC src/cb_malloc_arena.cc)
+  LIST(APPEND PLATFORM_CB_MALLOC_ARENA_FILES src/cb_malloc_arena.cc)
+  if (MEMORY_ALLOCATOR STREQUAL "jemalloc")
+    LIST(APPEND PLATFORM_CB_MALLOC_ARENA_FILES src/je_malloc_conf.cc)
+  endif()
+  add_library(platform_cb_malloc_arena STATIC ${PLATFORM_CB_MALLOC_ARENA_FILES})
   target_link_libraries(platform_cb_malloc_arena platform ${MALLOC_LIBRARIES})
   set_target_properties(platform_cb_malloc_arena PROPERTIES
                                            POSITION_INDEPENDENT_CODE true)
