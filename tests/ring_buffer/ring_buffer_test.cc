@@ -41,7 +41,7 @@ public:
 
 typedef ::testing::Types<RingBuffer<int, 10>, TestRingBufferVector<int>>
     MyTypes;
-TYPED_TEST_CASE(RingBufferTest, MyTypes);
+TYPED_TEST_SUITE(RingBufferTest, MyTypes);
 
 TYPED_TEST(RingBufferTest, testRingBuffer) {
     TypeParam rb;

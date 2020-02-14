@@ -120,8 +120,8 @@ using SharedLockTypes = ::testing::Types<
 #endif // defined(__APPLE__)
         LockPair<folly::SharedMutex, folly::SharedMutex>>;
 
-TYPED_TEST_CASE(ExclusiveLockDeathTest, LockTypes);
-TYPED_TEST_CASE(SharedLockDeathTest, SharedLockTypes);
+TYPED_TEST_SUITE(ExclusiveLockDeathTest, LockTypes);
+TYPED_TEST_SUITE(SharedLockDeathTest, SharedLockTypes);
 
 // The following tests all rely on ThreadSanitizer (they are checking
 // that our different locks interact correctly with TSan)
