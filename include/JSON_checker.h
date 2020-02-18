@@ -3,6 +3,7 @@
 #pragma once
 
 #include <platform/JSON_checker-visibility.h>
+#include <platform/sized_buffer.h>
 
 #ifdef __cplusplus
 
@@ -104,7 +105,7 @@ namespace JSON_checker {
          * @throws std::bad_alloc for memory allocation problems related to
          *         the internal state array
          */
-        bool validate(const std::string& data);
+        bool validate(cb::const_char_buffer data);
 
     private:
         Instance instance;

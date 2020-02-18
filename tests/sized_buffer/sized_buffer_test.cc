@@ -90,50 +90,11 @@ TEST(SizedBufferTest, SubStr) {
     EXPECT_THROW(A.substr(50), std::out_of_range);
 }
 
-TEST(SizedBufferTest, Access) {
-    const char s[] = "Hello, World!";
-    auto A = make_ccb(s);
-
-    EXPECT_EQ(s, A.data());
-    EXPECT_EQ(s, A.begin());
-    EXPECT_EQ(s, A.cbegin());
-    EXPECT_EQ(&s[sizeof(s) - 1], A.end());
-    EXPECT_EQ(&s[sizeof(s) - 1], A.cend());
-
-    EXPECT_EQ('H', A.front());
-    EXPECT_EQ('!', A.back());
-
-    for (size_t i = 0; i < sizeof(s) - 1; ++i) {
-        EXPECT_EQ(s[i], A[i]);
-        EXPECT_EQ(s[i], A.at(i));
-    }
-    EXPECT_THROW(A.at(A.size()), std::out_of_range);
-
-    cb::const_char_buffer B;
-    EXPECT_THROW(B.at(0), std::out_of_range);
-}
-
 TEST(SizedBufferTest, Capacity) {
     auto A = make_ccb("Hello, World!");
     EXPECT_EQ(13u, A.size());
     EXPECT_FALSE(A.empty());
     EXPECT_TRUE(make_ccb("").empty());
-}
-
-TEST(SizedBufferTest, Find) {
-    auto A = make_ccb("Hello, World!");
-    EXPECT_EQ(0u, A.find(make_ccb("Hello")));
-    EXPECT_EQ(7u, A.find(make_ccb("World!")));
-    EXPECT_EQ(A.npos, A.find(make_ccb("Trond!")));
-    EXPECT_EQ(0u, A.find(make_ccb("")));
-
-    auto R = make_ccb("RepeatRepeatRepeat");
-    EXPECT_EQ(0u, R.find(make_ccb("Repeat")));
-    EXPECT_EQ(6u, R.find(make_ccb("Repeat"), 1));
-    EXPECT_EQ(12u, R.find(make_ccb("Repeat"), 7));
-
-    cb::const_char_buffer B;
-    EXPECT_EQ(B.npos, B.find(make_ccb("")));
 }
 
 TEST(SizedBufferTest, FindFirstOf) {
@@ -185,27 +146,6 @@ TEST(SizedBufferTest, FromString) {
     EXPECT_EQ(str.size(), cb.size());
 }
 
-TEST(SizedBufferTest, FromVector) {
-    std::string str = "Hello, World";
-    std::vector<char> vec(str.begin(), str.end());
-    cb::const_char_buffer ccb = vec;
-    cb::char_buffer cb = vec;
-
-    EXPECT_EQ(vec.data(), ccb.data());
-    EXPECT_EQ(vec.size(), ccb.size());
-    EXPECT_EQ(vec.data(), cb.data());
-    EXPECT_EQ(vec.size(), cb.size());
-}
-
-TEST(SizedBufferTest, ToConst) {
-    char str[] = "Hello, World!";
-    cb::char_buffer cb{str, sizeof(str) - 1};
-    cb::const_char_buffer ccb = cb;
-
-    EXPECT_EQ(ccb.data(), cb.data());
-    EXPECT_EQ(ccb.size(), cb.size());
-}
-
 TEST(SizedBufferTest, cString1) {
     const char* cStr = "Hello, World!";
     cb::const_char_buffer ccb(cStr);
@@ -213,7 +153,7 @@ TEST(SizedBufferTest, cString1) {
     EXPECT_STREQ("Hello, World!", ccb.data());
     EXPECT_EQ(std::strlen("Hello, World!"), ccb.size());
 
-    auto str = cb::to_string(ccb);
+    auto str = std::string(ccb);
     EXPECT_EQ(0, str.compare(ccb.data()));
     EXPECT_EQ(ccb.size(), str.size());
 }

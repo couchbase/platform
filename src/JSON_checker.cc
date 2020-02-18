@@ -407,9 +407,8 @@ bool JSON_checker::Validator::validate(const std::vector<uint8_t>& data) {
     return validate(data.data(), static_cast<size_t>(data.size()));
 }
 
-bool JSON_checker::Validator::validate(const std::string& data) {
-    return validate(reinterpret_cast<const uint8_t*>(data.data()),
-                    static_cast<size_t>(data.length()));
+bool JSON_checker::Validator::validate(cb::const_char_buffer data) {
+    return validate(reinterpret_cast<const uint8_t*>(data.data()), data.size());
 }
 
 JSON_checker::Instance::Instance() {

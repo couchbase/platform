@@ -25,6 +25,7 @@
 #include <iterator>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <type_traits>
 #include <typeinfo>
 #include <vector>
@@ -355,6 +356,9 @@ size_t buffer_hash(sized_buffer<CharT> base) {
  */
 using char_buffer = sized_buffer<char>;
 
+PLATFORM_PUBLIC_API
+std::string to_string(char_buffer cb);
+
 /**
  * The byte_buffer is intended to use for a blob of bytes you might want
  * to modify
@@ -370,21 +374,9 @@ using const_byte_buffer = sized_buffer<const uint8_t>;
 /**
  * The const_char_buffer is intended for strings you're not going
  * to modify.
+ * TODO: Replace directly with std::string_view.
  */
-class const_char_buffer : public sized_buffer<const char> {
-public:
-    const_char_buffer() : sized_buffer() {
-    }
-
-    using sized_buffer::sized_buffer;
-
-    const_char_buffer(const char* cStr)
-        : sized_buffer(cStr, std::strlen(cStr)) {
-    }
-};
-
-PLATFORM_PUBLIC_API
-std::string to_string(const_char_buffer cb);
+using const_char_buffer = std::string_view;
 
 inline bool operator==(const_char_buffer lhs, const char* rhs) {
     return lhs.compare(const_char_buffer(rhs)) == 0;
@@ -405,15 +397,6 @@ namespace std {
 template <typename CharT>
 struct hash<cb::sized_buffer<CharT>> {
     size_t operator()(cb::sized_buffer<CharT> s) const {
-        return cb::buffer_hash(s);
-    }
-};
-}
-
-namespace std {
-template <>
-struct hash<cb::const_char_buffer> {
-    size_t operator()(cb::const_char_buffer s) const {
         return cb::buffer_hash(s);
     }
 };

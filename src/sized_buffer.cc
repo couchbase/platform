@@ -19,7 +19,7 @@
 #include <ostream>
 
 PLATFORM_PUBLIC_API
-std::string cb::to_string(cb::const_char_buffer cb) {
+std::string cb::to_string(cb::char_buffer cb) {
     return std::string{cb.data(), cb.size()};
 }
 
