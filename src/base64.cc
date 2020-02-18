@@ -189,7 +189,7 @@ std::string encode(const cb::const_byte_buffer blob, bool prettyprint) {
 }
 
 PLATFORM_PUBLIC_API
-std::vector<uint8_t> decode(const cb::const_char_buffer blob) {
+std::vector<uint8_t> decode(std::string_view blob) {
     std::vector<uint8_t> destination;
 
     if (blob.empty()) {

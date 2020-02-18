@@ -127,8 +127,8 @@ public:
      * Convenience operator to get a sized buffer pointing into the
      * buffer owned by this buffer
      */
-    operator cb::const_char_buffer() const {
-        return cb::const_char_buffer{data(), size()};
+    operator std::string_view() const {
+        return std::string_view{data(), size()};
     }
 
     operator cb::const_byte_buffer() const {

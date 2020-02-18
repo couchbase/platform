@@ -45,7 +45,7 @@ cb::uuid::uuid_t cb::uuid::random() {
 }
 
 PLATFORM_PUBLIC_API
-cb::uuid::uuid_t cb::uuid::from_string(const_char_buffer str) {
+cb::uuid::uuid_t cb::uuid::from_string(std::string_view str) {
     uuid_t ret;
     if (str.size() != 36) {
         throw std::invalid_argument(

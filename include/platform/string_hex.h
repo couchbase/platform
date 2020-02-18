@@ -31,7 +31,7 @@ namespace cb {
  *         std::overflow_error if the input string won't fit in uint64_t
  */
 PLATFORM_PUBLIC_API
-uint64_t from_hex(cb::const_char_buffer buffer);
+uint64_t from_hex(std::string_view buffer);
 
 PLATFORM_PUBLIC_API
 std::string to_hex(uint8_t val);

@@ -48,7 +48,7 @@ static const size_t DEFAULT_MAX_INFLATED_SIZE = 30 * 1024 * 1024;
  */
 CBCOMPRESS_PUBLIC_API
 bool inflate(Algorithm algorithm,
-             cb::const_char_buffer input_buffer,
+             std::string_view input_buffer,
              Buffer& output,
              size_t max_inflated_size = DEFAULT_MAX_INFLATED_SIZE);
 
@@ -64,7 +64,7 @@ bool inflate(Algorithm algorithm,
  */
 CBCOMPRESS_PUBLIC_API
 bool deflate(Algorithm algorithm,
-             cb::const_char_buffer input_buffer,
+             std::string_view input_buffer,
              Buffer& output);
 
 /**
@@ -89,7 +89,7 @@ Algorithm to_algorithm(const std::string& string);
  */
 CBCOMPRESS_PUBLIC_API
 bool validate(Algorithm algorithm,
-              cb::const_char_buffer input_buffer,
+              std::string_view input_buffer,
               size_t max_inflated_size = DEFAULT_MAX_INFLATED_SIZE);
 
 /**
@@ -103,7 +103,7 @@ bool validate(Algorithm algorithm,
  */
 CBCOMPRESS_PUBLIC_API
 size_t get_uncompressed_length(Algorithm algorithm,
-                               cb::const_char_buffer input_buffer);
+                               std::string_view input_buffer);
 }
 }
 

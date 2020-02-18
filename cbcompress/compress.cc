@@ -33,7 +33,7 @@
 #endif
 
 
-static bool doSnappyUncompress(cb::const_char_buffer input,
+static bool doSnappyUncompress(std::string_view input,
                                cb::compression::Buffer& output,
                                size_t max_inflated_size) {
     size_t inflated_length;
@@ -54,7 +54,7 @@ static bool doSnappyUncompress(cb::const_char_buffer input,
     return true;
 }
 
-static bool doSnappyCompress(cb::const_char_buffer input,
+static bool doSnappyCompress(std::string_view input,
                              cb::compression::Buffer& output) {
     size_t compressed_length = snappy::MaxCompressedLength(input.size());
     output.resize(compressed_length);
@@ -64,18 +64,18 @@ static bool doSnappyCompress(cb::const_char_buffer input,
     return true;
 }
 
-static bool doSnappyValidate(cb::const_char_buffer buffer) {
+static bool doSnappyValidate(std::string_view buffer) {
     return snappy::IsValidCompressedBuffer(buffer.data(), buffer.size());
 }
 
-static size_t doSnappyUncompressedLength(cb::const_char_buffer buffer) {
+static size_t doSnappyUncompressedLength(std::string_view buffer) {
     size_t uncompressed_length = 0;
     snappy::GetUncompressedLength(
             buffer.data(), buffer.size(), &uncompressed_length);
     return uncompressed_length;
 }
 
-static bool doLZ4Uncompress(cb::const_char_buffer input,
+static bool doLZ4Uncompress(std::string_view input,
                             cb::compression::Buffer& output,
                             size_t max_inflated_size) {
 #ifdef CB_LZ4_SUPPORT
@@ -103,7 +103,7 @@ static bool doLZ4Uncompress(cb::const_char_buffer input,
 #endif
 }
 
-static size_t doLZ4UncompressedLength(cb::const_char_buffer buffer) {
+static size_t doLZ4UncompressedLength(std::string_view buffer) {
 #ifdef CB_LZ4_SUPPORT
     return ntohl(*reinterpret_cast<const uint32_t*>(buffer.data()));
 #else
@@ -111,7 +111,7 @@ static size_t doLZ4UncompressedLength(cb::const_char_buffer buffer) {
 #endif
 }
 
-static bool doLZ4Compress(cb::const_char_buffer input,
+static bool doLZ4Compress(std::string_view input,
                           cb::compression::Buffer& output) {
 #ifdef CB_LZ4_SUPPORT
     const auto buffersize =
@@ -141,7 +141,7 @@ static bool doLZ4Compress(cb::const_char_buffer input,
 }
 
 bool cb::compression::inflate(Algorithm algorithm,
-                              cb::const_char_buffer input_buffer,
+                              std::string_view input_buffer,
                               Buffer& output,
                               size_t max_inflated_size) {
     switch (algorithm) {
@@ -163,7 +163,7 @@ bool cb::compression::inflate(Algorithm algorithm,
 }
 
 bool cb::compression::deflate(Algorithm algorithm,
-                              cb::const_char_buffer input_buffer,
+                              std::string_view input_buffer,
                               Buffer& output) {
     switch (algorithm) {
     case Algorithm::Snappy:
@@ -215,7 +215,7 @@ std::string to_string(cb::compression::Algorithm algorithm) {
 }
 
 bool cb::compression::validate(cb::compression::Algorithm algorithm,
-                               cb::const_char_buffer input_buffer,
+                               std::string_view input_buffer,
                                size_t max_inflated_size) {
     switch (algorithm) {
     case Algorithm::Snappy:
@@ -230,7 +230,7 @@ bool cb::compression::validate(cb::compression::Algorithm algorithm,
 
 size_t cb::compression::get_uncompressed_length(
         cb::compression::Algorithm algorithm,
-        cb::const_char_buffer input_buffer) {
+        std::string_view input_buffer) {
     switch (algorithm) {
     case Algorithm::Snappy:
         return doSnappyUncompressedLength(input_buffer);

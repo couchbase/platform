@@ -36,7 +36,7 @@ static inline uint8_t from_hex_digit(char c) {
 }
 
 PLATFORM_PUBLIC_API
-uint64_t cb::from_hex(cb::const_char_buffer buffer) {
+uint64_t cb::from_hex(std::string_view buffer) {
     uint64_t ret = 0;
     if (buffer.size() > 16) {
         throw std::overflow_error("cb::from_hex: input string too long: " +

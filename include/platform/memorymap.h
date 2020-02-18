@@ -53,7 +53,7 @@ public:
         return mapping;
     }
 
-    cb::const_char_buffer content() const {
+    std::string_view content() const {
         return {mapping.data(), mapping.size()};
     }
 

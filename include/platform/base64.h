@@ -48,7 +48,7 @@ inline std::string encode(const std::string& source, bool prettyprint) {
  * @return the decoded data
  */
 PLATFORM_PUBLIC_API
-std::vector<uint8_t> decode(const cb::const_char_buffer blob);
+std::vector<uint8_t> decode(std::string_view blob);
 
 } // namespace base64
 } // namespace cb

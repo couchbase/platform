@@ -46,7 +46,7 @@ uuid_t random();
  *        formatted correctly
  */
 PLATFORM_PUBLIC_API
-uuid_t from_string(const_char_buffer str);
+uuid_t from_string(std::string_view str);
 } // uuid
 } // cb
 
