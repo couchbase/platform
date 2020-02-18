@@ -19,7 +19,6 @@
 
 #include <platform/compress-visibility.h>
 #include <platform/compression/buffer.h>
-#include <platform/sized_buffer.h>
 
 namespace cb {
 namespace compression {

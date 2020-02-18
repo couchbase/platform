@@ -45,8 +45,6 @@
 #pragma once
 
 #include <platform/cb_arena_malloc_client.h>
-#include <platform/sized_buffer.h>
-
 #include <memory>
 #include <unordered_map>
 

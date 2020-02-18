@@ -371,27 +371,7 @@ using byte_buffer = sized_buffer<uint8_t>;
  */
 using const_byte_buffer = sized_buffer<const uint8_t>;
 
-/**
- * The const_char_buffer is intended for strings you're not going
- * to modify.
- * TODO: Replace directly with std::string_view.
- */
-using const_char_buffer = std::string_view;
-
-inline bool operator==(const_char_buffer lhs, const char* rhs) {
-    return lhs.compare(const_char_buffer(rhs)) == 0;
-}
-
-PLATFORM_PUBLIC_API
-std::ostream& operator<<(std::ostream& os,
-                         const cb::const_char_buffer& cb);
-
 } // namespace cb
-
-constexpr inline cb::const_char_buffer operator"" _ccb(const char* str,
-                                                       size_t len) noexcept {
-    return cb::const_char_buffer(str, len);
-}
 
 namespace std {
 template <typename CharT>

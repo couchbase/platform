@@ -16,15 +16,8 @@
  */
 
 #include <platform/sized_buffer.h>
-#include <ostream>
 
 PLATFORM_PUBLIC_API
 std::string cb::to_string(cb::char_buffer cb) {
     return std::string{cb.data(), cb.size()};
-}
-
-PLATFORM_PUBLIC_API
-std::ostream& cb::operator<<(std::ostream& os,
-                             const cb::const_char_buffer& cb) {
-    return os.write(cb.data(), cb.size());
 }

@@ -20,7 +20,6 @@
 #include <cstdint>
 #include <string>
 
-#include <platform/sized_buffer.h>
 #include <platform/visibility.h>
 
 namespace cb {
