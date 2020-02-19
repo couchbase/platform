@@ -17,14 +17,24 @@
 #include <JSON_checker.h>
 #include <benchmark/benchmark.h>
 #include <folly/portability/GTest.h>
+#include <nlohmann/json.hpp>
 
-static void BM_JSONCheckerNoop(benchmark::State& state) {
+static void BM_JSONCheckerEmpty(benchmark::State& state) {
     JSON_checker::Validator validator;
+    std::string empty = "";
     while (state.KeepRunning()) {
-        validator.validate(nullptr, 0);
+        validator.validate(empty);
     }
 }
-BENCHMARK(BM_JSONCheckerNoop);
+BENCHMARK(BM_JSONCheckerEmpty);
+
+static void BM_NlohmannAcceptEmpty(benchmark::State& state) {
+    std::string empty = "";
+    while (state.KeepRunning()) {
+        nlohmann::json::accept(empty);
+    }
+}
+BENCHMARK(BM_NlohmannAcceptEmpty);
 
 // Benchmark checking a binary object for JSON.  Object is
 // "immediately" non-JSON; i.e. first byte is not a valid JSON
@@ -40,18 +50,34 @@ static void BM_JSONCheckerBinary(benchmark::State& state) {
 }
 BENCHMARK(BM_JSONCheckerBinary);
 
+static void BM_NlohmannAcceptBinary(benchmark::State& state) {
+    const std::vector<uint8_t> binaryDoc = {1, 2, 3, 4, 5};
+    // Sanity check:
+    EXPECT_FALSE(nlohmann::json::accept(binaryDoc));
+    while (state.KeepRunning()) {
+        nlohmann::json::accept(binaryDoc);
+    }
+}
+BENCHMARK(BM_NlohmannAcceptBinary);
+
 // Benchmark checking a flat JSON array (of numbers) as JSON; e.g.
 //   [ 0, 1, 2, 3, ..., N]
 // Input argument 0 specifies the number of elements in the array.
-static void BM_JSONCheckerJsonArray(benchmark::State& state) {
-    JSON_checker::Validator validator;
+std::string makeArray(benchmark::State& state) {
     std::string jsonArray = "[";
     for (int ii = 0; ii < state.range(0); ++ii) {
         jsonArray += std::to_string(ii) + ",";
     }
     // replace last comma with closing brace.
     jsonArray.back() = ']';
+    return jsonArray;
+}
+
+static void BM_JSONCheckerJsonArray(benchmark::State& state) {
+    auto jsonArray = makeArray(state);
+
     // Sanity check:
+    JSON_checker::Validator validator;
     EXPECT_TRUE(validator.validate(jsonArray));
 
     while (state.KeepRunning()) {
@@ -60,11 +86,22 @@ static void BM_JSONCheckerJsonArray(benchmark::State& state) {
 }
 BENCHMARK(BM_JSONCheckerJsonArray)->RangeMultiplier(10)->Range(1, 10000);
 
+static void BM_NlohmannAcceptJsonArray(benchmark::State& state) {
+    auto jsonArray = makeArray(state);
+
+    // Sanity check:
+    EXPECT_TRUE(nlohmann::json::accept(jsonArray));
+
+    while (state.KeepRunning()) {
+        nlohmann::json::accept(jsonArray);
+    }
+}
+BENCHMARK(BM_NlohmannAcceptJsonArray)->RangeMultiplier(10)->Range(1, 10000);
+
 // Benchmark checking a nested JSON dictonary as JSON; e.g.
 //   {"0": { "1": { ... }}}
 // Input argument 0 specifies the number of levels of nesting.
-static void BM_JSONCheckerJsonNestedDict(benchmark::State& state) {
-    JSON_checker::Validator validator;
+std::string makeNestedDict(benchmark::State& state) {
     std::string dict;
     for (int ii = 0; ii < state.range(0); ++ii) {
         dict += "{\"" + std::to_string(ii) + "\":";
@@ -73,7 +110,14 @@ static void BM_JSONCheckerJsonNestedDict(benchmark::State& state) {
     for (int ii = 0; ii < state.range(0); ++ii) {
         dict += "}";
     }
+    return dict;
+}
+
+static void BM_JSONCheckerJsonNestedDict(benchmark::State& state) {
+    auto dict = makeNestedDict(state);
+
     // Sanity check:
+    JSON_checker::Validator validator;
     EXPECT_TRUE(validator.validate(dict));
 
     while (state.KeepRunning()) {
@@ -82,6 +126,19 @@ static void BM_JSONCheckerJsonNestedDict(benchmark::State& state) {
 }
 BENCHMARK(BM_JSONCheckerJsonNestedDict)->RangeMultiplier(10)->Range(1, 10000);
 
+static void BM_NlohmannAcceptJsonNestedDict(benchmark::State& state) {
+    auto dict = makeNestedDict(state);
+
+    // Sanity check:
+    EXPECT_TRUE(nlohmann::json::accept(dict));
+
+    while (state.KeepRunning()) {
+        EXPECT_TRUE(nlohmann::json::accept(dict));
+    }
+}
+BENCHMARK(BM_NlohmannAcceptJsonNestedDict)
+        ->RangeMultiplier(10)
+        ->Range(1, 10000);
 
 // Using custom main() function (instead of BENCHMARK_MAIN macro) to
 // init GoogleTest.
