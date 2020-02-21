@@ -51,6 +51,25 @@ size_t get_cpu_count();
  */
 PLATFORM_PUBLIC_API
 size_t get_cpu_index();
+
+/**
+ * Get a (potentially cached) stripe index for the current core.
+ * One or more cores may be mapped to a given stripe; if numStripes
+ * is equal to the number of cores they will be mapped 1-to-1, if there
+ * are fewer stripes than cores, multiple cores will share a stripe.
+ * See folly::AccessSpreader for core to stripe allocation logic.
+ *
+ * @param numStripes number of stripes
+ * @return stripe index for the current cpu core.
+ */
+PLATFORM_PUBLIC_API
+size_t stripe_for_current_cpu(size_t numStripes);
+
+/**
+ * Get the number of last level caches in the system.
+ */
+PLATFORM_PUBLIC_API
+size_t get_num_last_level_cache();
 }
 
 // For backwards compatibility

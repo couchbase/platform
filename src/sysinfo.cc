@@ -37,6 +37,8 @@
 #include <string>
 #include <unistd.h>
 
+#include <folly/concurrency/CacheLocality.h>
+
 size_t cb::get_available_cpu_count() {
     char *override = getenv("COUCHBASE_CPU_COUNT");
     if (override != nullptr) {
@@ -152,4 +154,14 @@ size_t cb::get_cpu_index() {
     __cpuid(1, registers[0], registers[1], registers[2], registers[3]);
     return registers[1] >> 24;
 #endif
+}
+
+PLATFORM_PUBLIC_API
+size_t cb::stripe_for_current_cpu(size_t numStripes) {
+    return folly::AccessSpreader<std::atomic>::cachedCurrent(numStripes);
+}
+
+PLATFORM_PUBLIC_API
+size_t cb::get_num_last_level_cache() {
+    return folly::CacheLocality::system().numCachesByLevel.back();
 }

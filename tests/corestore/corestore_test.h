@@ -19,7 +19,9 @@
 
 #include <platform/corestore.h>
 
+#include <folly/concurrency/CacheLocality.h>
 #include <folly/portability/GTest.h>
+
 #include <memory>
 
 class CoreStoreTest : public ::testing::Test {

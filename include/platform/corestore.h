@@ -19,10 +19,6 @@
 
 #include <platform/sysinfo.h>
 
-#include <folly/concurrency/CacheLocality.h>
-#include <cmath>
-#include <stdexcept>
-#include <string>
 #include <vector>
 
 using CountFnType = size_t (*)();
@@ -50,8 +46,7 @@ using IndexFnType = size_t (*)(size_t);
  */
 template <typename T,
           CountFnType CountFn = cb::get_cpu_count,
-          IndexFnType IndexFn =
-                  folly::AccessSpreader<std::atomic>::cachedCurrent>
+          IndexFnType IndexFn = cb::stripe_for_current_cpu>
 class CoreStore {
 public:
     using const_iterator = typename std::vector<T>::const_iterator;
@@ -87,3 +82,16 @@ public:
 private:
     std::vector<T> coreArray;
 };
+
+/**
+ * Version of CoreStore with the number of stripes set to the number of
+ * last level caches in the system.
+ *
+ * See folly CacheLocality.h for details on access spreading.
+ *
+ * Useful intermediate step if a single instance demonstrates high
+ * contention, but a default CoreStore with an instance per-core
+ * could have unacceptable memory cost in large systems.
+ */
+template <class T>
+using LastLevelCacheStore = CoreStore<T, cb::get_num_last_level_cache>;
