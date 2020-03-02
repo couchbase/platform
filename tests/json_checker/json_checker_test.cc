@@ -111,3 +111,9 @@ TEST_F(ValidatorTest, StringValidatorTest) {
     value.resize(value.length() - 1);
     EXPECT_TRUE(validator.validate(value));
 }
+
+TEST_F(ValidatorTest, NumberExponentValidatorTest) {
+    EXPECT_TRUE(validator.validate("0e5"));
+    EXPECT_TRUE(validator.validate("0E5"));
+    EXPECT_TRUE(validator.validate("0.00e5"));
+}
