@@ -170,7 +170,8 @@ bool SystemArenaMalloc::getGlobalStats(
     return true;
 }
 
-void SystemArenaMalloc::getDetailedStats(const cb::char_buffer& buffer) {
+void SystemArenaMalloc::getDetailedStats(void (*callback)(void*, const char*),
+                                         void* cbopaque) {
 }
 
 std::pair<size_t, size_t> SystemArenaMalloc::getFragmentationStats(

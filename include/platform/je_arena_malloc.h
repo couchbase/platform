@@ -78,7 +78,8 @@ public:
                          std::unordered_map<std::string, size_t>& statsMap);
     static bool getGlobalStats(
             std::unordered_map<std::string, size_t>& statsMap);
-    static void getDetailedStats(const cb::char_buffer& buffer);
+    static void getDetailedStats(void (*callback)(void*, const char*),
+                                 void* cbopaque);
     static std::pair<size_t, size_t> getFragmentationStats(
             const ArenaMallocClient& client);
     static std::pair<size_t, size_t> getGlobalFragmentationStats();

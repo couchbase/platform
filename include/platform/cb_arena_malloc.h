@@ -268,8 +268,9 @@ public:
      * Return a detailed, human readable allocator statistic blob
      * @param buffer to write to
      */
-    static void getDetailedStats(const cb::char_buffer& buffer) {
-        return Impl::getDetailedStats(buffer);
+    static void getDetailedStats(void (*callback)(void*, const char*),
+                                 void* cbopaque) {
+        return Impl::getDetailedStats(callback, cbopaque);
     }
 
     /**

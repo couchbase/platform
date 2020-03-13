@@ -108,42 +108,9 @@ struct write_state {
 };
 
 template <>
-void cb::JEArenaMalloc::getDetailedStats(const cb::char_buffer& buffer) {
-    static const char cropped_error[] =
-            "=== Exceeded buffer size - output cropped ===\n";
-    /* Write callback used by jemalloc's malloc_stats_print() below */
-    static auto write_cb = +[](void* opaque, const char* msg) {
-        int len;
-        struct write_state* st = (struct write_state*)opaque;
-        if (st->cropped) {
-            /* already cropped output - nothing to do. */
-            return;
-        }
-        len = snprintf(st->buffer.buf, st->buffer.len, "%s", msg);
-        if (len < 0) {
-            /*
-             * snprintf _FAILED_. Terminate the buffer where it used to be
-             * and ignore the rest
-             */
-            st->buffer[0] = '\0';
-            return;
-        }
-        if (std::size_t(len) > st->buffer.len) {
-            /* insufficient space - have to crop output. Note we reserved enough
-               space (see below) to be able to write an error if this occurs. */
-            sprintf(st->buffer.buf, cropped_error);
-            st->cropped = true;
-            return;
-        }
-        st->buffer.buf += len;
-        st->buffer.len -= len;
-    };
-
-    struct write_state st;
-    /* reserve enough space to write out an error if the output is cropped. */
-    st.buffer = {buffer.buf, buffer.len - sizeof(cropped_error)};
-    st.cropped = false;
-    je_malloc_stats_print(write_cb, &st, "");
+void cb::JEArenaMalloc::getDetailedStats(void (*callback)(void*, const char*),
+                                         void* cbopaque) {
+    je_malloc_stats_print(callback, cbopaque, "");
 }
 
 template <>
