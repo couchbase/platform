@@ -14,7 +14,6 @@
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
  */
-#include <platform/cb_malloc.h>
 #include <platform/dirutils.h>
 
 #ifdef _MSC_VER
@@ -26,13 +25,11 @@
 #else
 
 #include <dirent.h>
-#include <dlfcn.h>
 #include <sys/resource.h>
 #include <unistd.h>
 
 #endif
 
-#include <platform/memorymap.h>
 #include <platform/strerror.h>
 
 #include <fcntl.h>
@@ -40,9 +37,9 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <chrono>
+#include <cinttypes>
 #include <limits>
 #include <system_error>
-#include <thread>
 
 static std::string split(const std::string& input, bool directory) {
     std::string::size_type path = input.find_last_of("\\/");
@@ -537,44 +534,6 @@ uint64_t cb::io::maximizeFileDescriptors(uint64_t limit) {
 
         return uint64_t(last_good);
     }
-#endif
-}
-
-DIRUTILS_PUBLIC_API
-std::string cb::io::loadFile(const std::string& name) {
-#ifdef WIN32
-    // We've seen sporadic unit test failures on Windows due to sharing
-    // errors (most likely caused by the other process is _creating_ the file
-    // and still keeping it open). Given that loadFile shouldn't be called
-    // from the front end threads (as it involves disk io which may be slow
-    // in the first place) we'll try to back off a few times and retry
-    // until we've figured out exactly what's causing the problem.
-    int retrycount = 100;
-    std::error_code code{};
-    do {
-        try {
-            MemoryMappedFile map(name, MemoryMappedFile::Mode::RDONLY);
-            return to_string(map.content());
-        } catch (const std::system_error& error) {
-            code = error.code();
-            if (code.category() != std::system_category() ||
-                code.value() != ERROR_SHARING_VIOLATION) {
-                throw std::system_error(
-                        code.value(),
-                        code.category(),
-                        "cb::io::loadFile(" + name + ") failed");
-            }
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
-            --retrycount;
-        }
-    } while (retrycount > 0);
-
-    throw std::system_error(code.value(),
-                            code.category(),
-                            "cb::io::loadFile(" + name + ") failed");
-#else
-    MemoryMappedFile map(name, MemoryMappedFile::Mode::RDONLY);
-    return to_string(map.content());
 #endif
 }
 

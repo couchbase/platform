@@ -397,9 +397,9 @@ GENERATE_EXPORT_HEADER(platform_so
 # global_new_replacement) we can probably just merge it into platform.
 ADD_LIBRARY(dirutils SHARED
             src/dirutils.cc
+            src/loadfile.cc
             include/platform/dirutils.h)
-SET_TARGET_PROPERTIES(dirutils PROPERTIES SOVERSION 0.1.0)
-TARGET_LINK_LIBRARIES(dirutils platform ${CMAKE_DL_LIBS})
+TARGET_LINK_LIBRARIES(dirutils platform)
 GENERATE_EXPORT_HEADER(dirutils
                        EXPORT_MACRO_NAME DIRUTILS_PUBLIC_API
                        EXPORT_FILE_NAME ${CMAKE_CURRENT_BINARY_DIR}/include/platform/dirutils-visibility.h)
