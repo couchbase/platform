@@ -604,7 +604,7 @@ public:
 protected:
     void openDynamicLibrary() {
 #ifdef WIN32
-        sanitizePath(soname);
+        soname = sanitizePath(soname);
         handle = LoadLibrary(soname.c_str());
         if (handle == nullptr) {
             auto alternative = getAlternativeSoName();
@@ -672,3 +672,10 @@ std::unique_ptr<LibraryHandle> loadLibrary(const std::string& filename) {
 
 } // namespace io
 } // namespace cb
+
+std::string cb::io::sanitizePath(std::string path) {
+#ifdef WIN32
+    std::replace(path.begin(), path.end(), '/', '\\');
+#endif
+    return path;
+}
