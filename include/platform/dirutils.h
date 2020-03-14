@@ -153,12 +153,10 @@ uint64_t maximizeFileDescriptors(uint64_t limit);
  * same path. This method replace all occurrences of '/' with '\' on windows.
  *
  * @param path the path to sanitize
+ * @return sanitized version of the path
  */
-inline void sanitizePath(std::string& path) {
-#ifdef WIN32
-    std::replace(path.begin(), path.end(), '/', '\\');
-#endif
-}
+DIRUTILS_PUBLIC_API
+std::string sanitizePath(std::string path);
 
 /**
  * Load the named file

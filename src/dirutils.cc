@@ -547,3 +547,10 @@ void cb::io::setBinaryMode(FILE* fp) {
     (void)fp;
 #endif
 }
+
+std::string cb::io::sanitizePath(std::string path) {
+#ifdef WIN32
+    std::replace(path.begin(), path.end(), '/', '\\');
+#endif
+    return path;
+}
