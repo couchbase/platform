@@ -19,10 +19,81 @@
 #ifdef WIN32
 #include <folly/portability/Windows.h>
 #include <thread>
+#else
+#include <folly/FileUtil.h>
 #endif
 
-#include <platform/memorymap.h>
+#include <cerrno>
 #include <system_error>
+
+#ifdef WIN32
+// Ideally I would have wanted to use folly::readFile on Windows as well,
+// but unfortunately it use the posix API on windows which don't properly
+// set FILE_SHARE_WRITE causing us to fail to open the file if someone
+// else have the file open for writing
+std::string loadFileImpl(const std::string& name) {
+    auto filehandle = CreateFile(name.c_str(),
+                                 GENERIC_READ,
+                                 FILE_SHARE_READ | FILE_SHARE_WRITE,
+                                 nullptr,
+                                 OPEN_EXISTING,
+                                 FILE_ATTRIBUTE_NORMAL,
+                                 nullptr);
+    if (filehandle == INVALID_HANDLE_VALUE) {
+        const auto error = GetLastError();
+        throw std::system_error(
+                error,
+                std::system_category(),
+                "loadFileImpl(): CreateFile(" + name + ") failed");
+    }
+
+    WIN32_FILE_ATTRIBUTE_DATA fad;
+    if (GetFileAttributesEx(name.c_str(), GetFileExInfoStandard, &fad) == 0) {
+        auto error = GetLastError();
+        CloseHandle(filehandle);
+        throw std::system_error(
+                error,
+                std::system_category(),
+                "loadFileImpl() GetFileAttributesEx(" + name + ") failed");
+    }
+
+    if (fad.nFileSizeHigh != 0) {
+        CloseHandle(filehandle);
+        throw std::runtime_error(
+                "loadFileImpl(): File exceeds the maximum supported size");
+    }
+
+    std::string content;
+    content.resize(fad.nFileSizeLow);
+    DWORD nr;
+
+    if (!ReadFile(filehandle,
+                  const_cast<char*>(content.data()),
+                  DWORD(content.size()),
+                  &nr,
+                  nullptr)) {
+        auto error = GetLastError();
+        CloseHandle(filehandle);
+        throw std::system_error(
+                error,
+                std::system_category(),
+                "loadFileImpl(): ReadFile(" + name + ") failed");
+    }
+
+    CloseHandle(filehandle);
+    return content;
+}
+#else
+static std::string loadFileImpl(const std::string& name) {
+    std::string content;
+    if (folly::readFile<std::string>(name.c_str(), content)) {
+        return content;
+    }
+    throw std::system_error(errno,
+                            std::system_category(),
+                            "cb::io::loadFile(" + name + ") failed");
+}
+#endif
 
 DIRUTILS_PUBLIC_API
 std::string cb::io::loadFile(const std::string& name) {
@@ -37,8 +108,9 @@ std::string cb::io::loadFile(const std::string& name) {
     std::error_code code{};
     do {
         try {
-            MemoryMappedFile map(name, MemoryMappedFile::Mode::RDONLY);
-            return to_string(map.content());
+#endif
+            return loadFileImpl(name);
+#ifdef WIN32
         } catch (const std::system_error& error) {
             code = error.code();
             if (code.category() != std::system_category() ||
@@ -56,8 +128,5 @@ std::string cb::io::loadFile(const std::string& name) {
     throw std::system_error(code.value(),
                             code.category(),
                             "cb::io::loadFile(" + name + ") failed");
-#else
-    MemoryMappedFile map(name, MemoryMappedFile::Mode::RDONLY);
-    return to_string(map.content());
 #endif
 }
