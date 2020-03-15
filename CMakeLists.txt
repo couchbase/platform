@@ -182,7 +182,6 @@ LIST(APPEND PLATFORM_FILES
   src/global_new_replacement.cc
   src/histogram.cc
   src/interrupt.cc
-  src/memorymap.cc
   src/processclock.cc
   src/sized_buffer.cc
   src/strerror.cc
@@ -202,7 +201,6 @@ LIST(APPEND PLATFORM_FILES
   include/platform/crc32c.h
   include/platform/getopt.h
   include/platform/interrupt.h
-  include/platform/memorymap.h
   include/platform/non_negative_counter.h
   include/platform/platform_socket.h
   include/platform/platform_thread.h
