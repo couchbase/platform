@@ -279,3 +279,16 @@ TEST_F(IoTest, maximizeFileDescriptors) {
                     << "the same max limit two times in a row";
     }
 }
+
+TEST_F(IoTest, loadFile) {
+    auto filename = cb::io::mktemp("loadfile_test");
+    ASSERT_FALSE(filename.empty())
+            << "FAIL: Expected to create tempfile without mask";
+
+    const std::string content{"Hello world!!!"};
+    auto* fp = fopen(filename.c_str(), "wb+");
+    fprintf(fp, "%s", content.c_str());
+    fclose(fp);
+    EXPECT_EQ(content, cb::io::loadFile(filename));
+    cb::io::rmrf(filename);
+}

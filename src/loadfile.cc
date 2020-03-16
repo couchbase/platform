@@ -18,13 +18,13 @@
 
 #ifdef WIN32
 #include <folly/portability/Windows.h>
-#include <thread>
 #else
 #include <folly/FileUtil.h>
 #endif
 
 #include <cerrno>
 #include <system_error>
+#include <thread>
 
 #ifdef WIN32
 // Ideally I would have wanted to use folly::readFile on Windows as well,
@@ -96,7 +96,8 @@ static std::string loadFileImpl(const std::string& name) {
 #endif
 
 DIRUTILS_PUBLIC_API
-std::string cb::io::loadFile(const std::string& name) {
+std::string cb::io::loadFile(const std::string& name,
+                             std::chrono::microseconds waittime) {
 #ifdef WIN32
     // We've seen sporadic unit test failures on Windows due to sharing
     // errors (most likely caused by the other process is _creating_ the file
@@ -105,28 +106,66 @@ std::string cb::io::loadFile(const std::string& name) {
     // in the first place) we'll try to back off a few times and retry
     // until we've figured out exactly what's causing the problem.
     int retrycount = 100;
-    std::error_code code{};
-    do {
-        try {
+#else
+    int retrycount = 0;
 #endif
-            return loadFileImpl(name);
-#ifdef WIN32
+
+    const auto timeout = std::chrono::steady_clock::now() + waittime;
+    do {
+        std::string content;
+        bool success = false;
+        try {
+            content = loadFileImpl(name);
+            success = true;
         } catch (const std::system_error& error) {
-            code = error.code();
-            if (code.category() != std::system_category() ||
-                code.value() != ERROR_SHARING_VIOLATION) {
+            const auto& code = error.code();
+            if (code.category() != std::system_category()) {
                 throw std::system_error(
                         code.value(),
                         code.category(),
                         "cb::io::loadFile(" + name + ") failed");
             }
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
-            --retrycount;
-        }
-    } while (retrycount > 0);
 
-    throw std::system_error(code.value(),
-                            code.category(),
-                            "cb::io::loadFile(" + name + ") failed");
+            switch (code.value()) {
+            case int(std::errc::no_such_file_or_directory):
+                // we might want to retry
+                break;
+#ifdef WIN32
+            case ERROR_SHARING_VIOLATION:
+                --retrycount;
+                break;
 #endif
+            default:
+                throw std::system_error(
+                        code.value(),
+                        code.category(),
+                        "cb::io::loadFile(" + name + ") failed");
+            }
+        }
+
+        if (success) {
+            return content;
+        }
+        if (waittime.count() != 0 || retrycount > 0) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+    } while (std::chrono::steady_clock::now() < timeout || retrycount > 0);
+#ifdef WIN32
+    if (retrycount == 0) {
+        throw std::system_error(
+                ERROR_SHARING_VIOLATION,
+                std::system_category(),
+                "cb::io::loadFile(" + name + ") failed (with retry)");
+    }
+#endif
+    if (waittime.count() > 0) {
+        throw std::system_error(
+                int(std::errc::no_such_file_or_directory),
+                std::system_category(),
+                "cb::io::loadFile(" + name + ") failed (with retry)");
+    } else {
+        throw std::system_error(int(std::errc::no_such_file_or_directory),
+                                std::system_category(),
+                                "cb::io::loadFile(" + name + ") failed");
+    }
 }

@@ -16,14 +16,16 @@
  */
 #pragma once
 
+#include <platform/dirutils-visibility.h>
+
 #include <algorithm>
+#include <chrono>
 #include <cstdint>
 #include <cstdio>
 #include <memory>
 #include <string>
 #include <vector>
 
-#include <platform/dirutils-visibility.h>
 
 namespace cb {
 namespace io {
@@ -163,11 +165,14 @@ inline void sanitizePath(std::string& path) {
  *
  * @param name the name of the file to load
  * @return The content of the file
+ * @param waittime The number of microseconds to wait for the file to appear
+ *                 if its not there (yet)
  * @throws std::system_exception if an error occurs opening / reading the file
  *         std::bad_alloc for memory allocation errors
  */
 DIRUTILS_PUBLIC_API
-std::string loadFile(const std::string& name);
+std::string loadFile(const std::string& name,
+                     std::chrono::microseconds waittime = {});
 
 /**
  * Set the file mode to BINARY
