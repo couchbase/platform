@@ -148,6 +148,9 @@ DIRUTILS_PUBLIC_API
 std::vector<std::string> cb::io::findFilesContaining(const std::string &dir,
                                                             const std::string &name)
 {
+    if (dir.empty()) {
+        return {};
+    }
     std::vector<std::string> files;
     std::string match = dir + "\\*" + name + "*";
     WIN32_FIND_DATA FindFileData;
