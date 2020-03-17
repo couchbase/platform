@@ -391,16 +391,16 @@ GENERATE_EXPORT_HEADER(platform_so
                        EXPORT_MACRO_NAME PLATFORM_PUBLIC_API
                        EXPORT_FILE_NAME ${Platform_BINARY_DIR}/include/platform/visibility.h)
 
-# TODO: Given dirutils now links with platform (for cbmalloc &
-# global_new_replacement) we can probably just merge it into platform.
-ADD_LIBRARY(dirutils SHARED
-            src/dirutils.cc
-            src/loadfile.cc
+add_library(dirutils SHARED
+            dirutils/filesystem.cc
+            dirutils/loadfile.cc
+            dirutils/misc.cc
             include/platform/dirutils.h)
-TARGET_LINK_LIBRARIES(dirutils platform)
-GENERATE_EXPORT_HEADER(dirutils
+generate_export_header(dirutils
                        EXPORT_MACRO_NAME DIRUTILS_PUBLIC_API
                        EXPORT_FILE_NAME ${CMAKE_CURRENT_BINARY_DIR}/include/platform/dirutils-visibility.h)
+target_include_directories(dirutils SYSTEM PRIVATE ${FOLLY_INCLUDE_DIR})
+target_link_libraries(dirutils platform)
 
 # To simplify usage we always build breakpad_wrapper; it'll just
 # do nothing on targets which don't have Breakpad.
