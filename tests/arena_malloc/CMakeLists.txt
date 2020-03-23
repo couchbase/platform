@@ -3,7 +3,8 @@ TARGET_LINK_LIBRARIES(platform-arena_malloc-test PRIVATE
         gtest
         gtest_main
         platform
-        platform_cb_malloc_arena)
+        platform_cb_malloc_arena
+        ${MALLOC_LIBRARIES})
 ADD_TEST(platform-arena_malloc-test platform-arena_malloc-test)
 
 if (MEMORY_ALLOCATOR STREQUAL "jemalloc")

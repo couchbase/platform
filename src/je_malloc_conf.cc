@@ -15,18 +15,9 @@
  *   limitations under the License.
  */
 
-/*
- * If we are on Windows, we need to declare this to make sure
- * that dllexport is configured correctly
- */
-#ifdef WIN32
-#define DLLEXPORT
-#endif
-
 #include <jemalloc/jemalloc.h>
 
 /* jemalloc checks for this symbol, and it's contents for the config to use. */
-JEMALLOC_EXPORT
 const char* je_malloc_conf =
 /* Enable background worker thread for asynchronous purging.
  * Background threads are non-functional in jemalloc 5.1.0 on macOS due to

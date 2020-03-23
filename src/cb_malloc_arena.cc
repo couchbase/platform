@@ -20,18 +20,9 @@
 
 #include <cstring>
 
-// Which underlying memory allocator should we use?
-#if defined(HAVE_JEMALLOC)
-/* Irrespective of how jemalloc was configured on this platform,
- * don't rename je_FOO to FOO.
- */
-#define JEMALLOC_NO_RENAME
-#include <jemalloc/jemalloc.h>
-
-#else /* system allocator */
-#if defined(HAVE_MALLOC_USABLE_SIZE)
-#include <malloc.h>
-#endif
+// MB-38422: There is no je_malloc_conf for windows
+#if defined(HAVE_JEMALLOC) && !defined(WIN32)
+extern const char* je_malloc_conf;
 #endif
 
 // User-registered new and delete hooks, these are generally null except for
@@ -98,6 +89,16 @@ PLATFORM_PUBLIC_API size_t cb_malloc_usable_size(void* ptr) throw() {
 PLATFORM_PUBLIC_API
 int cb_malloc_is_using_arenas() {
     return 1;
+}
+
+PLATFORM_PUBLIC_API
+const char* cb_malloc_get_conf() {
+    // MB-38422: There is no je_malloc_conf for windows
+#if defined(HAVE_JEMALLOC) && !defined(WIN32)
+    return je_malloc_conf;
+#else
+    return "";
+#endif
 }
 
 /*

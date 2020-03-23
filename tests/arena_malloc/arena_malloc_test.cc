@@ -24,6 +24,10 @@
 
 #include <vector>
 
+#if defined(HAVE_JEMALLOC)
+#include <jemalloc/jemalloc.h>
+#endif
+
 TEST(ArenaMalloc, cb_malloc_is_using_arenas) {
     EXPECT_TRUE(cb_malloc_is_using_arenas());
 }
@@ -58,3 +62,24 @@ TEST(ArenaMalloc, basicUsage) {
 
     cb::ArenaMalloc::unregisterClient(client);
 }
+
+#if defined(HAVE_JEMALLOC)
+#if defined(WIN32)
+// MB-38422: je_malloc_conf isn't being picked up on windows so skip for now.
+TEST(ArenaMalloc, DISABLED_CheckCustomConfiguration) {
+#else
+TEST(ArenaMalloc, CheckCustomConfiguration) {
+#endif
+    // Check that the configuration we set in je_malloc_conf has taken affect
+    // call je_malloc stat functions to query the config.
+    unsigned narenas = 0;
+    size_t sz = sizeof(narenas);
+    EXPECT_EQ(0, je_mallctl("opt.narenas", &narenas, &sz, nullptr, 0));
+    EXPECT_EQ(1, narenas);
+
+    bool prof = false;
+    sz = sizeof(prof);
+    EXPECT_EQ(0, je_mallctl("opt.prof", &prof, &sz, nullptr, 0));
+    EXPECT_TRUE(prof);
+}
+#endif

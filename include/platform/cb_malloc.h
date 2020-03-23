@@ -81,6 +81,12 @@ PLATFORM_PUBLIC_API char* cb_strdup(const char* s1);
 PLATFORM_PUBLIC_API
 int cb_malloc_is_using_arenas();
 
+/**
+ * @return a string of any configuration used
+ */
+PLATFORM_PUBLIC_API
+const char* cb_malloc_get_conf();
+
 #ifdef __cplusplus
 } // extern "C"
 #endif

@@ -45,6 +45,8 @@ PLATFORM_PUBLIC_API
 char* __attribute__((weak)) cb_strdup(const char*);
 PLATFORM_PUBLIC_API
 int __attribute__((weak)) cb_malloc_is_using_arenas();
+PLATFORM_PUBLIC_API
+const char* __attribute__((weak)) cb_malloc_get_conf();
 
 void* cb_malloc(size_t size) {
     return malloc(size);
@@ -78,6 +80,10 @@ size_t cb_malloc_usable_size(void* ptr) {
 
 int cb_malloc_is_using_arenas() {
     return 0;
+}
+
+const char* cb_malloc_get_conf() {
+    return "";
 }
 
 } // extern "C"
