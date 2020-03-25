@@ -33,6 +33,10 @@ TEST(Hex, InputStringData) {
     EXPECT_EQ(expected, cb::from_hex(value));
 }
 
+TEST(Hex, InputWithPrefix) {
+    EXPECT_EQ(0x4096, cb::from_hex("0x4096"));
+}
+
 TEST(Hex, ToHexUint8) {
     auto val = uint8_t(-1);
     EXPECT_EQ("0xff", cb::to_hex(val));

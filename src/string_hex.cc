@@ -38,6 +38,12 @@ static inline uint8_t from_hex_digit(char c) {
 PLATFORM_PUBLIC_API
 uint64_t cb::from_hex(std::string_view buffer) {
     uint64_t ret = 0;
+
+    if (buffer.find("0x") == 0) {
+        // trim off the 0x
+        buffer = buffer.substr(2);
+    }
+
     if (buffer.size() > 16) {
         throw std::overflow_error("cb::from_hex: input string too long: " +
                                   std::to_string(buffer.size()));
