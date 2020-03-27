@@ -24,7 +24,7 @@
 #include <sys/time.h>
 #endif
 
-int main(void)
+int main()
 {
     struct timeval tv;
     if (gettimeofday(&tv, nullptr) != 0) {

@@ -162,10 +162,10 @@ inline int is_closed_conn(int dw = get_socket_error()) {
 inline int is_addrinuse(int dw = get_socket_error()) {
     return (dw == EADDRINUSE);
 }
-inline void set_ewouldblock(void) {
+inline void set_ewouldblock() {
     errno = EWOULDBLOCK;
 }
-inline void set_econnreset(void) {
+inline void set_econnreset() {
     errno = ECONNRESET;
 }
 #endif

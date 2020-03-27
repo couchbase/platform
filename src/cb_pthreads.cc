@@ -125,7 +125,7 @@ int cb_join_thread(cb_thread_t id)
     return pthread_join(id, nullptr);
 }
 
-cb_thread_t cb_thread_self(void)
+cb_thread_t cb_thread_self()
 {
     return pthread_self();
 }
@@ -163,7 +163,7 @@ int cb_get_thread_name(char* name, size_t size)
 }
 
 
-bool is_thread_name_supported(void)
+bool is_thread_name_supported()
 {
 #ifdef HAVE_PTHREAD_SETNAME_NP
     return true;

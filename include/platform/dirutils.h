@@ -131,7 +131,7 @@ std::string mkdtemp(const std::string& prefix);
  *         directory
  */
 DIRUTILS_PUBLIC_API
-std::string getcwd(void);
+std::string getcwd();
 
 /**
  * Try to set the maximum number of file descriptors to the requested

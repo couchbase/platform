@@ -92,7 +92,7 @@ int cb_join_thread(cb_thread_t id);
  * @return the id for the running thread
  */
 PLATFORM_PUBLIC_API
-cb_thread_t cb_thread_self(void);
+cb_thread_t cb_thread_self();
 
 /**
  * Sets the current threads' name.
@@ -123,7 +123,7 @@ int cb_get_thread_name(char* name, size_t size);
  * Does the underlying platform support setting thread names
  */
 PLATFORM_PUBLIC_API
-bool is_thread_name_supported(void);
+bool is_thread_name_supported();
 
 /***********************************************************************
  *                 Reader/Writer lock  related functions               *

@@ -456,7 +456,7 @@ std::string cb::io::mkdtemp(const std::string& prefix) {
     return pattern;
 }
 
-std::string cb::io::getcwd(void) {
+std::string cb::io::getcwd() {
     std::string result(4096, 0);
 #ifdef WIN32
     if (GetCurrentDirectory(result.size(), &result[0]) == 0) {
