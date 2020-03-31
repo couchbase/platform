@@ -223,15 +223,26 @@ public:
     using const_iterator = typename container_type::const_iterator;
     using iterator = typename container_type::const_iterator;
 
+    static constexpr size_t defaultNumBuckets = 30;
+
+    /**
+     * Build a histogram with a default number of buckets (30).
+     *
+     * @param generator a generator for the bins within this bucket
+     */
+    template <typename G>
+    explicit Histogram(const G& generator)
+        : Histogram(generator, defaultNumBuckets) {
+    }
+
     /**
      * Build a histogram.
      *
      * @param generator a generator for the bins within this bucket
      * @param n how many bins this histogram should contain
      */
-    template<typename G>
-    Histogram(const G& generator, size_t n = 30)
-        : bins(n) {
+    template <typename G>
+    Histogram(const G& generator, size_t n) : bins(n) {
         if (n < 1){
             throw std::invalid_argument("Histogram must have at least 1 bin");
         }
@@ -243,7 +254,7 @@ public:
      *
      * @param n how many bins this histogram should contain.
      */
-    Histogram(size_t n = 30)
+    explicit Histogram(size_t n = defaultNumBuckets)
         : Histogram(ExponentialGenerator<T, Limits>(0, 2.0), n) {
     }
 
