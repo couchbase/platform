@@ -46,7 +46,7 @@ public:
         return load();
     }
 
-    std::chrono::steady_clock::duration load() const {
+    [[nodiscard]] std::chrono::steady_clock::duration load() const {
         return std::chrono::steady_clock::duration(value.load(MemoryOrder));
     }
 

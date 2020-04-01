@@ -43,7 +43,7 @@ public:
         return load();
     }
 
-    T load() const {
+    [[nodiscard]] T load() const {
         return value.load(std::memory_order_relaxed);
     }
 

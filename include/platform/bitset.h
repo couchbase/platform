@@ -43,7 +43,7 @@
 namespace cb {
 template <class Type>
 struct default_bitset_mapper {
-    constexpr size_t map(Type t) const {
+    [[nodiscard]] constexpr size_t map(Type t) const {
         return size_t(t);
     }
 };
@@ -72,7 +72,7 @@ public:
     }
 
     /// map and test the input t
-    bool test(Type t) const {
+    [[nodiscard]] bool test(Type t) const {
         return bits.test(Map().map(t));
     }
 

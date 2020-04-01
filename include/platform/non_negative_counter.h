@@ -95,7 +95,7 @@ public:
         return load();
     }
 
-    T load() const noexcept {
+    [[nodiscard]] T load() const noexcept {
         return value.load(std::memory_order_relaxed);
     }
 

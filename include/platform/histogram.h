@@ -80,17 +80,23 @@ public:
     /**
      * The starting value of this histogram bin (inclusive).
      */
-    T start() const { return _start; }
+    [[nodiscard]] T start() const {
+        return _start;
+    }
 
     /**
      * The ending value of this histogram bin (exclusive).
      */
-    T end() const { return _end; }
+    [[nodiscard]] T end() const {
+        return _end;
+    }
 
     /**
      * The count in this bin.
      */
-    size_t count() const { return _count.load(); }
+    [[nodiscard]] size_t count() const {
+        return _count.load();
+    }
 
 private:
     friend class Histogram<T, Limits>;
@@ -302,7 +308,7 @@ public:
     /**
      * Get an iterator from the beginning of a histogram bin.
      */
-    const_iterator begin() const {
+    [[nodiscard]] const_iterator begin() const {
         return bins.begin();
     }
 
@@ -313,7 +319,7 @@ public:
     /**
      * Get the iterator at the end of the histogram bin.
      */
-    const_iterator end() const {
+    [[nodiscard]] const_iterator end() const {
         return bins.end();
     }
 
@@ -321,7 +327,7 @@ public:
         return bins.end();
     }
 
-    size_t getMemFootPrint() const {
+    [[nodiscard]] size_t getMemFootPrint() const {
         return sizeof(Histogram) + ((sizeof(bin_type) +
                 sizeof(value_type)) * bins.size());
     }

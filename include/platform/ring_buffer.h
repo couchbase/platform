@@ -51,10 +51,10 @@ public:
     }
 
     // Front/back
-    const T& front() const {
+    [[nodiscard]] const T& front() const {
         return at(0);
     }
-    const T& back() const {
+    [[nodiscard]] const T& back() const {
         return at(size() - 1);
     }
     T& front() {
@@ -71,7 +71,7 @@ public:
         return at(ix);
     }
 
-    size_t size() const {
+    [[nodiscard]] size_t size() const {
         return array.size();
     }
 
@@ -87,10 +87,10 @@ public:
     iterator end() {
         return iterator(*this, size());
     }
-    const_iterator begin() const {
+    [[nodiscard]] const_iterator begin() const {
         return const_iterator(*this, 0);
     }
-    const_iterator end() const {
+    [[nodiscard]] const_iterator end() const {
         return const_iterator(*this, size());
     }
 
@@ -136,7 +136,7 @@ protected:
     Container array;
 
 private:
-    const T& at(size_t index) const {
+    [[nodiscard]] const T& at(size_t index) const {
         return array[(index + first) % size()];
     }
     T& at(size_t index) {

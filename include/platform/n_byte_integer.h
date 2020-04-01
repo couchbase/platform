@@ -82,13 +82,13 @@ public:
         return fetch_sub(1);
     }
 
-    UnsignedNByteInteger byteSwap() const {
+    [[nodiscard]] UnsignedNByteInteger byteSwap() const {
         auto ret = UnsignedNByteInteger<N>();
         std::reverse_copy(counter.begin(), counter.end(), ret.counter.begin());
         return ret;
     }
 
-    UnsignedNByteInteger hton() const {
+    [[nodiscard]] UnsignedNByteInteger hton() const {
         if (folly::kIsLittleEndian) {
             return byteSwap();
         }
@@ -96,7 +96,7 @@ public:
         return *this;
     }
 
-    UnsignedNByteInteger ntoh() const {
+    [[nodiscard]] UnsignedNByteInteger ntoh() const {
         return hton();
     }
 
@@ -114,7 +114,7 @@ private:
     }
 
     /// @return the current value as a uint64_t
-    uint64_t load() const {
+    [[nodiscard]] uint64_t load() const {
         uint64_t value = 0;
         if (folly::kIsLittleEndian) {
             std::copy_n(counter.begin(), N, reinterpret_cast<uint8_t*>(&value));

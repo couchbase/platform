@@ -68,7 +68,7 @@ TEST(BitsetTest, test2) {
 enum TestStates3 { ts1 = 1, ts2, ts3, ts4, ts5, ts6, ts7, tsend };
 
 struct TestStates3Map {
-    size_t map(TestStates3 in) const {
+    [[nodiscard]] size_t map(TestStates3 in) const {
         return in - 1;
     }
 };
@@ -89,7 +89,7 @@ TEST(BitsetTest, test3) {
 enum Messy { m1 = 4, m2 = 55, m3 = 19, m4 = 102 };
 
 struct MessyMap {
-    size_t map(Messy in) const {
+    [[nodiscard]] size_t map(Messy in) const {
         switch (in) {
         case m1:
             return 0;

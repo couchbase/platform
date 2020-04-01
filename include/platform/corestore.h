@@ -59,15 +59,15 @@ public:
         return coreArray.at(IndexFn(coreArray.size()));
     }
 
-    size_t size() const {
+    [[nodiscard]] size_t size() const {
         return coreArray.size();
     }
 
-    const_iterator begin() const {
+    [[nodiscard]] const_iterator begin() const {
         return coreArray.begin();
     }
 
-    const_iterator end() const {
+    [[nodiscard]] const_iterator end() const {
         return coreArray.end();
     }
 

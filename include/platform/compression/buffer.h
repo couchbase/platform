@@ -72,7 +72,7 @@ public:
      * Get a pointer to the backing storage for the buffer. The data area
      * is a continuous memory space size() bytes big.
      */
-    const char* data() const {
+    [[nodiscard]] const char* data() const {
         return memory.get();
     }
 
@@ -91,19 +91,19 @@ public:
     /**
      * Get the current size of the buffer
      */
-    size_t size() const {
+    [[nodiscard]] size_t size() const {
         return size_;
     }
 
     /// Is this buffer empty or not
-    bool empty() const {
+    [[nodiscard]] bool empty() const {
         return size_ == 0;
     }
 
     /**
      * Get the capacity of the buffer
      */
-    size_t capacity() const {
+    [[nodiscard]] size_t capacity() const {
         return capacity_;
     }
 

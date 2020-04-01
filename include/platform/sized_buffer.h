@@ -125,11 +125,11 @@ struct sized_buffer {
         return buf;
     }
 
-    constexpr const_iterator begin() const {
+    [[nodiscard]] constexpr const_iterator begin() const {
         return buf;
     }
 
-    constexpr const_iterator cbegin() const {
+    [[nodiscard]] constexpr const_iterator cbegin() const {
         return buf;
     }
 
@@ -137,11 +137,11 @@ struct sized_buffer {
         return buf + size();
     }
 
-    constexpr const_iterator end() const {
+    [[nodiscard]] constexpr const_iterator end() const {
         return buf + size();
     }
 
-    constexpr const_iterator cend() const {
+    [[nodiscard]] constexpr const_iterator cend() const {
         return buf + size();
     }
 
@@ -165,7 +165,7 @@ struct sized_buffer {
         return buf[pos];
     }
 
-    const_reference at(size_type pos) const {
+    [[nodiscard]] const_reference at(size_type pos) const {
         if (pos >= size()) {
             throw std::out_of_range(
                     std::string("cb::sized_buffer<") + typeid(T).name() +
@@ -179,7 +179,7 @@ struct sized_buffer {
         return buf[0];
     }
 
-    constexpr const_reference front() const {
+    [[nodiscard]] constexpr const_reference front() const {
         return buf[0];
     }
 
@@ -187,7 +187,7 @@ struct sized_buffer {
         return buf[size() - 1];
     }
 
-    constexpr const_reference back() const {
+    [[nodiscard]] constexpr const_reference back() const {
         return buf[size() - 1];
     }
 
@@ -195,17 +195,17 @@ struct sized_buffer {
         return buf;
     }
 
-    constexpr const_pointer data() const {
+    [[nodiscard]] constexpr const_pointer data() const {
         return buf;
     }
 
     // Capacity
 
-    constexpr size_type size() const {
+    [[nodiscard]] constexpr size_type size() const {
         return len;
     }
 
-    constexpr bool empty() const {
+    [[nodiscard]] constexpr bool empty() const {
         return size() == 0;
     }
 
@@ -239,7 +239,7 @@ struct sized_buffer {
      *  - size() == v.size(): 0
      *  - size() > v.size(): 1
      */
-    int compare(buffer_type v) const {
+    [[nodiscard]] int compare(buffer_type v) const {
         const size_type rlen = std::min(size(), v.size());
         const int cmp =
                 std::char_traits<base_type>::compare(data(), v.data(), rlen);
@@ -261,7 +261,7 @@ struct sized_buffer {
      * @return Position of the first character of the found substring,
      *         or npos if no such substring is found.
      */
-    size_type find(cbuffer_type v, size_type pos = 0) const {
+    [[nodiscard]] size_type find(cbuffer_type v, size_type pos = 0) const {
         if (pos > size()) {
             return npos;
         }
@@ -281,7 +281,8 @@ struct sized_buffer {
      * @return Position of the first occurrence of any character of the
      *         substring, or npos if no such character is found.
      */
-    size_type find_first_of(cbuffer_type v, size_type pos = 0) const {
+    [[nodiscard]] size_type find_first_of(cbuffer_type v,
+                                          size_type pos = 0) const {
         if (pos > size()) {
             return npos;
         }
