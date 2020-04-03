@@ -98,3 +98,16 @@ std::string cb::to_hex(cb::const_byte_buffer buffer) {
     ret.resize(ret.size() - 1);
     return ret;
 }
+
+PLATFORM_PUBLIC_API
+std::string cb::hex_encode(cb::const_byte_buffer buffer) {
+    if (buffer.empty()) {
+        return "";
+    }
+    std::stringstream ss;
+    for (const auto& c : buffer) {
+        ss << std::hex << std::setfill('0') << std::setw(2) << uint32_t(c);
+    }
+    auto ret = ss.str();
+    return ret;
+}

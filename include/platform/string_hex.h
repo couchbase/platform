@@ -48,4 +48,19 @@ std::string to_hex(uint64_t val);
 PLATFORM_PUBLIC_API
 std::string to_hex(const_byte_buffer buffer);
 
+/**
+ * Encode a sequence of bytes in hex: (ex: {0xde, 0xad, 0xca, 0xfe} would
+ * return "deadcafe"
+ *
+ * @param buffer Input data to dump
+ * @return the hex string
+ */
+PLATFORM_PUBLIC_API
+std::string hex_encode(const_byte_buffer buffer);
+
+inline std::string hex_encode(std::string_view buffer) {
+    return hex_encode(
+            {reinterpret_cast<const uint8_t*>(buffer.data()), buffer.size()});
+}
+
 } // namespace cb

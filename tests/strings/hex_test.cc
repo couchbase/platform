@@ -73,3 +73,11 @@ TEST(Hex, ToHexByteBuffer) {
     EXPECT_EQ("0xa5 0xa5 0xa5 0xa5",
               cb::to_hex({buffer.data(), buffer.size()}));
 }
+
+TEST(Hex, HexEncode) {
+    std::vector<uint8_t> buffer = {{0xde, 0xad, 0xbe, 0xef, 0xff}};
+    EXPECT_EQ("deadbeefff", cb::hex_encode({buffer.data(), buffer.size()}));
+    EXPECT_EQ("deadbeefff",
+              cb::hex_encode({reinterpret_cast<const char*>(buffer.data()),
+                              buffer.size()}));
+}
