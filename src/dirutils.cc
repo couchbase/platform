@@ -16,18 +16,18 @@
  */
 #include <platform/dirutils.h>
 
+#include <folly/portability/Dirent.h>
+#include <folly/portability/SysResource.h>
+#include <folly/portability/SysStat.h>
+#include <folly/portability/Unistd.h>
+
 #ifdef _MSC_VER
-#include <direct.h>
-#include <folly/portability/Windows.h>
-#include <shlobj.h>
-#define rmdir _rmdir
+// Need to define __STDC__ to avoid <io.h> from attempting to redefine
+// (with different linkage) functions chmod() and umask() which have already
+// been defined by <folly/portability/SysStat.h> above.
+#define __STDC__ 1
 #include <io.h> // _setmode
-#else
-
-#include <dirent.h>
-#include <sys/resource.h>
-#include <unistd.h>
-
+#undef __STDC__
 #endif
 
 #include <platform/strerror.h>
@@ -35,7 +35,6 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <string.h>
-#include <sys/stat.h>
 #include <chrono>
 #include <cinttypes>
 #include <limits>
@@ -307,7 +306,14 @@ bool cb::io::isFile(const std::string& file) {
 }
 
 DIRUTILS_PUBLIC_API
-void cb::io::mkdirp(const std::string& directory) {
+void cb::io::mkdirp(std::string directory) {
+
+#ifdef WIN32
+    // Sanitize path (to ensure no unix-style path delimiters are present)
+    // given Windows mkdir() doesn't automatically replace '/' with '\'
+    directory = sanitizePath(directory);
+#endif
+
     // Bail out immediately if the directory already exists.
     // note that both mkdir and CreateDirectory on windows returns
     // EEXISTS if the directory already exists, BUT it could also
@@ -317,47 +323,6 @@ void cb::io::mkdirp(const std::string& directory) {
         return;
     }
 
-#ifdef WIN32
-    // ensure directory path is absolute
-    // Initial call without buffer to find size of buffer needed
-    auto ret = GetFullPathNameA(directory.c_str(), 0, nullptr, nullptr);
-    if (!ret) {
-        throw std::system_error(GetLastError(),
-                                std::system_category(),
-                                "cb::io::mkdirp(\"" + directory +
-                                        "\") failed - could not get buffer "
-                                        "size for absolute path.");
-    }
-
-    // make string of right size
-    std::string absPath(ret, '\0');
-    // populate absPath with the path
-    ret = GetFullPathNameA(directory.c_str(), /* rel or abs path */
-                           (DWORD)absPath.size(), /* dest buffer size */
-                           &absPath[0], /* dest buffer */
-                           nullptr /* don't need ptr to filePart */
-    );
-
-    if (!ret) {
-        throw std::system_error(
-                GetLastError(),
-                std::system_category(),
-                "cb::io::mkdirp(\"" + directory +
-                        "\") failed - could not get absolute path.");
-    }
-
-    auto err = SHCreateDirectoryEx(nullptr, /* no window handle */
-                                   absPath.data(),
-                                   nullptr /* no security attrs */
-    );
-    if (err != ERROR_SUCCESS) {
-        throw std::system_error(
-                err,
-                std::system_category(),
-                "cb::io::mkdirp(\"" + directory +
-                        "\") failed, could not create directory.");
-    }
-#else
     do {
         if (mkdir(directory.c_str(), S_IREAD | S_IWRITE | S_IEXEC) == 0) {
             return;
@@ -377,7 +342,6 @@ void cb::io::mkdirp(const std::string& directory) {
         // Try to create the parent directory..
         mkdirp(dirname(directory));
     } while (true);
-#endif
 }
 
 std::string cb::io::mktemp(const std::string& prefix) {

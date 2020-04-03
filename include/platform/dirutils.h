@@ -92,13 +92,16 @@ DIRUTILS_PUBLIC_API
 bool isFile(const std::string& file);
 
 /**
- * Try to create directory including all of the parent directories
+ * Try to create directory including all of the parent directories.
+ *
+ * Calls sanitizePath() on the given directory before attempting
+ * to create it.
  *
  * @param directory the directory to create
  * @throws std::runtime_error if an error occurs
  */
 DIRUTILS_PUBLIC_API
-void mkdirp(const std::string& directory);
+void mkdirp(std::string directory);
 
 /**
  * Create a unique temporary file with the given prefix.
