@@ -42,31 +42,31 @@ static inline void cb_invoke_delete_hook(const void* ptr) {
     }
 }
 
-PLATFORM_PUBLIC_API void* cb_malloc(size_t size) throw() {
+PLATFORM_PUBLIC_API void* cb_malloc(size_t size) noexcept {
     void* ptr = cb::ArenaMalloc::malloc(size);
     cb_invoke_new_hook(ptr, size);
     return ptr;
 }
 
-PLATFORM_PUBLIC_API void* cb_calloc(size_t nmemb, size_t size) throw() {
+PLATFORM_PUBLIC_API void* cb_calloc(size_t nmemb, size_t size) noexcept {
     void* ptr = cb::ArenaMalloc::calloc(nmemb, size);
     cb_invoke_new_hook(ptr, size);
     return ptr;
 }
 
-PLATFORM_PUBLIC_API void* cb_realloc(void* ptr, size_t size) throw() {
+PLATFORM_PUBLIC_API void* cb_realloc(void* ptr, size_t size) noexcept {
     cb_invoke_delete_hook(ptr);
     ptr = cb::ArenaMalloc::realloc(ptr, size);
     cb_invoke_new_hook(ptr, size);
     return ptr;
 }
 
-PLATFORM_PUBLIC_API void cb_free(void* ptr) throw() {
+PLATFORM_PUBLIC_API void cb_free(void* ptr) noexcept {
     cb_invoke_delete_hook(ptr);
     cb::ArenaMalloc::free(ptr);
 }
 
-PLATFORM_PUBLIC_API void cb_sized_free(void* ptr, size_t size) throw() {
+PLATFORM_PUBLIC_API void cb_sized_free(void* ptr, size_t size) noexcept {
     cb_invoke_delete_hook(ptr);
     cb::ArenaMalloc::sized_free(ptr, size);
 }
@@ -81,7 +81,7 @@ PLATFORM_PUBLIC_API char* cb_strdup(const char* s1) {
 }
 
 #if defined(HAVE_MALLOC_USABLE_SIZE)
-PLATFORM_PUBLIC_API size_t cb_malloc_usable_size(void* ptr) throw() {
+PLATFORM_PUBLIC_API size_t cb_malloc_usable_size(void* ptr) noexcept {
     return cb::ArenaMalloc::malloc_usable_size(ptr);
 }
 #endif

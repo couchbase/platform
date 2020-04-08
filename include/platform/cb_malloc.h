@@ -39,10 +39,10 @@
 
 #include <stdlib.h>
 
-#if !defined(__cplusplus)
-#define throwspec
+#ifdef __cplusplus
+#define NO_EXCEPTION noexcept
 #else
-#define throwspec throw()
+#define NO_EXCEPTION
 #endif
 
 /*
@@ -55,14 +55,14 @@
 extern "C" {
 #endif
 
-PLATFORM_PUBLIC_API void* cb_malloc(size_t size) throwspec;
-PLATFORM_PUBLIC_API void* cb_calloc(size_t nmemb, size_t size) throwspec;
-PLATFORM_PUBLIC_API void* cb_realloc(void* ptr, size_t size) throwspec;
-PLATFORM_PUBLIC_API void cb_free(void* ptr) throwspec;
-PLATFORM_PUBLIC_API void cb_sized_free(void* ptr, size_t size) throwspec;
+PLATFORM_PUBLIC_API void* cb_malloc(size_t size) NO_EXCEPTION;
+PLATFORM_PUBLIC_API void* cb_calloc(size_t nmemb, size_t size) NO_EXCEPTION;
+PLATFORM_PUBLIC_API void* cb_realloc(void* ptr, size_t size) NO_EXCEPTION;
+PLATFORM_PUBLIC_API void cb_free(void* ptr) NO_EXCEPTION;
+PLATFORM_PUBLIC_API void cb_sized_free(void* ptr, size_t size) NO_EXCEPTION;
 
 #if defined(HAVE_MALLOC_USABLE_SIZE)
-PLATFORM_PUBLIC_API size_t cb_malloc_usable_size(void* ptr) throwspec;
+PLATFORM_PUBLIC_API size_t cb_malloc_usable_size(void* ptr) NO_EXCEPTION;
 #endif
 
 #undef throwspec
