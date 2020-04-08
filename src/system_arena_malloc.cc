@@ -84,7 +84,7 @@ void SystemArenaMalloc::switchToClient(const ArenaMallocClient& client,
 
 void SystemArenaMalloc::switchFromClient() {
     // Set to arena 0, no client, all tracking is disabled
-    switchToClient({0, false, 0}, false /*tcache unused here*/);
+    switchToClient({0, false, false}, false /*tcache unused here*/);
 }
 
 size_t SystemArenaMalloc::getPreciseAllocated(const ArenaMallocClient& client) {
