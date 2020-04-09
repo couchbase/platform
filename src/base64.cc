@@ -143,8 +143,7 @@ static int decode_quad(const uint8_t* s, std::vector<uint8_t>& d) {
     return ret;
 }
 
-namespace cb {
-namespace base64 {
+namespace cb::base64 {
 PLATFORM_PUBLIC_API
 std::string encode(const cb::const_byte_buffer blob, bool prettyprint) {
     // base64 encoding encodes up to 3 input characters to 4 output
@@ -224,5 +223,4 @@ std::vector<uint8_t> decode(std::string_view blob) {
     return destination;
 }
 
-}
-}
+} // namespace cb::base64

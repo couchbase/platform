@@ -25,8 +25,7 @@
 #include <signal.h>
 #endif
 
-namespace cb {
-namespace console {
+namespace cb::console {
 
 static std::atomic<interrupt_handler> sigint_handler{nullptr};
 
@@ -82,5 +81,4 @@ void set_sigint_handler(interrupt_handler h) {
 void clear_sigint_handler() {
     sigint_handler = nullptr;
 }
-} // namespace console
-} // namespace cb
+} // namespace cb::console

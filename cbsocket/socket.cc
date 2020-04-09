@@ -28,8 +28,7 @@
 #include <unistd.h>
 #endif
 
-namespace cb {
-namespace net {
+namespace cb::net {
 
 CBSOCKET_PUBLIC_API
 int closesocket(SOCKET s) {
@@ -268,5 +267,4 @@ std::string getpeername(SOCKET sfd) {
     return to_string(&peer, peer_len);
 }
 
-} // namespace net
-} // namespace cb
+} // namespace cb::net
