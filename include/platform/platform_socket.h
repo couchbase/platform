@@ -23,14 +23,10 @@
 #include <platform/dynamic.h>
 #include <platform/visibility.h>
 
-#include <stdint.h>
+#include <cstdint>
 
 #ifdef WIN32
 #include <winsock2.h>
-#endif
-
-#ifdef __cplusplus
-extern "C" {
 #endif
 
 #ifdef WIN32
@@ -60,10 +56,6 @@ void cb_initialize_sockets(void);
 #else // WIN32
 #define cb_initialize_sockets()
 #endif // WIN32
-
-#ifdef __cplusplus
-}
-#endif
 
 #ifndef CB_DONT_NEED_BYTEORDER
 #include <folly/Bits.h>
