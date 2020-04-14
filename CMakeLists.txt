@@ -222,7 +222,7 @@ LIST(APPEND PLATFORM_FILES
 # Build a separate static library for cbassert/backtrace
 LIST(APPEND CBASSERT_FILES
   src/backtrace.c
-  src/cbassert.c
+  src/cbassert.cc
   include/platform/backtrace.h
   include/platform/cbassert.h)
 

@@ -1,6 +1,6 @@
 /* -*- Mode: C; tab-width: 4; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /*
- *     Copyright 2013 Couchbase, Inc.
+ *     Copyright 2020 Couchbase, Inc.
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -16,16 +16,9 @@
  */
 #pragma once
 
-#include <platform/dynamic.h>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-    void cb_assert_die(const char *expression, const char *file, int line)
-        CB_ATTR_NORETURN;
-#ifdef __cplusplus
-}
-#endif
+[[noreturn]] void cb_assert_die(const char* expression,
+                                const char* file,
+                                int line);
 
 #define cb_assert(e)  \
     ((void)((e) ? (void)0 : cb_assert_die(#e, __FILE__, __LINE__)))
@@ -39,10 +32,4 @@ extern "C" {
  * in a non-graphical mode (e.g. Jenkins CV job).
  * No-op on non-Windows, non-Debug build.
  */
-#ifdef __cplusplus
-extern "C" {
-#endif
-    void setupWindowsDebugCRTAssertHandling(void);
-#ifdef __cplusplus
-}
-#endif
+void setupWindowsDebugCRTAssertHandling();
