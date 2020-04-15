@@ -14,34 +14,35 @@
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
  */
-#include <platform/backtrace.h>
 #include <platform/cbassert.h>
+#include <platform/backtrace.h>
 
 #if defined(WIN32)
-#include <crtdbg.h>
 #include <folly/portability/Windows.h>
+#include <crtdbg.h>
 #endif
 
-#include <cstdio>
-#include <cstdlib>
+#include <stdio.h>
+#include <stdlib.h>
 
-#if defined(WIN32) || (defined(HAVE_BACKTRACE) && defined(HAVE_DLADDR))
-#define HAVE_BACKTRACE_SUPPORT 1
+#if defined(WIN32) || ( defined(HAVE_BACKTRACE) && defined(HAVE_DLADDR))
+#  define HAVE_BACKTRACE_SUPPORT 1
 #endif
 
 #ifdef HAVE_BACKTRACE_SUPPORT
-static void write_callback(void*, const char* frame) {
+static void write_callback(void* ctx, const char* frame) {
     fprintf(stderr, "\t%s\n", frame);
 }
 #endif
 
-void cb_assert_die(const char* expression, const char* file, int line) {
-    (void)fprintf(
-            stderr, "assertion failed [%s] at %s:%u\n", expression, file, line);
+void cb_assert_die(const char *expression, const char *file, int line)
+{
+    (void)fprintf(stderr, "assertion failed [%s] at %s:%u\n",
+                  expression, file, line);
 
 #ifdef HAVE_BACKTRACE_SUPPORT
     fprintf(stderr, "Called from:\n");
-    print_backtrace(write_callback, nullptr);
+    print_backtrace(write_callback, NULL);
 #endif
 
     fflush(stderr);
@@ -50,18 +51,18 @@ void cb_assert_die(const char* expression, const char* file, int line) {
 
 #if defined(WIN32)
 
-int backtraceReportHook(int reportType, char* message, int* returnValue) {
+int backtraceReportHook( int reportType, char *message, int *returnValue ) {
     fprintf(stderr, message);
     fprintf(stderr, "Called from:\n");
-    print_backtrace(write_callback, nullptr);
+    print_backtrace(write_callback, NULL);
     return FALSE;
 }
 
 void setupWindowsDebugCRTAssertHandling() {
     _CrtSetReportMode(_CRT_ASSERT, _CRTDBG_MODE_FILE | _CRTDBG_MODE_WNDW);
-    _CrtSetReportFile(_CRT_ASSERT, _CRTDBG_FILE_STDERR);
+    _CrtSetReportFile(_CRT_ASSERT, _CRTDBG_FILE_STDERR );
     _CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_FILE | _CRTDBG_MODE_WNDW);
-    _CrtSetReportFile(_CRT_ERROR, _CRTDBG_FILE_STDERR);
+    _CrtSetReportFile(_CRT_ERROR, _CRTDBG_FILE_STDERR );
     _CrtSetReportHook(backtraceReportHook);
 }
 #else
