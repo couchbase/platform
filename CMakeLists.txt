@@ -99,7 +99,7 @@ GENERATE_EXPORT_HEADER(JSON_checker
 IF (WIN32)
    INCLUDE_DIRECTORIES(AFTER ${CMAKE_CURRENT_SOURCE_DIR}/include/win32)
    ADD_DEFINITIONS(-D_CRT_SECURE_NO_WARNINGS)
-   SET(PLATFORM_FILES src/sockets.cc
+   SET(PLATFORM_FILES src/sockets.c
                       src/cb_win32.cc
                       src/crc32c_sse4_2.cc
                       include/win32/getopt.h
