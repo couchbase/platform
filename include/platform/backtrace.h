@@ -1,6 +1,6 @@
 /* -*- Mode: C; tab-width: 4; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /*
- *     Copyright 2020 Couchbase, Inc
+ *     Copyright 2015 Couchbase, Inc
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -15,9 +15,15 @@
  *   limitations under the License.
  */
 
-#include <cstdio>
+#include <stdio.h>
 
-using write_cb_t = void (*)(void*, const char*);
+#ifdef __cplusplus
+extern "C" {
+#else
+#include <stdbool.h>
+#endif
+
+typedef void (*write_cb_t)(void *ctx, const char *frame);
 
 /**
  * Prints a backtrace from the current thread. For each frame, the
@@ -38,4 +44,9 @@ void print_backtrace_to_file(FILE* stream);
  * @param buffer the buffer to populate with the backtrace
  * @param size the size of the input buffer
  */
-bool print_backtrace_to_buffer(const char* indent, char* buffer, size_t size);
+bool print_backtrace_to_buffer(const char *indent, char *buffer, size_t size);
+
+
+#ifdef __cplusplus
+} // extern "C"
+#endif

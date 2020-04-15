@@ -14,25 +14,21 @@
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
  */
+#include <inttypes.h>
 #include <platform/backtrace.h>
 #include <strings.h>
-#include <array>
-#include <cinttypes>
 
 #if defined(WIN32) && defined(HAVE_BACKTRACE_SUPPORT)
 #define WIN32_LEAN_AND_MEAN
-
 #include <windows.h>
-
 #include <Dbghelp.h>
-
 #endif
 
 #if defined(HAVE_BACKTRACE) && defined(HAVE_DLADDR)
-#define HAVE_BACKTRACE_SUPPORT 1
-#include <dlfcn.h> // for dladdr()
-#include <execinfo.h> // for backtrace()
-#include <cstddef> // for ptrdiff_t
+#  define HAVE_BACKTRACE_SUPPORT 1
+#  include <execinfo.h> // for backtrace()
+#  include <dlfcn.h> // for dladdr()
+#  include <stddef.h> // for ptrdiff_t
 #endif
 
 // Maximum number of frames that will be printed.
@@ -57,15 +53,11 @@ static void describe_address(char* msg, size_t len, void* addr) {
     sym_info->SizeOfStruct = sizeof(SYMBOL_INFO);
     sym_info->MaxNameLen = MAX_SYM_NAME;
 
-    if (SymFromAddr(
-                GetCurrentProcess(), (DWORD64)addr, &displacement, sym_info)) {
-        snprintf(msg,
-                 len,
-                 "%s(%s+%lld) [0x%p]",
+    if (SymFromAddr(GetCurrentProcess(), (DWORD64)addr, &displacement,
+                    sym_info)) {
+        snprintf(msg, len, "%s(%s+%lld) [0x%p]",
                  module_info.ImageName ? module_info.ImageName : "",
-                 sym_info->Name,
-                 displacement,
-                 addr);
+                 sym_info->Name, displacement, addr);
     } else {
         // No symbol found.
         snprintf(msg, len, "[0x%p]", addr);
@@ -76,9 +68,9 @@ static void describe_address(char* msg, size_t len, void* addr) {
 
     if (status != 0) {
         ptrdiff_t image_offset = (char*)addr - (char*)info.dli_fbase;
-        if (info.dli_fname != nullptr && info.dli_fname[0] != '\0') {
+        if (info.dli_fname != NULL && info.dli_fname[0] != '\0') {
             // Found a nearest symbol - print it.
-            if (info.dli_saddr == nullptr) {
+            if (info.dli_saddr == 0) {
                 // No function offset calculation possible.
                 snprintf(msg,
                          len,
@@ -124,23 +116,22 @@ static void describe_address(char* msg, size_t len, void* addr) {
 }
 
 void print_backtrace(write_cb_t write_cb, void* context) {
-    std::array<void*, MAX_FRAMES> frames;
+    void* frames[MAX_FRAMES];
 #if defined(WIN32)
-    int active_frames =
-            CaptureStackBackTrace(0, frames.size(), frames.data(), NULL);
-    SymInitialize(GetCurrentProcess(), nullptr, TRUE);
+    int active_frames = CaptureStackBackTrace(0, MAX_FRAMES, frames, NULL);
+    SymInitialize(GetCurrentProcess(), NULL, TRUE);
 #else
-    int active_frames = backtrace(frames.data(), frames.size());
+    int active_frames = backtrace(frames, MAX_FRAMES);
 #endif
 
     // Note we start from 1 to skip our own frame.
     for (int ii = 1; ii < active_frames; ii++) {
         // Fixed-sized buffer; possible that description will be cropped.
-        std::array<char, 300> msg;
-        describe_address(msg.data(), msg.size(), frames[ii]);
-        write_cb(context, msg.data());
+        char msg[300];
+        describe_address(msg, sizeof(msg), frames[ii]);
+        write_cb(context, msg);
     }
-    if (std::size_t(active_frames) == frames.size()) {
+    if (active_frames == MAX_FRAMES) {
         write_cb(context, "<frame limit reached, possible truncation>");
     }
 }
@@ -154,43 +145,32 @@ void print_backtrace(write_cb_t write_cb, void* context) {
 #endif // defined(HAVE_BACKTRACE_SUPPORT)
 
 static void print_to_file_cb(void* ctx, const char* frame) {
-    fprintf(static_cast<FILE*>(ctx), "\t%s\n", frame);
+    fprintf(ctx, "\t%s\n", frame);
 }
 
 void print_backtrace_to_file(FILE* stream) {
     print_backtrace(print_to_file_cb, stream);
 }
 
-struct Context {
-    Context(const char* indent,
-            char* buffer,
-            size_t size,
-            size_t offset,
-            bool error)
-        : indent(indent),
-          buffer(buffer),
-          size(size),
-          offset(offset),
-          error(error) {
-    }
-    const char* indent;
-    char* buffer;
+struct context {
+    const char *indent;
+    char *buffer;
     size_t size;
     size_t offset;
     bool error;
 };
 
 static void memory_cb(void* ctx, const char* frame) {
-    auto* c = static_cast<Context*>(ctx);
+    struct context *c = ctx;
+
 
     if (!c->error) {
-        int length = snprintf(c->buffer + c->offset,
-                              c->size - c->offset,
-                              "%s%s\n",
-                              c->indent,
-                              frame);
 
-        if ((length < 0) || (size_t(length) >= (c->size - c->offset))) {
+        int length = snprintf(c->buffer + c->offset, c->size - c->offset,
+                              "%s%s\n", c->indent, frame);
+
+        if ((length < 0) ||
+            (length >= (c->size - c->offset))) {
             c->error = true;
         } else {
             c->offset += length;
@@ -198,8 +178,13 @@ static void memory_cb(void* ctx, const char* frame) {
     }
 }
 
-bool print_backtrace_to_buffer(const char* indent, char* buffer, size_t size) {
-    Context c(indent, buffer, size, 0, false);
+bool print_backtrace_to_buffer(const char *indent, char *buffer, size_t size) {
+    struct context c = {
+        .indent = indent,
+        .buffer = buffer,
+        .size = size,
+        .offset = 0,
+        .error = false};
     print_backtrace(memory_cb, &c);
     return !c.error;
 }
