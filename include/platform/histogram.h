@@ -303,7 +303,7 @@ public:
      *
      * This is the sum of all counts in each bin.
      */
-    size_t total();
+    size_t total() const;
 
     /**
      * Get an iterator from the beginning of a histogram bin.

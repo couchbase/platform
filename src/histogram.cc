@@ -33,7 +33,7 @@ void Histogram<T, Limits>::reset() {
 }
 
 template <typename T, template <class> class Limits>
-size_t Histogram<T, Limits>::total() {
+size_t Histogram<T, Limits>::total() const {
     HistogramBinSampleAdder<T, Limits> a;
     return std::accumulate(begin(), end(), 0, a);
 }
