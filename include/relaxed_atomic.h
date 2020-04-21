@@ -27,6 +27,8 @@ namespace cb {
 template <typename T>
 class RelaxedAtomic {
 public:
+    using value_type = T;
+
     RelaxedAtomic() {
         store(0);
     }

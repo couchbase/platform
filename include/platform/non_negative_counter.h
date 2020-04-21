@@ -79,6 +79,8 @@ class NonNegativeCounter : public UnderflowPolicy<T> {
     using SignedT = typename std::make_signed<T>::type;
 
 public:
+    using value_type = T;
+
     NonNegativeCounter() noexcept {
         store(0);
     }
