@@ -327,6 +327,10 @@ public:
         return bins.end();
     }
 
+    [[nodiscard]] size_t size() const {
+        return bins.size();
+    }
+
     [[nodiscard]] size_t getMemFootPrint() const {
         return sizeof(Histogram) + ((sizeof(bin_type) +
                 sizeof(value_type)) * bins.size());
