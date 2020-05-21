@@ -22,11 +22,12 @@ if (MEMORY_ALLOCATOR STREQUAL "jemalloc")
 endif()
 
 if (UNIX)
-ADD_EXECUTABLE(platform-cb_malloc-test cb_malloc_stdlib.cc)
+ADD_EXECUTABLE(platform-cb_malloc-test cb_malloc_default.cc)
 # This test must not link against platform_cb_malloc
 TARGET_LINK_LIBRARIES(platform-cb_malloc-test PRIVATE
         gtest
         gtest_main
-        platform)
+        platform
+        ${MALLOC_LIBRARIES})
 ADD_TEST(platform-cb_malloc-test platform-cb_malloc-test)
 endif()

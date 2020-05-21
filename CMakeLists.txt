@@ -161,10 +161,10 @@ if (WIN32)
   set(CB_MALLOC_IMPL src/cb_malloc_arena.cc)
 elseif (UNIX)
   # UNIX platform.so:
-  #  provide a weakly defined cb_malloc that uses std::malloc. Targets desiring
-  #  JeMalloc and the tracking allocator will need to also link to
+  #  provide a weakly defined cb_malloc that uses plain je_malloc (or malloc)
+  #  Targets desiring the tracking allocator will need to also link to
   #  platform_cb_malloc.
-  set(CB_MALLOC_IMPL src/cb_malloc_stdlib.cc)
+  set(CB_MALLOC_IMPL src/cb_malloc_default.cc)
 else ()
   message(FATAL_ERROR "Unsupported system")
 endif (WIN32)
