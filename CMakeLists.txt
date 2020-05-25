@@ -410,7 +410,7 @@ add_library(breakpad_wrapper SHARED
 set_target_properties(breakpad_wrapper PROPERTIES COMPILE_FLAGS "-Dplatform_so_EXPORTS")
 if (BREAKPAD_FOUND)
    target_compile_definitions(breakpad_wrapper PRIVATE -DHAVE_BREAKPAD)
-   target_include_directories(breakpad_wrapper PRIVATE SYSTEM AFTER ${BREAKPAD_INCLUDE_DIR})
+   target_include_directories(breakpad_wrapper SYSTEM PRIVATE ${BREAKPAD_INCLUDE_DIR})
 endif (BREAKPAD_FOUND)
 
 if (UNIX)
