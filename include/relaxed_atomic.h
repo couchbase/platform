@@ -30,7 +30,7 @@ public:
     using value_type = T;
 
     RelaxedAtomic() {
-        store(0);
+        store({});
     }
 
     RelaxedAtomic(const T& initial) {
@@ -108,7 +108,7 @@ public:
     }
 
     void reset() {
-        store(0);
+        store({});
     }
 
     void setIfGreater(const T& val) {
