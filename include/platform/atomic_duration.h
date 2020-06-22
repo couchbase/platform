@@ -66,6 +66,20 @@ public:
         return Duration(value.fetch_sub(arg.count(), MemoryOrder));
     }
 
+    void setIfGreater(Duration val) {
+        do {
+            auto current = load().count();
+            if (val.count() > current) {
+                if (value.compare_exchange_weak(
+                            current, val.count(), MemoryOrder)) {
+                    break;
+                }
+            } else {
+                break;
+            }
+        } while (true);
+    }
+
     AtomicDuration& operator=(Duration val) {
         store(val);
         return *this;
