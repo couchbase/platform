@@ -99,5 +99,11 @@ public:
 
 private:
     std::atomic<typename Duration::rep> value;
+
+    static_assert(
+            decltype(value)::is_always_lock_free,
+            "This instantiation of AtomicDuration<> is not lock-free. If you "
+            "don't need a lock-free "
+            "atomic duration, std::atomic<Duration> might as well be used.");
 };
 } // namespace cb
