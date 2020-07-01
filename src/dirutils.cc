@@ -33,6 +33,7 @@
 #include <platform/strerror.h>
 
 #include <fcntl.h>
+#include <boost/filesystem.hpp>
 #include <stdio.h>
 #include <string.h>
 #include <chrono>
@@ -307,41 +308,9 @@ bool cb::io::isFile(const std::string& file) {
 
 DIRUTILS_PUBLIC_API
 void cb::io::mkdirp(std::string directory) {
-
-#ifdef WIN32
-    // Sanitize path (to ensure no unix-style path delimiters are present)
-    // given Windows mkdir() doesn't automatically replace '/' with '\'
-    directory = sanitizePath(directory);
-#endif
-
-    // Bail out immediately if the directory already exists.
-    // note that both mkdir and CreateDirectory on windows returns
-    // EEXISTS if the directory already exists, BUT it could also
-    // return "permission denied" depending on the order the checks
-    // is run within "libc"
-    if (isDirectory(directory)) {
-        return;
+    if (!boost::filesystem::is_directory(directory)) {
+        boost::filesystem::create_directories(directory);
     }
-
-    do {
-        if (mkdir(directory.c_str(), S_IREAD | S_IWRITE | S_IEXEC) == 0) {
-            return;
-        }
-
-        switch (errno) {
-        case EEXIST:
-            return;
-        case ENOENT:
-            break;
-        default:
-            throw std::system_error(errno, std::system_category(),
-                                    "cb::io::mkdirp(\"" + directory +
-                                    "\") failed");
-        }
-
-        // Try to create the parent directory..
-        mkdirp(dirname(directory));
-    } while (true);
 }
 
 std::string cb::io::mktemp(const std::string& prefix) {
