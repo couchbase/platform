@@ -84,4 +84,4 @@ static void BM_DecodeFormattedBlob(benchmark::State& state) {
 
 BENCHMARK(BM_DecodeFormattedBlob)->RangeMultiplier(100)->Range(1, 100000);
 
-BENCHMARK_MAIN()
+BENCHMARK_MAIN();
