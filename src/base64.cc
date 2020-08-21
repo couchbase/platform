@@ -43,7 +43,7 @@ static const uint8_t code[] =
  * @param code the code to map
  * @return the byte value for the code character
  */
-static const uint32_t code2val(const uint8_t code) {
+static uint32_t code2val(const uint8_t code) {
     if (code >= 'A' && code <= 'Z') {
         return code - 'A';
     }

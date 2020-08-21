@@ -83,7 +83,7 @@ namespace Couchbase {
         /**
          * Get the current state of the thread
          */
-        [[nodiscard]] const ThreadState getState() const {
+        [[nodiscard]] ThreadState getState() const {
             return state.load();
         }
 
@@ -97,7 +97,7 @@ namespace Couchbase {
          * @param state the requested state
          * @return the state we ended up in
          */
-        const ThreadState waitForState(const ThreadState& state);
+        ThreadState waitForState(const ThreadState& state);
 
     protected:
         /**

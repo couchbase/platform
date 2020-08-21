@@ -84,7 +84,7 @@ void Couchbase::Thread::setRunning() {
     setState(ThreadState::Running);
 }
 
-const Couchbase::ThreadState Couchbase::Thread::waitForState(
+Couchbase::ThreadState Couchbase::Thread::waitForState(
     const Couchbase::ThreadState& newState) {
 
     std::unique_lock<std::mutex> lock(synchronization.mutex);
