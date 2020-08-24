@@ -9,7 +9,7 @@ ADD_TEST(platform-json-checker-test platform-json-checker-test)
 ADD_EXECUTABLE(platform-json-checker-bench
   json_checker_bench.cc)
 TARGET_INCLUDE_DIRECTORIES(platform-json-checker-bench
-    PRIVATE
+    SYSTEM PRIVATE
     ${benchmark_SOURCE_DIR}/include)
 TARGET_LINK_LIBRARIES(platform-json-checker-bench
   benchmark gtest platform JSON_checker)

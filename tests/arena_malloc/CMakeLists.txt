@@ -17,7 +17,7 @@ if (MEMORY_ALLOCATOR STREQUAL "jemalloc")
                         platform
                         platform_cb_malloc_arena)
 
-  TARGET_INCLUDE_DIRECTORIES(platform-arena_tracking_bench PUBLIC
+  TARGET_INCLUDE_DIRECTORIES(platform-arena_tracking_bench SYSTEM PRIVATE
                              ${benchmark_SOURCE_DIR}/include )
 endif()
 

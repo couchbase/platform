@@ -56,7 +56,7 @@ if (COUCHBASE_PLATFORM_BUILD_UNIT_TESTS)
                                PRIVATE
                                $<$<BOOL:${LZ4_FOUND}>:CB_LZ4_SUPPORT>)
     target_include_directories(platform-compression-bench
-                               PRIVATE
+                               SYSTEM PRIVATE
                                ${SNAPPY_INCLUDE_DIR}
                                $<$<BOOL:${LZ4_FOUND}>:${LZ4_INCLUDE_DIR}>
                                ${benchmark_SOURCE_DIR}/include)

@@ -5,7 +5,8 @@ ADD_TEST(platform-base64-test platform-base64-test)
 ADD_EXECUTABLE(platform-base64-test-bench
                base64_test_bench.cc)
 TARGET_INCLUDE_DIRECTORIES(platform-base64-test-bench
-    PRIVATE
-    ${benchmark_SOURCE_DIR}/include)
+                           SYSTEM
+                           PRIVATE
+                           ${benchmark_SOURCE_DIR}/include)
 TARGET_LINK_LIBRARIES(platform-base64-test-bench
                       benchmark gtest platform)
