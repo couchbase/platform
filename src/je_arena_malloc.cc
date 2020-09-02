@@ -18,7 +18,7 @@
 #include "relaxed_atomic.h"
 #include <platform/je_arena_malloc.h>
 
-#include <folly/CachelinePadded.h>
+#include <folly/lang/Aligned.h>
 #include <jemalloc/jemalloc.h>
 
 #include <stdexcept>

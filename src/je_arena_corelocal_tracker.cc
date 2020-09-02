@@ -16,7 +16,7 @@
  */
 
 #include "relaxed_atomic.h"
-#include <folly/CachelinePadded.h>
+#include <folly/lang/Aligned.h>
 #include <platform/cb_arena_malloc_client.h>
 #include <platform/corestore.h>
 #include <platform/je_arena_corelocal_tracker.h>
@@ -41,8 +41,9 @@ namespace cb {
 //    is signed so we can safely handle the counter validly being negative (see
 //    comments in getPreciseAllocated and getEstimatedAllocated).
 
-static std::array<CoreStore<folly::CachelinePadded<cb::RelaxedAtomic<int64_t>>>,
-                  ArenaMallocMaxClients>
+static std::array<
+        CoreStore<folly::cacheline_aligned<cb::RelaxedAtomic<int64_t>>>,
+        ArenaMallocMaxClients>
         coreAllocated;
 
 struct ClientData {
@@ -51,7 +52,7 @@ struct ClientData {
 };
 
 // One per client and cacheline pad
-static std::array<folly::CachelinePadded<ClientData>, ArenaMallocMaxClients>
+static std::array<folly::cacheline_aligned<ClientData>, ArenaMallocMaxClients>
         clientData;
 
 void JEArenaCoreLocalTracker::clientRegistered(
@@ -101,7 +102,7 @@ void JEArenaCoreLocalTracker::setAllocatedThreshold(
 
 void maybeUpdateEstimatedTotalMemUsed(
         uint8_t index,
-        folly::CachelinePadded<cb::RelaxedAtomic<int64_t>>& core,
+        folly::cacheline_aligned<cb::RelaxedAtomic<int64_t>>& core,
         int64_t value) {
     if (std::abs(value) > clientData[index]->coreThreshold) {
         clientData[index]->clientEstimatedMemory.fetch_add(core->exchange(0));
