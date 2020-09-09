@@ -23,11 +23,7 @@
 #include <platform/dynamic.h>
 #include <platform/visibility.h>
 
-#include <stdint.h>
-
-#ifdef WIN32
-#include <winsock2.h>
-#endif
+#include <folly/portability/Sockets.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -35,19 +31,6 @@ extern "C" {
 
 #ifdef WIN32
 #define CB_DONT_NEED_BYTEORDER 1
-struct iovec {
-    size_t iov_len;
-    void* iov_base;
-};
-
-#define IOV_MAX 1024
-
-struct msghdr {
-    void* msg_name; /* Socket name */
-    int msg_namelen; /* Length of name */
-    struct iovec* msg_iov; /* Data blocks */
-    int msg_iovlen; /* Number of blocks */
-};
 
 PLATFORM_PUBLIC_API
 int sendmsg(SOCKET sock, const struct msghdr* msg, int flags);

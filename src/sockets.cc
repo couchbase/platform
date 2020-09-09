@@ -15,12 +15,14 @@
  *   limitations under the License.
  */
 #include <platform/platform_socket.h>
+
+#ifdef WIN32
+
 #include <stdio.h>
 #include <stdlib.h>
 
 PLATFORM_PUBLIC_API
-void cb_initialize_sockets(void)
-{
+void cb_initialize_sockets(void) {
     WSADATA wsaData;
     if (WSAStartup(MAKEWORD(2, 0), &wsaData) != 0) {
         fprintf(stderr, "Socket Initialization Error. Program aborted\r\n");
@@ -29,15 +31,17 @@ void cb_initialize_sockets(void)
 }
 
 PLATFORM_PUBLIC_API
-int sendmsg(SOCKET sock, const struct msghdr *msg, int flags)
-{
+int sendmsg(SOCKET sock, const struct msghdr* msg, int flags) {
     /* @todo make this more optimal! */
     int ii;
     int ret = 0;
 
     for (ii = 0; ii < msg->msg_iovlen; ++ii) {
         if (msg->msg_iov[ii].iov_len > 0) {
-            int nw = send(sock, msg->msg_iov[ii].iov_base, (int)msg->msg_iov[ii].iov_len, flags);
+            int nw = send(sock,
+                          msg->msg_iov[ii].iov_base,
+                          (int)msg->msg_iov[ii].iov_len,
+                          flags);
             if (nw > 0) {
                 ret += nw;
                 if (nw != msg->msg_iov[ii].iov_len) {
@@ -54,3 +58,5 @@ int sendmsg(SOCKET sock, const struct msghdr *msg, int flags)
 
     return ret;
 }
+
+#endif // WIN32

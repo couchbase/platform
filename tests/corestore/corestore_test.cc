@@ -46,7 +46,10 @@ TEST_F(CoreStoreTest, test) {
     EXPECT_EQ(1u, count);
 }
 
-unsigned ArrayTest::cpuCount;
+// folly::AccessSpreader::initialize() requires cpuCount is non-zero or it will
+// infinite loop. Given initialise() is executed once on startup we must
+// initialise cpuCount to a non-zero value.
+unsigned ArrayTest::cpuCount = 1;
 unsigned ArrayTest::cpuIndex;
 
 size_t ArrayTest::getCpuIndex(size_t c) {

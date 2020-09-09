@@ -27,17 +27,10 @@
 #include <platform/socket-visibility.h>
 
 #ifdef WIN32
-#include <ws2tcpip.h>
 typedef int in_port_t;
-typedef int sa_family_t;
 #define SOCKETPAIR_AF AF_INET
-#define SHUT_RD SD_RECEIVE
-#define SHUT_WR SD_SEND
-#define SHUT_RDWR SD_BOTH
-typedef SSIZE_T ssize_t;
 #else
 #include <netinet/in.h> // For in_port_t
-#include <sys/socket.h>
 typedef int SOCKET;
 #define SOCKET_ERROR -1
 #define INVALID_SOCKET -1
