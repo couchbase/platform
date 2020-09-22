@@ -19,6 +19,7 @@
 #include <platform/socket.h>
 
 #include <event2/util.h>
+#include <nlohmann/json.hpp>
 
 #include <cerrno>
 #include <gsl/gsl>
@@ -240,6 +241,29 @@ std::string to_string(const struct sockaddr_storage* addr, socklen_t addr_len) {
 }
 
 CBSOCKET_PUBLIC_API
+nlohmann::json to_json(const struct sockaddr_storage* addr,
+                       socklen_t addr_len) {
+    std::array<char, 50> host;
+    std::array<char, 50> port;
+
+    int err = getnameinfo(reinterpret_cast<const struct sockaddr*>(addr),
+                          addr_len,
+                          host.data(),
+                          host.size(),
+                          port.data(),
+                          port.size(),
+                          NI_NUMERICHOST | NI_NUMERICSERV);
+    if (err != 0) {
+        throw std::runtime_error(
+                "cb::net::to_json: getnameinfo() failed with error: " +
+                std::to_string(err));
+    }
+
+    return nlohmann::json{{"ip", host.data()},
+                          {"port", std::stoi(port.data())}};
+}
+
+CBSOCKET_PUBLIC_API
 std::string getsockname(SOCKET sfd) {
     sockaddr_storage sock{};
     socklen_t sock_len = sizeof(sock);
@@ -254,6 +278,20 @@ std::string getsockname(SOCKET sfd) {
 }
 
 CBSOCKET_PUBLIC_API
+nlohmann::json getSockNameAsJson(SOCKET sfd) {
+    sockaddr_storage sock{};
+    socklen_t sock_len = sizeof(sock);
+    if (::getsockname(sfd,
+                      reinterpret_cast<struct sockaddr*>(&sock),
+                      &sock_len) != 0) {
+        throw std::system_error(cb::net::get_socket_error(),
+                                std::system_category(),
+                                "getsockname() failed");
+    }
+    return to_json(&sock, sock_len);
+}
+
+CBSOCKET_PUBLIC_API
 std::string getpeername(SOCKET sfd) {
     sockaddr_storage peer;
     socklen_t peer_len = sizeof(peer);
@@ -265,6 +303,20 @@ std::string getpeername(SOCKET sfd) {
                                 "getpeername() failed");
     }
     return to_string(&peer, peer_len);
+}
+
+CBSOCKET_PUBLIC_API
+nlohmann::json getPeerNameAsJson(SOCKET sfd) {
+    sockaddr_storage peer;
+    socklen_t peer_len = sizeof(peer);
+    if (getpeername(sfd,
+                    reinterpret_cast<struct sockaddr*>(&peer),
+                    &peer_len) != 0) {
+        throw std::system_error(cb::net::get_socket_error(),
+                                std::system_category(),
+                                "getpeername() failed");
+    }
+    return to_json(&peer, peer_len);
 }
 
 } // namespace cb::net

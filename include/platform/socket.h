@@ -37,6 +37,7 @@ typedef int SOCKET;
 #define SOCKETPAIR_AF AF_UNIX
 #endif
 
+#include <nlohmann/json_fwd.hpp>
 #include <cerrno>
 #include <cstdint>
 #include <string>
@@ -169,6 +170,9 @@ inline void set_econnreset() {
 CBSOCKET_PUBLIC_API
 std::string to_string(const struct sockaddr_storage* addr, socklen_t addr_len);
 
+CBSOCKET_PUBLIC_API
+nlohmann::json to_json(const struct sockaddr_storage* addr, socklen_t addr_len);
+
 /**
  * Get the name of the socket in a textual form like:
  *
@@ -183,6 +187,18 @@ CBSOCKET_PUBLIC_API
 std::string getsockname(SOCKET sfd);
 
 /**
+ * Get the name of the socket in a textual form like:
+ *
+ *    { "ip" : "::1", "port" : 11210 }
+ *
+ * @param sfd The socket to get the name for
+ * @throws std::exception if one of the functions needed to look up the socket
+ *                        name fails
+ */
+CBSOCKET_PUBLIC_API
+nlohmann::json getSockNameAsJson(SOCKET sfd);
+
+/**
  * Get the name of the peer in a textual form like:
  *
  *    127.0.0.1:11211
@@ -194,6 +210,18 @@ std::string getsockname(SOCKET sfd);
  */
 CBSOCKET_PUBLIC_API
 std::string getpeername(SOCKET sfd);
+
+/**
+ * Get the name of the socket in a textual form like:
+ *
+ *    { "ip" : "::1", "port" : 11210 }
+ *
+ * @param sfd The socket to get the name for
+ * @throws std::exception if one of the functions needed to look up the socket
+ *                        name fails
+ */
+CBSOCKET_PUBLIC_API
+nlohmann::json getPeerNameAsJson(SOCKET sfd);
 
 } // namespace net
 } // namespace cb
