@@ -294,7 +294,10 @@ if(CB_SANITIZERS)
   # to still be built and run when we are building the rest of the
   # Server with Sanitizer support.
   add_library(platform_unsanitized_so SHARED)
-  target_link_libraries(platform_unsanitized_so PRIVATE phosphor_unsanitized)
+  target_link_libraries(platform_unsanitized_so
+      PRIVATE
+          phosphor_unsanitized
+          ${FOLLY_LIBRARIES_UNSANITIZED})
   remove_sanitizers(platform_unsanitized_so)
 
   add_library(platform_unsanitized STATIC)
