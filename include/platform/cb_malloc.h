@@ -63,10 +63,7 @@ PLATFORM_PUBLIC_API void* cb_aligned_alloc(size_t alignment,
 PLATFORM_PUBLIC_API void cb_free(void* ptr) NO_EXCEPTION;
 PLATFORM_PUBLIC_API void cb_aligned_free(void* ptr) NO_EXCEPTION;
 PLATFORM_PUBLIC_API void cb_sized_free(void* ptr, size_t size) NO_EXCEPTION;
-
-#if defined(HAVE_MALLOC_USABLE_SIZE)
 PLATFORM_PUBLIC_API size_t cb_malloc_usable_size(void* ptr) NO_EXCEPTION;
-#endif
 
 #undef throwspec
 

@@ -180,8 +180,10 @@ void operator delete[](void* ptr, const std::nothrow_t& tag) NOEXCEPT {
  * This causes RocksDB to link to the symbols in this file, whereas previously
  * it would link directly to TSan's overloaded operators.
  */
-#if defined(HAVE_MALLOC_USABLE_SIZE) and !defined(HAVE_SYSTEM_MALLOC)
-extern "C" PLATFORM_PUBLIC_API size_t malloc_usable_size(void* ptr) {
+#if !defined(HAVE_SYSTEM_MALLOC)
+extern "C" PLATFORM_PUBLIC_API size_t malloc_usable_size(void* ptr);
+
+size_t malloc_usable_size(void* ptr) {
     return cb_malloc_usable_size(ptr);
 }
 #endif

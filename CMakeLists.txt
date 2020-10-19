@@ -130,11 +130,6 @@ IF (NOT DEFINED COUCHBASE_NETWORK_LIBS)
    ENDIF (WIN32)
 ENDIF (NOT DEFINED COUCHBASE_NETWORK_LIBS)
 
-CHECK_FUNCTION_EXISTS(malloc_usable_size HAVE_MALLOC_USABLE_SIZE)
-if(HAVE_MALLOC_USABLE_SIZE)
-  ADD_DEFINITIONS(-DHAVE_MALLOC_USABLE_SIZE)
-endif()
-
 cmake_push_check_state(RESET)
 # On macOS, aligned_alloc() is only available when CMAKE_OSX_DEPLOYMENT_TARGET
 # is 10.15 (Catalina) upwards; but confusingly the symbol _is_ available if

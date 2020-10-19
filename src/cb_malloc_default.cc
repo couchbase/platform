@@ -31,9 +31,7 @@
 
 #else /* system allocator */
 #define MALLOC_PREFIX
-#if defined(HAVE_MALLOC_USABLE_SIZE)
-#include <malloc.h>
-#endif
+#include <folly/portability/Malloc.h>
 #endif
 
 extern "C" {
@@ -54,10 +52,8 @@ PLATFORM_PUBLIC_API
 void __attribute__((weak)) cb_aligned_free(void*);
 PLATFORM_PUBLIC_API
 void __attribute__((weak)) cb_sized_free(void*, size_t);
-#if defined(HAVE_MALLOC_USABLE_SIZE)
 PLATFORM_PUBLIC_API
 size_t __attribute__((weak)) cb_malloc_usable_size(void*);
-#endif
 PLATFORM_PUBLIC_API
 char* __attribute__((weak)) cb_strdup(const char*);
 PLATFORM_PUBLIC_API
@@ -131,11 +127,9 @@ char* cb_strdup(const char* c) {
     return result;
 }
 
-#if defined(HAVE_MALLOC_USABLE_SIZE)
 size_t cb_malloc_usable_size(void* ptr) {
     return MEM_ALLOC(malloc_usable_size)(ptr);
 }
-#endif
 
 int cb_malloc_is_using_arenas() {
     return 0;

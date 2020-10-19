@@ -23,9 +23,7 @@
 #include <string>
 #include <system_error>
 
-#if defined(HAVE_MALLOC_USABLE_SIZE)
-#include <malloc.h>
-#endif
+#include <folly/portability/Malloc.h>
 
 #include <gsl/gsl>
 // Why is jemalloc here?
@@ -154,11 +152,9 @@ void SystemArenaMalloc::sized_free(void* ptr, size_t size) {
 size_t SystemArenaMalloc::malloc_usable_size(const void* ptr) {
 #if defined(HAVE_JEMALLOC)
     return je_malloc_usable_size(const_cast<void*>(ptr));
-#elif defined(HAVE_MALLOC_USABLE_SIZE)
+#else
     return ::malloc_usable_size(const_cast<void*>(ptr));
 #endif
-    throw std::runtime_error(
-            "SystemArenaMalloc::malloc_usable_size cannot be called");
 }
 
 bool SystemArenaMalloc::setTCacheEnabled(bool value) {
