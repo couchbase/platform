@@ -161,27 +161,3 @@ void operator delete[](void *ptr, std::size_t size, std::align_val_t) NOEXCEPT {
 void operator delete[](void* ptr, const std::nothrow_t& tag) NOEXCEPT {
     cb_free(ptr);
 }
-
-/* As we have a global new replacement, libraries could end up calling the
- * system malloc_usable_size (if present) with a pointer to memory
- * allocated by different allocator. This interposes malloc_usable_size
- * to ensure the malloc_usable_size of the desired allocator is called.
- *
- * In the case where our desired allocator is the system allocator, there exists
- * an issue in the cb_malloc_usable_size implementation where, because the
- * malloc_usable_size call is not prefixed, we get stuck in an infinite
- * recursive loop causing a stack overflow as our attempt to forward on the
- * malloc_usable_size call brings us back to this overload. This can be fixed
- * by only defining this overload if we are not using the system allocator.
- * This was spotted under TSan where we use the system allocator. For some
- * unknown reason, when we define the sized delete operator overload the runtime
- * linking order changes. We now link the new, delete, and malloc_usable_size
- * symbols in this file to a test suite before we link the operators in RocksDB.
- * This causes RocksDB to link to the symbols in this file, whereas previously
- * it would link directly to TSan's overloaded operators.
- */
-#if defined(HAVE_MALLOC_USABLE_SIZE) and !defined(HAVE_SYSTEM_MALLOC)
-extern "C" PLATFORM_PUBLIC_API size_t malloc_usable_size(void* ptr) {
-    return cb_malloc_usable_size(ptr);
-}
-#endif
