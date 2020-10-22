@@ -20,8 +20,7 @@
 #include <platform/compress-visibility.h>
 #include <platform/compression/buffer.h>
 
-namespace cb {
-namespace compression {
+namespace cb::compression {
 enum class Algorithm { Snappy, LZ4 };
 /**
  * The default maximum size used during inflating of buffers to avoid having
@@ -103,8 +102,7 @@ bool validate(Algorithm algorithm,
 CBCOMPRESS_PUBLIC_API
 size_t get_uncompressed_length(Algorithm algorithm,
                                std::string_view input_buffer);
-}
-}
+} // namespace cb::compression
 
 CBCOMPRESS_PUBLIC_API
 std::string to_string(cb::compression::Algorithm algorithm);

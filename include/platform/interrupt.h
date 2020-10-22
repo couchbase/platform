@@ -18,8 +18,7 @@
 
 #include <platform/visibility.h>
 
-namespace cb {
-namespace console {
+namespace cb::console {
 using interrupt_handler = void (*)();
 
 /**
@@ -37,5 +36,4 @@ void set_sigint_handler(interrupt_handler h);
  */
 PLATFORM_PUBLIC_API
 void clear_sigint_handler();
-} // namespace console
-} // namespace cb
+} // namespace cb::console

@@ -24,8 +24,7 @@
 
 #include <platform/visibility.h>
 
-namespace cb {
-namespace getopt {
+namespace cb::getopt {
 
 const int no_argument = 0;
 const int required_argument = 1;
@@ -70,5 +69,4 @@ void reset();
  */
 PLATFORM_PUBLIC_API
 void mute_stderr();
-} // namespace getopt
-} // namespace cb
+} // namespace cb::getopt

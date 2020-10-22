@@ -21,8 +21,7 @@
 #include <platform/sized_buffer.h>
 #include <memory>
 
-namespace cb {
-namespace compression {
+namespace cb::compression {
 
 /**
  * The compression API needs to allocate the output buffer during
@@ -155,5 +154,4 @@ private:
     std::unique_ptr<char, FreeDeleter> memory;
 };
 
-} // namespace compression
-} // namespace cb
+} // namespace cb::compression

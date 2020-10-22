@@ -22,8 +22,7 @@
 #include <string>
 #include <vector>
 
-namespace cb {
-namespace base64 {
+namespace cb::base64 {
 
 /**
  * Base64 encode data
@@ -50,13 +49,11 @@ inline std::string encode(const std::string& source, bool prettyprint) {
 PLATFORM_PUBLIC_API
 std::vector<uint8_t> decode(std::string_view blob);
 
-} // namespace base64
-} // namespace cb
+} // namespace cb::base64
 
 // For backwards source compatibility, wrap into the new
 // API
-namespace Couchbase {
-namespace Base64 {
+namespace Couchbase::Base64 {
 /**
  * Base64 encode a string
  *
@@ -77,5 +74,4 @@ inline std::string decode(const std::string& source) {
     auto blob = cb::base64::decode(source);
     return std::string(reinterpret_cast<const char*>(blob.data()), blob.size());
 }
-} // namespace Base64
-} // namespace Couchbase
+} // namespace Couchbase::Base64

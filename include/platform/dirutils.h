@@ -26,9 +26,7 @@
 #include <string>
 #include <vector>
 
-
-namespace cb {
-namespace io {
+namespace cb::io {
 
 #ifdef WIN32
 const char DirectorySeparator{'\\'};
@@ -184,5 +182,4 @@ std::string loadFile(const std::string& name,
 DIRUTILS_PUBLIC_API
 void setBinaryMode(FILE* fp);
 
-} // namespace io
-} // namespace cb
+} // namespace cb::io

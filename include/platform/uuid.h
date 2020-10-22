@@ -22,8 +22,7 @@
 
 #include <platform/visibility.h>
 
-namespace cb {
-namespace uuid {
+namespace cb::uuid {
 
 using uuid_t = std::array<uint8_t, 16>;
 
@@ -46,8 +45,7 @@ uuid_t random();
  */
 PLATFORM_PUBLIC_API
 uuid_t from_string(std::string_view str);
-} // uuid
-} // cb
+} // namespace cb::uuid
 
 /**
  * Print a textual version of the UUID in the form:

@@ -42,8 +42,7 @@ typedef int SOCKET;
 #include <cstdint>
 #include <string>
 
-namespace cb {
-namespace net {
+namespace cb::net {
 
 CBSOCKET_PUBLIC_API
 int closesocket(SOCKET s);
@@ -223,5 +222,4 @@ std::string getpeername(SOCKET sfd);
 CBSOCKET_PUBLIC_API
 nlohmann::json getPeerNameAsJson(SOCKET sfd);
 
-} // namespace net
-} // namespace cb
+} // namespace cb::net

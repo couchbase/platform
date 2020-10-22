@@ -22,8 +22,7 @@
 #include <new>
 #include <stdexcept>
 
-namespace cb {
-namespace compression {
+namespace cb::compression {
 
 /**
  * The memory allocator allows you to choose if you want the memory to
@@ -79,5 +78,4 @@ struct CBCOMPRESS_PUBLIC_API Allocator {
 
     const Mode mode;
 };
-} // namespace compression
-} // namespace cb
+} // namespace cb::compression
