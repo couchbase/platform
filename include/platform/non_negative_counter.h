@@ -81,9 +81,7 @@ class NonNegativeCounter : public UnderflowPolicy<T> {
 public:
     using value_type = T;
 
-    NonNegativeCounter() noexcept {
-        store(0);
-    }
+    NonNegativeCounter() = default;
 
     NonNegativeCounter(T initial) {
         store(initial);
@@ -228,7 +226,7 @@ public:
     }
 
 private:
-    std::atomic<T> value;
+    std::atomic<T> value{0};
 };
 
 } // namespace cb
