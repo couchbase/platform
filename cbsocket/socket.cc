@@ -24,7 +24,13 @@
 #include <cerrno>
 #include <gsl/gsl>
 
-#ifndef WIN32
+#ifdef WIN32
+#include <winsock2.h>
+
+#include <iphlpapi.h>
+#pragma comment(lib, "IPHLPAPI.lib")
+#else
+#include <ifaddrs.h>
 #include <netdb.h>
 #include <unistd.h>
 #endif
@@ -317,6 +323,107 @@ nlohmann::json getPeerNameAsJson(SOCKET sfd) {
                                 "getpeername() failed");
     }
     return to_json(&peer, peer_len);
+}
+
+CBSOCKET_PUBLIC_API
+std::pair<std::vector<std::string>, std::vector<std::string>> getIpAddresses(
+        bool skipLoopback) {
+    std::array<char, 1024> buffer;
+    std::pair<std::vector<std::string>, std::vector<std::string>> ret;
+
+#ifdef WIN32
+    std::vector<char> blob(1024 * 1024);
+    auto* addresses = reinterpret_cast<IP_ADAPTER_ADDRESSES*>(blob.data());
+    ULONG dataSize = blob.size();
+    auto rw = GetAdaptersAddresses(
+            AF_UNSPEC,
+            GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST |
+                    GAA_FLAG_SKIP_DNS_SERVER | GAA_FLAG_SKIP_FRIENDLY_NAME,
+            nullptr,
+            addresses,
+            &dataSize);
+    if (rw != ERROR_SUCCESS) {
+        throw std::system_error(
+                rw, std::system_category(), "GetAdaptersAddresses()");
+    }
+    for (auto* iff = addresses; iff != nullptr; iff = iff->Next) {
+        for (auto* addr = iff->FirstUnicastAddress; addr != nullptr;
+             addr = addr->Next) {
+            auto family = addr->Address.lpSockaddr->sa_family;
+            if (family == AF_INET) {
+                inet_ntop(AF_INET,
+                          &reinterpret_cast<sockaddr_in*>(
+                                   addr->Address.lpSockaddr)
+                                   ->sin_addr,
+                          buffer.data(),
+                          buffer.size());
+                std::string address(buffer.data());
+                if (!(skipLoopback && address == "127.0.0.1")) {
+                    // Ignore localhost address
+                    ret.first.emplace_back(std::move(address));
+                }
+            } else if (family == AF_INET6) {
+                inet_ntop(AF_INET6,
+                          &reinterpret_cast<sockaddr_in6*>(
+                                   addr->Address.lpSockaddr)
+                                   ->sin6_addr,
+                          buffer.data(),
+                          buffer.size());
+                std::string address(buffer.data());
+                if (!(skipLoopback && address == "::1")) {
+                    // Ignore localhost address
+                    ret.second.emplace_back(std::move(address));
+                }
+            } else {
+                // Skip all other types of addresses
+                continue;
+            }
+        }
+    }
+#else
+    ifaddrs* interfaces;
+    if (getifaddrs(&interfaces) != 0) {
+        throw std::system_error(errno, std::system_category(), "getifaddrs()");
+    }
+
+    if (interfaces == nullptr) {
+        return {};
+    }
+
+    // Iterate over all the interfaces and pick out the IPv4 and IPv6 addresses
+    for (auto* ifa = interfaces; ifa != nullptr; ifa = ifa->ifa_next) {
+        if (!ifa->ifa_addr) {
+            continue;
+        }
+
+        if (ifa->ifa_addr->sa_family == AF_INET) {
+            inet_ntop(AF_INET,
+                      &reinterpret_cast<sockaddr_in*>(ifa->ifa_addr)->sin_addr,
+                      buffer.data(),
+                      buffer.size());
+            std::string address(buffer.data());
+            if (!(skipLoopback && address == "127.0.0.1")) {
+                // Ignore localhost address
+                ret.first.emplace_back(std::move(address));
+            }
+        } else if (ifa->ifa_addr->sa_family == AF_INET6) {
+            inet_ntop(
+                    AF_INET6,
+                    &reinterpret_cast<sockaddr_in6*>(ifa->ifa_addr)->sin6_addr,
+                    buffer.data(),
+                    buffer.size());
+            std::string address(buffer.data());
+            if (!(skipLoopback && address == "::1")) {
+                // Ignore localhost address
+                ret.second.emplace_back(std::move(address));
+            }
+        }
+    }
+
+    freeifaddrs(interfaces);
+#endif
+
+    return ret;
 }
 
 } // namespace cb::net

@@ -222,4 +222,15 @@ std::string getpeername(SOCKET sfd);
 CBSOCKET_PUBLIC_API
 nlohmann::json getPeerNameAsJson(SOCKET sfd);
 
+/**
+ * Get all IPv4 and IPv6 addresses configured on this machine
+ *
+ * @return the first vector contains IPv4 addresses, the second Iv6
+ *         addresses
+ * @throws std::system_error if we fail to get the interface description
+ */
+CBSOCKET_PUBLIC_API
+std::pair<std::vector<std::string>, std::vector<std::string>> getIpAddresses(
+        bool skipLoopback);
+
 } // namespace cb::net
