@@ -109,9 +109,14 @@ void maybeUpdateEstimatedTotalMemUsed(
     }
 }
 
-void JEArenaCoreLocalTracker::memAllocated(uint8_t index, size_t size) {
+void JEArenaCoreLocalTracker::memAllocated(uint8_t index,
+                                           size_t size,
+                                           std::align_val_t alignment) {
     if (index != NoClientIndex) {
-        size = je_nallocx(size, 0 /* flags aren't read in this call*/);
+        const int flags = (alignment > std::align_val_t{0})
+                                  ? MALLOCX_ALIGN(alignment)
+                                  : 0;
+        size = je_nallocx(size, flags);
         auto& core = coreAllocated[index].get();
         auto newSize = core->fetch_add(size) + size;
         maybeUpdateEstimatedTotalMemUsed(index, core, newSize);

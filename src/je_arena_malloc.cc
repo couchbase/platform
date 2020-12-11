@@ -257,12 +257,28 @@ void* JEArenaMalloc::realloc(void* ptr, size_t size) {
 }
 
 template <>
+void* JEArenaMalloc::aligned_alloc(size_t alignment, size_t size) {
+    if (size == 0) {
+        size = 8;
+    }
+    auto c = ThreadLocalData::get().getCurrentClient();
+    memAllocated(c.index, size, std::align_val_t{alignment});
+    return je_mallocx(size, c.mallocFlags | MALLOCX_ALIGN(alignment));
+}
+
+template <>
 void JEArenaMalloc::free(void* ptr) {
     if (ptr) {
         auto c = ThreadLocalData::get().getCurrentClient();
         memDeallocated(c.index, ptr);
         je_dallocx(ptr, c.mallocFlags);
     }
+}
+
+template <>
+void JEArenaMalloc::aligned_free(void* ptr) {
+    // Normal jemalloc free method can be used.
+    JEArenaMalloc::free(ptr);
 }
 
 template <>

@@ -61,9 +61,21 @@ PLATFORM_PUBLIC_API void* cb_realloc(void* ptr, size_t size) noexcept {
     return ptr;
 }
 
+PLATFORM_PUBLIC_API void* cb_aligned_alloc(size_t alignment,
+                                           size_t size) noexcept {
+    void* ptr = cb::ArenaMalloc::aligned_alloc(alignment, size);
+    cb_invoke_new_hook(ptr, size);
+    return ptr;
+}
+
 PLATFORM_PUBLIC_API void cb_free(void* ptr) noexcept {
     cb_invoke_delete_hook(ptr);
     cb::ArenaMalloc::free(ptr);
+}
+
+PLATFORM_PUBLIC_API void cb_aligned_free(void* ptr) noexcept {
+    cb_invoke_delete_hook(ptr);
+    cb::ArenaMalloc::aligned_free(ptr);
 }
 
 PLATFORM_PUBLIC_API void cb_sized_free(void* ptr, size_t size) noexcept {

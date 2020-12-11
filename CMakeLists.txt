@@ -134,6 +134,31 @@ CHECK_FUNCTION_EXISTS(malloc_usable_size HAVE_MALLOC_USABLE_SIZE)
 if(HAVE_MALLOC_USABLE_SIZE)
   ADD_DEFINITIONS(-DHAVE_MALLOC_USABLE_SIZE)
 endif()
+
+cmake_push_check_state(RESET)
+# On macOS, aligned_alloc() is only available when CMAKE_OSX_DEPLOYMENT_TARGET
+# is 10.15 (Catalina) upwards; but confusingly the symbol _is_ available if
+# compiling on 10.15 even when CMAKE_OSX_DEPLOYMENT_TARGET is less than 10.15,
+# and hence CHECK_SYMBOL_EXISTS() check will pass, with only a warning:
+#
+#     warning: 'aligned_alloc' is only available on macOS 10.15 or newer [-Wunguarded-availability-new]
+#
+# Address this by enabling warnings-as-errors for macOS and hence make
+# aligned_alloc check fail in this scenario.
+if (APPLE)
+    set(CMAKE_REQUIRED_FLAGS -Werror)
+endif()
+check_symbol_exists(aligned_alloc stdlib.h HAVE_ALIGNED_ALLOC)
+if(HAVE_ALIGNED_ALLOC)
+    add_definitions(-DHAVE_ALIGNED_ALLOC)
+endif()
+cmake_pop_check_state()
+
+check_symbol_exists(posix_memalign stdlib.h HAVE_POSIX_MEMALIGN)
+if(HAVE_POSIX_MEMALIGN)
+    add_definitions(-DHAVE_POSIX_MEMALIGN)
+endif()
+
 #
 # Add all of the libraries
 #

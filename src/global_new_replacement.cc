@@ -36,16 +36,15 @@
  *
  * Implementation:
  *
- * From C++11 onwards overriding base `operator new` and `operator delete`
- * /should/ be sufficient to all C++ allocations, however this isn't true on
- * Windows/MSVC, where we also need to override the array forms.
+ * From C++17 onwards there are multiple variants of overridable
+ * `operator new` and `operator delete` - see
  * http://en.cppreference.com/w/cpp/memory/new/operator_new#Global_replacements
- *
- * However, since our allocator of choice is jemalloc, who decided to overload
- * the new[] and delete[] operators since version 5.1.0 as part of sized
- * deallocation, we need to overload the array form operators on all platforms.
- * https://github.com/jemalloc/jemalloc/commit/2319152d9f5d9b33eebc36a50ccf4239f31c1ad9
+ * We must override all variants, mapping to the appropriate cb_malloc etc
+ * function so memory usage is correctly accounted.
  */
+#if __cplusplus > 201703L
+#warning Only operator new/delete up to C++17 overridden. If later standards add additional overrides they should be added here.
+#endif
 
 #include <platform/cb_malloc.h>
 
@@ -75,8 +74,23 @@ void* operator new(std::size_t count) {
     return result;
 }
 
+void* operator new(std::size_t count, std::align_val_t al) {
+    void* result = cb_aligned_alloc(static_cast<size_t>(al), count);
+    if (result == nullptr) {
+        throw std::bad_alloc();
+    }
+    return result;
+}
+
 void* operator new(std::size_t count, const std::nothrow_t& tag) NOEXCEPT {
     void* result = cb_malloc(count);
+    return result;
+}
+
+void* operator new(std::size_t count,
+                   std::align_val_t al,
+                   const std::nothrow_t& tag) NOEXCEPT {
+    void* result = cb_aligned_alloc(static_cast<size_t>(al), count);
     return result;
 }
 
@@ -84,7 +98,11 @@ void operator delete(void* ptr) NOEXCEPT {
     cb_free(ptr);
 }
 
-void operator delete(void* ptr, const std::nothrow_t& tag)NOEXCEPT {
+void operator delete(void* ptr, std::align_val_t) NOEXCEPT {
+    cb_aligned_free(ptr);
+}
+
+void operator delete(void* ptr, const std::nothrow_t& tag) NOEXCEPT {
     cb_free(ptr);
 }
 
@@ -92,8 +110,20 @@ void operator delete(void* ptr, std::size_t size) NOEXCEPT {
     cb_sized_free(ptr, size);
 }
 
+void operator delete(void* ptr, std::size_t size, std::align_val_t) NOEXCEPT {
+    cb_aligned_free(ptr);
+}
+
 void* operator new[](std::size_t count) {
     void* result = cb_malloc(count);
+    if (result == nullptr) {
+        throw std::bad_alloc();
+    }
+    return result;
+}
+
+void* operator new[](std::size_t count, std::align_val_t al) {
+    void* result = cb_aligned_alloc(static_cast<size_t>(al), count);
     if (result == nullptr) {
         throw std::bad_alloc();
     }
@@ -105,12 +135,27 @@ void* operator new[](std::size_t count, const std::nothrow_t& tag) NOEXCEPT {
     return result;
 }
 
+void* operator new[](std::size_t count,
+                     std::align_val_t al,
+                     const std::nothrow_t& tag) NOEXCEPT {
+    void* result = cb_aligned_alloc(static_cast<size_t>(al), count);
+    return result;
+}
+
 void operator delete[](void *ptr) NOEXCEPT {
     cb_free(ptr);
 }
 
+void operator delete[](void *ptr, std::align_val_t) NOEXCEPT {
+    cb_aligned_free(ptr);
+}
+
 void operator delete[](void *ptr, std::size_t size) NOEXCEPT {
     cb_sized_free(ptr, size);
+}
+
+void operator delete[](void *ptr, std::size_t size, std::align_val_t) NOEXCEPT {
+    cb_aligned_free(ptr);
 }
 
 void operator delete[](void* ptr, const std::nothrow_t& tag) NOEXCEPT {

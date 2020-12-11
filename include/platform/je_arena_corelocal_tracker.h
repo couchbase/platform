@@ -18,11 +18,16 @@
 #pragma once
 
 #include <platform/visibility.h>
+#include <cstddef>
+#include <cstdint>
+#include <new>
 
 namespace cb {
 
 template <class T>
 class RelaxedAtomic;
+
+struct ArenaMallocClient;
 
 /**
  * "plugin" Tracker for JEArenaMalloc utilising je_sallocx and CoreLocal
@@ -60,8 +65,12 @@ public:
      * @param index The index for the client who did the allocation
      * @param size The requested size of the allocation (i.e. size parameter to
      *        malloc)
+     * @param alignment Alignment required for the allocation; if no additional
+     *        alignment needed (over system default), specify 0.
      */
-    static void memAllocated(uint8_t index, size_t size);
+    static void memAllocated(uint8_t index,
+                             size_t size,
+                             std::align_val_t alignment = std::align_val_t{0});
 
     /**
      * Notify that memory was de-allocated by the client

@@ -47,7 +47,11 @@ void* __attribute__((weak)) cb_calloc(size_t, size_t);
 PLATFORM_PUBLIC_API
 void* __attribute__((weak)) cb_realloc(void*, size_t);
 PLATFORM_PUBLIC_API
+void* __attribute__((weak)) cb_aligned_alloc(size_t, size_t);
+PLATFORM_PUBLIC_API
 void __attribute__((weak)) cb_free(void*);
+PLATFORM_PUBLIC_API
+void __attribute__((weak)) cb_aligned_free(void*);
 PLATFORM_PUBLIC_API
 void __attribute__((weak)) cb_sized_free(void*, size_t);
 #if defined(HAVE_MALLOC_USABLE_SIZE)
@@ -79,8 +83,33 @@ void* cb_realloc(void* p, size_t size) {
     return MEM_ALLOC(realloc)(p, size);
 }
 
+void* cb_aligned_alloc(size_t align, size_t size) {
+#if defined(HAVE_JEMALLOC) || defined(HAVE_ALIGNED_ALLOC)
+    // Can directly use aligned_alloc function from malloc library.
+    return MEM_ALLOC(aligned_alloc)(align, size);
+#elif defined(HAVE_POSIX_MEMALIGN)
+    void* newAlloc = nullptr;
+    if (posix_memalign(&newAlloc, align, size)) {
+        newAlloc = nullptr;
+    }
+    return newAlloc;
+#else
+#error No underlying API for aligned memory available.
+#endif
+}
+
 void cb_free(void* p) {
     MEM_ALLOC(free)(p);
+}
+
+void cb_aligned_free(void* p) {
+#if defined(HAVE_JEMALLOC) || !defined(WIN32)
+    MEM_ALLOC(free)(p);
+    // Apart from Win32 without jemalloc, can use free() function from malloc
+    // library.
+#else
+    _aligned_free(p);
+#endif
 }
 
 void cb_sized_free(void* p, size_t size) {

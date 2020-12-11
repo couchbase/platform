@@ -155,6 +155,15 @@ public:
     }
 
     /**
+     * mimics std::aligned_alloc and tracks the allocation against the current
+     * client. Note: memory allocated by this function must be freed using
+     * aligned_free().
+     */
+    static void* aligned_alloc(size_t alignment, size_t size) {
+        return Impl::aligned_alloc(alignment, size);
+    }
+
+    /**
      * mimics std::free and tracks the deallocation against the current client
      */
     static void free(void* ptr) {
@@ -162,7 +171,15 @@ public:
     }
 
     /**
-     * sized_free  is an extension of free with a size parameter to allow the
+     * Frees memory allocated via aligned_alloc and tracks the deallocation
+     * against the current client.
+     */
+    static void aligned_free(void* ptr) {
+        return Impl::aligned_free(ptr);
+    }
+
+    /**
+     * sized_free is an extension of free with a size parameter to allow the
      * caller to pass in the allocation size as an optimization.
      */
     static void sized_free(void* ptr, size_t size) {

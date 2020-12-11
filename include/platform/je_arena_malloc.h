@@ -60,7 +60,9 @@ public:
     static void* malloc(size_t size);
     static void* calloc(size_t nmemb, size_t size);
     static void* realloc(void* ptr, size_t size);
+    static void* aligned_alloc(size_t alignment, size_t size);
     static void free(void* ptr);
+    static void aligned_free(void* ptr);
     static void sized_free(void* ptr, size_t size);
     static size_t malloc_usable_size(const void* ptr);
     static constexpr bool canTrackAllocations() {
@@ -94,9 +96,13 @@ protected:
      *
      * @param index The index for the client who did the allocation
      * @param size The clients requested allocation size
+     * @param alignment Alignment required for the allocation; if no additional
+     *        alignment needed (over system default), specify 0.
      */
-    static void memAllocated(uint8_t index, size_t size) {
-        trackingImpl::memAllocated(index, size);
+    static void memAllocated(uint8_t index,
+                             size_t size,
+                             std::align_val_t alignment = std::align_val_t{0}) {
+        trackingImpl::memAllocated(index, size, alignment);
     }
 
     /**

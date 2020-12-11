@@ -67,7 +67,9 @@ public:
     static void* malloc(size_t size);
     static void* calloc(size_t nmemb, size_t size);
     static void* realloc(void* ptr, size_t size);
+    static void* aligned_alloc(size_t alignment, size_t size);
     static void free(void* ptr);
+    static void aligned_free(void* ptr);
     static void sized_free(void* ptr, size_t size);
     static size_t malloc_usable_size(const void* ptr);
     static constexpr bool canTrackAllocations() {

@@ -116,9 +116,36 @@ void* SystemArenaMalloc::realloc(void* ptr, size_t size) {
     return newAlloc;
 }
 
+void* SystemArenaMalloc::aligned_alloc(size_t alignment, size_t size) {
+    void* newAlloc = nullptr;
+#if defined(HAVE_ALIGNED_ALLOC)
+    newAlloc = ::aligned_alloc(alignment, size);
+#elif defined(WIN32)
+    newAlloc = _aligned_malloc(size, alignment);
+#elif defined(HAVE_POSIX_MEMALIGN)
+    if (posix_memalign(&newAlloc, alignment, size)) {
+        newAlloc = nullptr;
+    }
+#else
+#error No underlying API for aligned memory available.
+#endif
+    addAllocation(newAlloc);
+    return newAlloc;
+}
+
 void SystemArenaMalloc::free(void* ptr) {
     removeAllocation(ptr);
     MEM_ALLOC(free)(ptr);
+}
+
+void SystemArenaMalloc::aligned_free(void* ptr) {
+    removeAllocation(ptr);
+    // Apart from Win32, can use normal free().
+#if defined(WIN32)
+    _aligned_free(ptr);
+#else
+    MEM_ALLOC(free)(ptr);
+#endif
 }
 
 void SystemArenaMalloc::sized_free(void* ptr, size_t size) {
