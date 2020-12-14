@@ -17,7 +17,6 @@
 
 #include <folly/portability/GTest.h>
 #include <platform/checked_snprintf.h>
-#include <strings.h>
 
 TEST(checked_snprintf, DestinationNullptr) {
     EXPECT_THROW(checked_snprintf(nullptr, 10, "xyz"), std::invalid_argument);

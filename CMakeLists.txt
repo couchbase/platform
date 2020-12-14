@@ -103,7 +103,6 @@ IF (WIN32)
                       src/cb_win32.cc
                       src/crc32c_sse4_2.cc
                       include/win32/getopt.h
-                      include/win32/strings.h
                       include/win32/unistd.h)
    ADD_DEFINITIONS(-DHAVE_BACKTRACE_SUPPORT=1)
 ELSE (WIN32)

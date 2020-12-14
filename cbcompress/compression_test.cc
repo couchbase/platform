@@ -17,7 +17,6 @@
 
 #include <folly/portability/GTest.h>
 #include <platform/compress.h>
-#include <strings.h>
 
 TEST(Compression, DetectInvalidAlgoritm) {
     cb::compression::Buffer buffer;
