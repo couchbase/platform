@@ -35,6 +35,7 @@ std::chrono::nanoseconds to_ns_since_epoch(
  */
 struct PLATFORM_PUBLIC_API ProcessClockSource {
     virtual std::chrono::steady_clock::time_point now() = 0;
+    virtual ~ProcessClockSource() = default;
 };
 
 /**
