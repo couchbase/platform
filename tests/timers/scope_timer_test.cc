@@ -50,7 +50,7 @@ protected:
 };
 
 TEST_F(ScopeTimerTest, SingleListener) {
-    { ScopeTimer1<MockTimer> timer(MockTimer(start, stop)); }
+    { ScopeTimer1<MockTimer> timer(start, stop); }
 
     EXPECT_EQ(1u, start.size());
     EXPECT_EQ(1u, stop.size());
@@ -59,8 +59,9 @@ TEST_F(ScopeTimerTest, SingleListener) {
 
 TEST_F(ScopeTimerTest, TwoListeners) {
     {
-        ScopeTimer2<MockTimer, MockTimer> timer(MockTimer(start, stop),
-                                                MockTimer(start, stop));
+        ScopeTimer2<MockTimer, MockTimer> timer(
+                std::forward_as_tuple(start, stop),
+                std::forward_as_tuple(start, stop));
     }
 
     EXPECT_EQ(2u, start.size());
