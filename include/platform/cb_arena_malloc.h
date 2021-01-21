@@ -320,6 +320,11 @@ public:
     static std::pair<size_t, size_t> getGlobalFragmentationStats() {
         return Impl::getGlobalFragmentationStats();
     }
+
+    /// @returns the number of bytes allocated for the global arena.
+    static size_t getGlobalAllocated() {
+        return getGlobalFragmentationStats().first;
+    }
 };
 
 using ArenaMalloc = _ArenaMalloc<ARENA_ALLOC>;

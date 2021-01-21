@@ -115,9 +115,13 @@ private:
      * Track memory used in a non-negative counter, which for now uses the
      * clamp at zero policy. MB-33900 captures one major issue which
      * prevents the use of the throw policy.
+     *
+     * One additional element (ArenaMallocMaxClients + 1) exists allow global
+     * allocations to also be accounted for; they reside in the last element
+     * (NoClientIndex).
      */
     static std::array<NonNegativeCounter<size_t, ClampAtZeroUnderflowPolicy>,
-                      ArenaMallocMaxClients>
+                      ArenaMallocMaxClients + 1>
             allocated;
 };
 } // namespace cb

@@ -41,7 +41,7 @@ namespace cb {
 const int ArenaMallocMaxClients = 100;
 
 /// Define a special value to denote that no client is selected
-const uint8_t NoClientIndex = ArenaMallocMaxClients + 1;
+const uint8_t NoClientIndex = ArenaMallocMaxClients;
 
 /**
  * The cb::ArenaMallocClient is an object that any client of the cb::ArenaMalloc

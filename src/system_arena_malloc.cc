@@ -19,16 +19,15 @@
 
 #include "relaxed_atomic.h"
 
-#include <mutex>
 #include <stdexcept>
 #include <string>
 #include <system_error>
-#include <vector>
 
 #if defined(HAVE_MALLOC_USABLE_SIZE)
 #include <malloc.h>
 #endif
 
+#include <gsl/gsl>
 // Why is jemalloc here?
 // The system arena allocator is intended to be used when je_malloc is not
 // present. However it is is possible with some manual changes to build the
@@ -64,8 +63,8 @@ ArenaMallocClient SystemArenaMalloc::registerClient(bool threadCache) {
         if (!client.used) {
             client.used = true;
 
-            // Set arena to +1 so we can distinguish no arena (0) vs an arena
-            return ArenaMallocClient{index + 1, index, false};
+            // arena and threadCache unused for SystemArenaMalloc.
+            return ArenaMallocClient{/*used*/ 0, index, /*unused*/ false};
         }
     }
     throw std::runtime_error(
@@ -83,13 +82,13 @@ void SystemArenaMalloc::switchToClient(const ArenaMallocClient& client,
 }
 
 void SystemArenaMalloc::switchFromClient() {
-    // Set to arena 0, no client, all tracking is disabled
-    switchToClient({0, false, false}, false /*tcache unused here*/);
+    // Set to index of NoClientIndex; arena unused.
+    switchToClient({0, NoClientIndex, false}, false /*tcache unused here*/);
 }
 
 size_t SystemArenaMalloc::getPreciseAllocated(const ArenaMallocClient& client) {
     // Just read from client's index into the allocations array
-    return allocated[client.index];
+    return allocated.at(client.index);
 }
 
 size_t SystemArenaMalloc::getEstimatedAllocated(
@@ -187,13 +186,13 @@ void SystemArenaMalloc::releaseMemory(const ArenaMallocClient& client) {
 bool SystemArenaMalloc::getStats(
         const ArenaMallocClient& client,
         std::unordered_map<std::string, size_t>& statsMap) {
-    statsMap["allocated"] = allocated[client.index];
+    statsMap["allocated"] = allocated.at(client.index);
     return true;
 }
 
 bool SystemArenaMalloc::getGlobalStats(
         std::unordered_map<std::string, size_t>& statsMap) {
-    statsMap["allocated"] = allocated[0];
+    statsMap["allocated"] = allocated.at(NoClientIndex);
     return true;
 }
 
@@ -203,32 +202,28 @@ void SystemArenaMalloc::getDetailedStats(void (*callback)(void*, const char*),
 
 std::pair<size_t, size_t> SystemArenaMalloc::getFragmentationStats(
         const cb::ArenaMallocClient& client) {
-    size_t alloc = allocated[client.index];
+    size_t alloc = allocated.at(client.index);
     return {alloc, alloc};
 }
 
 std::pair<size_t, size_t> SystemArenaMalloc::getGlobalFragmentationStats() {
-    size_t alloc = allocated[0];
+    size_t alloc = allocated.at(NoClientIndex);
     return {alloc, alloc};
 }
 
 void SystemArenaMalloc::addAllocation(void* ptr) {
     if (canTrackAllocations()) {
         auto client = currentClient;
-        if (client.arena) {
-            allocated[client.index].fetch_add(
-                    SystemArenaMalloc::malloc_usable_size(ptr));
-        }
+        allocated.at(client.index)
+                .fetch_add(SystemArenaMalloc::malloc_usable_size(ptr));
     }
 }
 
 void SystemArenaMalloc::removeAllocation(void* ptr) {
     if (canTrackAllocations()) {
         auto client = currentClient;
-        if (client.arena) {
-            allocated[client.index].fetch_sub(
-                    SystemArenaMalloc::malloc_usable_size(ptr));
-        }
+        allocated.at(client.index)
+                .fetch_sub(SystemArenaMalloc::malloc_usable_size(ptr));
     }
 }
 
@@ -236,7 +231,7 @@ folly::Synchronized<
         std::array<SystemArenaMalloc::Client, ArenaMallocMaxClients>>
         SystemArenaMalloc::clients;
 std::array<NonNegativeCounter<size_t, ClampAtZeroUnderflowPolicy>,
-           ArenaMallocMaxClients>
+           ArenaMallocMaxClients + 1>
         SystemArenaMalloc::allocated;
 
 } // namespace cb
