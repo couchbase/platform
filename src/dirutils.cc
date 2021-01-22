@@ -14,6 +14,7 @@
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
  */
+#include <boost/filesystem.hpp>
 #include <platform/dirutils.h>
 
 #include <folly/portability/Dirent.h>
@@ -33,13 +34,27 @@
 #include <platform/strerror.h>
 
 #include <fcntl.h>
-#include <boost/filesystem.hpp>
-#include <stdio.h>
-#include <string.h>
 #include <chrono>
 #include <cinttypes>
+#include <cstdio>
+#include <cstring>
 #include <limits>
 #include <system_error>
+
+boost::filesystem::path cb::io::makeExtendedLengthPath(
+        const std::string& path) {
+    boost::filesystem::path bPath = path;
+#ifdef _MSC_VER
+    constexpr auto prefix = R"(\\?\)";
+    // Prefix exists, return.
+    if (path.rfind(prefix, 0) != std::string::npos) {
+        return bPath;
+    }
+    bPath = boost::filesystem::system_complete(bPath);
+    bPath = prefix + bPath.string();
+#endif
+    return bPath;
+}
 
 static std::string split(const std::string& input, bool directory) {
     std::string::size_type path = input.find_last_of("\\/");
@@ -84,27 +99,31 @@ std::string cb::io::basename(const std::string& name) {
 
 #ifdef _MSC_VER
 DIRUTILS_PUBLIC_API
-std::vector<std::string> cb::io::findFilesWithPrefix(const std::string &dir,
-                                                     const std::string &name)
-{
+std::vector<std::string> cb::io::findFilesWithPrefix(const std::string& dir,
+                                                     const std::string& name) {
     std::vector<std::string> files;
-    std::string match = dir + "\\" + name + "*";
-    WIN32_FIND_DATA FindFileData;
+    auto longDir = makeExtendedLengthPath(dir);
+    auto match = longDir / (name + "*");
+    WIN32_FIND_DATAW FindFileData;
 
-    HANDLE hFind = FindFirstFileEx(match.c_str(), FindExInfoStandard,
-                                   &FindFileData, FindExSearchNameMatch,
-                                   NULL, 0);
+    HANDLE hFind = FindFirstFileExW(match.c_str(),
+                                    FindExInfoStandard,
+                                    &FindFileData,
+                                    FindExSearchNameMatch,
+                                    NULL,
+                                    0);
 
     if (hFind != INVALID_HANDLE_VALUE) {
         do {
-            std::string fnm(FindFileData.cFileName);
+            std::wstring fn = FindFileData.cFileName;
+            std::string fnm(fn.begin(), fn.end());
             if (fnm != "." && fnm != "..") {
                 std::string entry = dir;
                 entry.append("\\");
-                entry.append(FindFileData.cFileName);
+                entry.append(fnm);
                 files.push_back(entry);
             }
-        } while (FindNextFile(hFind, &FindFileData));
+        } while (FindNextFileW(hFind, &FindFileData));
 
         FindClose(hFind);
     }
@@ -152,23 +171,28 @@ std::vector<std::string> cb::io::findFilesContaining(const std::string &dir,
         return {};
     }
     std::vector<std::string> files;
-    std::string match = dir + "\\*" + name + "*";
-    WIN32_FIND_DATA FindFileData;
+    auto longDir = makeExtendedLengthPath(dir);
+    auto match = longDir / ("*" + name + "*");
+    WIN32_FIND_DATAW FindFileData;
 
-    HANDLE hFind = FindFirstFileEx(match.c_str(), FindExInfoStandard,
-                                   &FindFileData, FindExSearchNameMatch,
-                                   NULL, 0);
+    HANDLE hFind = FindFirstFileExW(match.c_str(),
+                                    FindExInfoStandard,
+                                    &FindFileData,
+                                    FindExSearchNameMatch,
+                                    NULL,
+                                    0);
 
     if (hFind != INVALID_HANDLE_VALUE) {
         do {
-            std::string fnm(FindFileData.cFileName);
+            std::wstring fn(FindFileData.cFileName);
+            std::string fnm(fn.begin(), fn.end());
             if (fnm != "." && fnm != "..") {
                 std::string entry = dir;
                 entry.append("\\");
-                entry.append(FindFileData.cFileName);
+                entry.append(fnm);
                 files.push_back(entry);
             }
-        } while (FindNextFile(hFind, &FindFileData));
+        } while (FindNextFileW(hFind, &FindFileData));
 
         FindClose(hFind);
     }
@@ -204,15 +228,17 @@ std::vector<std::string> cb::io::findFilesContaining(const std::string& dir,
 
 DIRUTILS_PUBLIC_API
 void cb::io::rmrf(const std::string& path) {
+    auto longPath = makeExtendedLengthPath(path);
+    auto longPathStr = longPath.string();
     struct stat st;
-    if (stat(path.c_str(), &st) == -1) {
+    if (stat(longPathStr.c_str(), &st) == -1) {
         throw std::system_error(errno, std::system_category(),
                                 "cb::io::rmrf: stat of " +
                                 path + " failed");
     }
 
     if ((st.st_mode & S_IFDIR) != S_IFDIR) {
-        if (remove(path.c_str()) != 0) {
+        if (remove(longPathStr.c_str()) != 0) {
             throw std::system_error(errno, std::system_category(),
                                     "cb::io::rmrf: remove of " +
                                     path + " failed");
@@ -220,14 +246,14 @@ void cb::io::rmrf(const std::string& path) {
         return;
     }
 
-    if (rmdir(path.c_str()) == 0) {
+    if (rmdir(longPathStr.c_str()) == 0) {
         return;
     }
 
     // Ok, this is a directory. Go ahead and delete it recursively
     std::vector<std::string> directories;
     std::vector<std::string> emptyDirectories;
-    directories.push_back(path);
+    directories.push_back(longPathStr);
 
     // Iterate all the files/directories found in path, when we encounter
     // a sub-directory, that is added to the directories vector so we move
@@ -240,6 +266,7 @@ void cb::io::rmrf(const std::string& path) {
         std::vector<std::string>::iterator ii;
 
         for (ii = vec.begin(); ii != vec.end(); ++ii) {
+            *ii = makeExtendedLengthPath(*ii).string();
             if (stat(ii->c_str(), &st) == -1) {
                 throw std::system_error(errno, std::system_category(),
                                         "cb::io::rmrf: stat of file/directory " +
@@ -275,7 +302,8 @@ void cb::io::rmrf(const std::string& path) {
 DIRUTILS_PUBLIC_API
 bool cb::io::isDirectory(const std::string& directory) {
 #ifdef WIN32
-    DWORD dwAttrib = GetFileAttributes(directory.c_str());
+    auto longDir = makeExtendedLengthPath(directory);
+    DWORD dwAttrib = GetFileAttributesW(longDir.c_str());
     if (dwAttrib == INVALID_FILE_ATTRIBUTES) {
         return false;
     }
@@ -292,7 +320,8 @@ bool cb::io::isDirectory(const std::string& directory) {
 DIRUTILS_PUBLIC_API
 bool cb::io::isFile(const std::string& file) {
 #ifdef WIN32
-    DWORD dwAttrib = GetFileAttributes(file.c_str());
+    auto lfile = makeExtendedLengthPath(file);
+    DWORD dwAttrib = GetFileAttributesW(lfile.c_str());
     if (dwAttrib == INVALID_FILE_ATTRIBUTES) {
         return false;
     }
@@ -309,7 +338,8 @@ bool cb::io::isFile(const std::string& file) {
 DIRUTILS_PUBLIC_API
 void cb::io::mkdirp(std::string directory) {
     if (!boost::filesystem::is_directory(directory)) {
-        boost::filesystem::create_directories(directory);
+        auto longDir = makeExtendedLengthPath(directory);
+        boost::filesystem::create_directories(longDir.c_str());
     }
 }
 
@@ -331,13 +361,14 @@ std::string cb::io::mktemp(const std::string& prefix) {
         sprintf(ptr, "%06" PRIu64, static_cast<uint64_t>(counter) % 1000000);
 
 #ifdef WIN32
-        HANDLE handle = CreateFile(pattern.c_str(),
-                                   GENERIC_READ | GENERIC_WRITE,
-                                   0,
-                                   NULL,
-                                   CREATE_NEW,
-                                   FILE_ATTRIBUTE_NORMAL,
-                                   NULL);
+        auto longPattern = makeExtendedLengthPath(pattern);
+        HANDLE handle = CreateFileW(longPattern.c_str(),
+                                    GENERIC_READ | GENERIC_WRITE,
+                                    0,
+                                    NULL,
+                                    CREATE_NEW,
+                                    FILE_ATTRIBUTE_NORMAL,
+                                    NULL);
         if (handle != INVALID_HANDLE_VALUE) {
             CloseHandle(handle);
             return pattern;
@@ -375,7 +406,8 @@ std::string cb::io::mkdtemp(const std::string& prefix) {
         sprintf(ptr, "%06" PRIu64, static_cast<uint64_t>(counter) % 1000000);
 
 #ifdef WIN32
-        if (CreateDirectory(pattern.c_str(), nullptr)) {
+        auto longPattern = makeExtendedLengthPath(pattern);
+        if (CreateDirectoryW(longPattern.c_str(), nullptr)) {
             searching = 0;
         }
 #else
@@ -390,22 +422,7 @@ std::string cb::io::mkdtemp(const std::string& prefix) {
 }
 
 std::string cb::io::getcwd() {
-    std::string result(4096, 0);
-#ifdef WIN32
-    if (GetCurrentDirectory(result.size(), &result[0]) == 0) {
-        throw std::system_error(GetLastError(), std::system_category(),
-                                "Failed to determine current working directory");
-    }
-#else
-    if (::getcwd(&result[0], result.size()) == nullptr) {
-        throw std::system_error(errno, std::system_category(),
-                                "Failed to determine current working directory");
-    }
-#endif
-
-    // Trim off any trailing \0 characters.
-    result.resize(strlen(result.c_str()));
-    return result;
+    return boost::filesystem::current_path().string();
 }
 
 uint64_t cb::io::maximizeFileDescriptors(uint64_t limit) {
