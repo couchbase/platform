@@ -26,6 +26,11 @@
 #include <string>
 #include <vector>
 
+// Forward declaration.
+namespace boost::filesystem {
+class path;
+}
+
 namespace cb::io {
 
 #ifdef WIN32
@@ -33,6 +38,17 @@ const char DirectorySeparator{'\\'};
 #else
 const char DirectorySeparator{'/'};
 #endif
+
+/// Converts given path into extended-length path for Windows. This conversion
+/// is required when accessing paths longer than MAX_PATH (260). Note: Using
+/// such extended-length paths requires using Unicode version of file APIs (W
+/// suffixed, eg CreateFileW).
+/// @param path to be converted.
+/// @return extended-length path.
+/// @see
+/// https://docs.microsoft.com/en-us/windows/win32/fileio/maximum-file-path-limitation
+DIRUTILS_PUBLIC_API
+boost::filesystem::path makeExtendedLengthPath(const std::string& path);
 
 /**
  * Return the directory part of an absolute path
