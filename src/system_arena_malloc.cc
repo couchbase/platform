@@ -25,7 +25,9 @@
 #include <system_error>
 #include <vector>
 
-#include <folly/portability/Malloc.h>
+#if defined(HAVE_MALLOC_USABLE_SIZE)
+#include <malloc.h>
+#endif
 
 // Why is jemalloc here?
 // The system arena allocator is intended to be used when je_malloc is not
@@ -153,9 +155,11 @@ void SystemArenaMalloc::sized_free(void* ptr, size_t size) {
 size_t SystemArenaMalloc::malloc_usable_size(const void* ptr) {
 #if defined(HAVE_JEMALLOC)
     return je_malloc_usable_size(const_cast<void*>(ptr));
-#else
+#elif defined(HAVE_MALLOC_USABLE_SIZE)
     return ::malloc_usable_size(const_cast<void*>(ptr));
 #endif
+    throw std::runtime_error(
+            "SystemArenaMalloc::malloc_usable_size cannot be called");
 }
 
 bool SystemArenaMalloc::setTCacheEnabled(bool value) {

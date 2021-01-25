@@ -92,9 +92,11 @@ PLATFORM_PUBLIC_API char* cb_strdup(const char* s1) {
     return result;
 }
 
+#if defined(HAVE_MALLOC_USABLE_SIZE)
 PLATFORM_PUBLIC_API size_t cb_malloc_usable_size(void* ptr) noexcept {
     return cb::ArenaMalloc::malloc_usable_size(ptr);
 }
+#endif
 
 PLATFORM_PUBLIC_API
 int cb_malloc_is_using_arenas() {
