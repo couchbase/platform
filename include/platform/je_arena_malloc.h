@@ -43,6 +43,25 @@ namespace cb {
 template <class trackingImpl>
 class PLATFORM_PUBLIC_API _JEArenaMalloc {
 public:
+    static constexpr const char* configuration =
+/* Enable background worker thread for asynchronous purging.
+ * Background threads are non-functional in jemalloc 5.1.0 on macOS due to
+ * implementation discrepancies between the background threads and mutexes.
+ * Background threads aren't supported on Windows (yields a pthread only error)
+ */
+#if !defined(__APPLE__) && !defined(WIN32)
+            "background_thread:true,"
+#endif
+
+#if !defined(WIN32)
+            /* Start with profiling enabled but inactive; this allows us to
+               turn it on/off at runtime. This is not supported on WIN32*/
+            "prof:true,prof_active:false,"
+#endif
+
+            /* Use just one arena, instead of the default based on number of
+               CPUs. Helps to minimize heap fragmentation. */
+            "narenas:1";
     static ArenaMallocClient registerClient(bool threadCache);
     static void unregisterClient(const ArenaMallocClient& client);
     static void switchToClient(const ArenaMallocClient& client, bool tcache);
@@ -85,6 +104,7 @@ public:
     static std::pair<size_t, size_t> getFragmentationStats(
             const ArenaMallocClient& client);
     static std::pair<size_t, size_t> getGlobalFragmentationStats();
+    static void ensureConfiguration(int, char**);
 
 protected:
     static void clientRegistered(const ArenaMallocClient& client) {

@@ -207,6 +207,11 @@ std::pair<size_t, size_t> SystemArenaMalloc::getGlobalFragmentationStats() {
     return {alloc, alloc};
 }
 
+void SystemArenaMalloc::ensureConfiguration(int, char**) {
+    // Nothing todo
+    return;
+}
+
 void SystemArenaMalloc::addAllocation(void* ptr) {
     if (canTrackAllocations()) {
         auto client = currentClient;
