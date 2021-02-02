@@ -92,7 +92,6 @@ public:
     static std::pair<size_t, size_t> getFragmentationStats(
             const ArenaMallocClient& client);
     static std::pair<size_t, size_t> getGlobalFragmentationStats();
-    static void ensureConfiguration(int, char**);
 
 private:
     static void addAllocation(void* ptr);

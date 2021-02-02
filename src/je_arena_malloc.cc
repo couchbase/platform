@@ -17,7 +17,6 @@
 
 #include "relaxed_atomic.h"
 #include <platform/je_arena_malloc.h>
-#include <platform/processcontrol.h>
 
 #include <folly/lang/Aligned.h>
 #include <jemalloc/jemalloc.h>
@@ -327,15 +326,6 @@ template <>
 void JEArenaMalloc::releaseMemory(const ArenaMallocClient& client) {
     std::string purgeKey = "arena." + std::to_string(client.arena) + ".purge";
     setProperty(purgeKey.c_str(), nullptr, 0);
-}
-
-template <>
-PLATFORM_PUBLIC_API void JEArenaMalloc::ensureConfiguration(int argc,
-                                                            char** argv) {
-#ifdef WIN32
-    cb::execWithUpdatedEnvironment(argc, argv, "JE_MALLOC_CONF", configuration);
-#endif
-    // Nothing todo on MacOS/Linux, je_malloc_conf does the right thing
 }
 
 uint16_t ThreadLocalData::getTCacheID(const ArenaMallocClient& client) {

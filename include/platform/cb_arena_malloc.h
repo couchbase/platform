@@ -325,18 +325,6 @@ public:
     static size_t getGlobalAllocated() {
         return getGlobalFragmentationStats().first;
     }
-
-    /**
-     * Ensure that the malloc backend is given the custom configuration
-     *
-     * For jemalloc and on WIN32 this will (re)execve the process with an
-     * updated environment and should be called early in the process execution.
-     *
-     * This may throw exceptions (see execWithUpdatedEnvironment)
-     */
-    static void ensureConfiguration(int argc, char** argv) {
-        Impl::ensureConfiguration(argc, argv);
-    }
 };
 
 using ArenaMalloc = _ArenaMalloc<ARENA_ALLOC>;

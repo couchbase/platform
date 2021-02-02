@@ -1,6 +1,7 @@
 ADD_EXECUTABLE(platform-arena_malloc-test arena_malloc_test.cc)
 TARGET_LINK_LIBRARIES(platform-arena_malloc-test PRIVATE
         gtest
+        gtest_main
         platform
         platform_cb_malloc_arena
         ${MALLOC_LIBRARIES})
