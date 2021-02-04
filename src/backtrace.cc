@@ -14,6 +14,7 @@
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
  */
+#include <boost/stacktrace/stacktrace.hpp>
 #include <inttypes.h>
 #include <platform/backtrace.h>
 
@@ -37,7 +38,7 @@
 /**
  * Populates buf with a description of the given address in the program.
  **/
-static void describe_address(char* msg, size_t len, void* addr) {
+static void describe_address(char* msg, size_t len, const void* addr) {
 #if defined(WIN32)
 
     // Get module information
@@ -136,6 +137,16 @@ void print_backtrace(write_cb_t write_cb, void* context) {
     }
     if (active_frames == MAX_FRAMES) {
         write_cb(context, "<frame limit reached, possible truncation>");
+    }
+}
+
+void print_backtrace_frames(const boost::stacktrace::stacktrace& frames,
+                            std::function<void(const char* frame)> callback) {
+    for (size_t ii = 0; ii < frames.size(); ii++) {
+        // Fixed-sized buffer; possible that description will be cropped.
+        char msg[300];
+        describe_address(msg, sizeof(msg), frames[ii].address());
+        callback(msg);
     }
 }
 

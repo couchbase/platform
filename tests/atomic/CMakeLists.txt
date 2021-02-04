@@ -9,7 +9,7 @@ ADD_EXECUTABLE(platform-non_negative_counter-test non_negative_counter_test.cc)
 TARGET_LINK_LIBRARIES(platform-non_negative_counter-test PRIVATE
         gtest
         gtest_main
-        platform_headers)
+        platform)
 ADD_TEST(platform-non_negative_counter-test platform-non_negative_counter-test)
 
 ADD_EXECUTABLE(platform-atomic_duration-test atomic_duration_test.cc)

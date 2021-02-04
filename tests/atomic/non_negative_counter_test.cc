@@ -15,7 +15,7 @@
  *   limitations under the License.
  */
 #include <platform/non_negative_counter.h>
-
+#include <platform/backtrace.h>
 #include <folly/portability/GTest.h>
 
 TEST(NonNegativeCounterTest, Increment) {
@@ -111,6 +111,33 @@ TEST(NonNegativeCounterTest, ThrowExceptionPolicy) {
 
     EXPECT_THROW(nnAtomic -= 2, std::underflow_error);
     EXPECT_EQ(0u, nnAtomic);
+}
+
+// Test that ThrowException policy throws an exception which records where
+// the exception was thrown from.
+TEST(NonNegativeCounterTest, ThrowExceptionPolicyBacktrace) {
+    cb::NonNegativeCounter<size_t, cb::ThrowExceptionUnderflowPolicy> nnAtomic(
+            0);
+    try {
+        --nnAtomic;
+    } catch (const std::underflow_error& e) {
+        const auto* st = cb::getBacktrace(e);
+        ASSERT_TRUE(st);
+#if !defined(WIN32)
+        // MB-44173: print_backtrace doesn't symbolify for Windows.
+
+        // Hard to accurately predict what we'll see in the backtrace;
+        // just check it contains the executable name somewhere
+        std::string backtrace;
+        print_backtrace_frames(*st, [&backtrace](const char* frame) {
+                backtrace += frame;
+                backtrace += '\n';
+            });
+        EXPECT_TRUE(backtrace.find("platform-non_negative_counter-test")
+                    != std::string::npos)
+            << "when verifying exception backtrace: " << backtrace;
+#endif
+    }
 }
 
 // Test that attempting to construct or assign a negative value is rejected.

@@ -18,6 +18,8 @@
 #include <stdio.h>
 
 #ifdef __cplusplus
+#include <functional>
+#include <boost/stacktrace/stacktrace_fwd.hpp>
 extern "C" {
 #else
 #include <stdbool.h>
@@ -31,6 +33,11 @@ typedef void (*write_cb_t)(void *ctx, const char *frame);
  * the frame.
  */
 void print_backtrace(write_cb_t write_cb, void* context);
+
+#ifdef __cplusplus
+void print_backtrace_frames(const boost::stacktrace::stacktrace& frames,
+                            std::function<void(const char* frame)> callback);
+#endif
 
 /**
  * Convenience function - prints a backtrace to the specified FILE.

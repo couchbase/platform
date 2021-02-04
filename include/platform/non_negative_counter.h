@@ -21,6 +21,7 @@
 #include <stdexcept>
 #include <string>
 #include <type_traits>
+#include <platform/exceptions.h>
 
 namespace cb {
 
@@ -43,9 +44,9 @@ struct ThrowExceptionUnderflowPolicy {
 
     void underflow(T& desired, T current, SignedT arg) {
         using std::to_string;
-        throw std::underflow_error("ThrowExceptionUnderflowPolicy current:" +
+        cb::throwWithTrace(std::underflow_error("ThrowExceptionUnderflowPolicy current:" +
                                    to_string(current) + " arg:" +
-                                   to_string(arg));
+                                   to_string(arg)));
     }
 };
 
