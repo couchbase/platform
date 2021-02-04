@@ -38,7 +38,13 @@
 /**
  * Populates buf with a description of the given address in the program.
  **/
-static void describe_address(char* msg, size_t len, const void* addr) {
+static void describe_address(char* msg, size_t len, int frame_num,
+                             const void* addr) {
+    // Prefix with frame number.
+    auto prefix_len = snprintf(msg, 8, "#%-2d ", frame_num);
+    msg += prefix_len;
+    len -= prefix_len;
+
 #if defined(WIN32)
 
     // Get module information
@@ -132,7 +138,7 @@ void print_backtrace(write_cb_t write_cb, void* context) {
     for (int ii = 1; ii < active_frames; ii++) {
         // Fixed-sized buffer; possible that description will be cropped.
         char msg[300];
-        describe_address(msg, sizeof(msg), frames[ii]);
+        describe_address(msg, sizeof(msg), ii - 1, frames[ii]);
         write_cb(context, msg);
     }
     if (active_frames == MAX_FRAMES) {
@@ -145,7 +151,7 @@ void print_backtrace_frames(const boost::stacktrace::stacktrace& frames,
     for (size_t ii = 0; ii < frames.size(); ii++) {
         // Fixed-sized buffer; possible that description will be cropped.
         char msg[300];
-        describe_address(msg, sizeof(msg), frames[ii].address());
+        describe_address(msg, sizeof(msg), ii, frames[ii].address());
         callback(msg);
     }
 }
