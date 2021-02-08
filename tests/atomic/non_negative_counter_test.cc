@@ -119,11 +119,16 @@ TEST(NonNegativeCounterTest, ThrowExceptionPolicyBacktrace) {
     cb::NonNegativeCounter<size_t, cb::ThrowExceptionUnderflowPolicy> nnAtomic(
             0);
     try {
+        cb::backtrace::initialize();
+    } catch (const std::exception& exception) {
+        FAIL() << "Failed to initialize backtrace: " << exception.what();
+    }
+
+    try {
         --nnAtomic;
     } catch (const std::underflow_error& e) {
         const auto* st = cb::getBacktrace(e);
         ASSERT_TRUE(st);
-#if !defined(WIN32)
         // MB-44173: print_backtrace doesn't symbolify for Windows.
 
         // Hard to accurately predict what we'll see in the backtrace;
@@ -136,7 +141,6 @@ TEST(NonNegativeCounterTest, ThrowExceptionPolicyBacktrace) {
         EXPECT_TRUE(backtrace.find("platform-non_negative_counter-test")
                     != std::string::npos)
             << "when verifying exception backtrace: " << backtrace;
-#endif
     }
 }
 

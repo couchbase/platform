@@ -56,4 +56,15 @@ bool print_backtrace_to_buffer(const char *indent, char *buffer, size_t size);
 
 #ifdef __cplusplus
 } // extern "C"
+
+namespace cb::backtrace {
+/**
+ * Prepare the process for being able to call the backtrace methods.
+ *
+ * On Windows we need to load the symbol tables and from the looks of it
+ * that won't work if we try to do it after we crashed (in the signal
+ * handler).
+ */
+void initialize();
+}
 #endif

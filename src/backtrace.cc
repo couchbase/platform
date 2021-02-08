@@ -129,7 +129,6 @@ void print_backtrace(write_cb_t write_cb, void* context) {
     void* frames[MAX_FRAMES];
 #if defined(WIN32)
     int active_frames = CaptureStackBackTrace(0, MAX_FRAMES, frames, NULL);
-    SymInitialize(GetCurrentProcess(), NULL, TRUE);
 #else
     int active_frames = backtrace(frames, MAX_FRAMES);
 #endif
@@ -203,4 +202,13 @@ bool print_backtrace_to_buffer(const char* indent, char* buffer, size_t size) {
     context c{indent, buffer, size, 0, false};
     print_backtrace(memory_cb, &c);
     return !c.error;
+}
+
+void cb::backtrace::initialize() {
+#ifdef WIN32
+    if (!SymInitialize(GetCurrentProcess(), NULL, TRUE)) {
+        throw std::system_error(
+                int(GetLastError()), std::system_category(), "SymInitialize()");
+    }
+#endif
 }
