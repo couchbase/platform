@@ -15,26 +15,21 @@
  *   limitations under the License.
  */
 #include <boost/stacktrace/stacktrace.hpp>
-#include <inttypes.h>
 #include <platform/backtrace.h>
+#include <cinttypes>
 
-#if defined(WIN32) && defined(HAVE_BACKTRACE_SUPPORT)
+#if defined(WIN32)
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <Dbghelp.h>
-#endif
-
-#if defined(HAVE_BACKTRACE) && defined(HAVE_DLADDR)
-#define HAVE_BACKTRACE_SUPPORT 1
+#else
 #include <dlfcn.h> // for dladdr()
 #include <execinfo.h> // for backtrace()
-#include <cstddef> // for ptrdiff_t
 #endif
 
 // Maximum number of frames that will be printed.
 #define MAX_FRAMES 50
 
-#if defined(HAVE_BACKTRACE_SUPPORT)
 /**
  * Populates buf with a description of the given address in the program.
  **/
@@ -46,7 +41,6 @@ static void describe_address(char* msg, size_t len, int frame_num,
     len -= prefix_len;
 
 #if defined(WIN32)
-
     // Get module information
     IMAGEHLP_MODULE64 module_info;
     module_info.SizeOfStruct = sizeof(IMAGEHLP_MODULE64);
@@ -78,7 +72,7 @@ static void describe_address(char* msg, size_t len, int frame_num,
 
     if (status != 0) {
         ptrdiff_t image_offset = (char*)addr - (char*)info.dli_fbase;
-        if (info.dli_fname != NULL && info.dli_fname[0] != '\0') {
+        if (info.dli_fname != nullptr && info.dli_fname[0] != '\0') {
             // Found a nearest symbol - print it.
             if (info.dli_saddr == 0) {
                 // No function offset calculation possible.
@@ -154,14 +148,6 @@ void print_backtrace_frames(const boost::stacktrace::stacktrace& frames,
         callback(msg);
     }
 }
-
-#else // if defined(HAVE_BACKTRACE_SUPPORT)
-
-void print_backtrace(write_cb_t write_cb, void* context) {
-    write_cb(context, "<backtrace not supported on this platform>");
-}
-
-#endif // defined(HAVE_BACKTRACE_SUPPORT)
 
 static void print_to_file_cb(void* ctx, const char* frame) {
     auto* stream = reinterpret_cast<FILE*>(ctx);

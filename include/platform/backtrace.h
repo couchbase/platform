@@ -14,18 +14,13 @@
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
  */
+#pragma once
 
-#include <stdio.h>
-
-#ifdef __cplusplus
-#include <functional>
 #include <boost/stacktrace/stacktrace_fwd.hpp>
-extern "C" {
-#else
-#include <stdbool.h>
-#endif
+#include <cstdio>
+#include <functional>
 
-typedef void (*write_cb_t)(void *ctx, const char *frame);
+using write_cb_t = void (*)(void*, const char*);
 
 /**
  * Prints a backtrace from the current thread. For each frame, the
@@ -34,10 +29,8 @@ typedef void (*write_cb_t)(void *ctx, const char *frame);
  */
 void print_backtrace(write_cb_t write_cb, void* context);
 
-#ifdef __cplusplus
 void print_backtrace_frames(const boost::stacktrace::stacktrace& frames,
                             std::function<void(const char* frame)> callback);
-#endif
 
 /**
  * Convenience function - prints a backtrace to the specified FILE.
@@ -53,10 +46,6 @@ void print_backtrace_to_file(FILE* stream);
  */
 bool print_backtrace_to_buffer(const char *indent, char *buffer, size_t size);
 
-
-#ifdef __cplusplus
-} // extern "C"
-
 namespace cb::backtrace {
 /**
  * Prepare the process for being able to call the backtrace methods.
@@ -67,4 +56,3 @@ namespace cb::backtrace {
  */
 void initialize();
 }
-#endif
