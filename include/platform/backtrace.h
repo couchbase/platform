@@ -16,7 +16,7 @@
  */
 #pragma once
 
-#include <boost/stacktrace/stacktrace_fwd.hpp>
+#include <platform/exceptions.h>
 #include <cstdio>
 #include <functional>
 
