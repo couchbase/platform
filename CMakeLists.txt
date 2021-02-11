@@ -415,11 +415,6 @@ GENERATE_EXPORT_HEADER(platform_so
                        EXPORT_MACRO_NAME PLATFORM_PUBLIC_API
                        EXPORT_FILE_NAME ${Platform_BINARY_DIR}/include/platform/visibility.h)
 
-# dirutils is moved to platform, but until we've fixed all references
-# to the old library in the various projects we'll just keep it around
-# as an alias
-add_library(dirutils ALIAS platform)
-
 # To simplify usage we always build breakpad_wrapper; it'll just
 # do nothing on targets which don't have Breakpad.
 add_library(breakpad_wrapper SHARED
