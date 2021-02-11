@@ -95,7 +95,6 @@ static std::string loadFileImpl(const std::string& name) {
 }
 #endif
 
-DIRUTILS_PUBLIC_API
 std::string cb::io::loadFile(const std::string& name,
                              std::chrono::microseconds waittime) {
 #ifdef WIN32

@@ -191,6 +191,8 @@ endif (WIN32)
 
 LIST(APPEND PLATFORM_FILES
   src/base64.cc
+  src/dirutils.cc
+  src/loadfile.cc
   src/random.cc
   src/byte_buffer_dump.cc
   src/cb_arena_malloc.cc
@@ -219,6 +221,7 @@ LIST(APPEND PLATFORM_FILES
   include/platform/checked_snprintf.h
   include/platform/corestore.h
   include/platform/crc32c.h
+  include/platform/dirutils.h
   include/platform/getopt.h
   include/platform/interrupt.h
   include/platform/non_negative_counter.h
@@ -408,22 +411,14 @@ else ()
   message(FATAL_ERROR "Unsupported system")
 endif (WIN32)
 
-
-
 GENERATE_EXPORT_HEADER(platform_so
                        EXPORT_MACRO_NAME PLATFORM_PUBLIC_API
                        EXPORT_FILE_NAME ${Platform_BINARY_DIR}/include/platform/visibility.h)
 
-# TODO: Given dirutils now links with platform (for cbmalloc &
-# global_new_replacement) we can probably just merge it into platform.
-ADD_LIBRARY(dirutils SHARED
-            src/dirutils.cc
-            src/loadfile.cc
-            include/platform/dirutils.h)
-TARGET_LINK_LIBRARIES(dirutils platform)
-GENERATE_EXPORT_HEADER(dirutils
-                       EXPORT_MACRO_NAME DIRUTILS_PUBLIC_API
-                       EXPORT_FILE_NAME ${CMAKE_CURRENT_BINARY_DIR}/include/platform/dirutils-visibility.h)
+# dirutils is moved to platform, but until we've fixed all references
+# to the old library in the various projects we'll just keep it around
+# as an alias
+add_library(dirutils ALIAS platform)
 
 # To simplify usage we always build breakpad_wrapper; it'll just
 # do nothing on targets which don't have Breakpad.
@@ -445,7 +440,7 @@ endif (UNIX)
 target_link_libraries(breakpad_wrapper
                       ${BREAKPAD_LIBRARIES} platform_headers)
 
-INSTALL(TARGETS breakpad_wrapper JSON_checker dirutils
+INSTALL(TARGETS breakpad_wrapper JSON_checker
         RUNTIME DESTINATION bin
         LIBRARY DESTINATION lib
         ARCHIVE DESTINATION lib)

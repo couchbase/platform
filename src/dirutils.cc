@@ -87,18 +87,15 @@ static std::string split(const std::string& input, bool directory) {
     }
 }
 
-DIRUTILS_PUBLIC_API
 std::string cb::io::dirname(const std::string& dir) {
     return split(dir, true);
 }
 
-DIRUTILS_PUBLIC_API
 std::string cb::io::basename(const std::string& name) {
     return split(name, false);
 }
 
 #ifdef _MSC_VER
-DIRUTILS_PUBLIC_API
 std::vector<std::string> cb::io::findFilesWithPrefix(const std::string& dir,
                                                      const std::string& name) {
     std::vector<std::string> files;
@@ -130,8 +127,6 @@ std::vector<std::string> cb::io::findFilesWithPrefix(const std::string& dir,
     return files;
 }
 #else
-
-DIRUTILS_PUBLIC_API
 std::vector<std::string> cb::io::findFilesWithPrefix(const std::string& dir,
                                                      const std::string& name) {
     std::vector<std::string> files;
@@ -157,13 +152,11 @@ std::vector<std::string> cb::io::findFilesWithPrefix(const std::string& dir,
 }
 #endif
 
-DIRUTILS_PUBLIC_API
 std::vector<std::string> cb::io::findFilesWithPrefix(const std::string& name) {
     return findFilesWithPrefix(dirname(name), basename(name));
 }
 
 #ifdef _MSC_VER
-DIRUTILS_PUBLIC_API
 std::vector<std::string> cb::io::findFilesContaining(const std::string &dir,
                                                             const std::string &name)
 {
@@ -199,8 +192,6 @@ std::vector<std::string> cb::io::findFilesContaining(const std::string &dir,
     return files;
 }
 #else
-
-DIRUTILS_PUBLIC_API
 std::vector<std::string> cb::io::findFilesContaining(const std::string& dir,
                                                             const std::string& name) {
     std::vector<std::string> files;
@@ -226,7 +217,6 @@ std::vector<std::string> cb::io::findFilesContaining(const std::string& dir,
 }
 #endif
 
-DIRUTILS_PUBLIC_API
 void cb::io::rmrf(const std::string& path) {
     auto longPath = makeExtendedLengthPath(path);
     auto longPathStr = longPath.string();
@@ -299,7 +289,6 @@ void cb::io::rmrf(const std::string& path) {
     }
 }
 
-DIRUTILS_PUBLIC_API
 bool cb::io::isDirectory(const std::string& directory) {
 #ifdef WIN32
     auto longDir = makeExtendedLengthPath(directory);
@@ -317,7 +306,6 @@ bool cb::io::isDirectory(const std::string& directory) {
 #endif
 }
 
-DIRUTILS_PUBLIC_API
 bool cb::io::isFile(const std::string& file) {
 #ifdef WIN32
     auto lfile = makeExtendedLengthPath(file);
@@ -335,7 +323,6 @@ bool cb::io::isFile(const std::string& file) {
 #endif
 }
 
-DIRUTILS_PUBLIC_API
 void cb::io::mkdirp(std::string directory) {
     if (!boost::filesystem::is_directory(directory)) {
         auto longDir = makeExtendedLengthPath(directory);

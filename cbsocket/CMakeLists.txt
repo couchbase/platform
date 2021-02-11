@@ -4,7 +4,6 @@ add_library(cbsocket SHARED
             socket.cc)
 
 target_link_libraries(cbsocket
-                      dirutils
                       gsl_lite
                       platform
                       ${LIBEVENT_LIBRARIES}

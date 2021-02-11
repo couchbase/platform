@@ -16,7 +16,7 @@
  */
 #pragma once
 
-#include <platform/dirutils-visibility.h>
+#include <platform/visibility.h>
 
 #include <algorithm>
 #include <chrono>
@@ -47,26 +47,26 @@ const char DirectorySeparator{'/'};
 /// @return extended-length path.
 /// @see
 /// https://docs.microsoft.com/en-us/windows/win32/fileio/maximum-file-path-limitation
-DIRUTILS_PUBLIC_API
+PLATFORM_PUBLIC_API
 boost::filesystem::path makeExtendedLengthPath(const std::string& path);
 
 /**
  * Return the directory part of an absolute path
  */
-DIRUTILS_PUBLIC_API
+PLATFORM_PUBLIC_API
 std::string dirname(const std::string& dir);
 
 /**
  * Return the filename part of an absolute path
  */
-DIRUTILS_PUBLIC_API
+PLATFORM_PUBLIC_API
 std::string basename(const std::string& name);
 
 /**
  * Return a vector containing all of the files starting with a given
  * name stored in a given directory
  */
-DIRUTILS_PUBLIC_API
+PLATFORM_PUBLIC_API
 std::vector<std::string> findFilesWithPrefix(const std::string& dir,
                                              const std::string& name);
 
@@ -74,14 +74,14 @@ std::vector<std::string> findFilesWithPrefix(const std::string& dir,
  * Return a vector containing all of the files starting with a given
  * name specified with this absolute path
  */
-DIRUTILS_PUBLIC_API
+PLATFORM_PUBLIC_API
 std::vector<std::string> findFilesWithPrefix(const std::string& name);
 
 /**
  * Return a vector containing all of the files containing a given
  * substring located in a given directory
  */
-DIRUTILS_PUBLIC_API
+PLATFORM_PUBLIC_API
 std::vector<std::string> findFilesContaining(const std::string& dir,
                                              const std::string& name);
 
@@ -90,19 +90,19 @@ std::vector<std::string> findFilesContaining(const std::string& dir,
  * @param path path of the file or directory that is being removed
  * @throws system_error in case of any errors during deletion
  */
-DIRUTILS_PUBLIC_API
+PLATFORM_PUBLIC_API
 void rmrf(const std::string& path);
 
 /**
  * Check if a directory exists or not
  */
-DIRUTILS_PUBLIC_API
+PLATFORM_PUBLIC_API
 bool isDirectory(const std::string& directory);
 
 /**
  * Check if a path exists and is a file
  */
-DIRUTILS_PUBLIC_API
+PLATFORM_PUBLIC_API
 bool isFile(const std::string& file);
 
 /**
@@ -114,7 +114,7 @@ bool isFile(const std::string& file);
  * @param directory the directory to create
  * @throws std::runtime_error if an error occurs
  */
-DIRUTILS_PUBLIC_API
+PLATFORM_PUBLIC_API
 void mkdirp(std::string directory);
 
 /**
@@ -126,7 +126,7 @@ void mkdirp(std::string directory);
  * @param prefix The prefix to use in the filename.
  * @return The unique filename
  */
-DIRUTILS_PUBLIC_API
+PLATFORM_PUBLIC_API
 std::string mktemp(const std::string& prefix);
 
 /**
@@ -137,7 +137,7 @@ std::string mktemp(const std::string& prefix);
  * @param prefix The prefix to use in the directory name.
  * @return The unique directory name
  */
-DIRUTILS_PUBLIC_API
+PLATFORM_PUBLIC_API
 std::string mkdtemp(const std::string& prefix);
 
 /**
@@ -147,7 +147,7 @@ std::string mkdtemp(const std::string& prefix);
  * @throws std::system_error if we fail to determine the current working
  *         directory
  */
-DIRUTILS_PUBLIC_API
+PLATFORM_PUBLIC_API
 std::string getcwd();
 
 /**
@@ -161,7 +161,7 @@ std::string getcwd();
  * @throws std::system_error if we fail to determine the maximum number
  *         of file descriptor
  */
-DIRUTILS_PUBLIC_API
+PLATFORM_PUBLIC_API
 uint64_t maximizeFileDescriptors(uint64_t limit);
 
 /**
@@ -172,7 +172,7 @@ uint64_t maximizeFileDescriptors(uint64_t limit);
  * @param path the path to sanitize
  * @return sanitized version of the path
  */
-DIRUTILS_PUBLIC_API
+PLATFORM_PUBLIC_API
 std::string sanitizePath(std::string path);
 
 /**
@@ -185,7 +185,7 @@ std::string sanitizePath(std::string path);
  * @throws std::system_exception if an error occurs opening / reading the file
  *         std::bad_alloc for memory allocation errors
  */
-DIRUTILS_PUBLIC_API
+PLATFORM_PUBLIC_API
 std::string loadFile(const std::string& name,
                      std::chrono::microseconds waittime = {});
 
@@ -195,7 +195,7 @@ std::string loadFile(const std::string& name,
  * @param fp the file stream to update
  * @throws std::system_error if an error occurs
  */
-DIRUTILS_PUBLIC_API
+PLATFORM_PUBLIC_API
 void setBinaryMode(FILE* fp);
 
 } // namespace cb::io
