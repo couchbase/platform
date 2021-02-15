@@ -93,6 +93,17 @@ TEST_F(ArenaMalloc, basicUsage) {
     cb::ArenaMalloc::unregisterClient(client);
 }
 
+TEST_F(ArenaMalloc, threadsRegister) {
+    cb::ArenaMallocClient c1, c2;
+    std::thread a([&c1]() { c1 = cb::ArenaMalloc::registerClient(); });
+    std::thread b([&c2]() { c2 = cb::ArenaMalloc::registerClient(); });
+    a.join();
+    b.join();
+    EXPECT_NE(c1.index, c2.index);
+    cb::ArenaMalloc::unregisterClient(c1);
+    cb::ArenaMalloc::unregisterClient(c2);
+}
+
 /**
  * Test the maximum supported number of arenas.
  */

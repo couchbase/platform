@@ -119,12 +119,12 @@ public:
     static ClientArray& get();
 
 private:
+    /// Creates a ClientArray in the jemalloc 'default' arena
     static ClientArray* make();
-    /// unique_ptr destructor for the thread_local tcache store
+    /// Destroys the ClientArray using jemalloc
     struct ClientArrayDestroy {
         void operator()(ClientArray* ptr);
     };
-    static std::unique_ptr<ClientArray, ClientArrayDestroy> clients;
 };
 
 /// @return a jemalloc arena
@@ -166,7 +166,8 @@ JEArenaMalloc::registerClient(bool threadCache) {
         }
     }
     throw std::runtime_error(
-            "JEArenaMalloc::registerClient no available indices");
+            "JEArenaMalloc::registerClient all available arenas are allocated "
+            "to clients");
 }
 
 template <>
@@ -176,7 +177,7 @@ PLATFORM_PUBLIC_API void JEArenaMalloc::unregisterClient(
     auto& c = lockedClients->at(client.index);
     if (!c.used) {
         throw std::invalid_argument(
-                "JEArenaMalloc::unregisterClient client is not in-use "
+                "JEArenaMalloc::unregisterClient the client is not in-use "
                 "client.index:" +
                 std::to_string(client.index));
     }
@@ -371,18 +372,17 @@ uint16_t ThreadLocalData::getTCacheID(const ArenaMallocClient& client) {
 }
 
 Clients::ClientArray& Clients::get() {
-    auto* arrayPtr = clients.get();
-    if (!arrayPtr) {
-        arrayPtr = make();
-        clients.reset(arrayPtr);
-    }
-    return *arrayPtr;
+    static std::unique_ptr<ClientArray, ClientArrayDestroy> clients{make()};
+    return *clients.get();
 }
 
 Clients::ClientArray* Clients::make() {
     // Always create in the default arena/cache (and zero init)
     auto* vptr = (Clients::ClientArray*)je_mallocx(sizeof(Clients::ClientArray),
                                                    MALLOCX_ZERO);
+    if (vptr == nullptr) {
+        throw std::runtime_error("Clients::make je_mallocx returned nullptr");
+    }
     return new (vptr) Clients::ClientArray();
 }
 
@@ -391,8 +391,5 @@ void Clients::ClientArrayDestroy::operator()(Clients::ClientArray* ptr) {
     // de-allocate from the default arena
     je_dallocx((void*)ptr, 0);
 }
-
-std::unique_ptr<Clients::ClientArray, Clients::ClientArrayDestroy>
-        Clients::clients;
 
 } // namespace cb
