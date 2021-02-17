@@ -104,8 +104,7 @@ IF (WIN32)
    SET(PLATFORM_FILES src/sockets.cc
                       src/cb_win32.cc
                       src/crc32c_sse4_2.cc
-                      include/win32/getopt.h
-                      include/win32/unistd.h)
+                      include/win32/getopt.h)
 ELSE (WIN32)
    SET(PLATFORM_FILES src/cb_pthreads.cc)
    # We don't know the output of uname -p on all of our supported platforms

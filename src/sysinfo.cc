@@ -17,6 +17,8 @@
 #ifdef WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#else
+#include <unistd.h>
 #endif
 
 #ifdef HAVE_CPUID_H
@@ -29,13 +31,12 @@
 #include <cstdlib>
 #include <cstring>
 #include <stdexcept>
+#include <string>
 #include <system_error>
 
 #if defined(HAVE_SCHED_GETAFFINITY) || defined(HAVE_SCHED_GETCPU)
 #include <sched.h>
 #endif
-#include <string>
-#include <unistd.h>
 
 #include <folly/concurrency/CacheLocality.h>
 
