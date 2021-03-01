@@ -233,4 +233,12 @@ CBSOCKET_PUBLIC_API
 std::pair<std::vector<std::string>, std::vector<std::string>> getIpAddresses(
         bool skipLoopback);
 
+/**
+ * Get the hostname for the machine
+ *
+ * @throws std::system_error if an error occurs
+ */
+CBSOCKET_PUBLIC_API
+std::string getHostname();
+
 } // namespace cb::net

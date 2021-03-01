@@ -426,4 +426,15 @@ std::pair<std::vector<std::string>, std::vector<std::string>> getIpAddresses(
     return ret;
 }
 
+CBSOCKET_PUBLIC_API
+std::string getHostname() {
+    std::array<char, 256> host;
+    if (::gethostname(host.data(), host.size()) != 0) {
+        throw std::system_error(
+                get_socket_error(), std::system_category(), "gethostname()");
+    }
+
+    return std::string(host.data());
+}
+
 } // namespace cb::net
