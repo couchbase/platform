@@ -37,7 +37,6 @@
 
 namespace cb::net {
 
-CBSOCKET_PUBLIC_API
 int closesocket(SOCKET s) {
 #ifdef WIN32
     return ::closesocket(s);
@@ -47,7 +46,6 @@ int closesocket(SOCKET s) {
 
 }
 
-CBSOCKET_PUBLIC_API
 int get_socket_error() {
 #ifdef WIN32
     return WSAGetLastError();
@@ -56,23 +54,19 @@ int get_socket_error() {
 #endif
 }
 
-CBSOCKET_PUBLIC_API
 int bind(SOCKET sock, const struct sockaddr* name, socklen_t namelen) {
     return ::bind(sock, name, namelen);
 }
 
-CBSOCKET_PUBLIC_API
 int listen(SOCKET sock, int backlog) {
     return ::listen(sock, backlog);
 }
 
 
-CBSOCKET_PUBLIC_API
 SOCKET accept(SOCKET sock, struct sockaddr* addr, socklen_t* addrlen) {
     return ::accept(sock, addr, addrlen);
 }
 
-CBSOCKET_PUBLIC_API
 int connect(SOCKET sock, const struct sockaddr* name, size_t namelen) {
 #ifdef WIN32
     return ::connect(sock, name, gsl::narrow<int>(namelen));
@@ -81,17 +75,14 @@ int connect(SOCKET sock, const struct sockaddr* name, size_t namelen) {
 #endif
 }
 
-CBSOCKET_PUBLIC_API
 SOCKET socket(int domain, int type, int protocol) {
     return ::socket(domain, type, protocol);
 }
 
-CBSOCKET_PUBLIC_API
 int shutdown(SOCKET sock, int how) {
     return ::shutdown(sock, how);
 }
 
-CBSOCKET_PUBLIC_API
 ssize_t send(SOCKET sock, const void* buffer, size_t length, int flags) {
 #ifdef WIN32
     return ::send(sock, static_cast<const char*>(buffer), gsl::narrow<int>(length), flags);
@@ -100,12 +91,10 @@ ssize_t send(SOCKET sock, const void* buffer, size_t length, int flags) {
 #endif
 }
 
-CBSOCKET_PUBLIC_API
 ssize_t sendmsg(SOCKET sock, const struct msghdr* message, int flags) {
     return ::sendmsg(sock, message, flags);
 }
 
-CBSOCKET_PUBLIC_API
 ssize_t sendto(SOCKET sock,
                const void* buffer,
                size_t length,
@@ -124,7 +113,6 @@ ssize_t sendto(SOCKET sock,
 #endif
 }
 
-CBSOCKET_PUBLIC_API
 ssize_t recv(SOCKET sock, void* buffer, size_t length, int flags) {
 #ifdef WIN32
     return ::recv(sock, static_cast<char*>(buffer), gsl::narrow<int>(length), flags);
@@ -133,7 +121,6 @@ ssize_t recv(SOCKET sock, void* buffer, size_t length, int flags) {
 #endif
 }
 
-CBSOCKET_PUBLIC_API
 ssize_t recvfrom(SOCKET sock,
                  void* buffer,
                  size_t length,
@@ -152,7 +139,6 @@ ssize_t recvfrom(SOCKET sock,
 #endif
 }
 
-CBSOCKET_PUBLIC_API
 ssize_t recvmsg(SOCKET sock, struct msghdr* message, int flags) {
 #ifdef WIN32
     int res = 0;
@@ -174,7 +160,6 @@ ssize_t recvmsg(SOCKET sock, struct msghdr* message, int flags) {
 #endif
 }
 
-CBSOCKET_PUBLIC_API
 int socketpair(int domain, int type, int protocol, SOCKET socket_vector[2]) {
     return evutil_socketpair(domain,
                              type,
@@ -182,7 +167,6 @@ int socketpair(int domain, int type, int protocol, SOCKET socket_vector[2]) {
                              reinterpret_cast<evutil_socket_t*>(socket_vector));
 }
 
-CBSOCKET_PUBLIC_API
 int getsockopt(SOCKET sock,
                int level,
                int option_name,
@@ -199,7 +183,6 @@ int getsockopt(SOCKET sock,
 #endif
 }
 
-CBSOCKET_PUBLIC_API
 int setsockopt(SOCKET sock,
                int level,
                int option_name,
@@ -216,12 +199,10 @@ int setsockopt(SOCKET sock,
 #endif
 }
 
-CBSOCKET_PUBLIC_API
 int set_socket_noblocking(SOCKET sock) {
     return evutil_make_socket_nonblocking(sock);
 }
 
-CBSOCKET_PUBLIC_API
 std::string to_string(const struct sockaddr_storage* addr, socklen_t addr_len) {
     char host[50];
     char port[50];
@@ -246,7 +227,6 @@ std::string to_string(const struct sockaddr_storage* addr, socklen_t addr_len) {
     }
 }
 
-CBSOCKET_PUBLIC_API
 nlohmann::json to_json(const struct sockaddr_storage* addr,
                        socklen_t addr_len) {
     std::array<char, 50> host;
@@ -269,7 +249,6 @@ nlohmann::json to_json(const struct sockaddr_storage* addr,
                           {"port", std::stoi(port.data())}};
 }
 
-CBSOCKET_PUBLIC_API
 std::string getsockname(SOCKET sfd) {
     sockaddr_storage sock{};
     socklen_t sock_len = sizeof(sock);
@@ -283,7 +262,6 @@ std::string getsockname(SOCKET sfd) {
     return to_string(&sock, sock_len);
 }
 
-CBSOCKET_PUBLIC_API
 nlohmann::json getSockNameAsJson(SOCKET sfd) {
     sockaddr_storage sock{};
     socklen_t sock_len = sizeof(sock);
@@ -297,7 +275,6 @@ nlohmann::json getSockNameAsJson(SOCKET sfd) {
     return to_json(&sock, sock_len);
 }
 
-CBSOCKET_PUBLIC_API
 std::string getpeername(SOCKET sfd) {
     sockaddr_storage peer;
     socklen_t peer_len = sizeof(peer);
@@ -311,7 +288,6 @@ std::string getpeername(SOCKET sfd) {
     return to_string(&peer, peer_len);
 }
 
-CBSOCKET_PUBLIC_API
 nlohmann::json getPeerNameAsJson(SOCKET sfd) {
     sockaddr_storage peer;
     socklen_t peer_len = sizeof(peer);
@@ -325,7 +301,6 @@ nlohmann::json getPeerNameAsJson(SOCKET sfd) {
     return to_json(&peer, peer_len);
 }
 
-CBSOCKET_PUBLIC_API
 std::pair<std::vector<std::string>, std::vector<std::string>> getIpAddresses(
         bool skipLoopback) {
     std::array<char, 1024> buffer;
@@ -426,7 +401,6 @@ std::pair<std::vector<std::string>, std::vector<std::string>> getIpAddresses(
     return ret;
 }
 
-CBSOCKET_PUBLIC_API
 std::string getHostname() {
     std::array<char, 256> host;
     if (::gethostname(host.data(), host.size()) != 0) {

@@ -24,7 +24,6 @@
 #pragma once
 
 #include <platform/platform_socket.h>
-#include <platform/socket-visibility.h>
 
 #ifdef WIN32
 typedef int in_port_t;
@@ -44,34 +43,24 @@ typedef int SOCKET;
 
 namespace cb::net {
 
-CBSOCKET_PUBLIC_API
 int closesocket(SOCKET s);
 
-CBSOCKET_PUBLIC_API
 int get_socket_error();
 
-CBSOCKET_PUBLIC_API
 int bind(SOCKET sock, const struct sockaddr* name, socklen_t namelen);
 
-CBSOCKET_PUBLIC_API
 SOCKET accept(SOCKET sock, struct sockaddr* addr, socklen_t* addrlen);
 
-CBSOCKET_PUBLIC_API
 int connect(SOCKET sock, const struct sockaddr* name, size_t namelen);
 
-CBSOCKET_PUBLIC_API
 SOCKET socket(int domain, int type, int protocol);
 
-CBSOCKET_PUBLIC_API
 int shutdown(SOCKET sock, int how);
 
-CBSOCKET_PUBLIC_API
 ssize_t send(SOCKET sock, const void* buffer, size_t length, int flags);
 
-CBSOCKET_PUBLIC_API
 ssize_t sendmsg(SOCKET sock, const struct msghdr* message, int flags);
 
-CBSOCKET_PUBLIC_API
 ssize_t sendto(SOCKET sock,
                const void* buffer,
                size_t length,
@@ -79,10 +68,8 @@ ssize_t sendto(SOCKET sock,
                const struct sockaddr* dest_addr,
                socklen_t dest_len);
 
-CBSOCKET_PUBLIC_API
 ssize_t recv(SOCKET sock, void* buffer, size_t length, int flags);
 
-CBSOCKET_PUBLIC_API
 ssize_t recvfrom(SOCKET sock,
                  void* buffer,
                  size_t length,
@@ -90,30 +77,24 @@ ssize_t recvfrom(SOCKET sock,
                  struct sockaddr* address,
                  socklen_t* address_len);
 
-CBSOCKET_PUBLIC_API
 ssize_t recvmsg(SOCKET sock, struct msghdr* message, int flags);
 
-CBSOCKET_PUBLIC_API
 int getsockopt(SOCKET sock,
                int level,
                int option_name,
                void* option_value,
                socklen_t* option_len);
 
-CBSOCKET_PUBLIC_API
 int setsockopt(SOCKET sock,
                int level,
                int option_name,
                const void* option_value,
                socklen_t option_len);
 
-CBSOCKET_PUBLIC_API
 int socketpair(int domain, int type, int protocol, SOCKET socket_vector[2]);
 
-CBSOCKET_PUBLIC_API
 int set_socket_noblocking(SOCKET sock);
 
-CBSOCKET_PUBLIC_API
 int listen(SOCKET sock, int backlog);
 
 
@@ -166,10 +147,8 @@ inline void set_econnreset() {
 /**
  * Get a textual representation of the address represented in sockaddr_storage
  */
-CBSOCKET_PUBLIC_API
 std::string to_string(const struct sockaddr_storage* addr, socklen_t addr_len);
 
-CBSOCKET_PUBLIC_API
 nlohmann::json to_json(const struct sockaddr_storage* addr, socklen_t addr_len);
 
 /**
@@ -182,7 +161,6 @@ nlohmann::json to_json(const struct sockaddr_storage* addr, socklen_t addr_len);
  * @throws std::exception if one of the functions needed to look up the socket
  *                        name fails
  */
-CBSOCKET_PUBLIC_API
 std::string getsockname(SOCKET sfd);
 
 /**
@@ -194,7 +172,6 @@ std::string getsockname(SOCKET sfd);
  * @throws std::exception if one of the functions needed to look up the socket
  *                        name fails
  */
-CBSOCKET_PUBLIC_API
 nlohmann::json getSockNameAsJson(SOCKET sfd);
 
 /**
@@ -207,7 +184,6 @@ nlohmann::json getSockNameAsJson(SOCKET sfd);
  * @throws std::exception if one of the functions needed to look up the peer
  *                        name fails
  */
-CBSOCKET_PUBLIC_API
 std::string getpeername(SOCKET sfd);
 
 /**
@@ -219,7 +195,6 @@ std::string getpeername(SOCKET sfd);
  * @throws std::exception if one of the functions needed to look up the socket
  *                        name fails
  */
-CBSOCKET_PUBLIC_API
 nlohmann::json getPeerNameAsJson(SOCKET sfd);
 
 /**
@@ -229,7 +204,6 @@ nlohmann::json getPeerNameAsJson(SOCKET sfd);
  *         addresses
  * @throws std::system_error if we fail to get the interface description
  */
-CBSOCKET_PUBLIC_API
 std::pair<std::vector<std::string>, std::vector<std::string>> getIpAddresses(
         bool skipLoopback);
 
@@ -238,7 +212,6 @@ std::pair<std::vector<std::string>, std::vector<std::string>> getIpAddresses(
  *
  * @throws std::system_error if an error occurs
  */
-CBSOCKET_PUBLIC_API
 std::string getHostname();
 
 } // namespace cb::net
