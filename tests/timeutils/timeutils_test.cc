@@ -37,6 +37,15 @@ TEST(Time2TextTest, NanoUsecWrap) {
               time2text(std::chrono::microseconds(10)));
 }
 
+TEST(Time2TextTest, NanoUsecRound) {
+    EXPECT_EQ(std::string("10 us"),
+              time2text(std::chrono::nanoseconds(10499)));
+    EXPECT_EQ(std::string("11 us"),
+              time2text(std::chrono::nanoseconds(10501)));
+    EXPECT_EQ(std::string("11 us"),
+              time2text(std::chrono::nanoseconds(10999)));
+}
+
 TEST(Time2TextTest, Usec9999) {
     EXPECT_EQ(std::string("9999 us"),
               time2text(std::chrono::microseconds(9999)));
@@ -45,6 +54,15 @@ TEST(Time2TextTest, Usec9999) {
 TEST(Time2TextTest, UsecMsecWrap) {
     EXPECT_EQ(std::string("10 ms"),
               time2text(std::chrono::milliseconds(10)));
+}
+
+TEST(Time2TextTest, UsecMsecRound) {
+    EXPECT_EQ(std::string("10 ms"),
+              time2text(std::chrono::microseconds(10499)));
+    EXPECT_EQ(std::string("11 ms"),
+              time2text(std::chrono::microseconds(10501)));
+    EXPECT_EQ(std::string("11 ms"),
+              time2text(std::chrono::microseconds(10999)));
 }
 
 TEST(Time2TextTest, Msec9999) {
@@ -57,9 +75,27 @@ TEST(Time2TextTest, MsecSecWrap) {
               time2text(std::chrono::seconds(10)));
 }
 
+TEST(Time2TextTest, MsecSecRound) {
+    EXPECT_EQ(std::string("10 s"),
+              time2text(std::chrono::milliseconds(10499)));
+    EXPECT_EQ(std::string("11 s"),
+              time2text(std::chrono::milliseconds(10501)));
+    EXPECT_EQ(std::string("11 s"),
+              time2text(std::chrono::milliseconds(10999)));
+}
+
 TEST(Time2TextTest, SecLargest) {
     EXPECT_EQ(std::string("599 s"),
               time2text(std::chrono::seconds(599)));
+}
+
+TEST(Time2TextTest, NsecSecRound) {
+    EXPECT_EQ(std::string("10 s"),
+              time2text(std::chrono::nanoseconds(10499999999)));
+    EXPECT_EQ(std::string("11 s"),
+              time2text(std::chrono::nanoseconds(10500000001)));
+    EXPECT_EQ(std::string("11 s"),
+              time2text(std::chrono::nanoseconds(10999999999)));
 }
 
 TEST(Time2TextTest, AlmostFullSpecTime) {

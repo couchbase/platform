@@ -17,12 +17,13 @@
 
 #include <platform/timeutils.h>
 #include <cctype>
+#include <cmath>
 #include <stdexcept>
 
 std::string cb::time2text(std::chrono::nanoseconds time2convert) {
     const char* const extensions[] = {" ns", " us", " ms", " s", nullptr};
     int id = 0;
-    auto time = time2convert.count();
+    double time = time2convert.count();
 
     while (time > 9999) {
         ++id;
@@ -41,12 +42,12 @@ std::string cb::time2text(std::chrono::nanoseconds time2convert) {
 
         if (hour > 0) {
             ret = std::to_string(hour) + "h:" + std::to_string(min) + "m:" +
-                  std::to_string(time) + "s";
+                  std::to_string(int(round(time))) + "s";
         } else {
-            ret = std::to_string(min) + "m:" + std::to_string(time) + "s";
+            ret = std::to_string(min) + "m:" + std::to_string(int(round(time))) + "s";
         }
     } else {
-        ret = std::to_string(time) + extensions[id];
+        ret = std::to_string(int(round(time))) + extensions[id];
     }
 
     return ret;
