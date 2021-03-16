@@ -63,23 +63,22 @@ static bool getJeMallocStats(
     return missing;
 }
 
-// pair<allocated, resident>
-static std::pair<size_t, size_t> getFragmentation(int arena) {
+static cb::FragmentationStats getFragmentation(int arena) {
     // Must request jemalloc syncs before reading stats
     callJemallocEpoch();
-    std::pair<size_t, size_t> stats;
-    size_t allocated;
+    size_t allocated{0}, resident{0};
+    size_t value{0};
     getJemallocStat(
             "stats.arenas." + std::to_string(arena) + ".small.allocated",
-            &allocated);
-    stats.first = allocated;
+            &value);
+    allocated = value;
     getJemallocStat(
             "stats.arenas." + std::to_string(arena) + ".large.allocated",
-            &allocated);
-    stats.first += allocated;
+            &value);
+    allocated += value;
     getJemallocStat("stats.arenas." + std::to_string(arena) + ".resident",
-                    &stats.second);
-    return stats;
+                    &resident);
+    return {allocated, resident};
 }
 
 template <>
@@ -107,12 +106,12 @@ void cb::JEArenaMalloc::getDetailedStats(void (*callback)(void*, const char*),
 }
 
 template <>
-std::pair<size_t, size_t> cb::JEArenaMalloc::getFragmentationStats(
+cb::FragmentationStats cb::JEArenaMalloc::getFragmentationStats(
         const cb::ArenaMallocClient& client) {
     return getFragmentation(client.arena);
 }
 
 template <>
-std::pair<size_t, size_t> cb::JEArenaMalloc::getGlobalFragmentationStats() {
+cb::FragmentationStats cb::JEArenaMalloc::getGlobalFragmentationStats() {
     return getFragmentation(0);
 }

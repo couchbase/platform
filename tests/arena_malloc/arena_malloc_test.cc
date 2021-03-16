@@ -43,6 +43,11 @@ TEST_F(ArenaMalloc, cb_malloc_is_using_arenas) {
     EXPECT_TRUE(cb_malloc_is_using_arenas());
 }
 
+TEST_F(ArenaMalloc, fragmentation) {
+    cb::FragmentationStats stats{2, 200};
+    EXPECT_EQ(99, stats.getFragmentationPerc());
+}
+
 // Check that allocations made without an explicit client selected are accounted
 // in the Global arena.
 TEST_F(ArenaMalloc, GlobalArena) {
