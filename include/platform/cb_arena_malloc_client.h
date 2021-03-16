@@ -16,6 +16,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <limits>
+#include <ostream>
 
 namespace cb {
 
@@ -73,5 +74,40 @@ struct ArenaMallocClient {
     uint8_t index{NoClientIndex}; // uniquely identifies the registered client
     bool threadCache{true}; // should thread caching be used
 };
+
+class FragmentationStats {
+public:
+    FragmentationStats(size_t allocatedBytes, size_t residentBytes)
+        : allocatedBytes(allocatedBytes), residentBytes(residentBytes) {
+    }
+    size_t getAllocatedBytes() const {
+        return allocatedBytes;
+    }
+    size_t getResidentBytes() const {
+        return residentBytes;
+    }
+    /**
+     * @return the fragmentation 'percent' a return value of 15 means that 15%
+     * of the arena's resident memory is not considered allocated.
+     */
+    size_t getFragmentationPerc() const {
+        return size_t((double(residentBytes - allocatedBytes) / residentBytes) *
+                      100.0);
+    }
+
+    /**
+     * @return the fragmentation as a size, how many bytes resident but not
+     * allocated.
+     */
+    size_t getFragmentationSize() const {
+        return residentBytes - allocatedBytes;
+    }
+
+private:
+    size_t allocatedBytes;
+    size_t residentBytes;
+};
+
+std::ostream& operator<<(std::ostream&, const FragmentationStats&);
 
 } // namespace cb

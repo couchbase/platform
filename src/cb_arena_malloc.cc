@@ -31,6 +31,13 @@ void ArenaMallocClient::setEstimateUpdateThreshold(size_t maxDataSize,
             size_t(maxDataSize * (percentage / 100.0) / cb::get_cpu_count())));
 }
 
+std::ostream& operator<<(std::ostream& os, const FragmentationStats& stats) {
+    os << "allocated:" << stats.getAllocatedBytes()
+       << ", resident:" << stats.getResidentBytes()
+       << ", fragmentation:" << stats.getFragmentationPerc() << "%";
+    return os;
+}
+
 #if defined(HAVE_JEMALLOC)
 template class _ArenaMalloc<JEArenaMalloc>;
 #else

@@ -189,13 +189,13 @@ void SystemArenaMalloc::getDetailedStats(void (*callback)(void*, const char*),
                                          void* cbopaque) {
 }
 
-std::pair<size_t, size_t> SystemArenaMalloc::getFragmentationStats(
+cb::FragmentationStats SystemArenaMalloc::getFragmentationStats(
         const cb::ArenaMallocClient& client) {
     size_t alloc = allocated.at(client.index);
     return {alloc, alloc};
 }
 
-std::pair<size_t, size_t> SystemArenaMalloc::getGlobalFragmentationStats() {
+cb::FragmentationStats SystemArenaMalloc::getGlobalFragmentationStats() {
     size_t alloc = allocated.at(NoClientIndex);
     return {alloc, alloc};
 }

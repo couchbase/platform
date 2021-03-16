@@ -282,41 +282,41 @@ public:
     }
 
     /**
-     * Returns two values which can be used for calculating fragmentation:
+     * Returns FragmentationStats describing the arena's level of fragmentation.
+     * This uses the following two stats (and wraps them in FragmentationStats)
+     *
      *  1) total allocated
      *  2) total resident
      *
      * 100% utilisation or 0% fragmentation would be when 1 and 2 are equal.
      *
      * @param client The client to get stats for
-     * @return a pair, first is the total allocated and second is the total
-     *         resident.
+     * @return FragmentationStats object for the given arena
      */
-    static std::pair<size_t, size_t> getFragmentationStats(
+    static FragmentationStats getFragmentationStats(
             const ArenaMallocClient& client) {
         return Impl::getFragmentationStats(client);
     }
 
     /**
-     * Returns two values which can be used for calculating fragmentation:
+     * Returns FragmentationStats describing the arena's level of fragmentation.
+     * This uses the following two stats (and wraps them in FragmentationStats)
+     *
      *  1) total allocated
      *  2) total resident
-     *
-     * 100% utilisation or 0% fragmentation would be when 1 and 2 are equal.
      *
      * This method returns the fragmentation stats for the arena holding non
      * bucket allocations.
      *
-     * @return a pair, first is the total allocated and second is the total
-     *         resident.
+     * @return FragmentationStats object for the global (non-bucket) arena
      */
-    static std::pair<size_t, size_t> getGlobalFragmentationStats() {
+    static FragmentationStats getGlobalFragmentationStats() {
         return Impl::getGlobalFragmentationStats();
     }
 
     /// @returns the number of bytes allocated for the global arena.
     static size_t getGlobalAllocated() {
-        return getGlobalFragmentationStats().first;
+        return getGlobalFragmentationStats().getAllocatedBytes();
     }
 };
 
