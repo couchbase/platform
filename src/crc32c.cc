@@ -58,12 +58,7 @@
 #include <cstdint>
 #include <limits>
 
- // select header file for cpuid.
-#if defined(WIN32)
-#include <intrin.h>
-#elif defined(__clang__) || defined(__GNUC__)
-#include <cpuid.h>
-#endif
+#include <folly/CpuId.h>
 
 static bool setup_tables();
 static bool tables_setup = setup_tables();
@@ -364,28 +359,7 @@ typedef uint32_t (*crc32c_function)(const uint8_t* buf,
 // If SSE4.2 is available then hardware acceleration is used.
 //
 crc32c_function setup_crc32c() {
-#if defined(__x86_64__) || defined(_M_X64) || defined(_M_IX86)
-    const uint32_t SSE42 = 0x00100000;
-
-    crc32c_function f = crc32c_sw;
-
-#if defined(WIN32)
-    std::array<int, 4> registers = {{0,0,0,0}};
-    __cpuid(registers.data(), 1);
-#else
-    std::array<uint32_t, 4> registers = {{0,0,0,0}};
-    __get_cpuid(1, &registers[0], &registers[1], &registers[2],&registers[3]);
-#endif
-
-    if (registers[2] & SSE42) {
-        f = crc32c_hw;
-    }
-
-    return f;
-#else
-    // No hardware support
-    return crc32c_sw;
-#endif
+    return folly::CpuId().sse42() ? crc32c_hw : crc32c_sw;
 }
 
 static crc32c_function safe_crc32c = setup_crc32c();
