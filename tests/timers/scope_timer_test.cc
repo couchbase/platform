@@ -38,6 +38,10 @@ public:
         stopTimes.emplace_back(time);
     }
 
+    bool isEnabled() const {
+        return true;
+    }
+
     bool startCalled = false;
     std::vector<std::chrono::steady_clock::time_point>& startTimes;
     std::vector<std::chrono::steady_clock::time_point>& stopTimes;

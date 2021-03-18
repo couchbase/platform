@@ -68,12 +68,16 @@ class ScopeTimer1 {
 public:
     template <typename... Args>
     ScopeTimer1(Args&&... args) : listener1(std::forward<Args>(args)...) {
-        listener1.start(std::chrono::steady_clock::now());
+        if (listener1.isEnabled()) {
+            listener1.start(std::chrono::steady_clock::now());
+        }
     }
 
     ~ScopeTimer1() {
-        const auto endTime = std::chrono::steady_clock::now();
-        listener1.stop(endTime);
+        if (listener1.isEnabled()) {
+            const auto endTime = std::chrono::steady_clock::now();
+            listener1.stop(endTime);
+        }
     }
 
 private:
