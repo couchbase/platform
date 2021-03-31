@@ -204,6 +204,7 @@ LIST(APPEND PLATFORM_FILES
   src/histogram.cc
   src/interrupt.cc
   src/processclock.cc
+  src/semaphore.cc
   src/sized_buffer.cc
   src/strerror.cc
   src/string_hex.cc
@@ -231,6 +232,7 @@ LIST(APPEND PLATFORM_FILES
   include/platform/random.h
   include/platform/ring_buffer.h
   include/platform/rwlock.h
+  include/platform/semaphore.h
   include/platform/sized_buffer.h
   include/platform/strerror.h
   include/platform/string_hex.h
