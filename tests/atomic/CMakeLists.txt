@@ -16,6 +16,5 @@ ADD_EXECUTABLE(platform-atomic_duration-test atomic_duration_test.cc)
 TARGET_LINK_LIBRARIES(platform-atomic_duration-test PRIVATE
         gtest
         gtest_main
-        platform_headers
-        ${FOLLY_LIBRARIES})
+        platform_headers)
 ADD_TEST(platform-atomic_duration-test platform-atomic_duration-test)

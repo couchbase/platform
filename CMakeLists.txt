@@ -166,9 +166,7 @@ endif()
 # the single .cc file for the code it is testing, but needs the prototype(s)
 # of that .cc file.
 ADD_LIBRARY(platform_headers INTERFACE)
-TARGET_INCLUDE_DIRECTORIES(platform_headers SYSTEM INTERFACE
-                           ${FOLLY_INCLUDE_DIR})
-
+TARGET_LINK_LIBRARIES(platform_headers INTERFACE Folly::headers)
 TARGET_INCLUDE_DIRECTORIES(platform_headers INTERFACE
         include
         ${Platform_BINARY_DIR}/include)
@@ -268,7 +266,6 @@ endif(CB_SANITIZERS)
 
 foreach(platform_cbassert_variant ${platform_cbassert_VARIANTS})
   target_sources(${platform_cbassert_variant} PRIVATE ${CBASSERT_FILES})
-  target_include_directories(${platform_cbassert_variant} SYSTEM PRIVATE ${FOLLY_INCLUDE_DIR})
   target_include_directories(${platform_cbassert_variant} PRIVATE include)
   set_target_properties(${platform_cbassert_variant}
                         PROPERTIES
@@ -279,6 +276,7 @@ foreach(platform_cbassert_variant ${platform_cbassert_VARIANTS})
   else()
     target_link_libraries(${platform_cbassert_variant} PRIVATE ${CMAKE_DL_LIBS})
   endif()
+  target_link_libraries(${platform_cbassert_variant} PRIVATE Folly::headers)
 endforeach()
 
 if (MEMORY_ALLOCATOR STREQUAL "jemalloc")
@@ -294,7 +292,7 @@ LIST(APPEND PLATFORM_FILES src/system_arena_malloc.cc)
 # Note that in general external users should link 'platform' and not
 # 'platform_so' - see below.
 add_library(platform_so SHARED)
-target_link_libraries(platform_so PUBLIC ${FOLLY_LIBRARIES})
+target_link_libraries(platform_so PUBLIC Folly::folly)
 target_link_libraries(platform_so PRIVATE phosphor)
 
 # 'platform' - the library clients should normally link to.
@@ -321,7 +319,7 @@ if(CB_SANITIZERS)
   target_link_libraries(platform_unsanitized_so
       PRIVATE
           phosphor_unsanitized
-          ${FOLLY_LIBRARIES_UNSANITIZED})
+          Folly::folly_unsanitized)
   remove_sanitizers(platform_unsanitized_so)
 
   add_library(platform_unsanitized STATIC)
@@ -363,7 +361,6 @@ foreach(platform ${platform_VARIANTS})
     ${COUCHBASE_NETWORK_LIBS}
     ${cbassert_lib})
 
-  TARGET_INCLUDE_DIRECTORIES(${platform_so} SYSTEM PUBLIC ${FOLLY_INCLUDE_DIR})
   TARGET_INCLUDE_DIRECTORIES(${platform_so} PUBLIC include)
   # TODO: Add a TARGET_INCLUDE_DIRECTORIES(PUBLIC) to phosphor; then the
   # following line can be removed:

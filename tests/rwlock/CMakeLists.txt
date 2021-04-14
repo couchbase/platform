@@ -1,8 +1,5 @@
 ADD_EXECUTABLE(rwlock_test rwlock_test.cc)
-TARGET_LINK_LIBRARIES(rwlock_test gtest gtest_main platform ${FOLLY_LIBRARIES})
-TARGET_INCLUDE_DIRECTORIES(rwlock_test PRIVATE
-        ${Platform_SOURCE_DIR}/include
-        ${FOLLY_INCLUDE_DIR})
+TARGET_LINK_LIBRARIES(rwlock_test gtest gtest_main platform)
 ADD_TEST(rwlock_test rwlock_test)
 
 # The death tests in this suite rely on halting as soon as an error is detected.
