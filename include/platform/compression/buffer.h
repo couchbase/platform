@@ -16,7 +16,6 @@
  */
 #pragma once
 
-#include <platform/compress-visibility.h>
 #include <platform/compression/allocator.h>
 #include <platform/sized_buffer.h>
 #include <memory>
@@ -34,7 +33,7 @@ namespace cb::compression {
  * why the Buffer class handle both the new and malloc internally.
  *
  */
-class CBCOMPRESS_PUBLIC_API Buffer {
+class Buffer {
 public:
     /**
      * Initialize a new buffer which use the requested memory allocator

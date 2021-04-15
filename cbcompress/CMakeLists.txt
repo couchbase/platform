@@ -7,11 +7,12 @@ if (LZ4_FOUND)
     COMPILE_DEFINITIONS "LZ4_DISABLE_DEPRECATE_WARNINGS")
 endif()
 
-add_library(cbcompress SHARED
+add_library(cbcompress STATIC
             ${Platform_SOURCE_DIR}/include/platform/compress.h
             ${Platform_SOURCE_DIR}/include/platform/compression/allocator.h
             ${Platform_SOURCE_DIR}/include/platform/compression/buffer.h
             compress.cc)
+set_target_properties(cbcompress PROPERTIES POSITION_INDEPENDENT_CODE true)
 target_compile_definitions(cbcompress
                            PRIVATE
                            $<$<BOOL:${LZ4_FOUND}>:CB_LZ4_SUPPORT>)
@@ -21,18 +22,12 @@ target_include_directories(cbcompress
                            ${SNAPPY_INCLUDE_DIR}
                            $<$<BOOL:${LZ4_FOUND}>:${LZ4_INCLUDE_DIR}>)
 
-target_link_libraries(cbcompress gsl_lite platform
+target_link_libraries(cbcompress
+                      gsl_lite
+                      platform_cbassert
+                      platform_headers
                       ${SNAPPY_LIBRARIES}
                       $<$<BOOL:${LZ4_FOUND}>:${LZ4_LIBRARIES}>)
-
-generate_export_header(cbcompress
-                       EXPORT_MACRO_NAME CBCOMPRESS_PUBLIC_API
-                       EXPORT_FILE_NAME ${Platform_BINARY_DIR}/include/platform/compress-visibility.h)
-
-install(TARGETS cbcompress
-        RUNTIME DESTINATION bin
-        LIBRARY DESTINATION lib
-        ARCHIVE DESTINATION lib)
 
 if (COUCHBASE_PLATFORM_BUILD_UNIT_TESTS)
     #
@@ -45,7 +40,11 @@ if (COUCHBASE_PLATFORM_BUILD_UNIT_TESTS)
                                PRIVATE
                                $<$<BOOL:${LZ4_FOUND}>:CB_LZ4_SUPPORT>)
 
-    target_link_libraries(platform-compression-test cbcompress gtest gtest_main)
+    target_link_libraries(platform-compression-test
+                          cbcompress
+                          gtest
+                          gtest_main
+                          platform)
     add_test(platform-compression-test platform-compression-test)
 
     #

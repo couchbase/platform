@@ -17,7 +17,6 @@
 
 #pragma once
 
-#include <platform/compress-visibility.h>
 #include <platform/compression/buffer.h>
 
 namespace cb::compression {
@@ -44,7 +43,6 @@ static const size_t DEFAULT_MAX_INFLATED_SIZE = 30 * 1024 * 1024;
  * @throws std::bad_alloc if we fail to allocate memory for the
  *                        destination buffer
  */
-CBCOMPRESS_PUBLIC_API
 bool inflate(Algorithm algorithm,
              std::string_view input_buffer,
              Buffer& output,
@@ -60,7 +58,6 @@ bool inflate(Algorithm algorithm,
  * @throws std::bad_alloc if we fail to allocate memory for the
  *                        destination buffer
  */
-CBCOMPRESS_PUBLIC_API
 bool deflate(Algorithm algorithm,
              std::string_view input_buffer,
              Buffer& output);
@@ -68,7 +65,6 @@ bool deflate(Algorithm algorithm,
 /**
  * Get the algorithm as specified by the textual string
  */
-CBCOMPRESS_PUBLIC_API
 Algorithm to_algorithm(const std::string& string);
 
 /**
@@ -85,7 +81,6 @@ Algorithm to_algorithm(const std::string& string);
  * @throws std::invalid_argument if the algorithm provided is an
  *                               an unknown algorithm
  */
-CBCOMPRESS_PUBLIC_API
 bool validate(Algorithm algorithm,
               std::string_view input_buffer,
               size_t max_inflated_size = DEFAULT_MAX_INFLATED_SIZE);
@@ -99,10 +94,8 @@ bool validate(Algorithm algorithm,
  * @throws std::invalid_argument if the algorithm provided is an
  *                               unknown algorithm
  */
-CBCOMPRESS_PUBLIC_API
 size_t get_uncompressed_length(Algorithm algorithm,
                                std::string_view input_buffer);
 } // namespace cb::compression
 
-CBCOMPRESS_PUBLIC_API
 std::string to_string(cb::compression::Algorithm algorithm);

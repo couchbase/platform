@@ -17,7 +17,6 @@
 #pragma once
 
 #include <platform/cb_malloc.h>
-#include <platform/compress-visibility.h>
 
 #include <new>
 #include <stdexcept>
@@ -30,7 +29,7 @@ namespace cb::compression {
  * reimplemented with the fancier Allocator stuff in C++, but from a quick
  * glance that looked a bit more complex than what's needed for now..
  */
-struct CBCOMPRESS_PUBLIC_API Allocator {
+struct Allocator {
     enum class Mode {
         /**
          * Use the new array allocator to allocate backing space.
