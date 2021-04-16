@@ -168,12 +168,12 @@ TARGET_INCLUDE_DIRECTORIES(platform_headers INTERFACE
         ${Platform_BINARY_DIR}/include)
 
 if (WIN32)
-  # WIN2 platform.dll:
+  # WIN2 platform library:
   #  provide cb_malloc directly (that uses arena tracking with jemalloc/malloc
   #  depending on the build configuration)
   set(CB_MALLOC_IMPL src/cb_malloc_arena.cc)
 elseif (UNIX)
-  # UNIX platform.so:
+  # UNIX platform library:
   #  provide a weakly defined cb_malloc that uses plain je_malloc (or malloc)
   #  Targets desiring the tracking allocator will need to also link to
   #  platform_cb_malloc.
@@ -283,35 +283,30 @@ endif()
 # Always build the system_arena code for simpler concurrent development
 LIST(APPEND PLATFORM_FILES src/system_arena_malloc.cc)
 
-# platform_so - the 'real' platform shared library containing our various
+# platform - the main platform library containing our various
 # platform abstraction functionality.
-# Note that in general external users should link 'platform' and not
-# 'platform_so' - see below.
-add_library(platform_so SHARED)
-target_link_libraries(platform_so PUBLIC Folly::folly)
-target_link_libraries(platform_so PRIVATE phosphor)
-
-# 'platform' - the library clients should normally link to.
 #
-# 'platform' is a static library, which itself links to the main platform_so
-# shared library. This is to ensure that any clients of platform always link
-# in the C++ global operator new/delete replacements if they use platform at
-# all. If they didn't then this would cause problems:
-# 1) Memory usage from the client will not be tracked.
-# 2) If a C++ object allocated in platform (using cbmalloc via new) is
-#    delete'd in the client (using default free) then we have a mismatched
-#    new/delete pair.
-# By giving all clients of platform the global new/delete automatically we
-# avoid these problems.
+# Platform includes a C++ global operator new/delete replacement,
+# which redirects to cb_malloc and friends. This is implemented using
+# the selected COUCHBASE_MEMORY_ALLOCATOR (typically jemalloc in
+# production builds). cb_malloc et al are defined as weak symbols in
+# platform. This allows them to be overridden - for example using
+# platform_cb_arena_malloc to also record per-arena memory usage.
+#
+# Note this is a static library - this is primary
+# because it uses Facebook Folly, and we have encountered a number of
+# bugs when Folly is used from multiple shared binaries in the same
+# process - i.e. if both the main exe (memcached) and platform.so
+# linked folly, we run in to problems - see MB-45378.
 add_library(platform STATIC)
-
-target_sources(platform_so PRIVATE ${PLATFORM_FILES})
-
-TARGET_LINK_LIBRARIES(platform_so PRIVATE
-  platform_headers
+target_link_libraries(platform PUBLIC Folly::folly platform_headers)
+target_link_libraries(platform PRIVATE
+  phosphor
   gsl_lite
   ${MALLOC_LIBRARIES}
   ${PLATFORM_LIBRARIES})
+
+target_sources(platform PRIVATE ${PLATFORM_FILES})
 
 # Link publically with COUCHBASE_NETWORK_LIBS - strictly speaking this
 # shouldn't be necessary, however a number of downstream components
@@ -319,35 +314,20 @@ TARGET_LINK_LIBRARIES(platform_so PRIVATE
 # htons/htonl (via Ws2_32) etc when building on Windows.
 # Until all such targets are updated to link directly to Ws2_32, we
 # link publically.
-TARGET_LINK_LIBRARIES(platform_so PUBLIC
+TARGET_LINK_LIBRARIES(platform PUBLIC
   ${COUCHBASE_NETWORK_LIBS}
   platform_cbassert)
 
-TARGET_INCLUDE_DIRECTORIES(platform_so PUBLIC include)
-# TODO: Add a TARGET_INCLUDE_DIRECTORIES(PUBLIC) to phosphor; then the
-# following line can be removed:
-TARGET_INCLUDE_DIRECTORIES(platform_so PRIVATE ${phosphor_SOURCE_DIR}/include)
-
-# On OS X 10.11 we need to remove the default rpath settings in order to all
-# us to load the platform library from Python scripts that are run out of
-# /usr/bin/python. We can remove this once we ship our own Python.
-IF (APPLE)
-  SET_TARGET_PROPERTIES(platform_so
-    PROPERTIES
-    INSTALL_RPATH "")
-ENDIF ()
-SET_TARGET_PROPERTIES(platform_so PROPERTIES SOVERSION 0.1.0)
-
-INSTALL(TARGETS platform_so
-  RUNTIME DESTINATION bin
-  LIBRARY DESTINATION lib
-  ARCHIVE DESTINATION lib)
-
-target_sources(platform PRIVATE src/global_new_replacement.cc)
-
 SET_TARGET_PROPERTIES(platform PROPERTIES POSITION_INDEPENDENT_CODE true)
-TARGET_LINK_LIBRARIES(platform platform_headers platform_so)
 
+# platform_cb_arena_malloc contains strong symbols for
+# cb_malloc/cb_free et al; which override the default behavour in
+# platform and call down to cb::ArenaMalloc. In addition to supporting
+# different arenas which can be assigned per-thread, this also
+# facilitates tracking the amount of memory allocated per arena.  The
+# primary use-case for platform_cb_arena_malloc is memcached itself,
+# to track memory usage at the per-Bucket level, by creating an Arena
+# per bucket.
 if (WIN32)
   # Windows: create an empty interface library so targets can specify they link
   # to platform_cb_malloc_arena, but it is a no-op on WIN32.
@@ -361,7 +341,15 @@ elseif (UNIX)
   if (MEMORY_ALLOCATOR STREQUAL "jemalloc")
     LIST(APPEND PLATFORM_CB_MALLOC_ARENA_FILES src/je_malloc_conf.cc)
   endif()
-  add_library(platform_cb_malloc_arena STATIC ${PLATFORM_CB_MALLOC_ARENA_FILES})
+  # Note this must be an object library and not a static library. This
+  # is because the strong symbols for cb_malloc et al will _not_
+  # necessarily override the weak symbols from 'platform' - if
+  # platform is linked first (which it could well be depending on link
+  # order then the first definition is used (weak or
+  # otherwise). However if we use an OBJECT library (which essentially
+  # passes each .o file to the linker, the strong symbol _will_
+  # correctly take presidence.
+  add_library(platform_cb_malloc_arena OBJECT ${PLATFORM_CB_MALLOC_ARENA_FILES})
   target_link_libraries(platform_cb_malloc_arena platform ${MALLOC_LIBRARIES})
   set_target_properties(platform_cb_malloc_arena PROPERTIES
                                            POSITION_INDEPENDENT_CODE true)
@@ -370,7 +358,7 @@ else ()
   message(FATAL_ERROR "Unsupported system")
 endif (WIN32)
 
-GENERATE_EXPORT_HEADER(platform_so
+GENERATE_EXPORT_HEADER(platform
                        EXPORT_MACRO_NAME PLATFORM_PUBLIC_API
                        EXPORT_FILE_NAME ${Platform_BINARY_DIR}/include/platform/visibility.h)
 
