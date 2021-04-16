@@ -21,7 +21,6 @@
 #include <system_error>
 #include <string>
 
-PLATFORM_PUBLIC_API
 int checked_snprintf(char* str, const size_t size, const char* format, ...) {
     if (str == nullptr) {
         throw std::invalid_argument(

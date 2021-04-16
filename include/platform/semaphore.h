@@ -19,7 +19,6 @@
 #include <atomic>
 #include <cstddef>
 
-#include <platform/visibility.h>
 
 namespace cb {
 
@@ -43,7 +42,7 @@ namespace cb {
  *
  * [1]: https://en.cppreference.com/w/cpp/thread/counting_semaphore
  */
-class PLATFORM_PUBLIC_API Semaphore {
+class Semaphore {
 public:
     Semaphore() : Semaphore(1) {
     }

@@ -16,7 +16,6 @@
  */
 #pragma once
 
-#include <platform/visibility.h>
 #include <cstddef>
 
 namespace cb {
@@ -32,7 +31,6 @@ namespace cb {
  * @throws std::logic_error if the environemnt variable can't be parsed
  *         std::runtime_error if the system call to fetch available CPUs fail
  */
-PLATFORM_PUBLIC_API
 size_t get_available_cpu_count();
 
 /**
@@ -42,14 +40,12 @@ size_t get_available_cpu_count();
  *
  * @throws std::runtime_error if the system call to fetch available CPUs fail
  */
-PLATFORM_PUBLIC_API
 size_t get_cpu_count();
 
 /**
  * @return the current CPU of the caller
  * @throws std::runtime_error if the system call to fetch current CPU fails
  */
-PLATFORM_PUBLIC_API
 size_t get_cpu_index();
 
 /**
@@ -62,13 +58,11 @@ size_t get_cpu_index();
  * @param numStripes number of stripes
  * @return stripe index for the current cpu core.
  */
-PLATFORM_PUBLIC_API
 size_t stripe_for_current_cpu(size_t numStripes);
 
 /**
  * Get the number of last level caches in the system.
  */
-PLATFORM_PUBLIC_API
 size_t get_num_last_level_cache();
 }
 

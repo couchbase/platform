@@ -21,7 +21,6 @@
 #include <random>
 #include <sstream>
 
-PLATFORM_PUBLIC_API
 void cb::uuid::random(cb::uuid::uuid_t& uuid) {
     std::random_device rd;
     std::mt19937 gen(rd());
@@ -37,14 +36,12 @@ void cb::uuid::random(cb::uuid::uuid_t& uuid) {
     uuid[6] |= 0x40;
 }
 
-PLATFORM_PUBLIC_API
 cb::uuid::uuid_t cb::uuid::random() {
     uuid_t ret;
     random(ret);
     return ret;
 }
 
-PLATFORM_PUBLIC_API
 cb::uuid::uuid_t cb::uuid::from_string(std::string_view str) {
     uuid_t ret;
     if (str.size() != 36) {
@@ -73,7 +70,6 @@ cb::uuid::uuid_t cb::uuid::from_string(std::string_view str) {
     return ret;
 }
 
-PLATFORM_PUBLIC_API
 std::string to_string(const cb::uuid::uuid_t& uuid) {
     std::stringstream ss;
     ss << std::hex << std::setfill('0');

@@ -118,7 +118,6 @@ size_t cb::get_cpu_count() {
 #endif // WIN32
 }
 
-PLATFORM_PUBLIC_API
 size_t cb::get_cpu_index() {
 #if defined(WIN32)
     if (groupSize == 0) {
@@ -157,12 +156,10 @@ size_t cb::get_cpu_index() {
 #endif
 }
 
-PLATFORM_PUBLIC_API
 size_t cb::stripe_for_current_cpu(size_t numStripes) {
     return folly::AccessSpreader<std::atomic>::cachedCurrent(numStripes);
 }
 
-PLATFORM_PUBLIC_API
 size_t cb::get_num_last_level_cache() {
     return folly::CacheLocality::system().numCachesByLevel.back();
 }

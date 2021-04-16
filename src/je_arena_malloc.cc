@@ -142,8 +142,7 @@ static int makeArena() {
 }
 
 template <>
-PLATFORM_PUBLIC_API ArenaMallocClient
-JEArenaMalloc::registerClient(bool threadCache) {
+ArenaMallocClient JEArenaMalloc::registerClient(bool threadCache) {
     auto lockedClients = Clients::get().wlock();
     for (uint8_t index = 0; index < lockedClients->size(); index++) {
         auto& client = lockedClients->at(index);
@@ -171,8 +170,7 @@ JEArenaMalloc::registerClient(bool threadCache) {
 }
 
 template <>
-PLATFORM_PUBLIC_API void JEArenaMalloc::unregisterClient(
-        const ArenaMallocClient& client) {
+void JEArenaMalloc::unregisterClient(const ArenaMallocClient& client) {
     auto lockedClients = Clients::get().wlock();
     auto& c = lockedClients->at(client.index);
     if (!c.used) {
@@ -186,8 +184,8 @@ PLATFORM_PUBLIC_API void JEArenaMalloc::unregisterClient(
 }
 
 template <>
-PLATFORM_PUBLIC_API void JEArenaMalloc::switchToClient(
-        const ArenaMallocClient& client, bool tcache) {
+void JEArenaMalloc::switchToClient(const ArenaMallocClient& client,
+                                   bool tcache) {
     if (client.index == NoClientIndex) {
         ThreadLocalData::get().getCurrentClient().setup(
                 client.threadCache && tcacheEnabled ? 0 : MALLOCX_TCACHE_NONE,
@@ -217,7 +215,7 @@ PLATFORM_PUBLIC_API void JEArenaMalloc::switchToClient(
 }
 
 template <>
-PLATFORM_PUBLIC_API void JEArenaMalloc::switchFromClient() {
+void JEArenaMalloc::switchFromClient() {
     // Set to 0, no client, all tracking/allocations go to default arena/tcache
     switchToClient({0, NoClientIndex, tcacheEnabled}, tcacheEnabled);
 }

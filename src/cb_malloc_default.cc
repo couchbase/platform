@@ -15,7 +15,6 @@
  *   limitations under the License.
  */
 
-#include <platform/visibility.h>
 
 #include <cstdlib>
 #include <cstring>
@@ -38,27 +37,16 @@ extern "C" {
 
 // When building with GCC/Clang we will define cb_malloc et al as a weak
 // symbol and define functions that map to cstdlib memory allocator methods.
-PLATFORM_PUBLIC_API
 void* __attribute__((weak)) cb_malloc(size_t);
-PLATFORM_PUBLIC_API
 void* __attribute__((weak)) cb_calloc(size_t, size_t);
-PLATFORM_PUBLIC_API
 void* __attribute__((weak)) cb_realloc(void*, size_t);
-PLATFORM_PUBLIC_API
 void* __attribute__((weak)) cb_aligned_alloc(size_t, size_t);
-PLATFORM_PUBLIC_API
 void __attribute__((weak)) cb_free(void*);
-PLATFORM_PUBLIC_API
 void __attribute__((weak)) cb_aligned_free(void*);
-PLATFORM_PUBLIC_API
 void __attribute__((weak)) cb_sized_free(void*, size_t);
-PLATFORM_PUBLIC_API
 size_t __attribute__((weak)) cb_malloc_usable_size(void*);
-PLATFORM_PUBLIC_API
 char* __attribute__((weak)) cb_strdup(const char*);
-PLATFORM_PUBLIC_API
 int __attribute__((weak)) cb_malloc_is_using_arenas();
-PLATFORM_PUBLIC_API
 const char* __attribute__((weak)) cb_malloc_get_conf();
 
 // Macros to form the name of the memory allocation function to use based on

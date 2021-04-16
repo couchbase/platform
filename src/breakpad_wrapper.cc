@@ -88,7 +88,6 @@ static bool dumpCallback(const MinidumpDescriptor& descriptor,
 }
 #endif
 
-PLATFORM_PUBLIC_API
 void breakpad_initialize(const char* minidump_dir) {
 #if defined(WIN32)
     // Takes a wchar_t* on Windows. Isn't the Breakpad API nice and
@@ -122,29 +121,24 @@ void breakpad_initialize(const char* minidump_dir) {
 #endif /* defined({OS}) */
 }
 
-PLATFORM_PUBLIC_API
 bool breakpad_write_minidump(void) {
     return handler->WriteMinidump();
 }
 
-PLATFORM_PUBLIC_API
 uintptr_t breakpad_get_write_minidump_addr() {
     return (uintptr_t)breakpad_write_minidump;
 }
 
 #else /* defined(HAVE_BREAKPAD) */
 
-PLATFORM_PUBLIC_API
 void breakpad_initialize(const char* minidump_dir) {
     // do nothing
 }
 
-PLATFORM_PUBLIC_API
 bool breakpad_write_minidump(void) {
     return false;
 }
 
-PLATFORM_PUBLIC_API
 uintptr_t breakpad_get_write_minidump_addr() {
     return 0;
 }

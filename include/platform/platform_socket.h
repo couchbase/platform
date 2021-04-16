@@ -21,7 +21,6 @@
 #pragma once
 
 #include <platform/dynamic.h>
-#include <platform/visibility.h>
 
 #include <folly/portability/Sockets.h>
 
@@ -32,13 +31,11 @@ extern "C" {
 #ifdef WIN32
 #define CB_DONT_NEED_BYTEORDER 1
 
-PLATFORM_PUBLIC_API
 int sendmsg(SOCKET sock, const struct msghdr* msg, int flags);
 
 /**
  * Initialize the winsock library
  */
-PLATFORM_PUBLIC_API
 void cb_initialize_sockets(void);
 #else // WIN32
 #define cb_initialize_sockets()
@@ -51,12 +48,10 @@ void cb_initialize_sockets(void);
 #ifndef CB_DONT_NEED_BYTEORDER
 #include <folly/Bits.h>
 
-PLATFORM_PUBLIC_API
 inline uint64_t ntohll(uint64_t x) {
     return folly::Endian::big(x);
 }
 
-PLATFORM_PUBLIC_API
 inline uint64_t htonll(uint64_t x) {
     return folly::Endian::big(x);
 }

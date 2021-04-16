@@ -35,7 +35,6 @@
 #pragma once
 
 #include <platform/dynamic.h>
-#include <platform/visibility.h>
 
 #include <stdlib.h>
 
@@ -55,15 +54,15 @@
 extern "C" {
 #endif
 
-PLATFORM_PUBLIC_API void* cb_malloc(size_t size) NO_EXCEPTION;
-PLATFORM_PUBLIC_API void* cb_calloc(size_t nmemb, size_t size) NO_EXCEPTION;
-PLATFORM_PUBLIC_API void* cb_realloc(void* ptr, size_t size) NO_EXCEPTION;
-PLATFORM_PUBLIC_API void* cb_aligned_alloc(size_t alignment,
+void* cb_malloc(size_t size) NO_EXCEPTION;
+void* cb_calloc(size_t nmemb, size_t size) NO_EXCEPTION;
+void* cb_realloc(void* ptr, size_t size) NO_EXCEPTION;
+void* cb_aligned_alloc(size_t alignment,
                                            size_t size) NO_EXCEPTION;
-PLATFORM_PUBLIC_API void cb_free(void* ptr) NO_EXCEPTION;
-PLATFORM_PUBLIC_API void cb_aligned_free(void* ptr) NO_EXCEPTION;
-PLATFORM_PUBLIC_API void cb_sized_free(void* ptr, size_t size) NO_EXCEPTION;
-PLATFORM_PUBLIC_API size_t cb_malloc_usable_size(void* ptr) NO_EXCEPTION;
+void cb_free(void* ptr) NO_EXCEPTION;
+void cb_aligned_free(void* ptr) NO_EXCEPTION;
+void cb_sized_free(void* ptr, size_t size) NO_EXCEPTION;
+size_t cb_malloc_usable_size(void* ptr) NO_EXCEPTION;
 
 #undef throwspec
 
@@ -73,18 +72,16 @@ PLATFORM_PUBLIC_API size_t cb_malloc_usable_size(void* ptr) NO_EXCEPTION;
  * For our 'cb' versions we use cb_malloc instead.
  */
 
-PLATFORM_PUBLIC_API char* cb_strdup(const char* s1);
+char* cb_strdup(const char* s1);
 
 /**
  * @return 1 if cb_malloc is directed through cb::ArenaMalloc
  */
-PLATFORM_PUBLIC_API
 int cb_malloc_is_using_arenas();
 
 /**
  * @return a string of any configuration used
  */
-PLATFORM_PUBLIC_API
 const char* cb_malloc_get_conf();
 
 #ifdef __cplusplus
@@ -121,9 +118,9 @@ typedef void(*cb_malloc_new_hook_t)(const void *ptr, size_t sz);
  */
 typedef void(*cb_malloc_delete_hook_t)(const void *ptr);
 
-PLATFORM_PUBLIC_API bool cb_add_new_hook(cb_malloc_new_hook_t f);
-PLATFORM_PUBLIC_API bool cb_remove_new_hook(cb_malloc_new_hook_t f);
-PLATFORM_PUBLIC_API bool cb_add_delete_hook(cb_malloc_delete_hook_t f);
-PLATFORM_PUBLIC_API bool cb_remove_delete_hook(cb_malloc_delete_hook_t f);
+bool cb_add_new_hook(cb_malloc_new_hook_t f);
+bool cb_remove_new_hook(cb_malloc_new_hook_t f);
+bool cb_add_delete_hook(cb_malloc_delete_hook_t f);
+bool cb_remove_delete_hook(cb_malloc_delete_hook_t f);
 
 #endif // __cplusplus

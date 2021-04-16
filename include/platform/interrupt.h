@@ -16,7 +16,6 @@
  */
 #pragma once
 
-#include <platform/visibility.h>
 
 namespace cb::console {
 using interrupt_handler = void (*)();
@@ -27,13 +26,11 @@ using interrupt_handler = void (*)();
  * @throws std::system_error if an error occurs while setting up the
  *                           handler
  */
-PLATFORM_PUBLIC_API
 void set_sigint_handler(interrupt_handler h);
 
 /**
  * Clears any handler that might have been invoked where a ctrl+c event
  * was detected.
  */
-PLATFORM_PUBLIC_API
 void clear_sigint_handler();
 } // namespace cb::console

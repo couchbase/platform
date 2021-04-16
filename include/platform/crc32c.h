@@ -23,7 +23,6 @@
 // performance.
 //
 #pragma once
-#include <platform/visibility.h>
 #include <cstddef>
 #include <cstdint>
 
@@ -31,16 +30,12 @@
 #define CB_CRC32_HW_SUPPORTED 1
 #endif
 
-PLATFORM_PUBLIC_API
 uint32_t crc32c(const uint8_t* buf, size_t len, uint32_t crc_in);
 
 // The following methods are used by unit testing to force the calculation
 // of the checksum by using a given implementation.
-PLATFORM_PUBLIC_API
 uint32_t crc32c_sw(const uint8_t* buf, size_t len, uint32_t crc_in);
 #ifdef CB_CRC32_HW_SUPPORTED
-PLATFORM_PUBLIC_API
 uint32_t crc32c_hw(const uint8_t* buf, size_t len, uint32_t crc_in);
-PLATFORM_PUBLIC_API
 uint32_t crc32c_hw_1way(const uint8_t* buf, size_t len, uint32_t crc_in);
 #endif

@@ -16,7 +16,6 @@
  */
 #pragma once
 
-#include <platform/visibility.h>
 
 #include <chrono>
 #include <string>
@@ -25,7 +24,6 @@ namespace cb {
 
 // Simple wrapper function that returns std::chrono::nanoseconds
 // given a std::chrono::steady_clock::time_point
-PLATFORM_PUBLIC_API
 std::chrono::nanoseconds to_ns_since_epoch(
         const std::chrono::steady_clock::time_point& tp);
 
@@ -33,7 +31,7 @@ std::chrono::nanoseconds to_ns_since_epoch(
  * Interface for a source of 'now' for the std::chrono::steady_clock to allow
  * for dependency injection of time.
  */
-struct PLATFORM_PUBLIC_API ProcessClockSource {
+struct ProcessClockSource {
     virtual std::chrono::steady_clock::time_point now() = 0;
     virtual ~ProcessClockSource() = default;
 };
@@ -42,18 +40,16 @@ struct PLATFORM_PUBLIC_API ProcessClockSource {
  * Default 'now' source for std::chrono::steady_clock, simply
  * proxies std::chrono::steady_clock::now()
  */
-struct PLATFORM_PUBLIC_API DefaultProcessClockSource : ProcessClockSource {
+struct DefaultProcessClockSource : ProcessClockSource {
     std::chrono::steady_clock::time_point now() override;
 };
 
 /**
  * Singleton instance of DefaultProcessClockSource
  */
-PLATFORM_PUBLIC_API
 DefaultProcessClockSource& defaultProcessClockSource();
 }
 
-PLATFORM_PUBLIC_API
 inline std::chrono::nanoseconds to_ns_since_epoch(
         const std::chrono::steady_clock::time_point& tp) {
     return cb::to_ns_since_epoch(tp);

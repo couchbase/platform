@@ -82,8 +82,8 @@ typename Histogram<T, Limits>::iterator Histogram<T, Limits>::findBin(
 
 // Explicit template instantiations for all classes which we specialise
 // Histogram<> for.
-template class PLATFORM_PUBLIC_API Histogram<uint16_t>;
-template class PLATFORM_PUBLIC_API Histogram<uint32_t>;
-template class PLATFORM_PUBLIC_API Histogram<size_t>;
-template class PLATFORM_PUBLIC_API Histogram<int>;
-template class PLATFORM_PUBLIC_API Histogram<UnsignedMicroseconds, cb::duration_limits>;
+template class Histogram<uint16_t>;
+template class Histogram<uint32_t>;
+template class Histogram<size_t>;
+template class Histogram<int>;
+template class Histogram<UnsignedMicroseconds, cb::duration_limits>;

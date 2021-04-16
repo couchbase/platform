@@ -17,7 +17,6 @@
 
 #include <platform/sized_buffer.h>
 
-PLATFORM_PUBLIC_API
 std::string cb::to_string(cb::char_buffer cb) {
     return std::string{cb.data(), cb.size()};
 }

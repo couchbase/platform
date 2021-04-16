@@ -47,7 +47,6 @@ static DWORD WINAPI platform_thread_wrap(LPVOID arg)
     return 0;
 }
 
-PLATFORM_PUBLIC_API
 int cb_create_thread(cb_thread_t *id,
                      void (*func)(void *arg),
                      void *arg,
@@ -57,7 +56,7 @@ int cb_create_thread(cb_thread_t *id,
     return cb_create_named_thread(id, func, arg, detached, NULL);
 }
 
-PLATFORM_PUBLIC_API int cb_create_named_thread(cb_thread_t* id,
+int cb_create_named_thread(cb_thread_t* id,
                                                void (*func)(void* arg),
                                                void* arg,
                                                int detached,
@@ -88,7 +87,6 @@ PLATFORM_PUBLIC_API int cb_create_named_thread(cb_thread_t* id,
     return 0;
 }
 
-PLATFORM_PUBLIC_API
 int cb_join_thread(cb_thread_t id)
 {
     // We've seen problems where we've had global std::unique_ptr's which
@@ -113,66 +111,56 @@ int cb_join_thread(cb_thread_t id)
     return 0;
 }
 
-PLATFORM_PUBLIC_API
 cb_thread_t cb_thread_self(void)
 {
     return GetCurrentThreadId();
 }
 
-PLATFORM_PUBLIC_API
 int cb_set_thread_name(const char*)
 {
     // Not implemented on WIN32
     return -1;
 }
 
-PLATFORM_PUBLIC_API
 int cb_get_thread_name(char*, size_t)
 {
     return -1;
 }
 
-PLATFORM_PUBLIC_API
 bool is_thread_name_supported(void)
 {
     return false;
 }
 
-PLATFORM_PUBLIC_API
 void cb_rw_lock_initialize(cb_rwlock_t *rw)
 {
     InitializeSRWLock(rw);
 }
 
-PLATFORM_PUBLIC_API
 void cb_rw_lock_destroy(cb_rwlock_t *rw)
 {
     (void)rw;
     // Nothing todo on windows
 }
 
-PLATFORM_PUBLIC_API
 int cb_rw_reader_enter(cb_rwlock_t *rw)
 {
     AcquireSRWLockShared(rw);
     return 0;
 }
 
-PLATFORM_PUBLIC_API
 int cb_rw_reader_exit(cb_rwlock_t *rw)
 {
     ReleaseSRWLockShared(rw);
     return 0;
 }
 
-PLATFORM_PUBLIC_API
 int cb_rw_writer_enter(cb_rwlock_t *rw)
 {
     AcquireSRWLockExclusive(rw);
     return 0;
 }
 
-PLATFORM_PUBLIC_API
 int cb_rw_writer_exit(cb_rwlock_t *rw)
 {
     ReleaseSRWLockExclusive(rw);
@@ -180,16 +168,11 @@ int cb_rw_writer_exit(cb_rwlock_t *rw)
 }
 
 // Wrapper into cb::getopt (which we now unit tests on all platforms)
-PLATFORM_PUBLIC_API
 char* optarg;
-PLATFORM_PUBLIC_API
 int opterr;
-PLATFORM_PUBLIC_API
 int optind = 1;
-PLATFORM_PUBLIC_API
 int optopt;
 
-PLATFORM_PUBLIC_API
 int getopt_long(int argc,
                 char** argv,
                 const char* optstring,
@@ -211,7 +194,6 @@ int getopt_long(int argc,
     return ret;
 }
 
-PLATFORM_PUBLIC_API
 int getopt(int argc, char** argv, const char* optstring) {
     cb::getopt::optind = optind;
     cb::getopt::opterr = opterr;

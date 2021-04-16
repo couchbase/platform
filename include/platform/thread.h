@@ -17,7 +17,6 @@
 #pragma once
 
 #include <platform/platform_thread.h>
-#include <platform/visibility.h>
 
 #include <atomic>
 #include <condition_variable>
@@ -62,7 +61,7 @@ namespace Couchbase {
      * A Thread is a thread used to run a task. It has a mandatory name
      * (will be used as the thread name if the underlying platform supports it)
      */
-    class PLATFORM_PUBLIC_API Thread {
+    class Thread {
     public:
         /**
          * Release all resources allocated by the Thread (if the thread is

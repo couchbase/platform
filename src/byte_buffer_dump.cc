@@ -75,14 +75,12 @@ static void dump(std::ostream& out, const cb::const_byte_buffer buffer) {
     }
 }
 
-PLATFORM_PUBLIC_API
 std::ostream& operator<<(std::ostream& out, const cb::byte_buffer& buffer) {
     cb::const_byte_buffer buf { buffer.buf, buffer.len };
     dump(out, buf);
     return out;
 }
 
-PLATFORM_PUBLIC_API
 std::ostream& operator<<(std::ostream& out, const cb::const_byte_buffer& buffer) {
     dump(out, buffer);
     return out;

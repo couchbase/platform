@@ -40,7 +40,6 @@
 
 #pragma once
 
-#include <platform/visibility.h>
 
 #if defined(__APPLE__)
 // https://github.com/boostorg/exception/issues/37 - on macOS and setting
@@ -52,18 +51,18 @@
 // are affected types with default visibility (PLATFORM_PUBLIC_API).
 namespace boost {
 template <class Tag, class T>
-class PLATFORM_PUBLIC_API error_info;
+class error_info;
 };
 namespace boost {
 namespace exception_detail {
-class PLATFORM_PUBLIC_API error_info_base;
+class error_info_base;
 };
 }; // namespace boost
 namespace boost {
 namespace stacktrace {
-class PLATFORM_PUBLIC_API frame;
+class frame;
 template <class Allocator>
-class PLATFORM_PUBLIC_API basic_stacktrace;
+class basic_stacktrace;
 }; // namespace stacktrace
 }; // namespace boost
 #endif // defined(APPLE)
@@ -90,7 +89,7 @@ class PLATFORM_PUBLIC_API basic_stacktrace;
 
 namespace cb {
 
-struct PLATFORM_PUBLIC_API tag_stacktrace;
+struct tag_stacktrace;
 using traced =
         boost::error_info<struct tag_stacktrace, boost::stacktrace::stacktrace>;
 

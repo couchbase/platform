@@ -20,7 +20,6 @@
  */
 #pragma once
 
-#include <platform/visibility.h>
 
 #ifdef WIN32
 
@@ -53,7 +52,6 @@ typedef void (*cb_thread_main_func)(void* argument);
  *                 created in a detached state (which you
  *                 can't call cb_join_thread on).
  */
-PLATFORM_PUBLIC_API
 int cb_create_thread(cb_thread_t* id,
                      cb_thread_main_func func,
                      void* arg,
@@ -71,7 +69,6 @@ int cb_create_thread(cb_thread_t* id,
  * @param name Name of the thread. Maximum of 16 characters in length,
  *             including terminating '\0'. (Note: name ignored on Windows).
  */
-PLATFORM_PUBLIC_API
 int cb_create_named_thread(cb_thread_t* id,
                            cb_thread_main_func func,
                            void* arg,
@@ -83,7 +80,6 @@ int cb_create_named_thread(cb_thread_t* id,
  *
  * @param id The thread identifier to wait for
  */
-PLATFORM_PUBLIC_API
 int cb_join_thread(cb_thread_t id);
 
 /**
@@ -91,7 +87,6 @@ int cb_join_thread(cb_thread_t id);
  *
  * @return the id for the running thread
  */
-PLATFORM_PUBLIC_API
 cb_thread_t cb_thread_self();
 
 /**
@@ -105,7 +100,6 @@ cb_thread_t cb_thread_self();
  * @return 0 for success, 1 if the specified name is too long and
  *         -1 if an error occurred
  */
-PLATFORM_PUBLIC_API
 int cb_set_thread_name(const char* name);
 
 /**
@@ -116,13 +110,11 @@ int cb_set_thread_name(const char* name);
  * @return 0 for success
  *         -1 if an error occurred
  */
-PLATFORM_PUBLIC_API
 int cb_get_thread_name(char* name, size_t size);
 
 /**
  * Does the underlying platform support setting thread names
  */
-PLATFORM_PUBLIC_API
 bool is_thread_name_supported();
 
 /***********************************************************************
@@ -132,39 +124,33 @@ bool is_thread_name_supported();
 /**
  * Initialize a read/write lock
  */
-PLATFORM_PUBLIC_API
 void cb_rw_lock_initialize(cb_rwlock_t* rw);
 
 /**
  * Destroy a read/write lock
  */
-PLATFORM_PUBLIC_API
 void cb_rw_lock_destroy(cb_rwlock_t* rw);
 
 /*
  * Obtain reader access to the rw_lock
  * Return 0 if succesfully entered the critical section.
  */
-PLATFORM_PUBLIC_API
 int cb_rw_reader_enter(cb_rwlock_t* rw);
 
 /*
  * Exit the lock if previously entered as a reader.
  * Return 0 if succesfully exited the critical section.
  */
-PLATFORM_PUBLIC_API
 int cb_rw_reader_exit(cb_rwlock_t* rw);
 
 /*
  * Obtain writer access to the rw_lock
  * Return 0 if succesfully entered the critical section.
  */
-PLATFORM_PUBLIC_API
 int cb_rw_writer_enter(cb_rwlock_t* rw);
 
 /*
  * Exit the lock if previously entered as a writer.
  * Return 0 if succesfully exited the critical section.
  */
-PLATFORM_PUBLIC_API
 int cb_rw_writer_exit(cb_rwlock_t* rw);

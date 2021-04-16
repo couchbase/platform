@@ -252,7 +252,6 @@ uint32_t crc32c_sw_short_block(const uint8_t* buf, size_t len, uint32_t crc_in) 
 //
 // CRC32-C software implementation.
 //
-PLATFORM_PUBLIC_API
 uint32_t crc32c_sw (const uint8_t* buf, size_t len, uint32_t crc_in) {
     // If len is less than the 3 x LONG_BLOCK it's faster to use the short-block only.
     if (len < (3 * LONG_BLOCK)) {
@@ -368,7 +367,6 @@ static crc32c_function safe_crc32c = setup_crc32c();
 // The exported crc32c method uses the function setup_crc32 decided
 // is safe for the platform.
 //
-PLATFORM_PUBLIC_API
 uint32_t crc32c (const uint8_t* buf, size_t len, uint32_t crc_in) {
     return safe_crc32c(buf, len, crc_in);
 }

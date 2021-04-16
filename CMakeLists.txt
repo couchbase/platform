@@ -6,7 +6,6 @@ INCLUDE(CheckIncludeFile)
 INCLUDE(CheckIncludeFileCXX)
 INCLUDE(CheckSymbolExists)
 INCLUDE(CTest)
-INCLUDE(GenerateExportHeader)
 INCLUDE(check_unit_test_enabled)
 
 OPTION(PLATFORM_ENABLE_CBSOCKET "Build cbsocket support" ON)
@@ -234,7 +233,6 @@ LIST(APPEND PLATFORM_FILES
   include/platform/thread.h
   include/platform/timeutils.h
   include/platform/uuid.h
-  ${Platform_BINARY_DIR}/include/platform/visibility.h
 )
 
 # Build a separate static library for cbassert/backtrace
@@ -357,10 +355,6 @@ elseif (UNIX)
 else ()
   message(FATAL_ERROR "Unsupported system")
 endif (WIN32)
-
-GENERATE_EXPORT_HEADER(platform
-                       EXPORT_MACRO_NAME PLATFORM_PUBLIC_API
-                       EXPORT_FILE_NAME ${Platform_BINARY_DIR}/include/platform/visibility.h)
 
 # To simplify usage we always build breakpad_wrapper; it'll just
 # do nothing on targets which don't have Breakpad.

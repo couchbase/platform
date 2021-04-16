@@ -42,48 +42,47 @@ static inline void cb_invoke_delete_hook(const void* ptr) {
     }
 }
 
-PLATFORM_PUBLIC_API void* cb_malloc(size_t size) noexcept {
+void* cb_malloc(size_t size) noexcept {
     void* ptr = cb::ArenaMalloc::malloc(size);
     cb_invoke_new_hook(ptr, size);
     return ptr;
 }
 
-PLATFORM_PUBLIC_API void* cb_calloc(size_t nmemb, size_t size) noexcept {
+void* cb_calloc(size_t nmemb, size_t size) noexcept {
     void* ptr = cb::ArenaMalloc::calloc(nmemb, size);
     cb_invoke_new_hook(ptr, size);
     return ptr;
 }
 
-PLATFORM_PUBLIC_API void* cb_realloc(void* ptr, size_t size) noexcept {
+void* cb_realloc(void* ptr, size_t size) noexcept {
     cb_invoke_delete_hook(ptr);
     ptr = cb::ArenaMalloc::realloc(ptr, size);
     cb_invoke_new_hook(ptr, size);
     return ptr;
 }
 
-PLATFORM_PUBLIC_API void* cb_aligned_alloc(size_t alignment,
-                                           size_t size) noexcept {
+void* cb_aligned_alloc(size_t alignment, size_t size) noexcept {
     void* ptr = cb::ArenaMalloc::aligned_alloc(alignment, size);
     cb_invoke_new_hook(ptr, size);
     return ptr;
 }
 
-PLATFORM_PUBLIC_API void cb_free(void* ptr) noexcept {
+void cb_free(void* ptr) noexcept {
     cb_invoke_delete_hook(ptr);
     cb::ArenaMalloc::free(ptr);
 }
 
-PLATFORM_PUBLIC_API void cb_aligned_free(void* ptr) noexcept {
+void cb_aligned_free(void* ptr) noexcept {
     cb_invoke_delete_hook(ptr);
     cb::ArenaMalloc::aligned_free(ptr);
 }
 
-PLATFORM_PUBLIC_API void cb_sized_free(void* ptr, size_t size) noexcept {
+void cb_sized_free(void* ptr, size_t size) noexcept {
     cb_invoke_delete_hook(ptr);
     cb::ArenaMalloc::sized_free(ptr, size);
 }
 
-PLATFORM_PUBLIC_API char* cb_strdup(const char* s1) {
+char* cb_strdup(const char* s1) {
     size_t len = std::strlen(s1);
     char* result = static_cast<char*>(cb_malloc(len + 1));
     if (result != nullptr) {
@@ -92,16 +91,14 @@ PLATFORM_PUBLIC_API char* cb_strdup(const char* s1) {
     return result;
 }
 
-PLATFORM_PUBLIC_API size_t cb_malloc_usable_size(void* ptr) noexcept {
+size_t cb_malloc_usable_size(void* ptr) noexcept {
     return cb::ArenaMalloc::malloc_usable_size(ptr);
 }
 
-PLATFORM_PUBLIC_API
 int cb_malloc_is_using_arenas() {
     return 1;
 }
 
-PLATFORM_PUBLIC_API
 const char* cb_malloc_get_conf() {
     // MB-38422: There is no je_malloc_conf for windows
 #if defined(HAVE_JEMALLOC) && !defined(WIN32)

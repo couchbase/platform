@@ -16,7 +16,6 @@
  */
 #pragma once
 
-#include <platform/visibility.h>
 
 #include <algorithm>
 #include <cstddef>
@@ -357,7 +356,6 @@ size_t buffer_hash(sized_buffer<CharT> base) {
  */
 using char_buffer = sized_buffer<char>;
 
-PLATFORM_PUBLIC_API
 std::string to_string(char_buffer cb);
 
 /**

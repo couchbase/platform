@@ -22,7 +22,6 @@
 
 #pragma once
 
-#include <platform/visibility.h>
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -43,21 +42,18 @@ extern "C" {
  * @param minidump_dir Path to an existing, writable directory which
  *        minidumps will be written to.
  */
-PLATFORM_PUBLIC_API
 void breakpad_initialize(const char* minidump_dir);
 
 /* Writes a minidump of the current application state, to the directory
  * previously specified to breakpad_initialize().
  * @return True if the minidump was successfully written, else false.
  */
-PLATFORM_PUBLIC_API
 bool breakpad_write_minidump();
 
 /* Returns the address of breakpad_write_minidump() function.
  * Provided to facilite passing that symbol into foreign environments
  * (e.g. Golang) for later use as a C function pointer.
  */
-PLATFORM_PUBLIC_API
 uintptr_t breakpad_get_write_minidump_addr();
 
 #ifdef __cplusplus

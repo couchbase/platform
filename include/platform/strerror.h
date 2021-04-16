@@ -16,7 +16,6 @@
  */
 #pragma once
 
-#include <platform/visibility.h>
 #include <string>
 
 #ifdef WIN32
@@ -35,7 +34,6 @@
  * Get a textual string of the current system error code (GetLastError
  * on windows and errno on mac/linux/unix)
  */
-PLATFORM_PUBLIC_API
 std::string cb_strerror();
 
 #ifdef WIN32
@@ -53,5 +51,4 @@ std::string cb_strerror();
  * @param error The error code to look up
  * @return a textual representation of the error
  */
-PLATFORM_PUBLIC_API
 std::string cb_strerror(cb_os_error_t error);

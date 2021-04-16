@@ -16,7 +16,6 @@
  */
 #pragma once
 
-#include <platform/visibility.h>
 
 #include "sized_buffer.h"
 #include <cstdint>
@@ -30,22 +29,16 @@ namespace cb {
  * @throws std::invalid_argument for an invalid character in the string
  *         std::overflow_error if the input string won't fit in uint64_t
  */
-PLATFORM_PUBLIC_API
 uint64_t from_hex(std::string_view buffer);
 
-PLATFORM_PUBLIC_API
 std::string to_hex(uint8_t val);
 
-PLATFORM_PUBLIC_API
 std::string to_hex(uint16_t val);
 
-PLATFORM_PUBLIC_API
 std::string to_hex(uint32_t val);
 
-PLATFORM_PUBLIC_API
 std::string to_hex(uint64_t val);
 
-PLATFORM_PUBLIC_API
 std::string to_hex(const_byte_buffer buffer);
 
 /**
@@ -55,7 +48,6 @@ std::string to_hex(const_byte_buffer buffer);
  * @param buffer Input data to dump
  * @return the hex string
  */
-PLATFORM_PUBLIC_API
 std::string hex_encode(const_byte_buffer buffer);
 
 inline std::string hex_encode(std::string_view buffer) {

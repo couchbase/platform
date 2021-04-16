@@ -23,7 +23,6 @@
 #include <errno.h>
 #endif
 
-PLATFORM_PUBLIC_API
 std::string cb_strerror() {
 #ifdef WIN32
     return cb_strerror(GetLastError());
@@ -32,7 +31,6 @@ std::string cb_strerror() {
 #endif
 }
 
-PLATFORM_PUBLIC_API
 std::string cb_strerror(cb_os_error_t error)
 {
 #ifdef WIN32

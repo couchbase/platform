@@ -16,7 +16,6 @@
  */
 #pragma once
 
-#include <platform/visibility.h>
 #include <cstddef>
 #include <cstdint>
 
@@ -27,7 +26,7 @@ class RandomGeneratorProvider;
  * The RandomGenerator use windows crypto framework on windows and
  * /dev/urandom on the other platforms in order to get random data.
  */
-class PLATFORM_PUBLIC_API RandomGenerator {
+class RandomGenerator {
 public:
     RandomGenerator();
 

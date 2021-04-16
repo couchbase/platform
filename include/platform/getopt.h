@@ -22,7 +22,6 @@
  * to test ;)
  */
 
-#include <platform/visibility.h>
 
 namespace cb::getopt {
 
@@ -37,36 +36,28 @@ struct option {
     int val;
 };
 
-PLATFORM_PUBLIC_API
 extern char* optarg;
-PLATFORM_PUBLIC_API
 extern int opterr;
-PLATFORM_PUBLIC_API
 extern int optind;
-PLATFORM_PUBLIC_API
 extern int optopt;
 
-PLATFORM_PUBLIC_API
 extern int getopt_long(int argc,
                        char** argv,
                        const char* optstring,
                        const struct option* longopts,
                        int* longindex);
 
-PLATFORM_PUBLIC_API
 extern int getopt(int argc, char** argv, const char* optstring);
 
 /**
  * This is for unit tests only and used to reset the internal state
  * of the library
  */
-PLATFORM_PUBLIC_API
 void reset();
 
 /**
  * This is used for unit tests to mute the unit tests from writing error
  * messages to stderr
  */
-PLATFORM_PUBLIC_API
 void mute_stderr();
 } // namespace cb::getopt

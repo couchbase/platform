@@ -20,7 +20,6 @@
  */
 #pragma once
 
-#include <platform/visibility.h>
 
 #include <stdint.h>
 #include <time.h>
@@ -41,13 +40,11 @@ typedef uint64_t hrtime_t;
 /**
  * return a monotonically increasing value with a seconds frequency.
  */
-PLATFORM_PUBLIC_API
 uint64_t cb_get_monotonic_seconds(void);
 
 /**
  * obtain a timeval structure containing the current time since EPOCH.
  */
-PLATFORM_PUBLIC_API
 int cb_get_timeofday(struct timeval* tv);
 
 /**
@@ -59,13 +56,11 @@ int cb_get_timeofday(struct timeval* tv);
  * @param offset the number of seconds to add (a negative value results in
  *               jumping back in time)
  */
-PLATFORM_PUBLIC_API
 void cb_set_timeofday_offset(int offset);
 
 /**
  * Get the offset being added to the cb_get_timeofday()
  */
-PLATFORM_PUBLIC_API
 int cb_get_timeofday_offset(void);
 
 /**
@@ -76,13 +71,11 @@ int cb_get_timeofday_offset(void);
  * @param offset the number of seconds to add
  *
  */
-PLATFORM_PUBLIC_API
 void cb_set_uptime_offset(uint64_t offset);
 
 /**
  * Get the offset to add to the uptime.
  */
-PLATFORM_PUBLIC_API
 uint64_t cb_get_uptime_offset();
 
 /**
@@ -91,7 +84,6 @@ uint64_t cb_get_uptime_offset();
  *
  * @param secs the number of seconds to travel
  */
-PLATFORM_PUBLIC_API
 void cb_timeofday_timetravel(int offset);
 
 /**
@@ -101,7 +93,6 @@ void cb_timeofday_timetravel(int offset);
  * @param result the output value
  * @return 0 for success, -1 on failure
  */
-PLATFORM_PUBLIC_API
 int cb_gmtime_r(const time_t* clock, struct tm* result);
 
 /**
@@ -111,7 +102,6 @@ int cb_gmtime_r(const time_t* clock, struct tm* result);
  * @param result the output value
  * @return 0 for success, -1 on failure
  */
-PLATFORM_PUBLIC_API
 int cb_localtime_r(const time_t* clock, struct tm* result);
 
 #ifdef __cplusplus

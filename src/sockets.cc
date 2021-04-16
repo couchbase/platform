@@ -21,7 +21,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-PLATFORM_PUBLIC_API
 void cb_initialize_sockets(void) {
     WSADATA wsaData;
     if (WSAStartup(MAKEWORD(2, 0), &wsaData) != 0) {
@@ -30,7 +29,6 @@ void cb_initialize_sockets(void) {
     }
 }
 
-PLATFORM_PUBLIC_API
 int sendmsg(SOCKET sock, const struct msghdr* msg, int flags) {
     /* @todo make this more optimal! */
     int ii;

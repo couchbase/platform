@@ -16,7 +16,6 @@
  */
 #pragma once
 
-#include <platform/visibility.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -33,23 +32,17 @@ struct option {
     int val;
 };
 
-PLATFORM_PUBLIC_API
 extern char* optarg;
-PLATFORM_PUBLIC_API
 extern int opterr;
-PLATFORM_PUBLIC_API
 extern int optind;
-PLATFORM_PUBLIC_API
 extern int optopt;
 
-PLATFORM_PUBLIC_API
 extern int getopt_long(int argc,
                        char** argv,
                        const char* optstring,
                        const struct option* longopts,
                        int* longindex);
 
-PLATFORM_PUBLIC_API
 extern int getopt(int argc, char** argv, const char* optstring);
 
 #ifdef __cplusplus

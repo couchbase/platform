@@ -17,7 +17,6 @@
 
 #pragma once
 
-#include <platform/visibility.h>
 #include <cstddef>
 #include <cstdint>
 #include <new>
@@ -33,7 +32,7 @@ struct ArenaMallocClient;
  * "plugin" Tracker for JEArenaMalloc utilising je_sallocx and CoreLocal
  * for tracking allocations.
  */
-class PLATFORM_PUBLIC_API JEArenaCoreLocalTracker {
+class JEArenaCoreLocalTracker {
 public:
     static void clientRegistered(const ArenaMallocClient& client);
 

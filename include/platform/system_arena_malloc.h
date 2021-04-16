@@ -21,7 +21,6 @@
 #include <platform/cb_arena_malloc_client.h>
 #include <platform/non_negative_counter.h>
 #include <platform/sized_buffer.h>
-#include <platform/visibility.h>
 
 #include <array>
 #include <atomic>
@@ -53,7 +52,7 @@ class RelaxedAtomic;
  * allowing for mem_used to attempt to go negative.
  *
  */
-class PLATFORM_PUBLIC_API SystemArenaMalloc {
+class SystemArenaMalloc {
 public:
     static ArenaMallocClient registerClient(bool threadCache);
     static void unregisterClient(const ArenaMallocClient& client);

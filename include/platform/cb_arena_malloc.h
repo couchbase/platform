@@ -62,7 +62,7 @@ template <class t>
 class RelaxedAtomic;
 
 template <class Impl>
-class PLATFORM_PUBLIC_API _ArenaMalloc {
+class _ArenaMalloc {
 public:
     /**
      * Register a new client for allocation tracking
@@ -332,7 +332,7 @@ using ArenaMalloc = _ArenaMalloc<ARENA_ALLOC>;
 /**
  *  ArenaMallocGuard will switch away from the client on destruction
  */
-struct PLATFORM_PUBLIC_API ArenaMallocGuard {
+struct ArenaMallocGuard {
     /// Will call switchToClient(client)
     ArenaMallocGuard(const ArenaMallocClient& client);
 

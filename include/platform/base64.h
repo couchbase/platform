@@ -17,7 +17,6 @@
 #pragma once
 
 #include <platform/sized_buffer.h>
-#include <platform/visibility.h>
 
 #include <string>
 #include <vector>
@@ -30,7 +29,6 @@ namespace cb::base64 {
  * @param source the string to encode
  * @return the base64 encoded value
  */
-PLATFORM_PUBLIC_API
 std::string encode(const cb::const_byte_buffer blob, bool prettyprint = false);
 
 inline std::string encode(const std::string& source, bool prettyprint) {
@@ -46,7 +44,6 @@ inline std::string encode(const std::string& source, bool prettyprint) {
  * @param source string to decode
  * @return the decoded data
  */
-PLATFORM_PUBLIC_API
 std::vector<uint8_t> decode(std::string_view blob);
 
 } // namespace cb::base64

@@ -16,7 +16,6 @@
  */
 #pragma once
 
-#include <platform/visibility.h>
 #include <chrono>
 #include <string>
 
@@ -34,7 +33,6 @@ namespace cb {
  * @param time the time in nanoseconds
  * @return a string representation of the timestamp
  */
-PLATFORM_PUBLIC_API
 std::string time2text(std::chrono::nanoseconds time);
 
 /**
@@ -54,5 +52,5 @@ std::string time2text(std::chrono::nanoseconds time);
  *
  * If no specifier is provided, the value specifies the number in milliseconds
  */
-PLATFORM_PUBLIC_API std::chrono::nanoseconds text2time(const std::string& text);
+std::chrono::nanoseconds text2time(const std::string& text);
 }

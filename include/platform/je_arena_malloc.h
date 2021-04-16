@@ -22,7 +22,6 @@
 #include <platform/je_arena_corelocal_tracker.h>
 #include <platform/non_negative_counter.h>
 #include <platform/sized_buffer.h>
-#include <platform/visibility.h>
 
 #include <array>
 #include <atomic>
@@ -41,7 +40,7 @@ namespace cb {
  *
  */
 template <class trackingImpl>
-class PLATFORM_PUBLIC_API _JEArenaMalloc {
+class _JEArenaMalloc {
 public:
     static ArenaMallocClient registerClient(bool threadCache);
     static void unregisterClient(const ArenaMallocClient& client);

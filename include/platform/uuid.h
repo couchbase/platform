@@ -20,7 +20,6 @@
 #include <cstdint>
 #include <string>
 
-#include <platform/visibility.h>
 
 namespace cb::uuid {
 
@@ -29,13 +28,11 @@ using uuid_t = std::array<uint8_t, 16>;
 /**
  * Get a random uuid (version 4 of the uuids)
  */
-PLATFORM_PUBLIC_API
 void random(uuid_t& uuid);
 
 /**
  * Generate a new random uuid and return it
  */
-PLATFORM_PUBLIC_API
 uuid_t random();
 
 /**
@@ -43,7 +40,6 @@ uuid_t random();
  * @throw std::invalid_argument if the textual uuid is not
  *        formatted correctly
  */
-PLATFORM_PUBLIC_API
 uuid_t from_string(std::string_view str);
 } // namespace cb::uuid
 
@@ -52,5 +48,4 @@ uuid_t from_string(std::string_view str);
  *
  *     00000000-0000-0000-0000-000000000000
  */
-PLATFORM_PUBLIC_API
 std::string to_string(const cb::uuid::uuid_t& uuid);

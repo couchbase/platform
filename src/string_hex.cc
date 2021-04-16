@@ -35,7 +35,6 @@ static inline uint8_t from_hex_digit(char c) {
             "cb::from_hex_digit: character was not in hexadecimal range");
 }
 
-PLATFORM_PUBLIC_API
 uint64_t cb::from_hex(std::string_view buffer) {
     uint64_t ret = 0;
 
@@ -56,35 +55,30 @@ uint64_t cb::from_hex(std::string_view buffer) {
     return ret;
 }
 
-PLATFORM_PUBLIC_API
 std::string cb::to_hex(uint8_t val) {
     char buf[32];
     snprintf(buf, sizeof(buf), "0x%02" PRIx8, val);
     return std::string{buf};
 }
 
-PLATFORM_PUBLIC_API
 std::string cb::to_hex(uint16_t val) {
     char buf[32];
     snprintf(buf, sizeof(buf), "0x%04" PRIx16, val);
     return std::string{buf};
 }
 
-PLATFORM_PUBLIC_API
 std::string cb::to_hex(uint32_t val) {
     char buf[32];
     snprintf(buf, sizeof(buf), "0x%08" PRIx32, val);
     return std::string{buf};
 }
 
-PLATFORM_PUBLIC_API
 std::string cb::to_hex(uint64_t val) {
     char buf[32];
     snprintf(buf, sizeof(buf), "0x%016" PRIx64, val);
     return std::string{buf};
 }
 
-PLATFORM_PUBLIC_API
 std::string cb::to_hex(cb::const_byte_buffer buffer) {
     if (buffer.empty()) {
         return "";
@@ -99,7 +93,6 @@ std::string cb::to_hex(cb::const_byte_buffer buffer) {
     return ret;
 }
 
-PLATFORM_PUBLIC_API
 std::string cb::hex_encode(cb::const_byte_buffer buffer) {
     if (buffer.empty()) {
         return "";

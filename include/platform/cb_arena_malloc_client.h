@@ -18,7 +18,6 @@
 #pragma once
 
 #include "relaxed_atomic.h"
-#include <platform/visibility.h>
 
 #include <algorithm>
 #include <cstddef>
@@ -51,7 +50,7 @@ const uint8_t NoClientIndex = ArenaMallocMaxClients;
  * cb::ArenaMalloc::registerClient and it must be kept until they call
  * cb::ArenaMalloc::unregister.
  */
-struct PLATFORM_PUBLIC_API ArenaMallocClient {
+struct ArenaMallocClient {
     ArenaMallocClient() {
     }
 
