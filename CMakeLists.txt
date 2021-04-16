@@ -91,12 +91,8 @@ IF (MEMORY_ALLOCATOR)
   include_directories(AFTER SYSTEM ${MALLOC_INCLUDE_DIR})
 ENDIF (MEMORY_ALLOCATOR)
 
-ADD_LIBRARY(JSON_checker SHARED src/JSON_checker.cc include/JSON_checker.h)
-SET_TARGET_PROPERTIES(JSON_checker PROPERTIES SOVERSION 1.0.0)
+ADD_LIBRARY(JSON_checker STATIC src/JSON_checker.cc include/JSON_checker.h)
 TARGET_LINK_LIBRARIES(JSON_checker PRIVATE platform_headers)
-GENERATE_EXPORT_HEADER(JSON_checker
-                       EXPORT_MACRO_NAME JSON_CHECKER_PUBLIC_API
-                       EXPORT_FILE_NAME ${CMAKE_CURRENT_BINARY_DIR}/include/platform/JSON_checker-visibility.h)
 
 IF (WIN32)
    INCLUDE_DIRECTORIES(AFTER ${CMAKE_CURRENT_SOURCE_DIR}/include/win32)
@@ -433,7 +429,7 @@ endif (UNIX)
 target_link_libraries(breakpad_wrapper
                       ${BREAKPAD_LIBRARIES} platform_headers)
 
-INSTALL(TARGETS breakpad_wrapper JSON_checker
+INSTALL(TARGETS breakpad_wrapper
         RUNTIME DESTINATION bin
         LIBRARY DESTINATION lib
         ARCHIVE DESTINATION lib)

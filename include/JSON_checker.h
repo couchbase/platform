@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include <platform/JSON_checker-visibility.h>
 #ifdef __cplusplus
 
 #include <cstdint>
@@ -70,7 +69,7 @@ namespace JSON_checker {
         StackType stack;
     };
 
-    class JSON_CHECKER_PUBLIC_API Validator {
+    class Validator {
     public:
         Validator();
 
@@ -118,7 +117,6 @@ extern "C" {
  * deprecated and will be removed once all usage of it is
  * fixed
  */
-JSON_CHECKER_PUBLIC_API
 bool checkUTF8JSON(const unsigned char* data, size_t size);
 
 #ifdef __cplusplus
