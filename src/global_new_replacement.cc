@@ -181,7 +181,13 @@ void operator delete[](void* ptr, const std::nothrow_t& tag) NOEXCEPT {
  * it would link directly to TSan's overloaded operators.
  */
 #if !defined(HAVE_SYSTEM_MALLOC)
-extern "C" PLATFORM_PUBLIC_API size_t malloc_usable_size(void* ptr);
+extern "C"
+#if WIN32
+__declspec(dllexport)
+#else
+__attribute__((visibility("default")))
+#endif
+size_t malloc_usable_size(void* ptr);
 
 size_t malloc_usable_size(void* ptr) {
     return cb_malloc_usable_size(ptr);
