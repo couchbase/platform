@@ -305,83 +305,48 @@ target_link_libraries(platform_so PRIVATE phosphor)
 # avoid these problems.
 add_library(platform STATIC)
 
-if(CB_SANITIZERS)
-  # Define an additional variant of platform libs which has the
-  # sanitizers disabled.  This allows targets which require platform,
-  # but which are incompatible with the sanitizers (e.g. Erlang NIFs)
-  # to still be built and run when we are building the rest of the
-  # Server with Sanitizer support.
-  add_library(platform_unsanitized_so SHARED)
-  target_link_libraries(platform_unsanitized_so
-      PRIVATE
-          phosphor_unsanitized
-          Folly::folly_unsanitized)
-  remove_sanitizers(platform_unsanitized_so)
+target_sources(platform_so PRIVATE ${PLATFORM_FILES})
 
-  add_library(platform_unsanitized STATIC)
-  remove_sanitizers(platform_unsanitized)
+TARGET_LINK_LIBRARIES(platform_so PRIVATE
+  platform_headers
+  gsl_lite
+  ${MALLOC_LIBRARIES}
+  ${PLATFORM_LIBRARIES})
 
-  set(platform_VARIANTS platform platform_unsanitized)
-else()
-  # For convenience define a 'platform_unsanitized' alias even when
-  # the sanitizers are disabled (so targets which need an unsanitized
-  # platform can unconditionally link against this).
-  add_library(platform_unsanitized ALIAS platform)
+# Link publically with COUCHBASE_NETWORK_LIBS - strictly speaking this
+# shouldn't be necessary, however a number of downstream components
+# (e.g. couchstore targets) rely on platform to make available
+# htons/htonl (via Ws2_32) etc when building on Windows.
+# Until all such targets are updated to link directly to Ws2_32, we
+# link publically.
+TARGET_LINK_LIBRARIES(platform_so PUBLIC
+  ${COUCHBASE_NETWORK_LIBS}
+  platform_cbassert)
 
-  set(platform_VARIANTS platform)
-endif()
+TARGET_INCLUDE_DIRECTORIES(platform_so PUBLIC include)
+# TODO: Add a TARGET_INCLUDE_DIRECTORIES(PUBLIC) to phosphor; then the
+# following line can be removed:
+TARGET_INCLUDE_DIRECTORIES(platform_so PRIVATE ${phosphor_SOURCE_DIR}/include)
 
-foreach(platform ${platform_VARIANTS})
-  set(platform_so ${platform}_so)
-  target_sources(${platform_so} PRIVATE ${PLATFORM_FILES})
+# On OS X 10.11 we need to remove the default rpath settings in order to all
+# us to load the platform library from Python scripts that are run out of
+# /usr/bin/python. We can remove this once we ship our own Python.
+IF (APPLE)
+  SET_TARGET_PROPERTIES(platform_so
+    PROPERTIES
+    INSTALL_RPATH "")
+ENDIF ()
+SET_TARGET_PROPERTIES(platform_so PROPERTIES SOVERSION 0.1.0)
 
-  TARGET_LINK_LIBRARIES(${platform_so} PRIVATE
-    platform_headers
-    gsl_lite
-    ${MALLOC_LIBRARIES}
-    ${PLATFORM_LIBRARIES})
+INSTALL(TARGETS platform_so
+  RUNTIME DESTINATION bin
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib)
 
-  if(platform MATCHES "unsanitized")
-    set(cbassert_lib platform_cbassert_unsanitized)
-  else()
-    set(cbassert_lib platform_cbassert)
-  endif()
+target_sources(platform PRIVATE src/global_new_replacement.cc)
 
-  # Link publically with COUCHBASE_NETWORK_LIBS - strictly speaking this
-  # shouldn't be necessary, however a number of downstream components
-  # (e.g. couchstore targets) rely on platform to make available
-  # htons/htonl (via Ws2_32) etc when building on Windows.
-  # Until all such targets are updated to link directly to Ws2_32, we
-  # link publically.
-  TARGET_LINK_LIBRARIES(${platform_so} PUBLIC
-    ${COUCHBASE_NETWORK_LIBS}
-    ${cbassert_lib})
-
-  TARGET_INCLUDE_DIRECTORIES(${platform_so} PUBLIC include)
-  # TODO: Add a TARGET_INCLUDE_DIRECTORIES(PUBLIC) to phosphor; then the
-  # following line can be removed:
-  TARGET_INCLUDE_DIRECTORIES(${platform_so} PRIVATE ${phosphor_SOURCE_DIR}/include)
-
-  # On OS X 10.11 we need to remove the default rpath settings in order to all
-  # us to load the platform library from Python scripts that are run out of
-  # /usr/bin/python. We can remove this once we ship our own Python.
-  IF (APPLE)
-    SET_TARGET_PROPERTIES(${platform_so}
-      PROPERTIES
-      INSTALL_RPATH "")
-  ENDIF ()
-  SET_TARGET_PROPERTIES(${platform_so} PROPERTIES SOVERSION 0.1.0)
-
-  INSTALL(TARGETS ${platform_so}
-    RUNTIME DESTINATION bin
-    LIBRARY DESTINATION lib
-    ARCHIVE DESTINATION lib)
-
-  target_sources(${platform} PRIVATE src/global_new_replacement.cc)
-
-  SET_TARGET_PROPERTIES(${platform} PROPERTIES POSITION_INDEPENDENT_CODE true)
-  TARGET_LINK_LIBRARIES(${platform} platform_headers ${platform_so})
-endforeach()
+SET_TARGET_PROPERTIES(platform PROPERTIES POSITION_INDEPENDENT_CODE true)
+TARGET_LINK_LIBRARIES(platform platform_headers platform_so)
 
 if (WIN32)
   # Windows: create an empty interface library so targets can specify they link
