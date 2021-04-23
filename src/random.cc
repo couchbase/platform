@@ -84,18 +84,7 @@ protected:
     std::mutex mutex;
 };
 
-std::mutex shared_provider_lock;
-std::unique_ptr<RandomGeneratorProvider> shared_provider;
-
-RandomGenerator::RandomGenerator() {
-    if (!shared_provider) {
-        // This might be the first one, lets lock and create
-        std::lock_guard<std::mutex> guard(shared_provider_lock);
-        if (!shared_provider) {
-            shared_provider = std::make_unique<RandomGeneratorProvider>();
-        }
-    }
-}
+RandomGenerator::RandomGenerator() = default;
 
 uint64_t RandomGenerator::next() {
     uint64_t ret;
@@ -107,7 +96,12 @@ uint64_t RandomGenerator::next() {
 }
 
 bool RandomGenerator::getBytes(void* dest, size_t size) {
-    return shared_provider->getBytes(dest, size);
+    return getInstance().getBytes(dest, size);
+}
+
+RandomGeneratorProvider& RandomGenerator::getInstance() {
+    static RandomGeneratorProvider provider;
+    return provider;
 }
 
 } // namespace Couchbase

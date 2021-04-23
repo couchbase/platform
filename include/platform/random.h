@@ -34,5 +34,9 @@ public:
     uint64_t next();
 
     bool getBytes(void* dest, size_t size);
+
+private:
+    /// Return the singleton instance of RandomGeneratorProvider.
+    static RandomGeneratorProvider& getInstance();
 };
 } // namespace cb
