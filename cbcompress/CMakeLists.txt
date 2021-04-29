@@ -33,7 +33,7 @@ if (COUCHBASE_PLATFORM_BUILD_UNIT_TESTS)
     #
     # Unit tests
     #
-    add_executable(platform-compression-test
+    cb_add_test_executable(platform-compression-test
                    ${Platform_SOURCE_DIR}/include/platform/compress.h
                    compression_test.cc)
     target_compile_definitions(platform-compression-test
@@ -50,7 +50,7 @@ if (COUCHBASE_PLATFORM_BUILD_UNIT_TESTS)
     #
     # Benchmark
     #
-    add_executable(platform-compression-bench compress_bench.cc)
+    cb_add_test_executable(platform-compression-bench compress_bench.cc)
     target_compile_definitions(platform-compression-bench
                                PRIVATE
                                $<$<BOOL:${LZ4_FOUND}>:CB_LZ4_SUPPORT>)

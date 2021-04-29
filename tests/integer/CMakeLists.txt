@@ -1,4 +1,4 @@
-ADD_EXECUTABLE(platform-n-byte-integer-test n_byte_integer_test.cc)
+cb_add_test_executable(platform-n-byte-integer-test n_byte_integer_test.cc)
 TARGET_LINK_LIBRARIES(platform-n-byte-integer-test gtest
                                                    gtest_main
                                                    platform_headers)

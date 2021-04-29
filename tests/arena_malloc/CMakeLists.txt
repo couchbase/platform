@@ -1,4 +1,4 @@
-ADD_EXECUTABLE(platform-arena_malloc-test arena_malloc_test.cc)
+cb_add_test_executable(platform-arena_malloc-test arena_malloc_test.cc)
 TARGET_LINK_LIBRARIES(platform-arena_malloc-test PRIVATE
         gtest
         gtest_main
@@ -8,7 +8,7 @@ TARGET_LINK_LIBRARIES(platform-arena_malloc-test PRIVATE
 ADD_TEST(platform-arena_malloc-test platform-arena_malloc-test)
 
 if (MEMORY_ALLOCATOR STREQUAL "jemalloc")
-  ADD_EXECUTABLE(platform-arena_tracking_bench
+  cb_add_test_executable(platform-arena_tracking_bench
                  arena_tracking_bench.cc)
 
   TARGET_LINK_LIBRARIES(platform-arena_tracking_bench PRIVATE
@@ -22,7 +22,7 @@ if (MEMORY_ALLOCATOR STREQUAL "jemalloc")
 endif()
 
 if (UNIX)
-ADD_EXECUTABLE(platform-cb_malloc-test cb_malloc_default.cc)
+cb_add_test_executable(platform-cb_malloc-test cb_malloc_default.cc)
 # This test must not link against platform_cb_malloc
 TARGET_LINK_LIBRARIES(platform-cb_malloc-test PRIVATE
         gtest

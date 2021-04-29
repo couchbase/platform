@@ -1,7 +1,7 @@
-add_executable(process_monitor_child process_monitor_child.cc)
+cb_add_test_executable(process_monitor_child process_monitor_child.cc)
 target_link_libraries(process_monitor_child platform)
 
-add_executable(process_monitor_test process_monitor_test.cc)
+cb_add_test_executable(process_monitor_test process_monitor_test.cc)
 target_link_libraries(process_monitor_test platform gtest gtest_main)
 add_dependencies(process_monitor_test process_monitor_child)
 add_test(process_monitor_test process_monitor_test)

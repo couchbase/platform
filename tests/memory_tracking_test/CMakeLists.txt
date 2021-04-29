@@ -1,5 +1,5 @@
 if (NOT MEMORY_ALLOCATOR STREQUAL "system")
-    add_executable(platform_memory_tracking_test
+    cb_add_test_executable(platform_memory_tracking_test
                    memory_tracking_test.cc)
     target_link_libraries(platform_memory_tracking_test
                           platform

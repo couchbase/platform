@@ -10,7 +10,7 @@ target_link_libraries(cbsocket
                       ${COUCHBASE_NETWORK_LIBS})
 
 if (COUCHBASE_PLATFORM_BUILD_UNIT_TESTS)
-    add_executable(cbsocket_test cbsocket_test.cc)
+    cb_add_test_executable(cbsocket_test cbsocket_test.cc)
     target_include_directories(cbsocket_test PRIVATE ${Platform_SOURCE_DIR}/include)
     target_link_libraries(cbsocket_test cbsocket gtest gtest_main)
     add_test(cbsocket_test cbsocket_test)

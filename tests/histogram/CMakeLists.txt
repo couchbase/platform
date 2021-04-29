@@ -1,4 +1,4 @@
-ADD_EXECUTABLE(platform-histogram-test
+cb_add_test_executable(platform-histogram-test
                ${Platform_SOURCE_DIR}/include/platform/histogram.h
                ${Platform_SOURCE_DIR}/src/histogram.cc
                histogram_test.cc)

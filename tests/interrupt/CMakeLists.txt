@@ -2,7 +2,7 @@
 # sent to the entire process group causing the python interpreter
 # to exit with the same error code (keyboard interrupt)
 if (NOT WIN32)
-   add_executable(platform-interrupt-test
+   cb_add_test_executable(platform-interrupt-test
                   ${Platform_SOURCE_DIR}/include/platform/interrupt.h
                   interrupt_test.cc)
    target_link_libraries(platform-interrupt-test platform)
