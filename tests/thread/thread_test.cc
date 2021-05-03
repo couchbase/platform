@@ -55,7 +55,7 @@ TEST_F(ThreadTest, SimpleThreadTest) {
 
 TEST(ThreadnameTest, ThreadName) {
     if (!is_thread_name_supported()) {
-        return;
+        GTEST_SKIP();
     }
 
     EXPECT_EQ(0, cb_set_thread_name("test"));

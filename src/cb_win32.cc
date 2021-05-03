@@ -21,6 +21,7 @@
 #include <cassert>
 #include <chrono>
 #include <cstdio>
+#include <optional>
 #include <thread>
 #include <vector>
 
@@ -34,6 +35,9 @@ struct thread_execute {
 static DWORD WINAPI platform_thread_wrap(LPVOID arg) {
     auto* ctx = reinterpret_cast<struct thread_execute*>(arg);
     assert(ctx);
+    if (!ctx->thread_name.empty()) {
+        cb_set_thread_name(ctx->thread_name.c_str());
+    }
     PHOSPHOR_INSTANCE.registerThread(ctx->thread_name);
     ctx->func(ctx->argument);
     PHOSPHOR_INSTANCE.deregisterThread();
@@ -107,17 +111,114 @@ cb_thread_t cb_thread_self(void) {
     return GetCurrentThreadId();
 }
 
-int cb_set_thread_name(const char*) {
-    // Not implemented on WIN32
+class ThreadNameSupport {
+public:
+    int setName(std::string name) {
+        if (!supported) {
+            return -1;
+        }
+
+        // Windows doesn't really have this restriction, but we have a unit
+        // test which wants this to fail (because it does on Posix)...
+        if (name.size() > 32) {
+            return 1;
+        }
+
+        const auto thread_name = to_wstring(name);
+        if (SUCCEEDED(set(GetCurrentThread(), thread_name.c_str()))) {
+            return 0;
+        }
+
+        return -1;
+    }
+
+    std::optional<std::string> getName() {
+        if (!supported) {
+            return {};
+        }
+
+        PWSTR data;
+        if (SUCCEEDED(get(GetCurrentThread(), &data))) {
+            auto str = to_string(std::wstring{data});
+            LocalFree(data);
+            return {str};
+        }
+
+        return {};
+    }
+
+    bool isSupported() const {
+        return supported;
+    }
+
+    static ThreadNameSupport& instance() {
+        static ThreadNameSupport instance;
+        return instance;
+    }
+
+protected:
+    ThreadNameSupport() {
+        auto module = GetModuleHandle(TEXT("kernel32.dll"));
+        if (module == nullptr) {
+            return;
+        }
+        set = (SetFunc)GetProcAddress(module, "SetThreadDescription");
+        get = (GetFunc)GetProcAddress(module, "GetThreadDescription");
+        supported = (set != nullptr && get != nullptr);
+    }
+
+    static std::wstring to_wstring(const std::string& s) {
+        // determine the required size
+        auto len = MultiByteToWideChar(CP_UTF8, 0, s.c_str(), -1, nullptr, 0);
+        std::wstring buffer;
+        buffer.resize(len);
+        MultiByteToWideChar(CP_UTF8, 0, s.c_str(), -1, buffer.data(), len);
+        return buffer;
+    }
+
+    static std::string to_string(const std::wstring& ws) {
+        auto len = WideCharToMultiByte(
+                CP_ACP, 0, ws.data(), -1, nullptr, 0, nullptr, nullptr);
+
+        std::string buffer;
+        buffer.resize(len);
+        WideCharToMultiByte(CP_ACP,
+                            0,
+                            ws.data(),
+                            -1,
+                            buffer.data(),
+                            (int)len,
+                            nullptr,
+                            nullptr);
+
+        return buffer;
+    }
+
+    bool supported = false;
+    typedef HRESULT(WINAPI* SetFunc)(HANDLE, PCWSTR);
+    typedef HRESULT(WINAPI* GetFunc)(HANDLE, PWSTR*);
+    SetFunc set;
+    GetFunc get;
+};
+
+int cb_set_thread_name(const char* name) {
+    return ThreadNameSupport::instance().setName(name);
+}
+
+int cb_get_thread_name(char* buffer, size_t size) {
+    auto nm = ThreadNameSupport::instance().getName();
+    if (nm.has_value()) {
+        const auto nb = std::min(nm.value().size(), size);
+        strncpy(buffer, nm.value().c_str(), nb);
+        buffer[size - 1] = '\0';
+        return 0;
+    }
+
     return -1;
 }
 
-int cb_get_thread_name(char*, size_t) {
-    return -1;
-}
-
-bool is_thread_name_supported(void) {
-    return false;
+bool is_thread_name_supported() {
+    return ThreadNameSupport::instance().isSupported();
 }
 
 void cb_rw_lock_initialize(cb_rwlock_t* rw) {
