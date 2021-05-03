@@ -26,14 +26,13 @@
 
 struct thread_execute {
     cb_thread_main_func func;
-    void *argument;
+    void* argument;
     // Windows doesn't support naming threads, but phosphor does
     std::string thread_name;
 };
 
-static DWORD WINAPI platform_thread_wrap(LPVOID arg)
-{
-    auto *ctx = reinterpret_cast<struct thread_execute*>(arg);
+static DWORD WINAPI platform_thread_wrap(LPVOID arg) {
+    auto* ctx = reinterpret_cast<struct thread_execute*>(arg);
     assert(ctx);
     PHOSPHOR_INSTANCE.registerThread(ctx->thread_name);
     ctx->func(ctx->argument);
@@ -42,23 +41,22 @@ static DWORD WINAPI platform_thread_wrap(LPVOID arg)
     return 0;
 }
 
-int cb_create_thread(cb_thread_t *id,
-                     void (*func)(void *arg),
-                     void *arg,
-                     int detached)
-{
+int cb_create_thread(cb_thread_t* id,
+                     void (*func)(void* arg),
+                     void* arg,
+                     int detached) {
     // Implemented in terms of cb_create_named_thread; without a name.
     return cb_create_named_thread(id, func, arg, detached, NULL);
 }
 
 int cb_create_named_thread(cb_thread_t* id,
-                                               void (*func)(void* arg),
-                                               void* arg,
-                                               int detached,
-                                               const char* name) {
+                           void (*func)(void* arg),
+                           void* arg,
+                           int detached,
+                           const char* name) {
     HANDLE handle;
 
-    struct thread_execute *ctx;
+    struct thread_execute* ctx;
     try {
         ctx = new struct thread_execute;
     } catch (std::bad_alloc) {
@@ -82,8 +80,7 @@ int cb_create_named_thread(cb_thread_t* id,
     return 0;
 }
 
-int cb_join_thread(cb_thread_t id)
-{
+int cb_join_thread(cb_thread_t id) {
     // We've seen problems where we've had global std::unique_ptr's which
     // had to run destructors which waited for threads be run on a "random"
     // thread causing a deadlock (the actual use was in memcached with the
@@ -106,58 +103,48 @@ int cb_join_thread(cb_thread_t id)
     return 0;
 }
 
-cb_thread_t cb_thread_self(void)
-{
+cb_thread_t cb_thread_self(void) {
     return GetCurrentThreadId();
 }
 
-int cb_set_thread_name(const char*)
-{
+int cb_set_thread_name(const char*) {
     // Not implemented on WIN32
     return -1;
 }
 
-int cb_get_thread_name(char*, size_t)
-{
+int cb_get_thread_name(char*, size_t) {
     return -1;
 }
 
-bool is_thread_name_supported(void)
-{
+bool is_thread_name_supported(void) {
     return false;
 }
 
-void cb_rw_lock_initialize(cb_rwlock_t *rw)
-{
+void cb_rw_lock_initialize(cb_rwlock_t* rw) {
     InitializeSRWLock(rw);
 }
 
-void cb_rw_lock_destroy(cb_rwlock_t *rw)
-{
+void cb_rw_lock_destroy(cb_rwlock_t* rw) {
     (void)rw;
     // Nothing todo on windows
 }
 
-int cb_rw_reader_enter(cb_rwlock_t *rw)
-{
+int cb_rw_reader_enter(cb_rwlock_t* rw) {
     AcquireSRWLockShared(rw);
     return 0;
 }
 
-int cb_rw_reader_exit(cb_rwlock_t *rw)
-{
+int cb_rw_reader_exit(cb_rwlock_t* rw) {
     ReleaseSRWLockShared(rw);
     return 0;
 }
 
-int cb_rw_writer_enter(cb_rwlock_t *rw)
-{
+int cb_rw_writer_enter(cb_rwlock_t* rw) {
     AcquireSRWLockExclusive(rw);
     return 0;
 }
 
-int cb_rw_writer_exit(cb_rwlock_t *rw)
-{
+int cb_rw_writer_exit(cb_rwlock_t* rw) {
     ReleaseSRWLockExclusive(rw);
     return 0;
 }
