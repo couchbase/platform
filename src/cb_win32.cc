@@ -14,16 +14,11 @@
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
  */
-#include <assert.h>
-#include <fcntl.h>
-#include <io.h>
 #include <phosphor/phosphor.h>
-#include <platform/cb_malloc.h>
 #include <platform/getopt.h>
 #include <platform/platform_thread.h>
-#include <platform/platform_time.h>
-#include <platform/strerror.h>
 #include <win32/getopt.h>
+#include <cassert>
 #include <chrono>
 #include <cstdio>
 #include <thread>
