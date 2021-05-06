@@ -42,41 +42,43 @@ if (NOT WIN32)
         message(FATAL_ERROR "dladdr not found in dlfcn.h and is needed for backtrace support")
     endif (NOT HAVE_DLADDR)
     CMAKE_POP_CHECK_STATE()
+
+    CMAKE_PUSH_CHECK_STATE(RESET)
+    SET(CMAKE_REQUIRED_DEFINITIONS "-D_GNU_SOURCE")
+    SET(CMAKE_REQUIRED_LIBRARIES "pthread")
+    CHECK_SYMBOL_EXISTS(pthread_setname_np pthread.h HAVE_PTHREAD_SETNAME_NP)
+    CHECK_SYMBOL_EXISTS(pthread_getname_np pthread.h HAVE_PTHREAD_GETNAME_NP)
+    CHECK_SYMBOL_EXISTS(sched_getaffinity sched.h HAVE_SCHED_GETAFFINITY)
+    CHECK_SYMBOL_EXISTS(sched_getcpu sched.h HAVE_SCHED_GETCPU)
+    CMAKE_POP_CHECK_STATE()
+
+    CMAKE_PUSH_CHECK_STATE(RESET)
+
+    CHECK_SYMBOL_EXISTS(htonll arpa/inet.h CB_DONT_NEED_BYTEORDER)
+    CHECK_INCLUDE_FILE(cpuid.h HAVE_CPUID_H)
+
+    if (HAVE_PTHREAD_SETNAME_NP)
+        add_definitions(-DHAVE_PTHREAD_SETNAME_NP=1)
+    endif()
+
+    if (HAVE_PTHREAD_GETNAME_NP)
+        add_definitions(-DHAVE_PTHREAD_GETNAME_NP=1)
+    endif()
+
+    # Used by sysinfo.cc in get_available_cpu_count
+    if (HAVE_SCHED_GETAFFINITY)
+        add_definitions(-DHAVE_SCHED_GETAFFINITY=1)
+    endif()
+
+    # The following checks is used by sysinfo.cc to get cpu index
+    if (HAVE_SCHED_GETCPU)
+        add_definitions(-DHAVE_SCHED_GETCPU=1)
+    endif()
+
+    if (HAVE_CPUID_H)
+        add_definitions(-DHAVE_CPUID_H=1)
+    endif()
 endif (NOT WIN32)
-
-CMAKE_PUSH_CHECK_STATE(RESET)
-SET(CMAKE_REQUIRED_DEFINITIONS "-D_GNU_SOURCE")
-SET(CMAKE_REQUIRED_LIBRARIES "pthread")
-CHECK_SYMBOL_EXISTS(pthread_setname_np pthread.h HAVE_PTHREAD_SETNAME_NP)
-CHECK_SYMBOL_EXISTS(pthread_getname_np pthread.h HAVE_PTHREAD_GETNAME_NP)
-CHECK_SYMBOL_EXISTS(sched_getaffinity sched.h HAVE_SCHED_GETAFFINITY)
-CHECK_SYMBOL_EXISTS(sched_getcpu sched.h HAVE_SCHED_GETCPU)
-CMAKE_POP_CHECK_STATE()
-
-CMAKE_PUSH_CHECK_STATE(RESET)
-
-CHECK_SYMBOL_EXISTS(htonll arpa/inet.h CB_DONT_NEED_BYTEORDER)
-CHECK_INCLUDE_FILE(cpuid.h HAVE_CPUID_H)
-
-if (HAVE_PTHREAD_SETNAME_NP)
-  add_definitions(-DHAVE_PTHREAD_SETNAME_NP=1)
-endif()
-
-if (HAVE_PTHREAD_GETNAME_NP)
-  add_definitions(-DHAVE_PTHREAD_GETNAME_NP=1)
-endif()
-
-if (HAVE_SCHED_GETAFFINITY)
-  add_definitions(-DHAVE_SCHED_GETAFFINITY=1)
-endif()
-
-if (HAVE_SCHED_GETCPU)
-  add_definitions(-DHAVE_SCHED_GETCPU=1)
-endif()
-
-if (HAVE_CPUID_H)
-  add_definitions(-DHAVE_CPUID_H=1)
-endif()
 
 CONFIGURE_FILE (${CMAKE_CURRENT_SOURCE_DIR}/include/platform/dynamic.in.h
                 ${CMAKE_CURRENT_BINARY_DIR}/include/platform/dynamic.h)
