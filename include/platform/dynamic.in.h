@@ -43,13 +43,3 @@
 #else
 #define CB_ATTR_NONNULL(...)
 #endif
-
-/**
- * Function attribute to specify that the function is deprecated
- */
-#cmakedefine HAVE_ATTR_DEPRECATED
-#if defined(HAVE_ATTR_DEPRECATED)
-#define CB_ATTR_DEPRECATED __attribute__((deprecated))
-#else
-#define CB_ATTR_DEPRECATED
-#endif
