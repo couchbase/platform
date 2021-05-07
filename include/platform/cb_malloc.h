@@ -34,15 +34,7 @@
 
 #pragma once
 
-#include <platform/dynamic.h>
-
-#include <stdlib.h>
-
-#ifdef __cplusplus
-#define NO_EXCEPTION noexcept
-#else
-#define NO_EXCEPTION
-#endif
+#include <cstdlib>
 
 /*
  * Couchbase memory allocation API functions.
@@ -50,21 +42,16 @@
  * Equivalent to the libc functions with the same suffix.
  */
 
-#ifdef __cplusplus
 extern "C" {
-#endif
 
-void* cb_malloc(size_t size) NO_EXCEPTION;
-void* cb_calloc(size_t nmemb, size_t size) NO_EXCEPTION;
-void* cb_realloc(void* ptr, size_t size) NO_EXCEPTION;
-void* cb_aligned_alloc(size_t alignment,
-                                           size_t size) NO_EXCEPTION;
-void cb_free(void* ptr) NO_EXCEPTION;
-void cb_aligned_free(void* ptr) NO_EXCEPTION;
-void cb_sized_free(void* ptr, size_t size) NO_EXCEPTION;
-size_t cb_malloc_usable_size(void* ptr) NO_EXCEPTION;
-
-#undef throwspec
+void* cb_malloc(size_t size) noexcept;
+void* cb_calloc(size_t nmemb, size_t size) noexcept;
+void* cb_realloc(void* ptr, size_t size) noexcept;
+void* cb_aligned_alloc(size_t alignment, size_t size) noexcept;
+void cb_free(void* ptr) noexcept;
+void cb_aligned_free(void* ptr) noexcept;
+void cb_sized_free(void* ptr, size_t size) noexcept;
+size_t cb_malloc_usable_size(void* ptr) noexcept;
 
 /*
  * Replacements for other libc functions which allocate memory via 'malloc'.
@@ -84,12 +71,8 @@ int cb_malloc_is_using_arenas();
  */
 const char* cb_malloc_get_conf();
 
-#ifdef __cplusplus
 } // extern "C"
-#endif
 
-
-#if defined(__cplusplus)
 /*
  * Memory allocation / deallocation hook support.
  *
@@ -122,5 +105,3 @@ bool cb_add_new_hook(cb_malloc_new_hook_t f);
 bool cb_remove_new_hook(cb_malloc_new_hook_t f);
 bool cb_add_delete_hook(cb_malloc_delete_hook_t f);
 bool cb_remove_delete_hook(cb_malloc_delete_hook_t f);
-
-#endif // __cplusplus
