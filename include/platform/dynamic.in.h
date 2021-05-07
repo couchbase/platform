@@ -23,17 +23,6 @@
 #endif
 
 /**
- * Function attribute to be used to specify that a function won't return (like
- * exit/abort etc)
- */
-#cmakedefine HAVE_ATTR_NORETURN
-#if defined(HAVE_ATTR_NORETURN)
-#define CB_ATTR_NORETURN __attribute__((noreturn))
-#else
-#define CB_ATTR_NORETURN
-#endif
-
-/**
  * Function attribute to specify that the given parameters MUST be set to
  * a non-null value.
  */

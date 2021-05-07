@@ -16,20 +16,7 @@
  */
 #pragma once
 
-#include <platform/dynamic.h>
-
 #ifdef __cplusplus
-extern "C" {
-#endif
-    void cb_assert_die(const char *expression, const char *file, int line)
-        CB_ATTR_NORETURN;
-#ifdef __cplusplus
-}
-#endif
-
-#define cb_assert(e)  \
-    ((void)((e) ? (void)0 : cb_assert_die(#e, __FILE__, __LINE__)))
-
 /**
  * If running on Windows with a Debug build, direct error and assertion
  * messages from the CRT to stderr, in addition to the default GUI dialog
@@ -39,10 +26,15 @@ extern "C" {
  * in a non-graphical mode (e.g. Jenkins CV job).
  * No-op on non-Windows, non-Debug build.
  */
-#ifdef __cplusplus
+void setupWindowsDebugCRTAssertHandling();
+
 extern "C" {
+[[noreturn]]
 #endif
-    void setupWindowsDebugCRTAssertHandling(void);
+void cb_assert_die(const char *expression, const char *file, int line);
 #ifdef __cplusplus
 }
 #endif
+
+#define cb_assert(e) \
+    ((void)((e) ? (void)0 : cb_assert_die(#e, __FILE__, __LINE__)))
