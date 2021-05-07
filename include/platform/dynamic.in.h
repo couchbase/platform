@@ -1,4 +1,3 @@
-/* -*- Mode: C; tab-width: 4; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 #pragma once
 
 #cmakedefine CB_DONT_NEED_BYTEORDER 1
@@ -54,7 +53,3 @@
 #else
 #define CB_ATTR_DEPRECATED
 #endif
-
-/* Workaround for C++ compilers which don't support the `noexcept` keyword
- */
-#define NOEXCEPT noexcept
