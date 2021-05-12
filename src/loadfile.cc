@@ -64,7 +64,12 @@ std::string loadFileImpl(const std::string& name) {
     }
 
     std::string content;
-    content.resize(fad.nFileSizeLow);
+    try {
+        content.resize(fad.nFileSizeLow);
+    } catch (const std::bad_alloc&) {
+        CloseHandle(filehandle);
+        throw;
+    }
     DWORD nr;
 
     if (!ReadFile(filehandle,
