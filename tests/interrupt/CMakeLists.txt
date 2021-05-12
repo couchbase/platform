@@ -7,7 +7,6 @@ if (NOT WIN32)
                   interrupt_test.cc)
    target_link_libraries(platform-interrupt-test platform)
    add_test(platform-interrupt-test
-            python
             ${Platform_SOURCE_DIR}/tests/interrupt/interrupt_test.py
             ${Platform_BINARY_DIR}/tests/interrupt/platform-interrupt-test)
 endif (NOT WIN32)
