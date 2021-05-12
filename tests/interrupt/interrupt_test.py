@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 import os
 import signal
@@ -15,8 +15,9 @@ code that the underlying binary gave.
 if len(sys.argv) != 2:
     exit(1)
 
-print sys.argv[1]
-proc = subprocess.Popen(sys.argv[1],stderr=subprocess.PIPE)
+print(sys.argv[1])
+proc = subprocess.Popen(sys.argv[1], stderr=subprocess.PIPE,
+                        universal_newlines=True)
 
 # Let the underlying process register the signal handler
 while True:
