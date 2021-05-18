@@ -367,7 +367,9 @@ set_target_properties(breakpad_wrapper PROPERTIES COMPILE_FLAGS "-Dplatform_so_E
 if (BREAKPAD_FOUND)
    target_compile_definitions(breakpad_wrapper PRIVATE -DHAVE_BREAKPAD)
    target_include_directories(breakpad_wrapper SYSTEM PRIVATE ${BREAKPAD_INCLUDE_DIR})
+   target_link_libraries(breakpad_wrapper ${BREAKPAD_LIBRARIES})
 endif (BREAKPAD_FOUND)
+target_link_libraries(breakpad_wrapper platform_headers)
 
 if (UNIX)
    # Breakpad has headers (which are dependencies for our breakpad integration
@@ -375,8 +377,6 @@ if (UNIX)
    # used instead.
    set_source_files_properties(src/breakpad_wrapper.cc PROPERTIES COMPILE_FLAGS ${CB_GNU_CXX11_OPTION})
 endif (UNIX)
-target_link_libraries(breakpad_wrapper
-                      ${BREAKPAD_LIBRARIES} platform_headers)
 
 INSTALL(TARGETS breakpad_wrapper
         RUNTIME DESTINATION bin
