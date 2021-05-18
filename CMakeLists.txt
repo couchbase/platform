@@ -104,9 +104,7 @@ IF (WIN32)
                       include/win32/getopt.h)
 ELSE (WIN32)
    SET(PLATFORM_FILES src/cb_pthreads.cc)
-   # We don't know the output of uname -p on all of our supported platforms
-   # so check if it's PPC64
-   if (NOT CMAKE_SYSTEM_PROCESSOR EQUAL "^ppc64")
+   if (CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
       list(APPEND PLATFORM_FILES src/crc32c_sse4_2.cc)
       set_source_files_properties(src/crc32c_sse4_2.cc
                                   PROPERTIES COMPILE_FLAGS -msse4.2)

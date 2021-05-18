@@ -358,7 +358,11 @@ typedef uint32_t (*crc32c_function)(const uint8_t* buf,
 // If SSE4.2 is available then hardware acceleration is used.
 //
 crc32c_function setup_crc32c() {
+#if CB_CRC32_HW_SUPPORTED
     return folly::CpuId().sse42() ? crc32c_hw : crc32c_sw;
+#else
+    return crc32c_sw;
+#endif
 }
 
 static crc32c_function safe_crc32c = setup_crc32c();
