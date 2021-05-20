@@ -4,7 +4,7 @@ cb_add_test_executable(platform-crc32c-test crc32c_test.cc)
 target_link_libraries(platform-crc32c-test PRIVATE platform)
 platform_enable_pch(platform-crc32c-test)
 
-set(crc32_hw_archs "AMD64;x86_64")
+set(crc32_hw_archs "aarch64;AMD64;x86_64")
 if(CMAKE_SYSTEM_PROCESSOR IN_LIST crc32_hw_archs)
     cb_add_test_executable(platform-crc32c-sw_hw-test crc32c_test.cc)
     target_compile_definitions(platform-crc32c-sw_hw-test PRIVATE CRC32C_UNIT_TEST)

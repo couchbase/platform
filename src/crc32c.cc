@@ -59,6 +59,9 @@
 #include <limits>
 
 #include <folly/CpuId.h>
+#if defined(__linux__)
+#include <sys/auxv.h>
+#endif
 
 static bool setup_tables();
 static bool tables_setup = setup_tables();
@@ -358,11 +361,22 @@ typedef uint32_t (*crc32c_function)(const uint8_t* buf,
 
 //
 // Return the appropriate function for the platform.
-// If SSE4.2 is available then hardware acceleration is used.
+// - x86-64: If SSE4.2 is available then hardware acceleration is
+//   used.
+// - AArch64: If CRC32 instructions are available then hardware
+//   acceleration is used.
 //
 crc32c_function setup_crc32c() {
 #if CB_CRC32_HW_SUPPORTED
+#if FOLLY_X64
     return folly::CpuId().sse42() ? crc32c_hw : crc32c_sw;
+#elif FOLLY_AARCH64
+    unsigned long features = getauxval(AT_HWCAP);
+    return (features & HWCAP_CRC32) ? crc32c_hw : crc32c_sw;
+#else
+    // AArch64, non-linux - TODO.
+#error Unhandled OS for AArch64.
+#endif
 #else
     return crc32c_sw;
 #endif

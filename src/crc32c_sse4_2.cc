@@ -30,9 +30,10 @@
 // This is an altered/adapted version of Mark Adler's crc32c.c
 //  - see http://stackoverflow.com/a/17646775
 //  - see above license.
-//  - This module provides the HW support and is built
-//    with -msse4.2 where applicable. We only execute inside
-//    this module if SSE4.2 is detected.
+//  - This module provides the HW support and is built with -msse4.2
+//    (x86-64) or -march=armv8.1-a (AArch64) where applicable. We only
+//    execute inside this module if SSE4.2 / AArch64-CRC instructions
+//    are detected.
 //
 // Changes from orginal version include.
 //  a) Compiler intrinsics instead of inline asm.
@@ -47,28 +48,53 @@
 //    ii) See crc32c_bench.cc for testing
 //  f) Validated with IETF test vectors.
 //    i) See crc32c_test.cc.
-//  g) Use of GCC4.8 attributes to select SSE4.2 vs SW version/
+//  g) Use of GCC4.8 attributes to select hardware-accel vs SW version/
 //  h) Custom cpuid code works for GCC(<4.8), CLANG and MSVC.
 //  i) Use static initialistion instead of pthread_once.
 //
-#if !defined(__x86_64__) && !defined(_M_X64)
-#error "crc32c requires X86 SSE4.2 for hardware acceleration"
+
+#include <folly/Portability.h>
+
+#if !FOLLY_X64 && !FOLLY_AARCH64
+#error "crc32c requires X86 SSE4.2 or Arch64 for hardware acceleration"
 #endif
 
 #include "crc32c_private.h"
 #include <platform/crc32c.h>
+#include <limits>
 
-// select header file for crc instructions.
+// select header file for crc instructions and define intrinsic to use.
+#if FOLLY_X64
 #if defined(WIN32)
 #include <nmmintrin.h>
 #elif defined(__clang__) || defined(__GNUC__)
 #include <smmintrin.h>
 #endif
 
-#include <limits>
+inline uint32_t crc32c_u8(uint32_t crc, uint8_t data) {
+  return _mm_crc32_u8(crc, data);
+}
+
+inline uint32_t crc32c_u64(uint32_t crc, uint64_t data) {
+  return _mm_crc32_u64(crc, data);
+}
+#endif // FOLLY_X64
+
+#if FOLLY_AARCH64
+#include <arm_acle.h>
+
+inline uint32_t crc32c_u8(uint32_t crc, uint8_t data) {
+  return __crc32cb(crc, data);
+}
+
+inline uint32_t crc32c_u64(uint32_t crc, uint64_t data) {
+  return __crc32cd(crc, data);
+}
+#endif // FOLLY_AARCH64
+
 
 //
-// CRC32-C implementation using SSE4.2 acceleration
+// CRC32-C implementation using SSE4.2 / AArch64 acceleration
 // no pipeline optimisation.
 //
 uint32_t crc32c_hw_1way(const uint8_t* buf, size_t len, uint32_t crc_in) {
@@ -76,21 +102,21 @@ uint32_t crc32c_hw_1way(const uint8_t* buf, size_t len, uint32_t crc_in) {
     auto crc = static_cast<uint64_t>(crc_flipped);
     // use crc32-byte instruction until the buf pointer is 8-byte aligned
     while ((reinterpret_cast<uintptr_t>(buf) & ALIGN64_MASK) != 0 && len > 0) {
-        crc = _mm_crc32_u8(static_cast<uint32_t>(crc), *buf);
+        crc = crc32c_u8(static_cast<uint32_t>(crc), *buf);
         buf += sizeof(uint8_t);
         len -= sizeof(uint8_t);
     }
 
     // Use 8 byte size until there's no more u64 to process.
     while (len >= sizeof(uint64_t)) {
-        crc = _mm_crc32_u64(crc, *reinterpret_cast<const uint64_t*>(buf));
+        crc = crc32c_u64(crc, *reinterpret_cast<const uint64_t*>(buf));
         buf += sizeof(uint64_t);
         len -= sizeof(uint64_t);
     }
 
     // finish the rest using the byte instruction
     while (len > 0) {
-        crc = _mm_crc32_u8(static_cast<uint32_t>(crc), *buf);
+        crc = crc32c_u8(static_cast<uint32_t>(crc), *buf);
         buf += sizeof(uint8_t);
         len -= sizeof(uint8_t);
     }
@@ -113,7 +139,7 @@ uint32_t crc32c_hw_short_block(const uint8_t* buf, size_t len, uint32_t crc_in) 
     // use crc32-byte instruction until the buf pointer is 8-byte aligned
     while ((reinterpret_cast<uintptr_t>(buf) & ALIGN64_MASK) != 0 && len > 0) {
 
-        crc0 = _mm_crc32_u8(static_cast<uint32_t>(crc0), *buf);
+        crc0 = crc32c_u8(static_cast<uint32_t>(crc0), *buf);
         buf += sizeof(uint8_t);
         len -= sizeof(uint8_t);
     }
@@ -125,9 +151,9 @@ uint32_t crc32c_hw_short_block(const uint8_t* buf, size_t len, uint32_t crc_in) 
         const uint8_t* end = buf + SHORT_BLOCK;
         do
         {
-            crc0 = _mm_crc32_u64(crc0, *reinterpret_cast<const uint64_t*>(buf));
-            crc1 = _mm_crc32_u64(crc1, *reinterpret_cast<const uint64_t*>(buf + SHORT_BLOCK));
-            crc2 = _mm_crc32_u64(crc2, *reinterpret_cast<const uint64_t*>(buf + (2 * SHORT_BLOCK)));
+            crc0 = crc32c_u64(crc0, *reinterpret_cast<const uint64_t*>(buf));
+            crc1 = crc32c_u64(crc1, *reinterpret_cast<const uint64_t*>(buf + SHORT_BLOCK));
+            crc2 = crc32c_u64(crc2, *reinterpret_cast<const uint64_t*>(buf + (2 * SHORT_BLOCK)));
             buf += sizeof(uint64_t);
         } while (buf < end);
         crc0 = crc32c_shift(crc32c_short, static_cast<uint32_t>(crc0)) ^ crc1;
@@ -138,14 +164,14 @@ uint32_t crc32c_hw_short_block(const uint8_t* buf, size_t len, uint32_t crc_in) 
 
     // Use 8 byte size until there's no more u64 to process.
     while (len >= sizeof(uint64_t)) {
-        crc0 = _mm_crc32_u64(crc0, *reinterpret_cast<const uint64_t*>(buf));
+        crc0 = crc32c_u64(crc0, *reinterpret_cast<const uint64_t*>(buf));
         buf += sizeof(uint64_t);
         len -= sizeof(uint64_t);
     }
 
     // finish the rest using the byte instruction
     while (len > 0) {
-        crc0 = _mm_crc32_u8(static_cast<uint32_t>(crc0), *buf);
+        crc0 = crc32c_u8(static_cast<uint32_t>(crc0), *buf);
         buf += sizeof(uint8_t);
         len -= sizeof(uint8_t);
     }
@@ -170,7 +196,7 @@ uint32_t crc32c_hw(const uint8_t* buf, size_t len, uint32_t crc_in) {
     // use crc32-byte instruction until the buf pointer is 8-byte aligned
     while ((reinterpret_cast<uintptr_t>(buf) & ALIGN64_MASK) != 0 && len > 0) {
 
-        crc0 = _mm_crc32_u8(static_cast<uint32_t>(crc0), *buf);
+        crc0 = crc32c_u8(static_cast<uint32_t>(crc0), *buf);
         buf += sizeof(uint8_t);
         len -= sizeof(uint8_t);
     }
@@ -185,9 +211,9 @@ uint32_t crc32c_hw(const uint8_t* buf, size_t len, uint32_t crc_in) {
         const uint8_t* end = buf + LONG_BLOCK;
         do
         {
-            crc0 = _mm_crc32_u64(crc0, *reinterpret_cast<const uint64_t*>(buf));
-            crc1 = _mm_crc32_u64(crc1, *reinterpret_cast<const uint64_t*>(buf + LONG_BLOCK));
-            crc2 = _mm_crc32_u64(crc2, *reinterpret_cast<const uint64_t*>(buf + (2 * LONG_BLOCK)));
+            crc0 = crc32c_u64(crc0, *reinterpret_cast<const uint64_t*>(buf));
+            crc1 = crc32c_u64(crc1, *reinterpret_cast<const uint64_t*>(buf + LONG_BLOCK));
+            crc2 = crc32c_u64(crc2, *reinterpret_cast<const uint64_t*>(buf + (2 * LONG_BLOCK)));
             buf += sizeof(uint64_t);
         } while (buf < end);
         crc0 = crc32c_shift(crc32c_long, static_cast<uint32_t>(crc0)) ^ crc1;
@@ -204,9 +230,9 @@ uint32_t crc32c_hw(const uint8_t* buf, size_t len, uint32_t crc_in) {
         const uint8_t* end = buf + SHORT_BLOCK;
         do
         {
-            crc0 = _mm_crc32_u64(crc0, *reinterpret_cast<const uint64_t*>(buf));
-            crc1 = _mm_crc32_u64(crc1, *reinterpret_cast<const uint64_t*>(buf + SHORT_BLOCK));
-            crc2 = _mm_crc32_u64(crc2, *reinterpret_cast<const uint64_t*>(buf + (2 * SHORT_BLOCK)));
+            crc0 = crc32c_u64(crc0, *reinterpret_cast<const uint64_t*>(buf));
+            crc1 = crc32c_u64(crc1, *reinterpret_cast<const uint64_t*>(buf + SHORT_BLOCK));
+            crc2 = crc32c_u64(crc2, *reinterpret_cast<const uint64_t*>(buf + (2 * SHORT_BLOCK)));
             buf += sizeof(uint64_t);
         } while (buf < end);
         crc0 = crc32c_shift(crc32c_short, static_cast<uint32_t>(crc0)) ^ crc1;
@@ -217,14 +243,14 @@ uint32_t crc32c_hw(const uint8_t* buf, size_t len, uint32_t crc_in) {
 
     // Use 8 byte size until there's no more u64 to process.
     while (len >= sizeof(uint64_t)) {
-        crc0 = _mm_crc32_u64(crc0, *reinterpret_cast<const uint64_t*>(buf));
+        crc0 = crc32c_u64(crc0, *reinterpret_cast<const uint64_t*>(buf));
         buf += sizeof(uint64_t);
         len -= sizeof(uint64_t);
     }
 
     // finish the rest using the byte instruction
     while (len > 0) {
-        crc0 = _mm_crc32_u8(static_cast<uint32_t>(crc0), *buf);
+        crc0 = crc32c_u8(static_cast<uint32_t>(crc0), *buf);
         buf += sizeof(uint8_t);
         len -= sizeof(uint8_t);
     }

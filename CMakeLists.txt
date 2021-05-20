@@ -1,4 +1,4 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 3.2)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.15)
 PROJECT(Platform LANGUAGES C CXX)
 
 INCLUDE(CheckFunctionExists)
@@ -100,15 +100,23 @@ IF (WIN32)
                       include/win32/getopt.h)
 ELSE (WIN32)
    SET(PLATFORM_FILES src/cb_pthreads.cc)
-   if (CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
+   set(crc32_hw_archs "aarch64;AMD64;x86_64")
+   if(CMAKE_SYSTEM_PROCESSOR IN_LIST crc32_hw_archs)
       list(APPEND PLATFORM_FILES src/crc32c_sse4_2.cc)
-      # To avoid feature (sse4.2) mismatch errors when compiling we should avoid
-      # including the precompiled header in crc32c_sse4_2
-      set_source_files_properties(src/crc32c_sse4_2.cc
-                                  PROPERTIES
-                                  COMPILE_FLAGS -msse4.2
-                                  SKIP_PRECOMPILE_HEADERS ON)
    endif()
+   if (CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
+      set_source_files_properties(src/crc32c_sse4_2.cc
+                                  PROPERTIES COMPILE_FLAGS -msse4.2)
+   endif()
+   if (CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64")
+      set_source_files_properties(src/crc32c_sse4_2.cc
+                                  PROPERTIES COMPILE_FLAGS -march=armv8-a+crc)
+   endif()
+   # To avoid feature (sse4.2) mismatch errors when compiling we should avoid
+   # including the precompiled header in crc32c_sse4_2
+   set_source_files_properties(src/crc32c_sse4_2.cc
+                               PROPERTIES
+                               SKIP_PRECOMPILE_HEADERS ON)
    LIST(APPEND PLATFORM_LIBRARIES "pthread")
 
    IF (NOT APPLE)
@@ -355,7 +363,7 @@ SET_TARGET_PROPERTIES(platform PROPERTIES POSITION_INDEPENDENT_CODE true)
 platform_enable_pch(platform)
 cb_enable_unity_build(platform)
 # Exclude our defintions of new/delete. When included in a unity build this
-# file has a number of issues to address. Compile failure due to differing 
+# file has a number of issues to address. Compile failure due to differing
 # defintions of malloc_usable_size on WIN32 and Linux. A second issue occurs
 # on ASAN only where duplicate symbol errors are seen, all of our new/delete
 # symbols now clash with the ASAN replacements).

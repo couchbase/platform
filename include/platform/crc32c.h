@@ -19,7 +19,9 @@
 #include <cstddef>
 #include <cstdint>
 
-#if defined(__x86_64__) || defined(_M_X64)
+#include <folly/Portability.h>
+
+#if FOLLY_X64 || FOLLY_AARCH64
 #define CB_CRC32_HW_SUPPORTED 1
 #endif
 
