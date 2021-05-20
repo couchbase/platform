@@ -19,7 +19,7 @@
 #include <cstddef>
 #include <cstdint>
 
-#if defined(__x86_64__) || defined(_M_X64) || defined(_M_IX86)
+#if defined(__x86_64__) || defined(_M_X64)
 #define CB_CRC32_HW_SUPPORTED 1
 #endif
 
