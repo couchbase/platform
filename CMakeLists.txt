@@ -96,25 +96,25 @@ IF (WIN32)
    ADD_DEFINITIONS(-D_CRT_SECURE_NO_WARNINGS)
    SET(PLATFORM_FILES src/sockets.cc
                       src/cb_win32.cc
-                      src/crc32c_sse4_2.cc
+                      src/crc32c_hw_accel.cc
                       include/win32/getopt.h)
 ELSE (WIN32)
    SET(PLATFORM_FILES src/cb_pthreads.cc)
    set(crc32_hw_archs "aarch64;AMD64;x86_64")
    if(CMAKE_SYSTEM_PROCESSOR IN_LIST crc32_hw_archs)
-      list(APPEND PLATFORM_FILES src/crc32c_sse4_2.cc)
+      list(APPEND PLATFORM_FILES src/crc32c_hw_accel.cc)
    endif()
    if (CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
-      set_source_files_properties(src/crc32c_sse4_2.cc
+      set_source_files_properties(src/crc32c_hw_accel.cc
                                   PROPERTIES COMPILE_FLAGS -msse4.2)
    endif()
    if (CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64")
-      set_source_files_properties(src/crc32c_sse4_2.cc
+      set_source_files_properties(src/crc32c_hw_accel.cc
                                   PROPERTIES COMPILE_FLAGS -march=armv8-a+crc)
    endif()
    # To avoid feature (sse4.2) mismatch errors when compiling we should avoid
    # including the precompiled header in crc32c_sse4_2
-   set_source_files_properties(src/crc32c_sse4_2.cc
+   set_source_files_properties(src/crc32c_hw_accel.cc
                                PROPERTIES
                                SKIP_PRECOMPILE_HEADERS ON)
    LIST(APPEND PLATFORM_LIBRARIES "pthread")
