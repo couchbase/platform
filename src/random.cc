@@ -17,7 +17,6 @@
 
 #ifdef WIN32
 // We need to include windows.h _before_ wincrypt.h
-#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
 #include <wincrypt.h>

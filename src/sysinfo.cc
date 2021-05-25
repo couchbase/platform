@@ -7,12 +7,7 @@
  *   software will be governed by the Apache License, Version 2.0, included in
  *   the file licenses/APL2.txt.
  */
-#ifdef WIN32
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#else
-#include <unistd.h>
-#endif
+#include <folly/portability/Unistd.h>
 
 #ifdef HAVE_CPUID_H
 #include <cpuid.h>
