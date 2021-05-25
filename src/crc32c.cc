@@ -173,7 +173,8 @@ static inline uint64_t crc32c_sw_inner(uint64_t crc, const uint8_t* buffer) {
 // No optimisation
 //
 uint32_t crc32c_sw_1way(const uint8_t* buf, size_t len, uint32_t crc_in) {
-    auto crc = static_cast<uint64_t>(~crc_in);
+    auto crc_flipped = ~crc_in;
+    auto crc = static_cast<uint64_t>(crc_flipped);
 
     while ((reinterpret_cast<uintptr_t>(buf) & ALIGN64_MASK) != 0 && len > 0) {
         crc = crc32c_sw_lookup_table[0][(crc ^ *buf) & 0xff] ^ (crc >> 8);
@@ -206,7 +207,8 @@ uint32_t crc32c_sw_short_block(const uint8_t* buf, size_t len, uint32_t crc_in) 
         return crc32c_sw_1way(buf, len, crc_in);
     }
 
-    uint64_t crc = static_cast<uint64_t>(~crc_in), crc1 = 0, crc2 = 0;
+    auto crc_flipped = ~crc_in;
+    uint64_t crc = static_cast<uint64_t>(crc_flipped), crc1 = 0, crc2 = 0;
 
     while ((reinterpret_cast<uintptr_t>(buf) & ALIGN64_MASK) != 0 && len > 0) {
         crc = crc32c_sw_lookup_table[0][(crc ^ *buf) & 0xff] ^ (crc >> 8);
@@ -258,7 +260,8 @@ uint32_t crc32c_sw (const uint8_t* buf, size_t len, uint32_t crc_in) {
         return crc32c_sw_short_block(buf, len, crc_in);
     }
 
-    uint64_t crc = static_cast<uint64_t>(~crc_in), crc1 = 0, crc2 = 0;
+    auto crc_flipped = ~crc_in;
+    uint64_t crc = static_cast<uint64_t>(crc_flipped), crc1 = 0, crc2 = 0;
 
     while ((reinterpret_cast<uintptr_t>(buf) & ALIGN64_MASK) != 0 && len > 0) {
         crc = crc32c_sw_lookup_table[0][(crc ^ *buf) & 0xff] ^ (crc >> 8);
