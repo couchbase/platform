@@ -18,7 +18,7 @@
 
 #include <folly/portability/Malloc.h>
 
-#include <gsl/gsl>
+#include <gsl/gsl-lite.hpp>
 // Why is jemalloc here?
 // The system arena allocator is intended to be used when je_malloc is not
 // present. However it is is possible with some manual changes to build the

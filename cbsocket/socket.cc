@@ -14,8 +14,8 @@
 #include <event2/util.h>
 #include <nlohmann/json.hpp>
 
+#include <gsl/gsl-lite.hpp>
 #include <cerrno>
-#include <gsl/gsl>
 
 #ifdef WIN32
 #include <winsock2.h>

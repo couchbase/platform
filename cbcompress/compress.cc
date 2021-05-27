@@ -13,11 +13,11 @@
 #include <arpa/inet.h>
 #endif
 
+#include <gsl/gsl-lite.hpp>
 #include <platform/cb_malloc.h>
 #include <platform/compress.h>
 #include <snappy.h>
 #include <cctype>
-#include <gsl/gsl>
 #include <stdexcept>
 
 #ifdef CB_LZ4_SUPPORT

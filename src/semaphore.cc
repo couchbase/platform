@@ -10,8 +10,8 @@
 
 #include <platform/semaphore.h>
 
+#include <gsl/gsl-lite.hpp>
 #include <atomic>
-#include <gsl/gsl>
 #include <stdexcept>
 
 namespace cb {
