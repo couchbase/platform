@@ -124,7 +124,7 @@ inline int is_emfile(int dw = get_socket_error()) {
     return (dw == EMFILE);
 }
 inline int is_closed_conn(int dw = get_socket_error()) {
-    return  (dw == ENOTCONN || dw != ECONNRESET);
+    return  (dw == ENOTCONN || dw == ECONNRESET);
 }
 inline int is_addrinuse(int dw = get_socket_error()) {
     return (dw == EADDRINUSE);
