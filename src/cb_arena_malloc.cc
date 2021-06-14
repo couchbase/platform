@@ -34,7 +34,7 @@ void ArenaMallocClient::setEstimateUpdateThreshold(size_t maxDataSize,
 std::ostream& operator<<(std::ostream& os, const FragmentationStats& stats) {
     os << "allocated:" << stats.getAllocatedBytes()
        << ", resident:" << stats.getResidentBytes()
-       << ", fragmentation:" << stats.getFragmentationPerc() << "%";
+       << ", fragmentation:" << stats.getFragmentationRatio();
     return os;
 }
 

@@ -45,7 +45,7 @@ TEST_F(ArenaMalloc, cb_malloc_is_using_arenas) {
 
 TEST_F(ArenaMalloc, fragmentation) {
     cb::FragmentationStats stats{2, 200};
-    EXPECT_EQ(99, stats.getFragmentationPerc());
+    EXPECT_EQ(0.99, stats.getFragmentationRatio());
 }
 
 // Check that allocations made without an explicit client selected are accounted

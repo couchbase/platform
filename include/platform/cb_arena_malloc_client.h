@@ -80,19 +80,21 @@ public:
     FragmentationStats(size_t allocatedBytes, size_t residentBytes)
         : allocatedBytes(allocatedBytes), residentBytes(residentBytes) {
     }
+
     size_t getAllocatedBytes() const {
         return allocatedBytes;
     }
+
     size_t getResidentBytes() const {
         return residentBytes;
     }
+
     /**
-     * @return the fragmentation 'percent' a return value of 15 means that 15%
-     * of the arena's resident memory is not considered allocated.
+     * @return the fragmentation as a ratio, 0.0 to 1.0. A value of 1.0 means
+     *             no resident bytes are allocated, 0.0 all bytes are allocated.
      */
-    size_t getFragmentationPerc() const {
-        return size_t((double(residentBytes - allocatedBytes) / residentBytes) *
-                      100.0);
+    double getFragmentationRatio() const {
+        return (double(residentBytes - allocatedBytes) / residentBytes);
     }
 
     /**
@@ -104,8 +106,8 @@ public:
     }
 
 private:
-    size_t allocatedBytes;
-    size_t residentBytes;
+    size_t allocatedBytes{0};
+    size_t residentBytes{0};
 };
 
 std::ostream& operator<<(std::ostream&, const FragmentationStats&);
