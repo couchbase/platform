@@ -1,9 +1,0 @@
-cb_add_test_executable(process_monitor_child process_monitor_child.cc)
-target_link_libraries(process_monitor_child platform)
-platform_enable_pch(process_monitor_child)
-
-cb_add_test_executable(process_monitor_test process_monitor_test.cc)
-target_link_libraries(process_monitor_test platform gtest gtest_main)
-platform_enable_pch(process_monitor_test)
-add_dependencies(process_monitor_test process_monitor_child)
-add_test(process_monitor_test process_monitor_test)

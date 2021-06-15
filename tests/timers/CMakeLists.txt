@@ -1,4 +1,0 @@
-cb_add_test_executable(platform-timers-test scope_timer_test.cc)
-TARGET_LINK_LIBRARIES(platform-timers-test platform gtest gtest_main)
-platform_enable_pch(platform-timers-test)
-ADD_TEST(platform-timers-test platform-timers-test)

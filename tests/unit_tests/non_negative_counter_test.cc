@@ -131,8 +131,7 @@ TEST(NonNegativeCounterTest, ThrowExceptionPolicyBacktrace) {
                 backtrace += frame;
                 backtrace += '\n';
             });
-        EXPECT_TRUE(backtrace.find("platform-non_negative_counter-test")
-                    != std::string::npos)
+        EXPECT_NE(std::string::npos, backtrace.find("platform_unit_tests"))
             << "when verifying exception backtrace: " << backtrace;
     }
 }
