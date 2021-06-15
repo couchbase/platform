@@ -1,7 +1,6 @@
 ADD_SUBDIRECTORY(arena_malloc)
 add_subdirectory(benchmarks)
 ADD_SUBDIRECTORY(crc32)
-ADD_SUBDIRECTORY(gettimeofday)
 ADD_SUBDIRECTORY(histogram)
 ADD_SUBDIRECTORY(interrupt)
 add_subdirectory(memory_tracking_test)
