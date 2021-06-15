@@ -200,6 +200,7 @@ LIST(APPEND PLATFORM_FILES
   src/global_new_replacement.cc
   src/histogram.cc
   src/interrupt.cc
+  src/murmurhash3.cc
   src/processclock.cc
   src/process_monitor.cc
   src/semaphore.cc
