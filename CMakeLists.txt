@@ -106,8 +106,12 @@ ELSE (WIN32)
    SET(PLATFORM_FILES src/cb_pthreads.cc)
    if (CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
       list(APPEND PLATFORM_FILES src/crc32c_sse4_2.cc)
+      # To avoid feature (sse4.2) mismatch errors when compiling we should avoid
+      # including the precompiled header in crc32c_sse4_2
       set_source_files_properties(src/crc32c_sse4_2.cc
-                                  PROPERTIES COMPILE_FLAGS -msse4.2)
+                                  PROPERTIES
+                                  COMPILE_FLAGS -msse4.2
+                                  SKIP_PRECOMPILE_HEADERS ON)
    endif()
    LIST(APPEND PLATFORM_LIBRARIES "pthread")
 
@@ -283,6 +287,37 @@ endif()
 # Always build the system_arena code for simpler concurrent development
 LIST(APPEND PLATFORM_FILES src/system_arena_malloc.cc)
 
+
+if (CB_PCH)
+    add_library(platform_pch OBJECT precompiled_headers.cc)
+    target_link_libraries(platform_pch PRIVATE Folly::headers gtest)
+    target_precompile_headers(platform_pch PUBLIC precompiled_headers.h)
+
+    add_library(platform_pch_fpic OBJECT precompiled_headers.cc)
+    target_link_libraries(platform_pch_fpic PRIVATE Folly::headers gtest)
+    target_precompile_headers(platform_pch_fpic PUBLIC precompiled_headers.h)
+    set_property(TARGET platform_pch_fpic PROPERTY POSITION_INDEPENDENT_CODE 1)
+endif()
+
+function(platform_enable_pch target)
+    if (CB_PCH)
+        # ASan/TSan builds don't like a mix of position independent code so we
+        # need to use the correct pch target
+        get_property(fpic TARGET ${target} PROPERTY POSITION_INDEPENDENT_CODE)
+        if (fpic)
+            reuse_pch(${target} platform_pch_fpic)
+        else()
+            reuse_pch(${target} platform_pch)
+        endif()
+    endif()
+endfunction()
+
+# Skip using precompiled headers in global_new_replacement or we end up with
+# redundant redeclarations of malloc_usable_size
+set_source_files_properties(src/global_new_replacement.cc
+        PROPERTIES
+        SKIP_PRECOMPILE_HEADERS ON)
+
 # platform - the main platform library containing our various
 # platform abstraction functionality.
 #
@@ -319,6 +354,7 @@ TARGET_LINK_LIBRARIES(platform PUBLIC
   platform_cbassert)
 
 SET_TARGET_PROPERTIES(platform PROPERTIES POSITION_INDEPENDENT_CODE true)
+platform_enable_pch(platform)
 
 # platform_cb_arena_malloc contains strong symbols for
 # cb_malloc/cb_free et al; which override the default behavour in
