@@ -20,6 +20,7 @@ cb_add_test_executable(platform_unit_tests
                        optional_test.cc
                        process_monitor_test.cc
                        processclock_test.cc
+                       random_test.cc
                        relaxed_atomic_test.cc
                        ring_buffer_test.cc
                        scope_timer_test.cc
