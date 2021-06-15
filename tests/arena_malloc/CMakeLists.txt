@@ -5,6 +5,7 @@ TARGET_LINK_LIBRARIES(platform-arena_malloc-test PRIVATE
         platform
         platform_cb_malloc_arena
         ${MALLOC_LIBRARIES})
+platform_enable_pch(platform-arena_malloc-test)
 ADD_TEST(platform-arena_malloc-test platform-arena_malloc-test)
 
 if (MEMORY_ALLOCATOR STREQUAL "jemalloc")
@@ -16,7 +17,7 @@ if (MEMORY_ALLOCATOR STREQUAL "jemalloc")
                         gtest
                         platform
                         platform_cb_malloc_arena)
-
+  platform_enable_pch(platform-arena_tracking_bench)
   TARGET_INCLUDE_DIRECTORIES(platform-arena_tracking_bench SYSTEM PRIVATE
                              ${benchmark_SOURCE_DIR}/include )
 endif()
@@ -29,5 +30,6 @@ TARGET_LINK_LIBRARIES(platform-cb_malloc-test PRIVATE
         gtest_main
         platform
         ${MALLOC_LIBRARIES})
+platform_enable_pch(platform-cb_malloc-test)
 ADD_TEST(platform-cb_malloc-test platform-cb_malloc-test)
 endif()

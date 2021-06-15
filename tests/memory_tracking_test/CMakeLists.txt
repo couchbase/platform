@@ -6,6 +6,7 @@ if (NOT MEMORY_ALLOCATOR STREQUAL "system")
                           platform_cb_malloc_arena
                           gtest
                           ${MALLOC_LIBRARIES})
+    platform_enable_pch(platform_memory_tracking_test)
 
     add_test(NAME platform-memory-tracking
              WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}

@@ -4,4 +4,5 @@ TARGET_LINK_LIBRARIES(platform-backtrace-test
     gtest_main
     platform_cbassert
     platform_headers)
+platform_enable_pch(platform-backtrace-test)
 ADD_TEST(platform-backtrace-test platform-backtrace-test)

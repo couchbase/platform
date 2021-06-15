@@ -6,6 +6,7 @@ if (NOT WIN32)
                   ${Platform_SOURCE_DIR}/include/platform/interrupt.h
                   interrupt_test.cc)
    target_link_libraries(platform-interrupt-test platform)
+   platform_enable_pch(platform-interrupt-test)
    add_test(platform-interrupt-test
             ${Platform_SOURCE_DIR}/tests/interrupt/interrupt_test.py
             ${Platform_BINARY_DIR}/tests/interrupt/platform-interrupt-test)

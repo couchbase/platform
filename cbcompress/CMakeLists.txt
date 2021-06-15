@@ -22,6 +22,8 @@ target_include_directories(cbcompress
                            ${SNAPPY_INCLUDE_DIR}
                            $<$<BOOL:${LZ4_FOUND}>:${LZ4_INCLUDE_DIR}>)
 
+platform_enable_pch(cbcompress)
+
 target_link_libraries(cbcompress
                       gsl_lite
                       platform_cbassert
@@ -45,6 +47,7 @@ if (COUCHBASE_PLATFORM_BUILD_UNIT_TESTS)
                           gtest
                           gtest_main
                           platform)
+    platform_enable_pch(platform-compression-test)
     add_test(platform-compression-test platform-compression-test)
 
     #
@@ -64,4 +67,5 @@ if (COUCHBASE_PLATFORM_BUILD_UNIT_TESTS)
                           $<$<BOOL:${LZ4_FOUND}>:${LZ4_LIBRARIES}>
                           benchmark
                           gtest)
+    platform_enable_pch(platform-compression-bench)
 endif (COUCHBASE_PLATFORM_BUILD_UNIT_TESTS)

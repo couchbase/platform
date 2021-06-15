@@ -4,6 +4,7 @@ TARGET_LINK_LIBRARIES(platform-json-checker-test
         gtest
         gtest_main
         platform_headers)
+platform_enable_pch(platform-json-checker-test)
 ADD_TEST(platform-json-checker-test platform-json-checker-test)
 
 cb_add_test_executable(platform-json-checker-bench
@@ -13,3 +14,4 @@ TARGET_INCLUDE_DIRECTORIES(platform-json-checker-bench
     ${benchmark_SOURCE_DIR}/include)
 TARGET_LINK_LIBRARIES(platform-json-checker-bench
   benchmark gtest platform JSON_checker)
+platform_enable_pch(platform-json-checker-bench)

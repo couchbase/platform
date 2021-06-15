@@ -1,5 +1,6 @@
 cb_add_test_executable(platform-base64-test base64_test.cc)
 TARGET_LINK_LIBRARIES(platform-base64-test platform gtest gtest_main)
+platform_enable_pch(platform-base64-test)
 ADD_TEST(platform-base64-test platform-base64-test)
 
 cb_add_test_executable(platform-base64-test-bench
@@ -10,3 +11,4 @@ TARGET_INCLUDE_DIRECTORIES(platform-base64-test-bench
                            ${benchmark_SOURCE_DIR}/include)
 TARGET_LINK_LIBRARIES(platform-base64-test-bench
                       benchmark gtest platform)
+platform_enable_pch(platform-base64-test-bench)
