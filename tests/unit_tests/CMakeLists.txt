@@ -1,5 +1,5 @@
 cb_add_test_executable(process_monitor_child process_monitor_child.cc)
-target_link_libraries(process_monitor_child platform)
+target_link_libraries(process_monitor_child PRIVATE platform)
 
 cb_add_test_executable(platform_unit_tests
                        atomic_duration_test.cc
@@ -30,7 +30,7 @@ cb_add_test_executable(platform_unit_tests
                        timeutils_test.cc
                        uuid_test.cc
                        )
-target_link_libraries(platform_unit_tests gtest gtest_main platform JSON_checker)
+target_link_libraries(platform_unit_tests PRIVATE gtest gtest_main platform JSON_checker)
 platform_enable_pch(platform_unit_tests)
 cb_enable_unity_build(platform_unit_tests)
 add_test(platform_unit_tests platform_unit_tests)

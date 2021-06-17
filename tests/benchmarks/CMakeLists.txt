@@ -5,5 +5,5 @@ target_include_directories(platform_benchmarks
                            SYSTEM
                            PRIVATE
                            ${benchmark_SOURCE_DIR}/include)
-target_link_libraries(platform_benchmarks benchmark gtest platform JSON_checker)
+target_link_libraries(platform_benchmarks PRIVATE benchmark gtest platform JSON_checker)
 platform_enable_pch(platform_benchmarks)

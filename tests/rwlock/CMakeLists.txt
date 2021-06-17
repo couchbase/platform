@@ -1,5 +1,5 @@
 cb_add_test_executable(rwlock_test rwlock_test.cc)
-TARGET_LINK_LIBRARIES(rwlock_test gtest gtest_main platform)
+TARGET_LINK_LIBRARIES(rwlock_test PRIVATE gtest gtest_main platform)
 platform_enable_pch(rwlock_test)
 ADD_TEST(rwlock_test rwlock_test)
 

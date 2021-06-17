@@ -5,7 +5,7 @@ if (NOT WIN32)
    cb_add_test_executable(platform-interrupt-test
                   ${Platform_SOURCE_DIR}/include/platform/interrupt.h
                   interrupt_test.cc)
-   target_link_libraries(platform-interrupt-test platform)
+   target_link_libraries(platform-interrupt-test PRIVATE platform)
    platform_enable_pch(platform-interrupt-test)
    add_test(platform-interrupt-test
             ${Platform_SOURCE_DIR}/tests/interrupt/interrupt_test.py

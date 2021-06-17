@@ -2,6 +2,7 @@ if (NOT MEMORY_ALLOCATOR STREQUAL "system")
     cb_add_test_executable(platform_memory_tracking_test
                    memory_tracking_test.cc)
     target_link_libraries(platform_memory_tracking_test
+                          PRIVATE
                           platform
                           platform_cb_malloc_arena
                           gtest
