@@ -9,6 +9,7 @@
  */
 #include <folly/portability/GTest.h>
 #include <platform/random.h>
+#include <array>
 
 TEST(RandomGenerator, RandomTest) {
     cb::RandomGenerator r1;
