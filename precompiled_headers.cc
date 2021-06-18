@@ -10,3 +10,11 @@
 
 // This file is required to build the precompiled header object libraries
 // (platform_pch et. al.) because object libraries need some source to compile.
+
+// To silence linker errors when we attempt to link an empty file,
+// define a totally unused symbol:
+//     ranlib: file: platform/libplatform.a(precompiled_headers.cc.o) has no
+//     symbols
+void platform_precompiled_headers_dummy_symbol() {
+    return;
+}

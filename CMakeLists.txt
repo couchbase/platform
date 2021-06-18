@@ -290,13 +290,14 @@ LIST(APPEND PLATFORM_FILES src/system_arena_malloc.cc)
 
 
 if (CB_PCH)
-    add_library(platform_pch OBJECT precompiled_headers.cc)
-    target_link_libraries(platform_pch PRIVATE Folly::headers gtest)
-    target_precompile_headers(platform_pch PUBLIC precompiled_headers.h)
-
-    add_library(platform_pch_fpic OBJECT precompiled_headers.cc)
-    target_link_libraries(platform_pch_fpic PRIVATE Folly::headers gtest)
-    target_precompile_headers(platform_pch_fpic PUBLIC precompiled_headers.h)
+    # Given consumers of precompiled headers must have the same compile flags,
+    # we need two PCH targets - with and without position-independent code.
+    foreach(pch_obj_lib platform_pch platform_pch_fpic)
+        add_library(${pch_obj_lib} OBJECT precompiled_headers.cc)
+        target_link_libraries(${pch_obj_lib} PUBLIC Folly::headers)
+        target_include_directories(${pch_obj_lib} PUBLIC ${gtest_SOURCE_DIR}/include)
+        target_precompile_headers(${pch_obj_lib} PRIVATE precompiled_headers.h)
+    endforeach()
     set_property(TARGET platform_pch_fpic PROPERTY POSITION_INDEPENDENT_CODE 1)
 endif()
 
