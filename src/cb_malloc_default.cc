@@ -120,3 +120,8 @@ const char* cb_malloc_get_conf() {
 }
 
 } // extern "C"
+
+#undef MALLOC_PREFIX
+#undef CONCAT
+#undef CONCAT2
+#undef MEM_ALLOC

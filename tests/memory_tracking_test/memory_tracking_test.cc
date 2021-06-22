@@ -219,9 +219,10 @@ TEST_F(MemoryTrackerTest, mallocUsableSize) {
 
     size_t allocHooksResult = cb::ArenaMalloc::malloc_usable_size(ptr);
     size_t directCallResult = cb_malloc_usable_size(ptr);
+    size_t libraryResult = malloc_usable_size(ptr);
 
     EXPECT_EQ(allocHooksResult, directCallResult);
-
+    EXPECT_EQ(libraryResult, directCallResult);
     delete[] ptr;
 }
 

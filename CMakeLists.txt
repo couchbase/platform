@@ -357,6 +357,14 @@ TARGET_LINK_LIBRARIES(platform PUBLIC
 
 SET_TARGET_PROPERTIES(platform PROPERTIES POSITION_INDEPENDENT_CODE true)
 platform_enable_pch(platform)
+cb_enable_unity_build(platform)
+# Exclude our defintions of new/delete. When included in a unity build this
+# file has a number of issues to address. Compile failure due to differing 
+# defintions of malloc_usable_size on WIN32 and Linux. A second issue occurs
+# on ASAN only where duplicate symbol errors are seen, all of our new/delete
+# symbols now clash with the ASAN replacements).
+set_source_files_properties(src/global_new_replacement.cc
+                            PROPERTIES SKIP_UNITY_BUILD_INCLUSION 1)
 
 # platform_cb_arena_malloc contains strong symbols for
 # cb_malloc/cb_free et al; which override the default behavour in
