@@ -339,3 +339,17 @@ TEST_F(IoTest, loadFile) {
     EXPECT_EQ(content, cb::io::loadFile(filename));
     cb::io::rmrf(filename);
 }
+
+TEST_F(IoTest, loadFileWithLimit) {
+    auto filename = cb::io::mktemp("loadfile_test");
+    ASSERT_FALSE(filename.empty())
+            << "FAIL: Expected to create tempfile without mask";
+
+    std::string content{"Hello world!!!"};
+    auto* fp = fopen(filename.c_str(), "wb+");
+    fprintf(fp, "%s", content.c_str());
+    fclose(fp);
+    content.resize(content.size() / 2);
+    EXPECT_EQ(content, cb::io::loadFile(filename, {}, content.size()));
+    cb::io::rmrf(filename);
+}

@@ -24,7 +24,7 @@
 // but unfortunately it use the posix API on windows which don't properly
 // set FILE_SHARE_WRITE causing us to fail to open the file if someone
 // else have the file open for writing
-std::string loadFileImpl(const std::string& name) {
+std::string loadFileImpl(const std::string& name, size_t bytesToRead) {
     auto filehandle = CreateFile(name.c_str(),
                                  GENERIC_READ,
                                  FILE_SHARE_READ | FILE_SHARE_WRITE,
@@ -57,8 +57,9 @@ std::string loadFileImpl(const std::string& name) {
     }
 
     std::string content;
+    size_t size = std::min(size_t(fad.nFileSizeLow), bytesToRead);
     try {
-        content.resize(fad.nFileSizeLow);
+        content.resize(size);
     } catch (const std::bad_alloc&) {
         CloseHandle(filehandle);
         throw;
@@ -82,9 +83,9 @@ std::string loadFileImpl(const std::string& name) {
     return content;
 }
 #else
-static std::string loadFileImpl(const std::string& name) {
+static std::string loadFileImpl(const std::string& name, size_t bytesToRead) {
     std::string content;
-    if (folly::readFile<std::string>(name.c_str(), content)) {
+    if (folly::readFile<std::string>(name.c_str(), content, bytesToRead)) {
         return content;
     }
     throw std::system_error(errno,
@@ -94,7 +95,8 @@ static std::string loadFileImpl(const std::string& name) {
 #endif
 
 std::string cb::io::loadFile(const std::string& name,
-                             std::chrono::microseconds waittime) {
+                             std::chrono::microseconds waittime,
+                             size_t bytesToRead) {
 #ifdef WIN32
     // We've seen sporadic unit test failures on Windows due to sharing
     // errors (most likely caused by the other process is _creating_ the file
@@ -112,7 +114,7 @@ std::string cb::io::loadFile(const std::string& name,
         std::string content;
         bool success = false;
         try {
-            content = loadFileImpl(name);
+            content = loadFileImpl(name, bytesToRead);
             success = true;
         } catch (const std::system_error& error) {
             const auto& code = error.code();

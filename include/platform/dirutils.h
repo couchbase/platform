@@ -159,11 +159,13 @@ std::string sanitizePath(std::string path);
  * @return The content of the file
  * @param waittime The number of microseconds to wait for the file to appear
  *                 if its not there (yet)
+ * @param bytesToRead Read upto this many bytes
  * @throws std::system_exception if an error occurs opening / reading the file
  *         std::bad_alloc for memory allocation errors
  */
 std::string loadFile(const std::string& name,
-                     std::chrono::microseconds waittime = {});
+                     std::chrono::microseconds waittime = {},
+                     size_t bytesToRead = std::numeric_limits<size_t>::max());
 
 /**
  * Set the file mode to BINARY
