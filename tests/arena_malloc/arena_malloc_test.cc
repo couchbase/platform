@@ -174,9 +174,20 @@ TEST_F(ArenaMalloc, CheckCustomConfiguration) {
     EXPECT_EQ(0, je_mallctl("opt.narenas", &narenas, &sz, nullptr, 0));
     EXPECT_EQ(1, narenas);
 
-    bool prof = false;
-    sz = sizeof(prof);
-    EXPECT_EQ(0, je_mallctl("opt.prof", &prof, &sz, nullptr, 0));
-    EXPECT_TRUE(prof);
+    bool profConfigured = false;
+    sz = sizeof(profConfigured);
+    EXPECT_EQ(0, je_mallctl("config.prof", &profConfigured, &sz, nullptr, 0));
+    // Jemalloc should have been configured with profiling support on Linux;
+    // on macOS it doesn't work but might have been configured depending
+    // on cbDep version.
+    if (folly::kIsLinux) {
+        EXPECT_TRUE(profConfigured);
+    }
+    if (profConfigured) {
+        bool profEnabled = false;
+        sz = sizeof(profEnabled);
+        EXPECT_EQ(0, je_mallctl("opt.prof", &profEnabled, &sz, nullptr, 0));
+        EXPECT_TRUE(profEnabled);
+    }
 }
 #endif
