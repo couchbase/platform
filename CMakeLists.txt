@@ -6,14 +6,10 @@ INCLUDE(CheckIncludeFile)
 INCLUDE(CheckIncludeFileCXX)
 INCLUDE(CheckSymbolExists)
 INCLUDE(CTest)
-INCLUDE(check_unit_test_enabled)
 
 OPTION(PLATFORM_ENABLE_CBSOCKET "Build cbsocket support" ON)
 
-check_unit_test_enabled(platform COUCHBASE_PLATFORM_BUILD_UNIT_TESTS)
-if (COUCHBASE_PLATFORM_BUILD_UNIT_TESTS)
-    ENABLE_CODE_COVERAGE_REPORT()
-endif (COUCHBASE_PLATFORM_BUILD_UNIT_TESTS)
+enable_code_coverage_report()
 
 if (NOT WIN32)
     # Backtrace support on !win32 use backtrace() from execinfo.h and dladdr()
@@ -435,6 +431,4 @@ IF (PLATFORM_ENABLE_CBSOCKET)
    ADD_SUBDIRECTORY(cbsocket)
 ENDIF (PLATFORM_ENABLE_CBSOCKET)
 
-if (COUCHBASE_PLATFORM_BUILD_UNIT_TESTS)
-    ADD_SUBDIRECTORY(tests)
-endif (COUCHBASE_PLATFORM_BUILD_UNIT_TESTS)
+add_subdirectory(tests)
