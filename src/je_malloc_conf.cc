@@ -21,7 +21,10 @@ const char* je_malloc_conf =
 #endif
         /* Use just one arena, instead of the default based on number of CPUs.
            Helps to minimize heap fragmentation. */
-        "narenas:1,"
+        "narenas:1"
+#ifdef __linux__
         /* Start with profiling enabled but inactive; this allows us to
            turn it on/off at runtime. */
-        "prof:true,prof_active:false";
+        ",prof:true,prof_active:false"
+#endif
+        ;
