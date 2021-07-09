@@ -26,11 +26,11 @@ public:
     }
 
     static void memAllocated(uint8_t index, size_t size) {
-        trackingImpl::memAllocated(index, size);
+        trackingImpl::memAllocated(index, cb::MemoryDomain::Primary, size);
     }
 
     static void memDeallocated(uint8_t index, size_t size) {
-        trackingImpl::memDeallocated(index, size);
+        trackingImpl::memDeallocated(index, cb::MemoryDomain::Primary, size);
     }
 };
 

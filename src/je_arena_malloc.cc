@@ -17,6 +17,7 @@
 #include <stdexcept>
 #include <string>
 #include <system_error>
+#include <type_traits>
 
 // We are storing the arena in a uint16_t, assert that this constant is as
 // expected, MALLCTL_ARENAS_ALL -1 is the largest possible arena ID
@@ -32,14 +33,26 @@ static bool tcacheEnabled{true};
  * Structure storing data for the currently executing client
  */
 struct CurrentClient {
+    CurrentClient() = default;
+    CurrentClient(int mallocFlags, uint8_t index, MemoryDomain domain)
+        : mallocFlags(mallocFlags), index(index), domain(domain) {
+    }
+
     void setNoClient() {
         mallocFlags = 0;
         index = NoClientIndex;
     }
 
-    void setup(int mallocFlags, uint8_t index) {
+    void setup(int mallocFlags, uint8_t index, cb::MemoryDomain domain) {
         this->mallocFlags = mallocFlags;
         this->index = index;
+        this->domain = domain;
+    }
+
+    MemoryDomain setDomain(MemoryDomain domain) {
+        auto currentDomain = this->domain;
+        this->domain = domain;
+        return currentDomain;
     }
 
     /**
@@ -53,7 +66,21 @@ struct CurrentClient {
      * stat counters (e.g. the mem_used counters)
      */
     uint8_t index{NoClientIndex};
+
+    /**
+     * The current domain
+     */
+    MemoryDomain domain{MemoryDomain::Primary};
+
+    /// struct is intended to be a max of u64 - 2 unused bytes remain.
+    uint8_t unused1{0};
+    uint8_t unused2{0};
 };
+
+// Note: we can exceed uint64_t - just incurs an extra TLS read on what is
+// quite hot code.
+static_assert(sizeof(CurrentClient) == sizeof(uint64_t),
+              "Expected CurrentClient to be sizeof(uint64_t)");
 
 /**
  * ThreadLocalData
@@ -87,7 +114,7 @@ public:
     }
 
 private:
-    CurrentClient currentClient = {0, NoClientIndex};
+    CurrentClient currentClient;
 
     /// Actual array of identifiers, value of 0 means no tcache has been created
     uint16_t tcacheIds[ArenaMallocMaxClients] = {0};
@@ -178,11 +205,13 @@ void JEArenaMalloc::unregisterClient(const ArenaMallocClient& client) {
 
 template <>
 void JEArenaMalloc::switchToClient(const ArenaMallocClient& client,
+                                   cb::MemoryDomain domain,
                                    bool tcache) {
     if (client.index == NoClientIndex) {
         ThreadLocalData::get().getCurrentClient().setup(
                 client.threadCache && tcacheEnabled ? 0 : MALLOCX_TCACHE_NONE,
-                NoClientIndex);
+                NoClientIndex,
+                domain);
         return;
     }
 
@@ -204,13 +233,20 @@ void JEArenaMalloc::switchToClient(const ArenaMallocClient& client,
     // Set the malloc flags to the correct arena + tcache setting and set the
     // client index
     ThreadLocalData::get().getCurrentClient().setup(
-            MALLOCX_ARENA(client.arena) | tcacheFlags, client.index);
+            MALLOCX_ARENA(client.arena) | tcacheFlags, client.index, domain);
+}
+
+template <>
+MemoryDomain JEArenaMalloc::setDomain(MemoryDomain domain) {
+    return ThreadLocalData::get().getCurrentClient().setDomain(domain);
 }
 
 template <>
 void JEArenaMalloc::switchFromClient() {
     // Set to 0, no client, all tracking/allocations go to default arena/tcache
-    switchToClient({0, NoClientIndex, tcacheEnabled}, tcacheEnabled);
+    switchToClient({0, NoClientIndex, tcacheEnabled},
+                   cb::MemoryDomain::Primary,
+                   tcacheEnabled);
 }
 
 template <>
@@ -219,14 +255,14 @@ void* JEArenaMalloc::malloc(size_t size) {
         size = 8;
     }
     auto c = ThreadLocalData::get().getCurrentClient();
-    memAllocated(c.index, size);
+    memAllocated(c.index, c.domain, size);
     return je_mallocx(size, c.mallocFlags);
 }
 
 template <>
 void* JEArenaMalloc::calloc(size_t nmemb, size_t size) {
     auto c = ThreadLocalData::get().getCurrentClient();
-    memAllocated(c.index, nmemb * size);
+    memAllocated(c.index, c.domain, nmemb * size);
     return je_mallocx(nmemb * size, c.mallocFlags | MALLOCX_ZERO);
 }
 
@@ -239,12 +275,12 @@ void* JEArenaMalloc::realloc(void* ptr, size_t size) {
     auto c = ThreadLocalData::get().getCurrentClient();
 
     if (!ptr) {
-        memAllocated(c.index, size);
+        memAllocated(c.index, c.domain, size);
         return je_mallocx(size, c.mallocFlags);
     }
 
-    memDeallocated(c.index, ptr);
-    memAllocated(c.index, size);
+    memDeallocated(c.index, c.domain, ptr);
+    memAllocated(c.index, c.domain, size);
     return je_rallocx(ptr, size, c.mallocFlags);
 }
 
@@ -254,7 +290,7 @@ void* JEArenaMalloc::aligned_alloc(size_t alignment, size_t size) {
         size = 8;
     }
     auto c = ThreadLocalData::get().getCurrentClient();
-    memAllocated(c.index, size, std::align_val_t{alignment});
+    memAllocated(c.index, c.domain, size, std::align_val_t{alignment});
     return je_mallocx(size, c.mallocFlags | MALLOCX_ALIGN(alignment));
 }
 
@@ -262,7 +298,7 @@ template <>
 void JEArenaMalloc::free(void* ptr) {
     if (ptr) {
         auto c = ThreadLocalData::get().getCurrentClient();
-        memDeallocated(c.index, ptr);
+        memDeallocated(c.index, c.domain, ptr);
         je_dallocx(ptr, c.mallocFlags);
     }
 }
@@ -277,7 +313,7 @@ template <>
 void JEArenaMalloc::sized_free(void* ptr, size_t size) {
     if (ptr) {
         auto c = ThreadLocalData::get().getCurrentClient();
-        memDeallocated(c.index, size);
+        memDeallocated(c.index, c.domain, size);
         je_sdallocx(ptr, size, c.mallocFlags);
     }
 }

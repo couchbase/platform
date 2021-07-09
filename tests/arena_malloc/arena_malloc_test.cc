@@ -67,6 +67,12 @@ TEST_F(ArenaMalloc, basicUsage) {
 
     auto sz1 = cb::ArenaMalloc::getPreciseAllocated(client);
     EXPECT_EQ(0, sz1);
+    for (size_t domain = 0; domain < size_t(cb::MemoryDomain::Count);
+         domain++) {
+        EXPECT_EQ(0,
+                  cb::ArenaMalloc::getPreciseAllocated(
+                          client, cb::MemoryDomain(domain)));
+    }
 
     // 1) Track an allocation
     cb::ArenaMalloc::switchToClient(client);
@@ -75,19 +81,183 @@ TEST_F(ArenaMalloc, basicUsage) {
 
     auto sz2 = cb::ArenaMalloc::getPreciseAllocated(client);
     EXPECT_LE(sz1 + 4096, sz2);
+    EXPECT_EQ(cb::ArenaMalloc::getPreciseAllocated(client),
+              cb::ArenaMalloc::getPreciseAllocated(client,
+                                                   cb::MemoryDomain::Primary));
 
     // 2) Allocation outside of switchTo/From not accounted
     auto p2 = cb_malloc(4096);
     EXPECT_EQ(sz2, cb::ArenaMalloc::getPreciseAllocated(client));
+    EXPECT_EQ(cb::ArenaMalloc::getPreciseAllocated(client),
+              cb::ArenaMalloc::getPreciseAllocated(client,
+                                                   cb::MemoryDomain::Primary));
 
     // 3) Track deallocation
     cb::ArenaMalloc::switchToClient(client);
     cb_free(p);
     cb::ArenaMalloc::switchFromClient();
     EXPECT_EQ(0, cb::ArenaMalloc::getPreciseAllocated(client));
+    EXPECT_EQ(cb::ArenaMalloc::getPreciseAllocated(client),
+              cb::ArenaMalloc::getPreciseAllocated(client,
+                                                   cb::MemoryDomain::Primary));
     cb_free(p2);
     EXPECT_EQ(0, cb::ArenaMalloc::getPreciseAllocated(client));
+    EXPECT_EQ(cb::ArenaMalloc::getPreciseAllocated(client),
+              cb::ArenaMalloc::getPreciseAllocated(client,
+                                                   cb::MemoryDomain::Primary));
 
+    // 4) Track an allocation in a different domain
+    auto allocAndCheck = [&client]() {
+        auto p = cb_malloc(4096);
+        EXPECT_EQ(4096, cb::ArenaMalloc::getPreciseAllocated(client));
+        EXPECT_EQ(0,
+                  cb::ArenaMalloc::getPreciseAllocated(
+                          client, cb::MemoryDomain::Primary));
+
+        EXPECT_EQ(4096,
+                  cb::ArenaMalloc::getPreciseAllocated(
+                          client, cb::MemoryDomain::Secondary));
+        cb_free(p);
+
+        EXPECT_EQ(0, cb::ArenaMalloc::getPreciseAllocated(client));
+        EXPECT_EQ(0,
+                  cb::ArenaMalloc::getPreciseAllocated(
+                          client, cb::MemoryDomain::Primary));
+        EXPECT_EQ(0,
+                  cb::ArenaMalloc::getPreciseAllocated(
+                          client, cb::MemoryDomain::Secondary));
+    };
+    cb::ArenaMalloc::switchToClient(client);
+    cb::ArenaMalloc::setDomain(cb::MemoryDomain::Secondary);
+    allocAndCheck();
+
+    // 5) Track an allocation in a different domain direct switchTo variant
+    cb::ArenaMalloc::switchToClient(client, cb::MemoryDomain::Secondary);
+    allocAndCheck();
+
+    cb::ArenaMalloc::unregisterClient(client);
+}
+
+TEST_F(ArenaMalloc, DomainGuard) {
+    auto client = cb::ArenaMalloc::registerClient();
+    cb::ArenaMalloc::switchToClient(client);
+
+    void *p1, *p2;
+    {
+        cb::UseArenaMallocSecondaryDomain domain;
+        p1 = cb_malloc(4096);
+        EXPECT_EQ(0,
+                  cb::ArenaMalloc::getPreciseAllocated(
+                          client, cb::MemoryDomain::Primary));
+        EXPECT_EQ(0,
+                  cb::ArenaMalloc::getEstimatedAllocated(
+                          client, cb::MemoryDomain::Primary));
+        EXPECT_EQ(4096,
+                  cb::ArenaMalloc::getPreciseAllocated(
+                          client, cb::MemoryDomain::Secondary));
+        EXPECT_EQ(4096,
+                  cb::ArenaMalloc::getEstimatedAllocated(
+                          client, cb::MemoryDomain::Secondary));
+    }
+    p2 = cb_malloc(8192);
+    EXPECT_EQ(8192,
+              cb::ArenaMalloc::getPreciseAllocated(client,
+                                                   cb::MemoryDomain::Primary));
+    EXPECT_EQ(8192,
+              cb::ArenaMalloc::getEstimatedAllocated(
+                      client, cb::MemoryDomain::Primary));
+    EXPECT_EQ(4096,
+              cb::ArenaMalloc::getPreciseAllocated(
+                      client, cb::MemoryDomain::Secondary));
+    EXPECT_EQ(4096,
+              cb::ArenaMalloc::getEstimatedAllocated(
+                      client, cb::MemoryDomain::Secondary));
+
+    {
+        cb::UseArenaMallocSecondaryDomain domain;
+        cb_free(p1);
+        EXPECT_EQ(0,
+                  cb::ArenaMalloc::getPreciseAllocated(
+                          client, cb::MemoryDomain::Secondary));
+        EXPECT_EQ(0,
+                  cb::ArenaMalloc::getEstimatedAllocated(
+                          client, cb::MemoryDomain::Secondary));
+        // Finally demonstrate that if the caller gets the domain wrong - we
+        // cannot figure it out for them. P2 should be freed against Primary.
+        // Same issue could happen if the wrong client was used
+        cb_free(p2);
+    }
+
+    // Counters will hit 0 (we wouldn't report negative mem_used)
+    EXPECT_EQ(0,
+              cb::ArenaMalloc::getPreciseAllocated(
+                      client, cb::MemoryDomain::Secondary));
+    EXPECT_EQ(0,
+              cb::ArenaMalloc::getEstimatedAllocated(
+                      client, cb::MemoryDomain::Secondary));
+    // Uh-oh
+    EXPECT_EQ(8192,
+              cb::ArenaMalloc::getPreciseAllocated(client,
+                                                   cb::MemoryDomain::Primary));
+    EXPECT_EQ(8192,
+              cb::ArenaMalloc::getEstimatedAllocated(
+                      client, cb::MemoryDomain::Primary));
+
+    cb::ArenaMalloc::unregisterClient(client);
+}
+
+#if defined(HAVE_JEMALLOC)
+// Only when we have jemalloc do we use the thresholds to defer totalling memory
+// usage.
+TEST_F(ArenaMalloc, thresholds) {
+#else
+TEST_F(ArenaMalloc, DISABLED_thresholds) {
+#endif
+    auto client = cb::ArenaMalloc::registerClient();
+    client.estimateUpdateThreshold = 1024;
+    cb::ArenaMalloc::setAllocatedThreshold(client);
+    cb::ArenaMalloc::switchToClient(client);
+    auto p1 = cb_malloc(100);
+
+    // p1 is smaller than threshold - so estimate is expected to be 0
+    EXPECT_EQ(0, cb::ArenaMalloc::getEstimatedAllocated(client));
+    // the domain as well reports 0
+    EXPECT_EQ(0,
+              cb::ArenaMalloc::getEstimatedAllocated(
+                      client, cb::MemoryDomain::Primary));
+
+    // calling precise will update the estimates (total and domains)
+    auto p1val = cb::ArenaMalloc::getPreciseAllocated(client);
+    EXPECT_NE(0, p1val);
+    EXPECT_EQ(p1val, cb::ArenaMalloc::getEstimatedAllocated(client));
+    EXPECT_EQ(p1val,
+              cb::ArenaMalloc::getEstimatedAllocated(
+                      client, cb::MemoryDomain::Primary));
+    EXPECT_EQ(0,
+              cb::ArenaMalloc::getEstimatedAllocated(
+                      client, cb::MemoryDomain::Secondary));
+    EXPECT_EQ(p1val,
+              cb::ArenaMalloc::getPreciseAllocated(client,
+                                                   cb::MemoryDomain::Primary));
+
+    // Next exceeding the threshold will force update the estimates irrespective
+    // of a call to getPrecise
+    auto p2 = cb_malloc(1025);
+    auto p2val = cb::ArenaMalloc::getEstimatedAllocated(client);
+    EXPECT_GT(p2val, p1val); // memory increased
+    EXPECT_EQ(p2val,
+              cb::ArenaMalloc::getEstimatedAllocated(
+                      client, cb::MemoryDomain::Primary));
+    EXPECT_EQ(0,
+              cb::ArenaMalloc::getEstimatedAllocated(
+                      client, cb::MemoryDomain::Secondary));
+    EXPECT_EQ(p2val, cb::ArenaMalloc::getPreciseAllocated(client));
+    EXPECT_EQ(p2val,
+              cb::ArenaMalloc::getPreciseAllocated(client,
+                                                   cb::MemoryDomain::Primary));
+
+    cb_free(p1);
+    cb_free(p2);
     cb::ArenaMalloc::unregisterClient(client);
 }
 

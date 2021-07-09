@@ -10,7 +10,6 @@
 
 #include "relaxed_atomic.h"
 #include <folly/lang/Aligned.h>
-#include <platform/cb_arena_malloc_client.h>
 #include <platform/corestore.h>
 #include <platform/je_arena_corelocal_tracker.h>
 #include <platform/non_negative_counter.h>
@@ -22,46 +21,69 @@
 
 namespace cb {
 
-// For each client we store the following information.
+// For each client we store the following information. Items 1 to 4 are accessed
+// frequently - every alloc/dealloc that occurs will access these items.
 //
-// 1) A CoreStore to track 'per core' current allocation total
-// 2) A core allocation threshold. A signed 64-bit counter for how much we
-//    will allow 1) to accumulate before a) updating the estimate 3) and b)
-//    clearing the core count.
-// 3) Estimated memory - a signed 64-bit counter of how much the client has
-//    allocated. This value is updated by a) a thread reaching the per thread
-//    allocation threshold, or b) a call to getPreciseAllocated. This counter
-//    is signed so we can safely handle the counter validly being negative (see
-//    comments in getPreciseAllocated and getEstimatedAllocated).
+// 1) Memory allocation/deallocation size is accounted into a relaxed atomic.
+//    One per MemoryDomain.
+using DomainAllocated =
+        std::array<cb::RelaxedAtomic<int64_t>, size_t(MemoryDomain::Count)>;
 
-static std::array<
-        CoreStore<folly::cacheline_aligned<cb::RelaxedAtomic<int64_t>>>,
-        ArenaMallocMaxClients>
+// 2) The counter array is then cache-line aligned so that a set of counters
+//    shouldn't straddle a cache-line. With two counters we don't.
+using CPDomainAllocated = folly::cacheline_aligned<DomainAllocated>;
+
+// 3) The counters are then stored in a CoreStore so that each executing thread
+//    is accessing unique counters.
+using CoreAllocated = CoreStore<CPDomainAllocated>;
+
+// 4) An array of CoreStores gives each client their own CoreStore.
+static std::array<CoreStore<CPDomainAllocated>, ArenaMallocMaxClients>
         coreAllocated;
 
+// 5) ClientData defines counters used to store the total memory usage. At
+//    certain events the per core counters are accumulated into these counters.
+//    a) When the absolute value of a core counter exceeds coreThreshold
+//    b) When any of the getPreciseAllocated functions are called
 struct ClientData {
     cb::RelaxedAtomic<int64_t> coreThreshold;
     cb::RelaxedAtomic<int64_t> clientEstimatedMemory;
+    std::array<cb::RelaxedAtomic<int64_t>, size_t(MemoryDomain::Count)>
+            clientDomainEstimatedMemory;
 };
 
-// One per client and cacheline pad
+// The client counters are stored cache-aligned, with one per client.
 static std::array<folly::cacheline_aligned<ClientData>, ArenaMallocMaxClients>
         clientData;
 
 void JEArenaCoreLocalTracker::clientRegistered(
         const ArenaMallocClient& client) {
-    clientData[client.index]->clientEstimatedMemory.store(0);
+    // Clear all core/domain
     for (auto& core : coreAllocated[client.index]) {
-        core->store(0);
+        for (size_t domain = 0; domain < size_t(MemoryDomain::Count);
+             domain++) {
+            (*core.get())[domain].store(0);
+        }
     }
+
+    // clear estimates
+    clientData[client.index]->clientEstimatedMemory = 0;
+    clientData[client.index]->clientDomainEstimatedMemory.fill(0);
+
     setAllocatedThreshold(client);
 }
 
 size_t JEArenaCoreLocalTracker::getPreciseAllocated(
         const ArenaMallocClient& client) {
     for (auto& core : coreAllocated[client.index]) {
-        clientData[client.index]->clientEstimatedMemory.fetch_add(
-                core.get()->exchange(0));
+        for (size_t domain = 0; domain < size_t(MemoryDomain::Count);
+             domain++) {
+            auto value = (*core.get())[domain].exchange(0);
+            clientData[client.index]->clientEstimatedMemory.fetch_add(value);
+            clientData[client.index]
+                    ->clientDomainEstimatedMemory[domain]
+                    .fetch_add(value);
+        }
     }
 
     // See the comment in getEstimatedAllocated regarding negative counts, even
@@ -88,21 +110,49 @@ size_t JEArenaCoreLocalTracker::getEstimatedAllocated(
                      clientData[client.index]->clientEstimatedMemory.load()));
 }
 
+size_t JEArenaCoreLocalTracker::getPreciseAllocated(
+        const ArenaMallocClient& client, MemoryDomain domain) {
+    for (auto& core : coreAllocated[client.index]) {
+        auto value = (*core.get())[size_t(domain)].exchange(0);
+        clientData[client.index]->clientEstimatedMemory.fetch_add(value);
+        clientData[client.index]
+                ->clientDomainEstimatedMemory[size_t(domain)]
+                .fetch_add(value);
+    }
+    return size_t(std::max(int64_t(0),
+                           clientData[client.index]
+                                   ->clientDomainEstimatedMemory[size_t(domain)]
+                                   .load()));
+}
+
+size_t JEArenaCoreLocalTracker::getEstimatedAllocated(
+        const ArenaMallocClient& client, MemoryDomain domain) {
+    return size_t(std::max(int64_t(0),
+                           clientData[client.index]
+                                   ->clientDomainEstimatedMemory[size_t(domain)]
+                                   .load()));
+}
+
 void JEArenaCoreLocalTracker::setAllocatedThreshold(
         const ArenaMallocClient& client) {
     clientData[client.index]->coreThreshold = client.estimateUpdateThreshold;
 }
 
-void maybeUpdateEstimatedTotalMemUsed(
-        uint8_t index,
-        folly::cacheline_aligned<cb::RelaxedAtomic<int64_t>>& core,
-        int64_t value) {
+void maybeUpdateEstimatedTotalMemUsed(uint8_t index,
+                                      MemoryDomain domain,
+                                      cb::RelaxedAtomic<int64_t>& counter,
+                                      int64_t value) {
     if (std::abs(value) > clientData[index]->coreThreshold) {
-        clientData[index]->clientEstimatedMemory.fetch_add(core->exchange(0));
+        auto value = counter.exchange(0);
+        clientData[index]->clientEstimatedMemory.fetch_add(value);
+        clientData[index]
+                ->clientDomainEstimatedMemory[size_t(domain)]
+                .fetch_add(value);
     }
 }
 
 void JEArenaCoreLocalTracker::memAllocated(uint8_t index,
+                                           MemoryDomain domain,
                                            size_t size,
                                            std::align_val_t alignment) {
     if (index != NoClientIndex) {
@@ -111,26 +161,33 @@ void JEArenaCoreLocalTracker::memAllocated(uint8_t index,
                                   : 0;
         size = je_nallocx(size, flags);
         auto& core = coreAllocated[index].get();
-        auto newSize = core->fetch_add(size) + size;
-        maybeUpdateEstimatedTotalMemUsed(index, core, newSize);
+        auto& counter = (*core.get())[size_t(domain)];
+        auto newSize = counter.fetch_add(size) + size;
+        maybeUpdateEstimatedTotalMemUsed(index, domain, counter, newSize);
     }
 }
 
-void JEArenaCoreLocalTracker::memDeallocated(uint8_t index, void* ptr) {
+void JEArenaCoreLocalTracker::memDeallocated(uint8_t index,
+                                             MemoryDomain domain,
+                                             void* ptr) {
     if (index != NoClientIndex) {
         auto size = je_sallocx(ptr, 0 /* flags aren't read in this call*/);
         auto& core = coreAllocated[index].get();
-        auto newSize = core->fetch_sub(size) - size;
-        maybeUpdateEstimatedTotalMemUsed(index, core, newSize);
+        auto& counter = (*core.get())[size_t(domain)];
+        auto newSize = counter.fetch_sub(size) - size;
+        maybeUpdateEstimatedTotalMemUsed(index, domain, counter, newSize);
     }
 }
 
-void JEArenaCoreLocalTracker::memDeallocated(uint8_t index, size_t size) {
+void JEArenaCoreLocalTracker::memDeallocated(uint8_t index,
+                                             MemoryDomain domain,
+                                             size_t size) {
     if (index != NoClientIndex) {
         size = je_nallocx(size, 0 /* flags aren't read in this call*/);
         auto& core = coreAllocated[index].get();
-        auto newSize = core->fetch_sub(size) - size;
-        maybeUpdateEstimatedTotalMemUsed(index, core, newSize);
+        auto& counter = (*core.get())[size_t(domain)];
+        auto newSize = counter.fetch_sub(size) - size;
+        maybeUpdateEstimatedTotalMemUsed(index, domain, counter, newSize);
     }
 }
 

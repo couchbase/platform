@@ -37,7 +37,10 @@ class _JEArenaMalloc {
 public:
     static ArenaMallocClient registerClient(bool threadCache);
     static void unregisterClient(const ArenaMallocClient& client);
-    static void switchToClient(const ArenaMallocClient& client, bool tcache);
+    static void switchToClient(const ArenaMallocClient& client,
+                               cb::MemoryDomain domain,
+                               bool tcache);
+    static MemoryDomain setDomain(MemoryDomain domain);
     static void switchFromClient();
     static void setAllocatedThreshold(const ArenaMallocClient& client) {
         trackingImpl::setAllocatedThreshold(client);
@@ -47,6 +50,14 @@ public:
     }
     static size_t getEstimatedAllocated(const ArenaMallocClient& client) {
         return trackingImpl::getEstimatedAllocated(client);
+    }
+    static size_t getPreciseAllocated(const ArenaMallocClient& client,
+                                      MemoryDomain domain) {
+        return trackingImpl::getPreciseAllocated(client, domain);
+    }
+    static size_t getEstimatedAllocated(const ArenaMallocClient& client,
+                                        MemoryDomain domain) {
+        return trackingImpl::getEstimatedAllocated(client, domain);
     }
 
     static void* malloc(size_t size);
@@ -92,9 +103,10 @@ protected:
      *        alignment needed (over system default), specify 0.
      */
     static void memAllocated(uint8_t index,
+                             MemoryDomain domain,
                              size_t size,
                              std::align_val_t alignment = std::align_val_t{0}) {
-        trackingImpl::memAllocated(index, size, alignment);
+        trackingImpl::memAllocated(index, domain, size, alignment);
     }
 
     /**
@@ -103,8 +115,8 @@ protected:
      * @param index The index for the client who did the deallocation
      * @param ptr The allocation being deallocated
      */
-    static void memDeallocated(uint8_t index, void* ptr) {
-        trackingImpl::memDeallocated(index, ptr);
+    static void memDeallocated(uint8_t index, MemoryDomain domain, void* ptr) {
+        trackingImpl::memDeallocated(index, domain, ptr);
     }
 
     /**
@@ -113,8 +125,10 @@ protected:
      * @param index The index for the client who did the deallocation
      * @param size The deallocation size
      */
-    static void memDeallocated(uint8_t index, size_t size) {
-        trackingImpl::memDeallocated(index, size);
+    static void memDeallocated(uint8_t index,
+                               MemoryDomain domain,
+                               size_t size) {
+        trackingImpl::memDeallocated(index, domain, size);
     }
 };
 

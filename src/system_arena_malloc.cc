@@ -41,7 +41,10 @@
 
 namespace cb {
 
-static thread_local ArenaMallocClient currentClient;
+static thread_local struct ClientAndDomain {
+    ArenaMallocClient client;
+    MemoryDomain domain{MemoryDomain::Primary};
+} currentClient;
 
 ArenaMallocClient SystemArenaMalloc::registerClient(bool threadCache) {
     (void)threadCache; // Has no affect on system arena
@@ -63,28 +66,52 @@ ArenaMallocClient SystemArenaMalloc::registerClient(bool threadCache) {
 }
 
 void SystemArenaMalloc::unregisterClient(const ArenaMallocClient& client) {
+    allocated.at(client.index).fill(0);
     clients.wlock()->at(client.index).reset();
 }
 
 void SystemArenaMalloc::switchToClient(const ArenaMallocClient& client,
+                                       cb::MemoryDomain domain,
                                        bool tcache) {
-    currentClient = client;
+    currentClient.client = client;
+    currentClient.domain = domain;
     (void)tcache; // no use in system allocator
 }
 
+MemoryDomain SystemArenaMalloc::setDomain(MemoryDomain domain) {
+    auto currentDomain = currentClient.domain;
+    currentClient.domain = domain;
+    return currentDomain;
+}
+
 void SystemArenaMalloc::switchFromClient() {
-    // Set to index of NoClientIndex; arena unused.
-    switchToClient({0, NoClientIndex, false}, false /*tcache unused here*/);
+    // Set to index of NoClientIndex and domain to primary.
+    switchToClient({0, NoClientIndex, false},
+                   cb::MemoryDomain::Primary,
+                   false /*tcache unused here*/);
 }
 
 size_t SystemArenaMalloc::getPreciseAllocated(const ArenaMallocClient& client) {
-    // Just read from client's index into the allocations array
-    return allocated.at(client.index);
+    size_t total = 0;
+    for (size_t domain = 0; domain < size_t(MemoryDomain::Count); domain++) {
+        total += allocated.at(client.index)[domain];
+    }
+    return total;
 }
 
 size_t SystemArenaMalloc::getEstimatedAllocated(
         const ArenaMallocClient& client) {
     return getPreciseAllocated(client);
+}
+
+size_t SystemArenaMalloc::getPreciseAllocated(const ArenaMallocClient& client,
+                                              MemoryDomain domain) {
+    return allocated.at(client.index)[size_t(domain)];
+}
+
+size_t SystemArenaMalloc::getEstimatedAllocated(const ArenaMallocClient& client,
+                                                MemoryDomain domain) {
+    return getPreciseAllocated(client, domain);
 }
 
 void* SystemArenaMalloc::malloc(size_t size) {
@@ -175,13 +202,13 @@ void SystemArenaMalloc::releaseMemory(const ArenaMallocClient& client) {
 bool SystemArenaMalloc::getStats(
         const ArenaMallocClient& client,
         std::unordered_map<std::string, size_t>& statsMap) {
-    statsMap["allocated"] = allocated.at(client.index);
+    statsMap["allocated"] = getPreciseAllocated(client);
     return true;
 }
 
 bool SystemArenaMalloc::getGlobalStats(
         std::unordered_map<std::string, size_t>& statsMap) {
-    statsMap["allocated"] = allocated.at(NoClientIndex);
+    statsMap["allocated"] = getPreciseAllocated(ArenaMallocClient{});
     return true;
 }
 
@@ -191,27 +218,29 @@ void SystemArenaMalloc::getDetailedStats(void (*callback)(void*, const char*),
 
 cb::FragmentationStats SystemArenaMalloc::getFragmentationStats(
         const cb::ArenaMallocClient& client) {
-    size_t alloc = allocated.at(client.index);
+    size_t alloc = getPreciseAllocated(client);
     return {alloc, alloc};
 }
 
 cb::FragmentationStats SystemArenaMalloc::getGlobalFragmentationStats() {
-    size_t alloc = allocated.at(NoClientIndex);
+    size_t alloc = getPreciseAllocated(ArenaMallocClient{});
     return {alloc, alloc};
 }
 
 void SystemArenaMalloc::addAllocation(void* ptr) {
     if (canTrackAllocations()) {
-        auto client = currentClient;
-        allocated.at(client.index)
+        auto current = currentClient;
+        allocated.at(current.client.index)
+                .at(size_t(current.domain))
                 .fetch_add(SystemArenaMalloc::malloc_usable_size(ptr));
     }
 }
 
 void SystemArenaMalloc::removeAllocation(void* ptr) {
     if (canTrackAllocations()) {
-        auto client = currentClient;
-        allocated.at(client.index)
+        auto current = currentClient;
+        allocated.at(current.client.index)
+                .at(size_t(current.domain))
                 .fetch_sub(SystemArenaMalloc::malloc_usable_size(ptr));
     }
 }
@@ -219,8 +248,8 @@ void SystemArenaMalloc::removeAllocation(void* ptr) {
 folly::Synchronized<
         std::array<SystemArenaMalloc::Client, ArenaMallocMaxClients>>
         SystemArenaMalloc::clients;
-std::array<NonNegativeCounter<size_t, ClampAtZeroUnderflowPolicy>,
-           ArenaMallocMaxClients + 1>
+
+std::array<SystemArenaMalloc::DomainCounter, ArenaMallocMaxClients + 1>
         SystemArenaMalloc::allocated;
 
 } // namespace cb

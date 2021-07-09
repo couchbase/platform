@@ -22,18 +22,46 @@
  * 2) When the client wishes to have allocations tracked, they should switch
  *    to their arena. cb::ArenaMalloc::switchToClient/switchFromClient
  * 3) The client can query how much memory they have allocated using their arena
- *    and cb::ArenaMalloc::getAllocated
+ *    and cb::ArenaMalloc::getPreciseAllocated (or getEstimatedAllocated)
  *
  * Example:
  *
  *  auto client = cb::ArenaMalloc::registerClient();
  *  cb::ArenaMalloc::switchToClient(client);
- *  { .. do lots of stuff .. }
+ *      { .. do lots of stuff .. }
  *  cb::ArenaMalloc::switchFromClient(); // no more tracking
- *  auto mem_used = cb::ArenaMalloc::getAllocated(client);
+ *  auto mem_used = cb::ArenaMalloc::getPreciseAllocated(client);
  *
  * Note that the switchToClient/switchFromClient only affects the current
  * thread.
+ *
+ * MemoryDomain.
+ *
+ * ArenaMalloc supports memory-domains, enabling coarse division of the memory
+ * accounting. The client can set the domain (primary or secondary) which means
+ * memory is accounted to that domain. The domain usage can be queried
+ * independent of the arena's total usage.
+ *
+ * Example:
+ *
+ *  auto client = cb::ArenaMalloc::registerClient();
+ *  cb::ArenaMalloc::switchToClient(client);
+ *      { .. do something .. }
+ *  cb::ArenaMalloc::setDomain(cb::MemoryDomain::Secondary)
+ *      { .. do stuff, tracked in secondary .. }
+ *  cb::ArenaMalloc::switchFromClient(); // no more tracking
+ *
+ *  auto mem_used = cb::ArenaMalloc::getPreciseAllocated(client);
+ *  auto mem_used_primary =
+ *      cb::ArenaMalloc::getPreciseAllocated(client,
+ *                                           cb::MemoryDomain::Primary);
+ *  auto mem_used_secondary =
+ *      cb::ArenaMalloc::getPreciseAllocated(client,
+ *                                           cb::MemoryDomain::Secondary);
+ *
+ * Note alternatively the domain can be set directly in the switchToClient call
+ *  cb::ArenaMalloc::switchToClient(client, cb::MemoryDomain::Secondary);
+ *
  */
 #pragma once
 
@@ -85,12 +113,24 @@ public:
      * thread, that is what the optional tcache parameter achieves.
      *
      * @param client The client to account to.
+     * @param domain The domain to use, Primary by default
      * @param tcache The caller can switch to the client and turn off tcache
      *               for the current thread only.
      */
-    static void switchToClient(const ArenaMallocClient& client,
-                               bool tcache = true) {
-        Impl::switchToClient(client, tcache);
+    static void switchToClient(
+            const ArenaMallocClient& client,
+            cb::MemoryDomain domain = cb::MemoryDomain::Primary,
+            bool tcache = true) {
+        Impl::switchToClient(client, domain, tcache);
+    }
+
+    /**
+     * Set the domain for tracking memory allocations
+     * @param domain The domain to track against
+     * @return The current domain is returned
+     */
+    static MemoryDomain setDomain(MemoryDomain domain) {
+        return Impl::setDomain(domain);
     }
 
     /**
@@ -124,6 +164,26 @@ public:
      */
     static size_t getEstimatedAllocated(const ArenaMallocClient& client) {
         return Impl::getEstimatedAllocated(client);
+    }
+
+    /**
+     * @param client The client to query
+     * @param domain The domain to use for lookup
+     * @return the number of bytes allocated to the domain
+     */
+    static size_t getPreciseAllocated(const ArenaMallocClient& client,
+                                      MemoryDomain domain) {
+        return Impl::getPreciseAllocated(client, domain);
+    }
+
+    /**
+     * @param client The client to query
+     * @param domain The domain to use for lookup
+     * @return the estimated number of bytes allocated to the domain
+     */
+    static size_t getEstimatedAllocated(const ArenaMallocClient& client,
+                                        MemoryDomain domain) {
+        return Impl::getEstimatedAllocated(client, domain);
     }
 
     /**
@@ -332,5 +392,25 @@ struct ArenaMallocGuard {
     /// Will call switchFromClient
     ~ArenaMallocGuard();
 };
+
+/**
+ * ArenaDomainGuard will set the domain to D1 on construction and save the
+ * old domain. On destruction the old domain is then set
+ */
+template <MemoryDomain D1>
+struct ArenaDomainGuard {
+    ArenaDomainGuard() : previous(ArenaMalloc::setDomain(D1)) {
+    }
+
+    ~ArenaDomainGuard() {
+        ArenaMalloc::setDomain(previous);
+    }
+
+    MemoryDomain previous;
+};
+
+using UseArenaMallocPrimaryDomain = ArenaDomainGuard<MemoryDomain::Primary>;
+
+using UseArenaMallocSecondaryDomain = ArenaDomainGuard<MemoryDomain::Secondary>;
 
 } // namespace cb

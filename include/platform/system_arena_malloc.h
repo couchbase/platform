@@ -49,13 +49,22 @@ class SystemArenaMalloc {
 public:
     static ArenaMallocClient registerClient(bool threadCache);
     static void unregisterClient(const ArenaMallocClient& client);
-    static void switchToClient(const ArenaMallocClient& client, bool tcache);
+    static void switchToClient(const ArenaMallocClient& client,
+                               cb::MemoryDomain domain,
+                               bool tcache);
+    static MemoryDomain setDomain(MemoryDomain domain);
     static void switchFromClient();
     static void setAllocatedThreshold(const ArenaMallocClient& client) {
         // Does nothing
     }
     static size_t getPreciseAllocated(const ArenaMallocClient& client);
     static size_t getEstimatedAllocated(const ArenaMallocClient& client);
+
+    static size_t getPreciseAllocated(const ArenaMallocClient& client,
+                                      MemoryDomain domain);
+    static size_t getEstimatedAllocated(const ArenaMallocClient& client,
+                                        MemoryDomain domain);
+
     static void* malloc(size_t size);
     static void* calloc(size_t nmemb, size_t size);
     static void* realloc(void* ptr, size_t size);
@@ -100,16 +109,18 @@ private:
             clients;
 
     /**
-     * Track memory used in a non-negative counter, which for now uses the
-     * clamp at zero policy. MB-33900 captures one major issue which
-     * prevents the use of the throw policy.
+     * Track memory used in a non-negative counter (one per domain), which for
+     * now uses the clamp at zero policy. MB-33900 captures one major issue
+     * which prevents the use of the throw policy.
      *
      * One additional element (ArenaMallocMaxClients + 1) exists allow global
      * allocations to also be accounted for; they reside in the last element
      * (NoClientIndex).
      */
-    static std::array<NonNegativeCounter<size_t, ClampAtZeroUnderflowPolicy>,
-                      ArenaMallocMaxClients + 1>
-            allocated;
+    using DomainCounter =
+            std::array<NonNegativeCounter<size_t, ClampAtZeroUnderflowPolicy>,
+                       size_t(MemoryDomain::Count)>;
+
+    static std::array<DomainCounter, ArenaMallocMaxClients + 1> allocated;
 };
 } // namespace cb

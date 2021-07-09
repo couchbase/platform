@@ -10,6 +10,8 @@
 
 #pragma once
 
+#include <platform/cb_arena_malloc_client.h>
+
 #include <cstddef>
 #include <cstdint>
 #include <new>
@@ -52,6 +54,14 @@ public:
      */
     static size_t getEstimatedAllocated(const ArenaMallocClient& client);
 
+    /// as above, but lookup for the requested domain only
+    static size_t getPreciseAllocated(const ArenaMallocClient& client,
+                                      MemoryDomain domain);
+
+    /// as above, but lookup for the requested domain only
+    static size_t getEstimatedAllocated(const ArenaMallocClient& client,
+                                        MemoryDomain domain);
+
     /**
      * Notify that memory was allocated to the client
      * @param index The index for the client who did the allocation
@@ -61,6 +71,7 @@ public:
      *        alignment needed (over system default), specify 0.
      */
     static void memAllocated(uint8_t index,
+                             MemoryDomain domain,
                              size_t size,
                              std::align_val_t alignment = std::align_val_t{0});
 
@@ -69,13 +80,13 @@ public:
      * @param index The index for the client who did the deallocation
      * @param ptr The allocation being deallocated
      */
-    static void memDeallocated(uint8_t index, void* ptr);
+    static void memDeallocated(uint8_t index, MemoryDomain domain, void* ptr);
 
     /**
      * Notify that memory was de-allocated by the client
      * @param index The index for the client who did the deallocation
      * @param size The size of the deallocation
      */
-    static void memDeallocated(uint8_t index, size_t size);
+    static void memDeallocated(uint8_t index, MemoryDomain domain, size_t size);
 };
 } // end namespace cb
