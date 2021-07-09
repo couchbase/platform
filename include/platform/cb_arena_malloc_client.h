@@ -15,6 +15,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <iosfwd>
 #include <limits>
 #include <ostream>
 
