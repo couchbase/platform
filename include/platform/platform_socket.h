@@ -14,19 +14,7 @@
 #pragma once
 
 #include <platform/dynamic.h>
-
 #include <folly/portability/Sockets.h>
-
-#ifdef WIN32
-#define CB_DONT_NEED_BYTEORDER 1
-
-/**
- * Initialize the winsock library
- */
-void cb_initialize_sockets(void);
-#else // WIN32
-#define cb_initialize_sockets()
-#endif // WIN32
 
 #ifndef CB_DONT_NEED_BYTEORDER
 #include <folly/Bits.h>

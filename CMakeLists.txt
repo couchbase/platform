@@ -11,7 +11,9 @@ OPTION(PLATFORM_ENABLE_CBSOCKET "Build cbsocket support" ON)
 
 enable_code_coverage_report()
 
-if (NOT WIN32)
+if (WIN32)
+    set(CB_DONT_NEED_BYTEORDER true)
+else(WIN32)
     # Backtrace support on !win32 use backtrace() from execinfo.h and dladdr()
     # from dlfcn.h. Verify that they're there
     CMAKE_PUSH_CHECK_STATE(RESET)
@@ -74,7 +76,7 @@ if (NOT WIN32)
     if (HAVE_CPUID_H)
         add_definitions(-DHAVE_CPUID_H=1)
     endif()
-endif (NOT WIN32)
+endif(WIN32)
 
 CONFIGURE_FILE (${CMAKE_CURRENT_SOURCE_DIR}/include/platform/dynamic.in.h
                 ${CMAKE_CURRENT_BINARY_DIR}/include/platform/dynamic.h)
@@ -94,8 +96,7 @@ TARGET_LINK_LIBRARIES(JSON_checker PRIVATE platform_headers)
 IF (WIN32)
    INCLUDE_DIRECTORIES(AFTER ${CMAKE_CURRENT_SOURCE_DIR}/include/win32)
    ADD_DEFINITIONS(-D_CRT_SECURE_NO_WARNINGS)
-   SET(PLATFORM_FILES src/sockets.cc
-                      src/cb_win32.cc
+   SET(PLATFORM_FILES src/cb_win32.cc
                       src/crc32c_hw_accel.cc
                       include/win32/getopt.h)
 ELSE (WIN32)

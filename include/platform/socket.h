@@ -23,7 +23,7 @@ typedef int in_port_t;
 #define SOCKETPAIR_AF AF_INET
 #else
 #include <netinet/in.h> // For in_port_t
-typedef int SOCKET;
+using SOCKET = int;
 #define SOCKET_ERROR -1
 #define INVALID_SOCKET -1
 #define SOCKETPAIR_AF AF_UNIX
@@ -35,6 +35,12 @@ typedef int SOCKET;
 #include <string>
 
 namespace cb::net {
+
+/// Initialize the socket library on the platform (and terminate the program
+/// if it fails. We could have thrown an exception but then we would have
+/// to duplicate the logic in all of the programs which tries to use sockets
+/// as we can't continue if we fail to initialize (Windows) sockets.
+void initialize();
 
 int closesocket(SOCKET s);
 
