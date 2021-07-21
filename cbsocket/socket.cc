@@ -85,7 +85,36 @@ ssize_t send(SOCKET sock, const void* buffer, size_t length, int flags) {
 }
 
 ssize_t sendmsg(SOCKET sock, const struct msghdr* message, int flags) {
+#ifdef WIN32
+    /* @todo make this more optimal! */
+    int ii;
+    int ret = 0;
+
+    for (ii = 0; ii < message->msg_iovlen; ++ii) {
+        if (message->msg_iov[ii].iov_len > 0) {
+            int nw = ::send(
+                    sock,
+                    static_cast<const char*>(message->msg_iov[ii].iov_base),
+                    (int)message->msg_iov[ii].iov_len,
+                    flags);
+            if (nw > 0) {
+                ret += nw;
+                if (nw != message->msg_iov[ii].iov_len) {
+                    return ret;
+                }
+            } else {
+                if (ret > 0) {
+                    return ret;
+                }
+                return nw;
+            }
+        }
+    }
+
+    return ret;
+#else
     return ::sendmsg(sock, message, flags);
+#endif
 }
 
 ssize_t sendto(SOCKET sock,

@@ -17,14 +17,8 @@
 
 #include <folly/portability/Sockets.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #ifdef WIN32
 #define CB_DONT_NEED_BYTEORDER 1
-
-int sendmsg(SOCKET sock, const struct msghdr* msg, int flags);
 
 /**
  * Initialize the winsock library
@@ -33,10 +27,6 @@ void cb_initialize_sockets(void);
 #else // WIN32
 #define cb_initialize_sockets()
 #endif // WIN32
-
-#ifdef __cplusplus
-}
-#endif
 
 #ifndef CB_DONT_NEED_BYTEORDER
 #include <folly/Bits.h>

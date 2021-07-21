@@ -22,32 +22,4 @@ void cb_initialize_sockets(void) {
     }
 }
 
-int sendmsg(SOCKET sock, const struct msghdr* msg, int flags) {
-    /* @todo make this more optimal! */
-    int ii;
-    int ret = 0;
-
-    for (ii = 0; ii < msg->msg_iovlen; ++ii) {
-        if (msg->msg_iov[ii].iov_len > 0) {
-            int nw = ::send(sock,
-                            static_cast<const char*>(msg->msg_iov[ii].iov_base),
-                            (int)msg->msg_iov[ii].iov_len,
-                            flags);
-            if (nw > 0) {
-                ret += nw;
-                if (nw != msg->msg_iov[ii].iov_len) {
-                    return ret;
-                }
-            } else {
-                if (ret > 0) {
-                    return ret;
-                }
-                return nw;
-            }
-        }
-    }
-
-    return ret;
-}
-
 #endif // WIN32
