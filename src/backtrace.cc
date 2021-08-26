@@ -8,6 +8,7 @@
  *   the file licenses/APL2.txt.
  */
 #include <platform/backtrace.h>
+#include <boost/stacktrace/stacktrace.hpp>
 #include <cinttypes>
 
 #if defined(WIN32)

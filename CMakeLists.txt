@@ -201,6 +201,7 @@ LIST(APPEND PLATFORM_FILES
   src/checked_snprintf.cc
   src/crc32c.cc
   src/crc32c_private.h
+  src/exceptions.cc
   src/getopt.cc
   src/global_new_replacement.cc
   src/histogram.cc

@@ -29,6 +29,13 @@
  *         }
  *     }
  *
+ * Note that both cb::throwWithTrace() and cb::getBacktrace() must be template
+ * functions to be able to have boost::exception construct and recover the
+ * correct type of exception. However, the aforementioned boost::exception
+ * headers are costly to include (~600ms), and we use cb::throwWithTrace from
+ * some headers (template) code which is used extensively, therefore
+ * cb::throwWithTrace & cb::getBacktrace are declared external and must be
+ * explicitly instantiated for each required exception type - see exceptions.cc
  */
 
 #pragma once
@@ -60,8 +67,7 @@ class basic_stacktrace;
 }; // namespace boost
 #endif // defined(APPLE)
 
-#include <boost/exception/all.hpp>
-#include <boost/stacktrace.hpp>
+#include <boost/stacktrace/stacktrace_fwd.hpp>
 // On WIN32, boost/stacktrace.hpp includes some Windows system headers,
 // including combaseapi.h which defines a macro 'interface' for some COM
 // nonsense, and there doesn't appear to be any way to avoid this macro
@@ -82,10 +88,6 @@ class basic_stacktrace;
 
 namespace cb {
 
-struct tag_stacktrace;
-using traced =
-        boost::error_info<struct tag_stacktrace, boost::stacktrace::stacktrace>;
-
 /**
  * Throws the specified exception, recording the backtrace of where the
  * exception was thrown from.
@@ -100,24 +102,25 @@ using traced =
  *
  * Marked as NOINLINE to ensure we see explicitly where this function was called
  * in the recorded backtrace.
+ *
+ * MUST be explicitly instantiated for each thrown exception type - see
+ * exceptions.cc
  */
 template <class T>
-FOLLY_NOINLINE void throwWithTrace(const T& exception) {
-    throw boost::enable_error_info(exception)
-            << traced(boost::stacktrace::stacktrace());
-}
+FOLLY_NOINLINE void throwWithTrace(const T& exception);
 
 /**
  * Attempt to obtain the backtrace from whan an exception was thrown. If
  * the exception was thrown via `throwWithTrace` it will return a non-null
  * pointer which can be passed to an output stream.
  *
+ * MUST be explicitly instantiated for each passed exception type - see
+ * exceptions.cc
+ *
  * @param exception Exception to lookup backtrace from
  * @return Pointer to stacktrace if present, else nullptr.
  */
 template <class T>
-const boost::stacktrace::stacktrace* getBacktrace(T& exception) {
-    return boost::get_error_info<traced>(exception);
-}
+const boost::stacktrace::stacktrace* getBacktrace(T& exception);
 
 } // namespace cb
