@@ -16,6 +16,7 @@ target_include_directories(cbsocket_test PRIVATE ${Platform_SOURCE_DIR}/include)
 target_link_libraries(cbsocket_test
     PRIVATE
         Folly::headers
+        nlohmann_json::nlohmann_json
         cbsocket
         gtest gtest_main)
 platform_enable_pch(cbsocket_test)

@@ -358,7 +358,7 @@ target_sources(platform PRIVATE ${PLATFORM_FILES})
 # link publically.
 TARGET_LINK_LIBRARIES(platform PUBLIC
   ${COUCHBASE_NETWORK_LIBS}
-  platform_cbassert)
+  platform_cbassert nlohmann_json::nlohmann_json)
 
 SET_TARGET_PROPERTIES(platform PROPERTIES POSITION_INDEPENDENT_CODE true)
 platform_enable_pch(platform)
