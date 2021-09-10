@@ -5,7 +5,7 @@ if (NOT MEMORY_ALLOCATOR STREQUAL "system")
                           PRIVATE
                           platform
                           platform_cb_malloc_arena
-                          gtest
+                          GTest::gtest
                           ${MALLOC_LIBRARIES})
     platform_enable_pch(platform_memory_tracking_test)
 

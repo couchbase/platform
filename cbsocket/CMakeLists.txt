@@ -19,6 +19,6 @@ target_link_libraries(cbsocket_test
         Folly::headers
         nlohmann_json::nlohmann_json
         cbsocket
-        gtest gtest_main)
+        GTest::gtest GTest::gtest_main)
 platform_enable_pch(cbsocket_test)
 add_test(cbsocket_test cbsocket_test)

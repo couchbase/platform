@@ -42,8 +42,8 @@ target_compile_definitions(platform-compression-test
 target_link_libraries(platform-compression-test
                       PRIVATE
                       cbcompress
-                      gtest
-                      gtest_main
+                      GTest::gtest
+                      GTest::gtest_main
                       platform)
 platform_enable_pch(platform-compression-test)
 add_test(platform-compression-test platform-compression-test)
@@ -62,5 +62,5 @@ target_link_libraries(platform-compression-bench
                       ${SNAPPY_LIBRARIES}
                       $<$<BOOL:${LZ4_FOUND}>:${LZ4_LIBRARIES}>
                       benchmark
-                      gtest)
+                      GTest::gtest)
 platform_enable_pch(platform-compression-bench)
