@@ -13,6 +13,7 @@
 
 #include <platform/comparators.h>
 
+#include <platform/atomic.h>
 #include <platform/exceptions.h>
 #include <atomic>
 #include <limits>
@@ -194,6 +195,14 @@ public:
                 break;
             }
         }
+        return *this;
+    }
+
+    /**
+     * store desired only if it is bigger than the current value.
+     */
+    AtomicMonotonic& storeIfBigger(T desired) {
+        atomic_setIfBigger(val, desired);
         return *this;
     }
 
