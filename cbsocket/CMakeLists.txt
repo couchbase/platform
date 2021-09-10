@@ -7,6 +7,7 @@ target_link_libraries(cbsocket
                       PRIVATE
                       gsl_lite
                       platform
+                      nlohmann_json::nlohmann_json
                       ${LIBEVENT_LIBRARIES}
                       ${COUCHBASE_NETWORK_LIBS})
 platform_enable_pch(cbsocket)
