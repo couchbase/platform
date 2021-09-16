@@ -138,5 +138,3 @@ BENCHMARK_REGISTER_F(MemoryAllocationStat, AllocNReadPreciseM)
         // memory alloc/dealloc
         ->Args({1000, 10})
         ->Args({100000, 10});
-
-BENCHMARK_MAIN();

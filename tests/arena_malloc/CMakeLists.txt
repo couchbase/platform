@@ -13,13 +13,12 @@ if (MEMORY_ALLOCATOR STREQUAL "jemalloc")
                  arena_tracking_bench.cc)
 
   TARGET_LINK_LIBRARIES(platform-arena_tracking_bench PRIVATE
-                        benchmark
+                        benchmark::benchmark
+                        benchmark::benchmark_main
                         GTest::gtest
                         platform
                         platform_cb_malloc_arena)
   platform_enable_pch(platform-arena_tracking_bench)
-  TARGET_INCLUDE_DIRECTORIES(platform-arena_tracking_bench SYSTEM PRIVATE
-                             ${benchmark_SOURCE_DIR}/include )
 endif()
 
 if (UNIX)

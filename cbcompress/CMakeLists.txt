@@ -55,12 +55,11 @@ target_compile_definitions(platform-compression-bench
 target_include_directories(platform-compression-bench
                            SYSTEM PRIVATE
                            ${SNAPPY_INCLUDE_DIR}
-                           $<$<BOOL:${LZ4_FOUND}>:${LZ4_INCLUDE_DIR}>
-                           ${benchmark_SOURCE_DIR}/include)
+                           $<$<BOOL:${LZ4_FOUND}>:${LZ4_INCLUDE_DIR}>)
 target_link_libraries(platform-compression-bench
                       PRIVATE
                       ${SNAPPY_LIBRARIES}
                       $<$<BOOL:${LZ4_FOUND}>:${LZ4_LIBRARIES}>
-                      benchmark
+                      benchmark::benchmark
                       GTest::gtest)
 platform_enable_pch(platform-compression-bench)
