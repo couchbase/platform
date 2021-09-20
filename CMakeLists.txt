@@ -344,7 +344,7 @@ add_library(platform STATIC)
 target_link_libraries(platform PUBLIC Folly::folly platform_headers)
 target_link_libraries(platform PRIVATE
   phosphor
-  gsl_lite
+  gsl::gsl-lite
   ${MALLOC_LIBRARIES}
   ${PLATFORM_LIBRARIES})
 

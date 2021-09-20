@@ -26,7 +26,7 @@ platform_enable_pch(cbcompress)
 
 target_link_libraries(cbcompress
                       PRIVATE
-                      gsl_lite
+                      gsl::gsl-lite
                       platform_cbassert
                       platform_headers
                       ${SNAPPY_LIBRARIES}

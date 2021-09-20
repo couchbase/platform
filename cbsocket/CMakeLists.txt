@@ -5,7 +5,7 @@ add_library(cbsocket STATIC
 
 target_link_libraries(cbsocket
                       PRIVATE
-                      gsl_lite
+                      gsl::gsl-lite
                       platform
                       nlohmann_json::nlohmann_json
                       ${LIBEVENT_LIBRARIES}
