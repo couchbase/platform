@@ -37,11 +37,11 @@ class _JEArenaMalloc {
 public:
     static ArenaMallocClient registerClient(bool threadCache);
     static void unregisterClient(const ArenaMallocClient& client);
-    static void switchToClient(const ArenaMallocClient& client,
-                               cb::MemoryDomain domain,
-                               bool tcache);
+    static MemoryDomain switchToClient(const ArenaMallocClient& client,
+                                       MemoryDomain domain,
+                                       bool tcache);
     static MemoryDomain setDomain(MemoryDomain domain);
-    static void switchFromClient();
+    static MemoryDomain switchFromClient();
     static void setAllocatedThreshold(const ArenaMallocClient& client) {
         trackingImpl::setAllocatedThreshold(client);
     }

@@ -37,11 +37,7 @@ const int ArenaMallocMaxClients = 100;
 /// Define a special value to denote that no client is selected
 const uint8_t NoClientIndex = ArenaMallocMaxClients;
 
-enum class MemoryDomain : uint8_t {
-    Primary,
-    Secondary,
-    Count,
-};
+enum class MemoryDomain : uint8_t { Primary, Secondary, Count, None = Count };
 
 /**
  * The cb::ArenaMallocClient is an object that any client of the cb::ArenaMalloc

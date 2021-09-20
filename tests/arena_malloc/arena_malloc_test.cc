@@ -140,7 +140,8 @@ TEST_F(ArenaMalloc, basicUsage) {
 
 TEST_F(ArenaMalloc, DomainGuard) {
     auto client = cb::ArenaMalloc::registerClient();
-    cb::ArenaMalloc::switchToClient(client);
+    auto domain = cb::ArenaMalloc::switchToClient(client);
+    EXPECT_EQ(cb::MemoryDomain::None, domain);
 
     void *p1, *p2;
     {
@@ -202,6 +203,12 @@ TEST_F(ArenaMalloc, DomainGuard) {
     EXPECT_EQ(8192,
               cb::ArenaMalloc::getEstimatedAllocated(
                       client, cb::MemoryDomain::Primary));
+
+    domain = cb::ArenaMalloc::switchToClient(client,
+                                             cb::MemoryDomain::Secondary);
+    EXPECT_EQ(cb::MemoryDomain::Primary, domain);
+    domain = cb::ArenaMalloc::switchToClient(client, cb::MemoryDomain::Primary);
+    EXPECT_EQ(cb::MemoryDomain::Secondary, domain);
 
     cb::ArenaMalloc::unregisterClient(client);
 }

@@ -70,7 +70,7 @@ struct CurrentClient {
     /**
      * The current domain
      */
-    MemoryDomain domain{MemoryDomain::Primary};
+    MemoryDomain domain{MemoryDomain::None};
 
     /// struct is intended to be a max of u64 - 2 unused bytes remain.
     uint8_t unused1{0};
@@ -204,15 +204,17 @@ void JEArenaMalloc::unregisterClient(const ArenaMallocClient& client) {
 }
 
 template <>
-void JEArenaMalloc::switchToClient(const ArenaMallocClient& client,
-                                   cb::MemoryDomain domain,
-                                   bool tcache) {
+MemoryDomain JEArenaMalloc::switchToClient(const ArenaMallocClient& client,
+                                           MemoryDomain domain,
+                                           bool tcache) {
+    auto& currentClient = ThreadLocalData::get().getCurrentClient();
+    auto currentDomain = currentClient.domain;
     if (client.index == NoClientIndex) {
-        ThreadLocalData::get().getCurrentClient().setup(
+        currentClient.setup(
                 client.threadCache && tcacheEnabled ? 0 : MALLOCX_TCACHE_NONE,
                 NoClientIndex,
-                domain);
-        return;
+                cb::MemoryDomain::None);
+        return currentDomain;
     }
 
     int tcacheFlags = MALLOCX_TCACHE_NONE;
@@ -232,8 +234,9 @@ void JEArenaMalloc::switchToClient(const ArenaMallocClient& client,
 
     // Set the malloc flags to the correct arena + tcache setting and set the
     // client index
-    ThreadLocalData::get().getCurrentClient().setup(
+    currentClient.setup(
             MALLOCX_ARENA(client.arena) | tcacheFlags, client.index, domain);
+    return currentDomain;
 }
 
 template <>
@@ -242,11 +245,15 @@ MemoryDomain JEArenaMalloc::setDomain(MemoryDomain domain) {
 }
 
 template <>
-void JEArenaMalloc::switchFromClient() {
-    // Set to 0, no client, all tracking/allocations go to default arena/tcache
-    switchToClient({0, NoClientIndex, tcacheEnabled},
-                   cb::MemoryDomain::Primary,
-                   tcacheEnabled);
+MemoryDomain JEArenaMalloc::switchFromClient() {
+    // Set arena to 0 - which JEMALLOC means use auto select arena
+    // Index to the special NoClientIndex (so no tracking occurs)
+    // And domain to none (no use when tracking is off)
+    // Now all allocations go to default arena and we don't do any counting
+    return switchToClient(
+            ArenaMallocClient{0 /*arena*/, NoClientIndex, tcacheEnabled},
+            cb::MemoryDomain::None,
+            tcacheEnabled);
 }
 
 template <>

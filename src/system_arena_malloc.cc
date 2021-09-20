@@ -43,7 +43,7 @@ namespace cb {
 
 static thread_local struct ClientAndDomain {
     ArenaMallocClient client;
-    MemoryDomain domain{MemoryDomain::Primary};
+    MemoryDomain domain{MemoryDomain::None};
 } currentClient;
 
 ArenaMallocClient SystemArenaMalloc::registerClient(bool threadCache) {
@@ -70,12 +70,12 @@ void SystemArenaMalloc::unregisterClient(const ArenaMallocClient& client) {
     clients.wlock()->at(client.index).reset();
 }
 
-void SystemArenaMalloc::switchToClient(const ArenaMallocClient& client,
-                                       cb::MemoryDomain domain,
-                                       bool tcache) {
-    currentClient.client = client;
-    currentClient.domain = domain;
+MemoryDomain SystemArenaMalloc::switchToClient(const ArenaMallocClient& client,
+                                               MemoryDomain domain,
+                                               bool tcache) {
     (void)tcache; // no use in system allocator
+    currentClient.client = client;
+    return setDomain(domain);
 }
 
 MemoryDomain SystemArenaMalloc::setDomain(MemoryDomain domain) {
@@ -84,11 +84,11 @@ MemoryDomain SystemArenaMalloc::setDomain(MemoryDomain domain) {
     return currentDomain;
 }
 
-void SystemArenaMalloc::switchFromClient() {
-    // Set to index of NoClientIndex and domain to primary.
-    switchToClient({0, NoClientIndex, false},
-                   cb::MemoryDomain::Primary,
-                   false /*tcache unused here*/);
+MemoryDomain SystemArenaMalloc::switchFromClient() {
+    // Set to index of NoClientIndex and domain to None.
+    return switchToClient({0, NoClientIndex, false},
+                          cb::MemoryDomain::None,
+                          false /*tcache unused here*/);
 }
 
 size_t SystemArenaMalloc::getPreciseAllocated(const ArenaMallocClient& client) {
@@ -223,7 +223,9 @@ cb::FragmentationStats SystemArenaMalloc::getFragmentationStats(
 }
 
 cb::FragmentationStats SystemArenaMalloc::getGlobalFragmentationStats() {
-    size_t alloc = getPreciseAllocated(ArenaMallocClient{});
+    // For system allocator global tracking has domain None
+    size_t alloc =
+            getPreciseAllocated(ArenaMallocClient{}, cb::MemoryDomain::None);
     return {alloc, alloc};
 }
 

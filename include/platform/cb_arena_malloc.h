@@ -113,20 +113,23 @@ public:
      * thread, that is what the optional tcache parameter achieves.
      *
      * @param client The client to account to.
-     * @param domain The domain to use, Primary by default
+     * @param domain The domain to use, Primary by default. Values must be
+     *        Primary or Secondary.
      * @param tcache The caller can switch to the client and turn off tcache
      *               for the current thread only.
+     * @return the previous MemoryDomain
      */
-    static void switchToClient(
+    static MemoryDomain switchToClient(
             const ArenaMallocClient& client,
-            cb::MemoryDomain domain = cb::MemoryDomain::Primary,
+            MemoryDomain domain = MemoryDomain::Primary,
             bool tcache = true) {
-        Impl::switchToClient(client, domain, tcache);
+        return Impl::switchToClient(client, domain, tcache);
     }
 
     /**
      * Set the domain for tracking memory allocations
-     * @param domain The domain to track against
+     * @param domain The domain to track against. Values must be Primary or
+     *        Secondary.
      * @return The current domain is returned
      */
     static MemoryDomain setDomain(MemoryDomain domain) {
@@ -145,9 +148,10 @@ public:
 
     /**
      * Switch away from the client, disabling any memory tracking.
+     * @return the previous MemoryDomain
      */
-    static void switchFromClient() {
-        Impl::switchFromClient();
+    static MemoryDomain switchFromClient() {
+        return Impl::switchFromClient();
     }
 
     /**
