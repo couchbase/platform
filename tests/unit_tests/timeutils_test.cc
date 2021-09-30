@@ -9,7 +9,8 @@
  */
 #include <platform/timeutils.h>
 #include <chrono>
-
+#include <fmt/chrono.h>
+#include <folly/Chrono.h>
 #include <folly/portability/GTest.h>
 
 using cb::text2time;
@@ -161,4 +162,58 @@ TEST(Text2timeTest, InvalidInput) {
     EXPECT_THROW(text2time("a"), std::invalid_argument);
     EXPECT_THROW(text2time("!"), std::invalid_argument);
     EXPECT_THROW(text2time("2 units"), std::invalid_argument);
+}
+
+/// Test clock which always advances by 10 nanoseconds every time now() is called.
+struct TestClock {
+    using rep = std::chrono::nanoseconds::rep;
+    using period = std::chrono::nanoseconds::period;
+    using duration = std::chrono::nanoseconds;
+    using time_point = std::chrono::time_point<TestClock, duration>;
+    constexpr static bool is_steady = true;
+
+    static time_point now() noexcept {
+        static rep ticks = 0;
+        return time_point{duration{ticks += 10}};
+    }
+};
+
+// Verify the estimate calculation is correct, using a test clock as the
+// measuring clock which always advances by 10ns.
+TEST(EstimateClockOverhead, Calculation) {
+    // Request 5 samples; given TestClock::now advances by 10ns each
+    // call we expect to get an estimate of 10 / 5 = 2ns.
+    auto result =
+            cb::estimateClockOverhead<std::chrono::steady_clock, TestClock>(5);
+
+    EXPECT_EQ(2, result.overhead.count())
+            << "Expected estimate of 2 when TestClock "
+               "used which always ticks by a fixed amount.";
+}
+
+TEST(EstimateClockOverhead, SteadyClock) {
+    auto result = cb::estimateClockOverhead<std::chrono::steady_clock>();
+    // Difficult to test with a real clock which will vary based on environment
+    // system load etc, just perform some basic sanity checks.
+
+    // Expect to have a non-zero number of nanoseconds to read the clock.
+    EXPECT_NE(0, result.overhead.count());
+    EXPECT_EQ(std::chrono::steady_clock::duration{1}, result.measurementPeriod);
+
+    fmt::print("estimateClockOverhead(steady_clock) overhead: {}\n",
+               result.overhead);
+}
+
+TEST(EstimateClockOverhead, CoarseSteadyClock) {
+    auto result =
+            cb::estimateClockOverhead<folly::chrono::coarse_steady_clock>();
+    // Difficult to test with a real clock which will vary based on environment
+    // system load etc, just perform some basic sanity checks.
+
+    // Expect to have a non-zero number of nanoseconds to read the clock.
+    EXPECT_NE(0, result.overhead.count());
+    EXPECT_EQ(std::chrono::steady_clock::duration{1}, result.measurementPeriod);
+
+    fmt::print("estimateClockOverhead(coarse_steady_clock) overhead: {}\n",
+               result.overhead);
 }
