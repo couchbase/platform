@@ -10,6 +10,7 @@
 
 #include <folly/portability/GTest.h>
 #include <platform/semaphore.h>
+#include <platform/semaphore_guard.h>
 
 #include <thread>
 
@@ -111,5 +112,186 @@ TEST(SemaphoreTest, MultiThreaded) {
     // join all the threads
     for (auto& thread : threads) {
         thread.join();
+    }
+}
+
+TEST(SemaphoreTest, Guard) {
+    cb::Semaphore s{1};
+
+    {
+        // try acquire one token with an RAII guard
+        cb::SemaphoreGuard guard(&s, 1);
+        EXPECT_TRUE(guard);
+
+        // confirm that no more tokens are available
+        EXPECT_FALSE(s.try_acquire(1));
+        // guard scope ends
+    }
+
+    // confirm token is available again
+    EXPECT_TRUE(s.try_acquire(1));
+    s.release(1);
+}
+
+TEST(SemaphoreTest, GuardMultiple) {
+    cb::Semaphore s{3};
+
+    {
+        // try acquire two tokens with an RAII guard
+        cb::SemaphoreGuard guard(&s, 2);
+        EXPECT_TRUE(guard);
+
+        // confirm that only one tokens remain (3 - 2 = 1)
+        EXPECT_FALSE(s.try_acquire(2));
+        EXPECT_TRUE(s.try_acquire(1));
+        s.release(1);
+        // guard scope ends
+    }
+
+    // confirm all tokens available again
+    EXPECT_TRUE(s.try_acquire(3));
+    s.release(3);
+}
+
+TEST(SemaphoreTest, GuardFailure) {
+    cb::Semaphore s{1};
+
+    {
+        // try acquire one token with an RAII guard
+        cb::SemaphoreGuard guard(&s);
+        EXPECT_TRUE(guard);
+
+        // trying to acquire more fails
+        cb::SemaphoreGuard guard2(&s);
+        EXPECT_FALSE(guard2);
+
+        // directly acquiring with try_acquire also fails
+        EXPECT_FALSE(s.try_acquire(1));
+
+        // guard scope ends
+    }
+
+    // confirm exactly one token is available again
+    EXPECT_FALSE(s.try_acquire(2));
+    EXPECT_TRUE(s.try_acquire(1));
+    s.release(1);
+}
+
+TEST(SemaphoreTest, GuardMove) {
+    cb::Semaphore s{1};
+
+    {
+        // default construct a guard, no tokens managed
+        cb::SemaphoreGuard guardOuter;
+
+        {
+            // try acquire one token with an RAII guard
+            cb::SemaphoreGuard guard(&s);
+            EXPECT_TRUE(guard);
+
+            // trying to acquire more fails
+            EXPECT_FALSE(s.try_acquire(1));
+
+            // move the guard
+            guardOuter = std::move(guard);
+            // guard scope ends, but no tokens released as
+            // the guard has been moved out of
+        }
+
+        // trying to acquire token still fails, the guard still exists
+        EXPECT_FALSE(s.try_acquire(1));
+    }
+
+    // confirm exactly one token is available again
+    EXPECT_FALSE(s.try_acquire(2));
+    EXPECT_TRUE(s.try_acquire(1));
+    s.release(1);
+}
+
+TEST(SemaphoreTest, GuardRelease) {
+    cb::Semaphore s{1};
+
+    {
+        // try acquire one token with an RAII guard
+        cb::SemaphoreGuard guard(&s);
+        EXPECT_TRUE(guard);
+
+        // trying to acquire more fails
+        EXPECT_FALSE(s.try_acquire(1));
+
+        // release the token managed by the guard
+        // similar semantics to a unique ptr release -
+        // resource is not "freed" (returned to semaphore) but must now be
+        // managed by the caller
+        guard.release();
+
+        // trying to acquire more fails, the token is still held
+        // but the guard is no longer responsible
+        EXPECT_FALSE(s.try_acquire(1));
+        // guard scope ends, but no tokens released as
+        // the guard has been released
+    }
+
+    // trying to acquire token still fails, destroying the guard
+    // does nothing as it has already been released.
+
+    EXPECT_FALSE(s.try_acquire(1));
+
+    // release the token for which the caller became responsible
+    s.release(1);
+}
+
+TEST(SemaphoreTest, GuardReset) {
+    cb::Semaphore s{1};
+
+    {
+        // try acquire one token with an RAII guard
+        cb::SemaphoreGuard guard(&s);
+        EXPECT_TRUE(guard);
+
+        // trying to acquire more fails
+        EXPECT_FALSE(s.try_acquire(1));
+
+        // reset the token managed by the guard
+        // similar semantics to a unique ptr reset -
+        // resource is "freed" (returned to semaphore)
+        // and the guard then manages nothing.
+        guard.reset();
+
+        // trying to acquire more succeeds, the token has been returned
+        EXPECT_TRUE(s.try_acquire(1));
+        // guard scope ends, but no tokens released as
+        // the guard has been reset
+    }
+
+    // guard destruction didn't erroneously return more tokens,
+    // no more can be acquired
+    EXPECT_FALSE(s.try_acquire(1));
+
+    // release the one token acquired manually earlier
+    s.release(1);
+}
+TEST(SemaphoreTest, GuardShared) {
+    auto s = std::make_shared<cb::Semaphore>(1);
+
+    {
+        // try acquire one token with an RAII guard
+        cb::SemaphoreGuard guard(s);
+        EXPECT_TRUE(guard);
+        // guard scope ends
+    }
+
+    {
+        // try acquire one token with an RAII guard, token should
+        // be available as previous guard has been destroyed
+        cb::SemaphoreGuard guard(s);
+        EXPECT_TRUE(guard);
+
+        // reset the shared ptr, when the guard is destroyed
+        // tokens should be returned to the semaphore,
+        // then the semaphore destroyed as there are no other
+        // owners. Attempting to provoke asan failures if
+        // the guard did not take a shared ptr.
+        s.reset();
     }
 }

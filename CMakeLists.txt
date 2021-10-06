@@ -210,6 +210,7 @@ LIST(APPEND PLATFORM_FILES
   src/processclock.cc
   src/process_monitor.cc
   src/semaphore.cc
+  src/semaphore_guard.cc
   src/sized_buffer.cc
   src/split_string.cc
   src/strerror.cc
@@ -240,6 +241,7 @@ LIST(APPEND PLATFORM_FILES
   include/platform/ring_buffer.h
   include/platform/rwlock.h
   include/platform/semaphore.h
+  include/platform/semaphore_guard.h
   include/platform/sized_buffer.h
   include/platform/strerror.h
   include/platform/string_hex.h
