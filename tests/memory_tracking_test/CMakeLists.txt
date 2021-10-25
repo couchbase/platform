@@ -1,5 +1,6 @@
 if (NOT MEMORY_ALLOCATOR STREQUAL "system")
     cb_add_test_executable(platform_memory_tracking_test
+                   memory_tracking_allocator_test.cc
                    memory_tracking_test.cc)
     target_link_libraries(platform_memory_tracking_test
                           PRIVATE
