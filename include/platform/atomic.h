@@ -14,14 +14,15 @@
 #include <mutex>
 
 template <typename T>
-void atomic_setIfBigger(std::atomic<T>& obj, const T& newValue) {
+bool atomic_setIfBigger(std::atomic<T>& obj, const T& newValue) {
     T oldValue = obj.load();
     while (newValue > oldValue) {
         if (obj.compare_exchange_strong(oldValue, newValue)) {
-            break;
+            return true;
         }
         oldValue = obj.load();
     }
+    return false;
 }
 
 template <typename T>
