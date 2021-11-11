@@ -125,3 +125,46 @@ TEST(MemoryTrackingAllocatorTest, copyTest) {
     // The copied deque should not have changed in size.
     EXPECT_EQ(copySize, newCopySize);
 }
+
+// Test bytesAllocated is correct when a list is spliced into another
+// list (sharing the same allocator.
+TEST(MemoryTrackingAllocatorTest, spliceList) {
+    MemoryTrackingAllocator<int> allocator;
+    // Sanity check
+    ASSERT_EQ(0, allocator.getBytesAllocated());
+    {
+        // Create a list with 3 items, noting the bytesAllocated of it
+        // after 2 items have been added.
+        List list(allocator);
+        list.push_back(0);
+        list.push_back(1);
+        const auto listWith2ItemsSize = allocator.getBytesAllocated();
+        list.push_back(2);
+
+        // Splice out the middle element into another list.
+        // Note: std::list::splice() requires that the source and destination
+        // list for the splice have the "same" allocator (they compare equal).
+        {
+            List removed(allocator);
+            // Note: MSVC's impl of std::list appears to allocate heap memory
+            // (from the allocator) when a std::list is default-constructed
+            // (without any items) - unlike libstdc++ / libc++ which do not.
+            // As such, record the size of the allocator after creating
+            // 'removed' and compare the size after splice to that.
+            const auto twoListsSize = allocator.getBytesAllocated();
+            list.splice(removed.begin(),
+                        removed,
+                        std::next(list.begin()),
+                        std::prev(list.end()));
+
+            // Memory usage should be unmodified (as nothing has been
+            // deallocated yet).
+            EXPECT_EQ(twoListsSize, allocator.getBytesAllocated());
+        }
+        // When removed goes out of scope, memory usage should drop to that of
+        // 2 items.
+        EXPECT_EQ(listWith2ItemsSize, allocator.getBytesAllocated());
+    }
+    // When list goes out of scope, memory usage should be zero.
+    EXPECT_EQ(0, allocator.getBytesAllocated());
+}
