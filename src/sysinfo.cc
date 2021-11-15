@@ -66,7 +66,7 @@ size_t cb::get_available_cpu_count() {
     // sysconf(_SC_NPROCESSORS_ONLN), but the configured --cpuset-cpus
     // via sched_getaffinity().
     cpu_set_t set;
-    if (sched_getaffinity(getpid(), sizeof (set), &set) == 0) {
+    if (sched_getaffinity(getpid(), sizeof(set), &set) == 0) {
         return CPU_COUNT(&set);
     }
 #endif

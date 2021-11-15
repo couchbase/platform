@@ -20,7 +20,7 @@
 #include <thread>
 
 #ifdef WIN32
-// Ideally I would have wanted to use folly::readFile on Windows as well,
+// Ideally I would have wanted to use folly::read_file on Windows as well,
 // but unfortunately it use the posix API on windows which don't properly
 // set FILE_SHARE_WRITE causing us to fail to open the file if someone
 // else have the file open for writing

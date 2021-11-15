@@ -286,6 +286,10 @@ foreach(platform_cbassert_variant ${platform_cbassert_VARIANTS})
   target_link_libraries(${platform_cbassert_variant} PRIVATE Folly::headers)
 endforeach()
 
+if (UNIX AND NOT APPLE)
+    add_subdirectory(cgroup)
+endif()
+
 if (MEMORY_ALLOCATOR STREQUAL "jemalloc")
 LIST(APPEND PLATFORM_FILES src/je_arena_corelocal_tracker.cc)
 LIST(APPEND PLATFORM_FILES src/je_arena_malloc.cc)
@@ -360,6 +364,10 @@ target_sources(platform PRIVATE ${PLATFORM_FILES})
 TARGET_LINK_LIBRARIES(platform PUBLIC
   ${COUCHBASE_NETWORK_LIBS}
   platform_cbassert nlohmann_json::nlohmann_json)
+
+if (UNIX AND NOT APPLE)
+    target_link_libraries(platform PRIVATE cgroup)
+endif()
 
 SET_TARGET_PROPERTIES(platform PROPERTIES POSITION_INDEPENDENT_CODE true)
 platform_enable_pch(platform)
