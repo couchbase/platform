@@ -12,6 +12,7 @@
 
 #include <chrono>
 #include <tuple>
+#include <utility>
 
 /**
  * Timer wrappers which provides a RAII-style mechanism for timing the duration
@@ -34,7 +35,7 @@
  *
  * {
  *     ... some scope we wish to time
- *     ScopedTimer2<MicrosecondsStopwatch, MicrosecondsStopwatch> timer
+ *     ScopedTimer<MicrosecondsStopwatch, MicrosecondsStopwatch> timer
  *             std::forward_as_tuple(stats.histogram1),
  *             std::forward_as_tuple(stats.histogram2));
  *     // start() called on both MicrosecondStopwatches
@@ -51,68 +52,90 @@
  *       this, but given we only ever use either 1 or 2 listeners that seems
  *       overkill at the present time :)
  */
-
-/**
- * ScopeTimer taking one listener objects. Somewhat unnecessary, but provided
- * for consistency / ease of moving between an N arg variant.
- */
-template <class Listener1>
-class ScopeTimer1 {
-public:
-    template <typename... Args>
-    ScopeTimer1(Args&&... args) : listener1(std::forward<Args>(args)...) {
-        if (listener1.isEnabled()) {
-            listener1.start(std::chrono::steady_clock::now());
-        }
-    }
-
-    ~ScopeTimer1() {
-        if (listener1.isEnabled()) {
-            const auto endTime = std::chrono::steady_clock::now();
-            listener1.stop(endTime);
-        }
-    }
-
-private:
-    Listener1 listener1;
-};
-
-/// ScopeTimer taking two listener objects.
-template <class Listener1, class Listener2>
-class ScopeTimer2 {
+template <class... Listeners>
+class ScopeTimer {
 public:
     /**
-     * Construct a ScopeTimer for two listener objects, taking the arguments
+     * Construct a ScopeTimer for N listener objects, taking the arguments
      * for each underlying Listener as a std::tuple.
      *
      * Example:
-     *     ScopeTimer2<HdrMicroSecStopwatch, TracerStopwatch> timer(
+     *     ScopeTimer<HdrMicroSecStopwatch, TracerStopwatch> timer(
      *         std::forward_as_tuple(stats.getCmdHisto),
      *         std::forward_as_tuple(cookie, cb::tracing::Code::Get));
      *
      * This is admittedly pretty verbose, but it _does_ guarantee that the
-     * Listener objects are constructed in-place inside ScopeTimer2, so
+     * Listener objects are constructed in-place inside ScopeTimer, so
      * usable for non-movable types, and avoids creating temporary Listener
      * objects which could result in spurious durations being timed.
      */
-    template <typename Args1, typename Args2>
-    ScopeTimer2(Args1&& args1, Args2&& args2)
-        : listener1(
-                  std::make_from_tuple<Listener1>(std::forward<Args1>(args1))),
-          listener2(
-                  std::make_from_tuple<Listener2>(std::forward<Args2>(args2))) {
+    template <typename... Args>
+    ScopeTimer(Args&&... args)
+        // double pack expansion, constructs listener N from argument N
+        : listeners{std::make_from_tuple<Listeners>(
+                  std::forward<Args>(args))...} {
+        // must have one tuple of arguments per Listener. No need for a
+        // static_assert, as compilation would fail with (e.g.,):
+        //    pack expansion contains parameter packs 'Listeners' and 'args'
+        //    that have different lengths (1 vs. 2)
+
         auto startTime = std::chrono::steady_clock::now();
-        listener1.start(startTime);
-        listener2.start(startTime);
+        // apply to expand the tuple out into N packed arguments
+        std::apply(
+                [&startTime](auto&... listenersPack) {
+                    // call start on every listener (fold expression)
+                    (listenersPack.start(startTime), ...);
+                },
+                listeners);
     }
 
-    ~ScopeTimer2() {
+    // In principle, ScopeTimer could be copiable/movable. However, moving
+    // a ScopeTimer<Listener> would currently rely upon it being acceptable to
+    // potentially call Listener::stop() on a moved-out-of instance.
+    // ScopeTimer could be improved to avoid this but for now, as
+    // move/copy construction/assignment is not currently used, explicitly
+    // delete them to avoid surprises.
+    // Additionally, it's not immediately clear what series of start() and
+    // stop() calls to expect when copying a ScopeTimer, another
+    // source of potential surprises.
+    ScopeTimer(ScopeTimer&&) = delete;
+    ScopeTimer(const ScopeTimer&) = delete;
+
+    ScopeTimer& operator=(ScopeTimer&&) = delete;
+    ScopeTimer& operator=(const ScopeTimer&) = delete;
+
+    ~ScopeTimer() {
         const auto endTime = std::chrono::steady_clock::now();
-        listener1.stop(endTime);
-        listener2.stop(endTime);
+        std::apply(
+                [&endTime](auto&... listenersPack) {
+                    // call stop on every listener (fold expression)
+                    (listenersPack.stop(endTime), ...);
+                },
+                listeners);
     }
 
 private:
-    Listener1 listener1;
-    Listener2 listener2;
+    std::tuple<Listeners...> listeners;
 };
+
+/**
+ * ScopeTimer taking one listener object. Declared for backwards compatibility,
+ * should be removed once all usages have been updated.
+ *
+ * Note, ScopeTimer1 has a different constructor to ScopeTimer, forwarding
+ * all args to the single Listener. Usages should move to ScopeTimer, passing
+ * args as a tuple for consistency.
+ */
+template <class Listener1>
+class ScopeTimer1 : ScopeTimer<Listener1> {
+public:
+    template <typename... Args>
+    ScopeTimer1(Args&&... args)
+        : ScopeTimer<Listener1>(std::forward_as_tuple(args...)) {
+    }
+};
+
+// For backward compatibility, declare ScopeTimer2. Should be removed
+// once all usages have been updated.
+template <class Listener1, class Listener2>
+using ScopeTimer2 = ScopeTimer<Listener1, Listener2>;

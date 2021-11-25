@@ -47,7 +47,7 @@ protected:
 };
 
 TEST_F(ScopeTimerTest, SingleListener) {
-    { ScopeTimer1<MockTimer> timer(start, stop); }
+    { ScopeTimer<MockTimer> timer(std::forward_as_tuple(start, stop)); }
 
     EXPECT_EQ(1u, start.size());
     EXPECT_EQ(1u, stop.size());
@@ -56,7 +56,7 @@ TEST_F(ScopeTimerTest, SingleListener) {
 
 TEST_F(ScopeTimerTest, TwoListeners) {
     {
-        ScopeTimer2<MockTimer, MockTimer> timer(
+        ScopeTimer<MockTimer, MockTimer> timer(
                 std::forward_as_tuple(start, stop),
                 std::forward_as_tuple(start, stop));
     }
@@ -68,5 +68,28 @@ TEST_F(ScopeTimerTest, TwoListeners) {
     EXPECT_EQ(start[0], start[1])
             << "ScopeTimer listeners did not receive the same start time.";
     EXPECT_EQ(stop[0], stop[1])
+            << "ScopeTimer listeners did not receive the same stop time.";
+}
+
+TEST_F(ScopeTimerTest, ThreeListeners) {
+    {
+        ScopeTimer<MockTimer, MockTimer, MockTimer> timer(
+                std::forward_as_tuple(start, stop),
+                std::forward_as_tuple(start, stop),
+                std::forward_as_tuple(start, stop));
+    }
+
+    EXPECT_EQ(3u, start.size());
+    EXPECT_EQ(3u, stop.size());
+    EXPECT_GT(stop[0], start[0]);
+    EXPECT_GT(stop[1], start[1]);
+    EXPECT_GT(stop[2], start[2]);
+    EXPECT_EQ(start[0], start[1])
+            << "ScopeTimer listeners did not receive the same start time.";
+    EXPECT_EQ(start[0], start[2])
+            << "ScopeTimer listeners did not receive the same start time.";
+    EXPECT_EQ(stop[0], stop[1])
+            << "ScopeTimer listeners did not receive the same stop time.";
+    EXPECT_EQ(stop[0], stop[2])
             << "ScopeTimer listeners did not receive the same stop time.";
 }
