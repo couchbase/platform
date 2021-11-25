@@ -9,6 +9,10 @@
  */
 #include <folly/portability/Unistd.h>
 
+#ifdef __linux__
+#include <cgroup/cgroup.h>
+#endif
+
 #ifdef HAVE_CPUID_H
 #include <cpuid.h>
 #endif
@@ -58,18 +62,9 @@ size_t cb::get_available_cpu_count() {
     SYSTEM_INFO sysinfo;
     GetSystemInfo(&sysinfo);
     return size_t(sysinfo.dwNumberOfProcessors);
-#else // !WIN32
-#if defined(HAVE_SCHED_GETAFFINITY)
-    // Prefer sched_getaffinity - number of CPUs we are permitted to
-    // run on. This is useful when running in Docker or other similar
-    // containers which report the 'full' host CPU count via
-    // sysconf(_SC_NPROCESSORS_ONLN), but the configured --cpuset-cpus
-    // via sched_getaffinity().
-    cpu_set_t set;
-    if (sched_getaffinity(getpid(), sizeof(set), &set) == 0) {
-        return CPU_COUNT(&set);
-    }
-#endif
+#elif defined(__linux__)
+    return cb::cgroup::ControlGroup::instance().get_available_cpu_count();
+#else
     // Fallback to sysconf
     auto ret = sysconf(_SC_NPROCESSORS_ONLN);
     if (ret == -1) {
@@ -78,7 +73,7 @@ size_t cb::get_available_cpu_count() {
     }
 
     return size_t(ret);
-#endif // WIN32
+#endif
 }
 
 #if defined(WIN32)
