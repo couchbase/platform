@@ -117,25 +117,3 @@ public:
 private:
     std::tuple<Listeners...> listeners;
 };
-
-/**
- * ScopeTimer taking one listener object. Declared for backwards compatibility,
- * should be removed once all usages have been updated.
- *
- * Note, ScopeTimer1 has a different constructor to ScopeTimer, forwarding
- * all args to the single Listener. Usages should move to ScopeTimer, passing
- * args as a tuple for consistency.
- */
-template <class Listener1>
-class ScopeTimer1 : ScopeTimer<Listener1> {
-public:
-    template <typename... Args>
-    ScopeTimer1(Args&&... args)
-        : ScopeTimer<Listener1>(std::forward_as_tuple(args...)) {
-    }
-};
-
-// For backward compatibility, declare ScopeTimer2. Should be removed
-// once all usages have been updated.
-template <class Listener1, class Listener2>
-using ScopeTimer2 = ScopeTimer<Listener1, Listener2>;
