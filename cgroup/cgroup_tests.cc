@@ -113,6 +113,19 @@ protected:
     }
 };
 
+class V1V2Mix : public MockControlGroup {
+protected:
+    void SetUp() override {
+        directory = cgroup_directory / "unified";
+        writePids(directory, {getpid()});
+        writePids(cgroup_directory / "cpu,cpuacct", {1, 2, getpid()});
+        writePids(cgroup_directory / "memory", {1, 2});
+        MockControlGroup::SetUp();
+    }
+
+    boost::filesystem::path directory;
+};
+
 TEST_F(V1, TestCpuQuota) {
     EXPECT_LE(1, instance->get_available_cpu_count());
 
@@ -266,4 +279,8 @@ TEST_F(NoCgroupFound, TestCpuStat) {
     EXPECT_EQ(0, cpu.throttled.count());
     EXPECT_EQ(0, cpu.nr_throttled);
     EXPECT_EQ(0, cpu.nr_periods);
+}
+
+TEST_F(V1V2Mix, V1ShouldBeSelected) {
+    EXPECT_EQ(ControlGroup::Version::V1, instance->get_version());
 }

@@ -281,6 +281,10 @@ public:
         return 0;
     }
 
+    bool hasController() {
+        return cpu || cpuacct || memory;
+    }
+
 protected:
     size_t get_available_cpu_count_from_quota() override {
         if (!cpu) {
@@ -438,22 +442,26 @@ protected:
 std::unique_ptr<ControlGroup> make_control_group(std::string root) {
     auto mounts = priv::parse_proc_mounts(root);
 
-    // prefer V2
-    for (const auto& mp : mounts) {
-        if (mp.type == priv::MountEntry::Version::V2) {
-            auto path = find_cgroup_path(mp.path);
-            if (path) {
-                return std::unique_ptr<ControlGroup>{new ControlGroupV2(*path)};
-            }
-        }
-    }
-
     auto ret = std::make_unique<ControlGroupV1>();
     for (const auto& mp : mounts) {
         if (mp.type == priv::MountEntry::Version::V1) {
             auto path = find_cgroup_path(mp.path);
             if (path) {
                 ret->add_entry(*path, mp.option);
+            }
+        }
+    }
+
+    if (ret->hasController()) {
+        // At least one of them was for a V1 (and we don't support a mix)
+        return std::unique_ptr<ControlGroup>{ret.release()};
+    }
+
+    for (const auto& mp : mounts) {
+        if (mp.type == priv::MountEntry::Version::V2) {
+            auto path = find_cgroup_path(mp.path);
+            if (path) {
+                return std::unique_ptr<ControlGroup>{new ControlGroupV2(*path)};
             }
         }
     }
