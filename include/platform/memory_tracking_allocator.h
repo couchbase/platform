@@ -95,12 +95,12 @@ public:
 
     value_type* allocate(std::size_t n) {
         *bytesAllocated += n * sizeof(T);
-        return static_cast<value_type*>(::operator new(n * sizeof(value_type)));
+        return baseAllocator.allocate(n);
     }
 
     void deallocate(value_type* p, std::size_t n) noexcept {
         *bytesAllocated -= n * sizeof(T);
-        ::operator delete(p);
+        baseAllocator.deallocate(p, n);
     }
 
     MemoryTrackingAllocator select_on_container_copy_construction() const {
@@ -124,6 +124,10 @@ private:
 
     template <class U>
     friend class MemoryTrackingAllocator;
+
+    /// The underlying "real" allocator which we actually use for
+    /// allocating / deallocating memory.
+    std::allocator<T> baseAllocator;
 
     std::shared_ptr<cb::NonNegativeCounter<size_t>> bytesAllocated;
 };
