@@ -54,9 +54,9 @@ using DefaultUnderflowPolicy = ClampAtZeroUnderflowPolicy<T>;
 #endif
 
 /**
- * The NonNegativeCounter class wraps std::atomic<> and prevents it
- * underflowing over overflowing. By default will clamp the value at 0 on
- * underflow, but behaviour can be customized by specifying a different
+ * The NonNegativeCounter class wraps T and prevents it underflowing
+ * or overflowing. By default will clamp the value at 0 on underflow,
+ * but behaviour can be customized by specifying a different
  * UnderflowPolicy class. Same for overflow.
  *
  * Even though this counter can only be templated on unsigned types, it has the
@@ -81,23 +81,19 @@ public:
         store(initial);
     }
 
-    NonNegativeCounter(const NonNegativeCounter& other) noexcept {
-        store(other.load());
-    }
-
     operator T() const noexcept {
         return load();
     }
 
     [[nodiscard]] T load() const noexcept {
-        return value.load(std::memory_order_relaxed);
+        return value;
     }
 
     void store(T desired) {
         if (desired > T(std::numeric_limits<SignedT>::max())) {
             UnderflowPolicy<T>::underflow(desired, load(), desired);
         }
-        value.store(desired, std::memory_order_relaxed);
+        value = desired;
     }
 
     /**
@@ -110,25 +106,18 @@ public:
     T fetch_add(SignedT arg) {
         T current = load();
         T desired;
-        do {
-            if (arg < 0) {
-                desired = current - T(std::abs(arg));
-                if (SignedT(current) + arg < 0) {
-                    UnderflowPolicy<T>::underflow(desired, current, arg);
-                }
-            } else {
-                desired = current + T(arg);
-                if (desired > T(std::numeric_limits<SignedT>::max())) {
-                    UnderflowPolicy<T>::underflow(desired, current, arg);
-                }
+        if (arg < 0) {
+            desired = current - T(std::abs(arg));
+            if (SignedT(current) + arg < 0) {
+                UnderflowPolicy<T>::underflow(desired, current, arg);
             }
-            // Attempt to set the atomic value to desired. If the atomic value
-            // is not the same as current then it has changed during
-            // operation. compare_exchange_weak will reload the new value
-            // into current if it fails, and we will retry.
-        } while (!value.compare_exchange_weak(
-                current, desired, std::memory_order_relaxed));
-
+        } else {
+            desired = current + T(arg);
+            if (desired > T(std::numeric_limits<SignedT>::max())) {
+                UnderflowPolicy<T>::underflow(desired, current, arg);
+            }
+        }
+        value = desired;
         return current;
     }
 
@@ -141,32 +130,26 @@ public:
     T fetch_sub(SignedT arg) {
         T current = load();
         T desired;
-        do {
-            if (arg < 0) {
-                desired = current + T(std::abs(arg));
-            } else {
-                desired = current - T(arg);
-            }
+        if (arg < 0) {
+            desired = current + T(std::abs(arg));
+        } else {
+            desired = current - T(arg);
+        }
 
-            if (desired > T(std::numeric_limits<SignedT>::max())) {
-                UnderflowPolicy<T>::underflow(desired, current, arg);
-            }
-            // Attempt to set the atomic value to desired. If the atomic value
-            // is not the same as current then it has changed during
-            // operation. compare_exchange_weak will reload the new value
-            // into current if it fails, and we will retry.
-        } while (!value.compare_exchange_weak(
-                current, desired, std::memory_order_relaxed));
-
+        if (desired > T(std::numeric_limits<SignedT>::max())) {
+            UnderflowPolicy<T>::underflow(desired, current, arg);
+        }
+	value = desired;
         return current;
     }
 
     T exchange(T arg) noexcept {
-        return value.exchange(arg, std::memory_order_relaxed);
+        std::swap(value, arg);
+        return arg;
     }
 
-    NonNegativeCounter& operator=(const NonNegativeCounter& rhs) noexcept {
-        value.store(rhs.load(), std::memory_order_relaxed);
+    NonNegativeCounter& operator=(T val) {
+        store(val);
         return *this;
     }
 
@@ -175,18 +158,8 @@ public:
         return *this;
     }
 
-    NonNegativeCounter& operator+=(const NonNegativeCounter& rhs) {
-        fetch_add(rhs.load());
-        return *this;
-    }
-
     NonNegativeCounter& operator-=(const T rhs) {
         fetch_sub(rhs);
-        return *this;
-    }
-
-    NonNegativeCounter& operator-=(const NonNegativeCounter& rhs) {
-        fetch_sub(rhs.load());
         return *this;
     }
 
@@ -214,13 +187,8 @@ public:
         return fetch_sub(1);
     }
 
-    NonNegativeCounter& operator=(T val) {
-        store(val);
-        return *this;
-    }
-
 private:
-    std::atomic<T> value{0};
+    T value{0};
 };
 
 /**
