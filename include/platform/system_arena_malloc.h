@@ -109,9 +109,10 @@ private:
             clients;
 
     /**
-     * Track memory used in a non-negative counter (one per domain), which for
-     * now uses the clamp at zero policy. MB-33900 captures one major issue
-     * which prevents the use of the throw policy.
+     * Track memory used in an atomic non-negative counter (one per
+     * domain), which for now uses the clamp at zero policy. MB-33900
+     * captures one major issue which prevents the use of the throw
+     * policy.
      *
      * One additional element for the domain means we account for the
      * "untracked" memory (i.e. after switchFromClient)
@@ -120,9 +121,9 @@ private:
      * allocations to also be accounted for; they reside in the last element
      * (NoClientIndex).
      */
-    using DomainCounter =
-            std::array<NonNegativeCounter<size_t, ClampAtZeroUnderflowPolicy>,
-                       size_t(MemoryDomain::Count) + 1>;
+    using DomainCounter = std::array<
+            AtomicNonNegativeCounter<size_t, ClampAtZeroUnderflowPolicy>,
+            size_t(MemoryDomain::Count) + 1>;
 
     static std::array<DomainCounter, ArenaMallocMaxClients + 1> allocated;
 };

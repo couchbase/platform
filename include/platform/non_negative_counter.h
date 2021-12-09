@@ -223,4 +223,178 @@ private:
     std::atomic<T> value{0};
 };
 
+/**
+ * The AtomicNonNegativeCounter is an atomic version of NonNegativeCounter -
+ * the template type T is wrapped in std::atomic<>, and all updates / checks
+ * are performed atomically (e.g. using compare-exchange where required) so
+ * this class is safe to use concurrently from multiple threads.
+ *
+ *     Implementation Note: while it might seem like we can implement this in
+ *     terms of NonNegativeCounter (say by templating that on std::atomic<T>
+ *     instead of T), this is tricker than it may initially seem; as we still
+ *     want various methods to take / return the underlying 'T' type and
+ *     not an atomic version of it.
+ *     As such, this is implemented as a copy of NonNegativeCounter but
+ *     with tweaks to use atomic functions where necessary.
+ */
+template <typename T,
+          template <class> class UnderflowPolicy = DefaultUnderflowPolicy>
+class AtomicNonNegativeCounter : public UnderflowPolicy<T> {
+    static_assert(
+            std::is_unsigned<T>::value,
+            "AtomicNonNegativeCounter should only be templated over unsigned types");
+
+    using SignedT = typename std::make_signed<T>::type;
+
+public:
+    using value_type = T;
+
+    AtomicNonNegativeCounter() = default;
+
+    AtomicNonNegativeCounter(T initial) {
+        store(initial);
+    }
+
+    AtomicNonNegativeCounter(const AtomicNonNegativeCounter& other) noexcept {
+        store(other.load());
+    }
+
+    operator T() const noexcept {
+        return load();
+    }
+
+    [[nodiscard]] T load() const noexcept {
+        return value.load(std::memory_order_relaxed);
+    }
+
+    void store(T desired) {
+        if (desired > T(std::numeric_limits<SignedT>::max())) {
+            UnderflowPolicy<T>::underflow(desired, load(), desired);
+        }
+        value.store(desired, std::memory_order_relaxed);
+    }
+
+    /**
+     * Add 'arg' to the current value. If the new value would underflow (i.e. if
+     * arg was negative and current less than arg) then calls underflow() on the
+     * selected UnderflowPolicy.
+     *
+     * Note: Not marked 'noexcept' as underflow() could throw.
+     */
+    T fetch_add(SignedT arg) {
+        T current = load();
+        T desired;
+        do {
+            if (arg < 0) {
+                desired = current - T(std::abs(arg));
+                if (SignedT(current) + arg < 0) {
+                    UnderflowPolicy<T>::underflow(desired, current, arg);
+                }
+            } else {
+                desired = current + T(arg);
+                if (desired > T(std::numeric_limits<SignedT>::max())) {
+                    UnderflowPolicy<T>::underflow(desired, current, arg);
+                }
+            }
+            // Attempt to set the atomic value to desired. If the atomic value
+            // is not the same as current then it has changed during
+            // operation. compare_exchange_weak will reload the new value
+            // into current if it fails, and we will retry.
+        } while (!value.compare_exchange_weak(
+                current, desired, std::memory_order_relaxed));
+
+        return current;
+    }
+
+    /**
+     * Subtract 'arg' from the current value. If the new value would underflow
+     * then calls underflow() on the selected UnderflowPolicy.
+     *
+     * Note: Not marked 'noexcept' as underflow() could throw.
+     */
+    T fetch_sub(SignedT arg) {
+        T current = load();
+        T desired;
+        do {
+            if (arg < 0) {
+                desired = current + T(std::abs(arg));
+            } else {
+                desired = current - T(arg);
+            }
+
+            if (desired > T(std::numeric_limits<SignedT>::max())) {
+                UnderflowPolicy<T>::underflow(desired, current, arg);
+            }
+            // Attempt to set the atomic value to desired. If the atomic value
+            // is not the same as current then it has changed during
+            // operation. compare_exchange_weak will reload the new value
+            // into current if it fails, and we will retry.
+        } while (!value.compare_exchange_weak(
+                current, desired, std::memory_order_relaxed));
+
+        return current;
+    }
+
+    T exchange(T arg) noexcept {
+        return value.exchange(arg, std::memory_order_relaxed);
+    }
+
+    AtomicNonNegativeCounter& operator=(const AtomicNonNegativeCounter& rhs) noexcept {
+        value.store(rhs.load(), std::memory_order_relaxed);
+        return *this;
+    }
+
+    AtomicNonNegativeCounter& operator+=(const T rhs) {
+        fetch_add(rhs);
+        return *this;
+    }
+
+    AtomicNonNegativeCounter& operator+=(const AtomicNonNegativeCounter& rhs) {
+        fetch_add(rhs.load());
+        return *this;
+    }
+
+    AtomicNonNegativeCounter& operator-=(const T rhs) {
+        fetch_sub(rhs);
+        return *this;
+    }
+
+    AtomicNonNegativeCounter& operator-=(const AtomicNonNegativeCounter& rhs) {
+        fetch_sub(rhs.load());
+        return *this;
+    }
+
+    T operator++() {
+        return fetch_add(1) + 1;
+    }
+
+    T operator++(int) {
+        return fetch_add(1);
+    }
+
+    T operator--() {
+        T previous = fetch_sub(1);
+        if (previous == 0) {
+            // If we are doing a clamp underflow we can pass in previous,
+            // it's already 0 and we are returning 0. If we are going to
+            // throw, we want to print previous.
+            UnderflowPolicy<T>::underflow(previous, previous, 1);
+            return 0;
+        }
+        return previous - 1;
+    }
+
+    T operator--(int) {
+        return fetch_sub(1);
+    }
+
+    AtomicNonNegativeCounter& operator=(T val) {
+        store(val);
+        return *this;
+    }
+
+private:
+    std::atomic<T> value{0};
+};
+
 } // namespace cb
