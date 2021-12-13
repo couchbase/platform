@@ -14,6 +14,7 @@
 #include <chrono>
 #include <cstdint>
 #include <cstdio>
+#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
@@ -166,6 +167,21 @@ std::string sanitizePath(std::string path);
 std::string loadFile(const std::string& name,
                      std::chrono::microseconds waittime = {},
                      size_t bytesToRead = std::numeric_limits<size_t>::max());
+
+/**
+ * Read a file line by line and tokenize the line with the provided tokens.
+ * If the callback returns false parsing of the file will stop.
+ *
+ * @param name The name of the file to parse
+ * @param callback The callback provided by the user
+ * @param delim The delimeter used to separate the fields in the file
+ * @param allowEmpty Set to true if one wants to allow "empty" slots
+ */
+void tokenizeFileLineByLine(
+        const boost::filesystem::path& name,
+        std::function<bool(const std::vector<std::string_view>&)> callback,
+        char delim = ' ',
+        bool allowEmpty = true);
 
 /**
  * Set the file mode to BINARY

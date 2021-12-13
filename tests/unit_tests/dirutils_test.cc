@@ -9,15 +9,14 @@
  */
 #include <folly/portability/GTest.h>
 
+#include <boost/filesystem/path.hpp>
+#include <platform/dirutils.h>
 #include <algorithm>
 #include <cerrno>
-#include <cstdlib>
-#include <cstring>
 #include <limits>
-#include <platform/dirutils.h>
 #include <string>
-#include <vector>
 #include <system_error>
+#include <vector>
 
 #ifdef WIN32
 #include <windows.h>
@@ -351,5 +350,42 @@ TEST_F(IoTest, loadFileWithLimit) {
     fclose(fp);
     content.resize(content.size() / 2);
     EXPECT_EQ(content, cb::io::loadFile(filename, {}, content.size()));
+    cb::io::rmrf(filename);
+}
+
+TEST_F(IoTest, tokenizeFileLineByLine) {
+    auto filename = cb::io::mktemp("tokenize_file_test");
+    auto* fp = fopen(filename.c_str(), "wb+");
+    fprintf(fp, "This is the first line\r\nThis is the second line\n");
+    fclose(fp);
+
+    int count = 0;
+    cb::io::tokenizeFileLineByLine(
+            filename,
+            [&count](const std::vector<std::string_view>& tokens) -> bool {
+                ++count;
+                EXPECT_LE(count, 3) << "There is only two lines in the file";
+                EXPECT_EQ(5, tokens.size());
+                EXPECT_EQ("This", tokens[0]);
+                EXPECT_EQ("is", tokens[1]);
+                EXPECT_EQ("the", tokens[2]);
+                if (count == 1) {
+                    EXPECT_EQ("first", tokens[3]);
+                } else {
+                    EXPECT_EQ("second", tokens[3]);
+                }
+                EXPECT_EQ("line", tokens[4]);
+                return true;
+            });
+
+    // Verify that we stop parsing when we told it to
+    count = 0;
+    cb::io::tokenizeFileLineByLine(
+            filename, [&count](const std::vector<std::string_view>&) -> bool {
+                ++count;
+                EXPECT_EQ(1, count);
+                return false;
+            });
+
     cb::io::rmrf(filename);
 }

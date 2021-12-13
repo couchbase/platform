@@ -15,6 +15,8 @@
 #include <folly/FileUtil.h>
 #endif
 
+#include <boost/filesystem/path.hpp>
+#include <platform/split_string.h>
 #include <cerrno>
 #include <system_error>
 #include <thread>
@@ -166,5 +168,30 @@ std::string cb::io::loadFile(const std::string& name,
         throw std::system_error(int(std::errc::no_such_file_or_directory),
                                 std::system_category(),
                                 "cb::io::loadFile(" + name + ") failed");
+    }
+}
+
+/**
+ * Read a file line by line and tokenize the line with the provided tokens.
+ * If the callback returns false parsing of the file will stop.
+ *
+ * @param name The name of the file to parse
+ * @param callback The callback provided by the user
+ * @param delim The delimeter used to separate the fields in the file
+ */
+void cb::io::tokenizeFileLineByLine(
+        const boost::filesystem::path& name,
+        std::function<bool(const std::vector<std::string_view>&)> callback,
+        char delim,
+        bool allowEmpty) {
+    auto content = loadFile(name.generic_string(), std::chrono::microseconds{});
+    auto lines = cb::string::split(content, '\n');
+    for (auto line : lines) {
+        while (line.back() == '\r') {
+            line.remove_suffix(1);
+        }
+        if (!callback(cb::string::split(line, delim, allowEmpty))) {
+            return;
+        }
     }
 }
