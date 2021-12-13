@@ -211,6 +211,7 @@ LIST(APPEND PLATFORM_FILES
   src/process_monitor.cc
   src/semaphore.cc
   src/sized_buffer.cc
+  src/split_string.cc
   src/strerror.cc
   src/string_hex.cc
   src/sysinfo.cc
