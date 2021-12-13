@@ -11,66 +11,25 @@
 #include "cgroup_private.h"
 #include <boost/filesystem.hpp>
 #include <cgroup/cgroup.h>
+#include <platform/dirutils.h>
+#include <platform/split_string.h>
 #include <unistd.h>
-#include <cerrno>
+#include <charconv>
 #include <deque>
 #include <optional>
 #include <string>
-#include <system_error>
 #include <vector>
 
 namespace cb::cgroup::priv {
 
-static std::vector<std::string> split_string(std::string_view s, char delim) {
-    std::vector<std::string> result;
-
-    size_t n = 0;
-    while (true) {
-        const auto m = s.find(delim, n);
-        if (m == std::string::npos) {
-            break;
-        }
-
-        result.emplace_back(s, n, m - n);
-        n = m + 1;
+uint64_t stouint64(std::string_view view) {
+    uint64_t ret;
+    auto [ptr, ec] = std::from_chars(view.begin(), view.end(), ret);
+    if (ec == std::errc()) {
+        return ret;
     }
-    result.emplace_back(s, n, s.size() - n);
-    auto& back = result.back();
-    while (!back.empty() && back.back() == '\n') {
-        back.pop_back();
-    }
-    if (back.empty()) {
-        result.pop_back();
-    }
-
-    return result;
-}
-
-/// Read the provided file and call the callback for every line (but tokenize
-/// the line by using the provided delimeter.
-/// throws std::system_error if an error occurs
-static void read_file(boost::filesystem::path file,
-                      std::function<void(std::vector<std::string>)> callback,
-                      char delim = ' ') {
-    std::vector<char> data(1024);
-    struct FileDeleter {
-        void operator()(FILE* fp) {
-            fclose(fp);
-        }
-    };
-
-    std::unique_ptr<FILE, FileDeleter> fp(
-            fopen(file.generic_string().c_str(), "r"));
-    if (!fp) {
-        throw std::system_error(std::error_code(errno, std::system_category()),
-                                "cb::cgroup::read_file(): Failed to open " +
-                                        file.generic_string());
-    }
-
-    while (fgets(data.data(), data.size(), fp.get())) {
-        auto parts = split_string(data.data(), delim);
-        callback(parts);
-    }
+    (void)ptr;
+    return 0;
 }
 
 struct MountEntry {
@@ -89,25 +48,29 @@ struct MountEntry {
 /// throws std::system_error on errors
 static std::vector<MountEntry> parse_proc_mounts(const std::string root) {
     std::vector<MountEntry> ret;
-    read_file(root + "/proc/mounts", [&ret](std::vector<std::string> parts) {
-        // pick out the lines which looks like:
-        //   cgroup[2] /sys/fs/cgroup cgroup[2] rw,nosuid,optionblah
-        if (parts.size() > 3 &&
-            parts.front().find("cgroup") != std::string::npos) {
-            ret.emplace_back(
-                    MountEntry{parts[2], parts[1], std::move(parts[3])});
-        }
-    });
+    cb::io::tokenizeFileLineByLine(
+            root + "/proc/mounts", [&ret](const auto& parts) {
+                // pick out the lines which looks like:
+                //   cgroup[2] /sys/fs/cgroup cgroup[2] rw,nosuid,optionblah
+                if (parts.size() > 3 &&
+                    parts.front().find("cgroup") != std::string::npos) {
+                    ret.emplace_back(MountEntry{std::string(parts[2]),
+                                                std::string(parts[1]),
+                                                std::string(parts[3])});
+                }
+                return true;
+            });
     return ret;
 }
 
 static bool search_file(pid_t pid, const boost::filesystem::path& file) {
     bool found = false;
     const auto textual = std::to_string(pid);
-    read_file(file, [&found, &textual](std::vector<std::string> parts) {
+    cb::io::tokenizeFileLineByLine(file, [&found, &textual](const auto& parts) {
         if (!parts.empty() && parts.front() == textual) {
             found = true;
         }
+        return true;
     });
     return found;
 }
@@ -156,7 +119,7 @@ public:
 
     void add_entry(const boost::filesystem::path& path,
                    std::string_view options) {
-        auto tokens = split_string(options, ',');
+        auto tokens = cb::string::split(options, ',');
         for (const auto& token : tokens) {
             if (token == "cpu") {
                 cpu = path;
@@ -180,56 +143,61 @@ public:
         if (cpuacct) {
             auto fname = *cpuacct / "cpuacct.stat";
             if (exists(fname)) {
-                read_file(fname,
-                          [&stats, this](std::vector<std::string> parts) {
-                              if (parts.size() < 2) {
-                                  return;
-                              }
+                cb::io::tokenizeFileLineByLine(
+                        fname, [&stats, this](const auto& parts) {
+                            if (parts.size() < 2) {
+                                return true;
+                            }
 
-                              // CPU time is reported in the units defined by
-                              // the USER_HZ variable (for some weird reason).
-                              // This value is typically set to 100
-                              if (parts.front() == "user") {
-                                  stats.user = std::chrono::microseconds{
-                                          std::stoull(parts[1]) *
-                                          (1000 / user_hz) * 1000};
-                              } else if (parts.front() == "system") {
-                                  stats.system = std::chrono::microseconds{
-                                          std::stoull(parts[1]) *
-                                          (1000 / user_hz) * 1000};
-                              }
-                          });
+                            // CPU time is reported in the units defined by
+                            // the USER_HZ variable (for some weird reason).
+                            // This value is typically set to 100
+                            if (parts.front() == "user") {
+                                stats.user = std::chrono::microseconds{
+                                        stouint64(parts[1]) * (1000 / user_hz) *
+                                        1000};
+                            } else if (parts.front() == "system") {
+                                stats.system = std::chrono::microseconds{
+                                        stouint64(parts[1]) * (1000 / user_hz) *
+                                        1000};
+                            }
+                            return true;
+                        });
             }
             fname = *cpuacct / "cpuacct.usage";
             if (exists(fname)) {
-                read_file(fname, [&stats](std::vector<std::string> parts) {
-                    if (parts.size() < 1) {
-                        return;
-                    }
+                cb::io::tokenizeFileLineByLine(
+                        fname, [&stats](const auto& parts) {
+                            if (parts.size() < 1) {
+                                return true;
+                            }
 
-                    // Total CPU time (in nanoseconds)
-                    stats.usage = std::chrono::microseconds{
-                            std::stoull(parts.front()) / 1000};
-                });
+                            // Total CPU time (in nanoseconds)
+                            stats.usage = std::chrono::microseconds{
+                                    stouint64(parts.front()) / 1000};
+                            return true;
+                        });
             }
         }
 
         if (cpu) {
             auto fname = *cpu / "cpu.stat";
             if (exists(fname)) {
-                read_file(fname, [&stats](std::vector<std::string> parts) {
-                    if (parts.size() < 2) {
-                        return;
-                    }
-                    if (parts.front() == "nr_periods") {
-                        stats.nr_periods = std::stoull(parts[1]);
-                    } else if (parts.front() == "nr_throttled") {
-                        stats.nr_throttled = std::stoull(parts[1]);
-                    } else if (parts.front() == "throttled_time") {
-                        stats.throttled = std::chrono::microseconds{
-                                std::stoull(parts[1])};
-                    }
-                });
+                cb::io::tokenizeFileLineByLine(
+                        fname, [&stats](const auto& parts) {
+                            if (parts.size() < 2) {
+                                return true;
+                            }
+                            if (parts.front() == "nr_periods") {
+                                stats.nr_periods = stouint64(parts[1]);
+                            } else if (parts.front() == "nr_throttled") {
+                                stats.nr_throttled = stouint64(parts[1]);
+                            } else if (parts.front() == "throttled_time") {
+                                stats.throttled = std::chrono::microseconds{
+                                        stouint64(parts[1])};
+                            }
+                            return true;
+                        });
             }
         }
 
@@ -244,13 +212,11 @@ public:
         auto fname = *memory / "memory.limit_in_bytes";
         if (exists(fname)) {
             size_t num = 0;
-            read_file(fname, [&num](std::vector<std::string> parts) {
-                if (!parts.empty()) {
-                    num = std::stoull(parts[0]);
-                    if (num == std::stoull("-1")) {
-                        num = 0;
-                    }
+            cb::io::tokenizeFileLineByLine(fname, [&num](const auto& parts) {
+                if (!parts.empty() && parts[0] != "-1") {
+                    num = stouint64(parts[0]);
                 }
+                return true;
             });
             if (num != 0) {
                 return num;
@@ -268,10 +234,11 @@ public:
         auto fname = *memory / "memory.usage_in_bytes";
         if (exists(fname)) {
             size_t num = 0;
-            read_file(fname, [&num](std::vector<std::string> parts) {
+            cb::io::tokenizeFileLineByLine(fname, [&num](const auto& parts) {
                 if (!parts.empty()) {
-                    num = std::stoull(parts[0]);
+                    num = stouint64(parts[0]);
                 }
+                return true;
             });
             if (num != 0) {
                 return num;
@@ -294,27 +261,28 @@ protected:
         auto fname = *cpu / "cpu.cfs_period_us";
         size_t period = 100000;
         if (exists(fname)) {
-            read_file(fname, [&period](std::vector<std::string> parts) {
+            cb::io::tokenizeFileLineByLine(fname, [&period](const auto& parts) {
                 if (!parts.empty()) {
-                    period = std::stoi(parts[0]);
+                    period = stouint64(parts[0]);
                 }
+                return true;
             });
         }
 
         fname = *cpu / "cpu.cfs_quota_us";
         if (exists(fname)) {
             size_t num = 0;
-            read_file(fname, [&num, period](std::vector<std::string> parts) {
-                if (!parts.empty()) {
-                    auto val = std::stoi(parts[0]);
-                    if (val != -1) {
-                        num = val / period;
-                        if (val % period) {
-                            num++;
+            cb::io::tokenizeFileLineByLine(
+                    fname, [&num, period](const auto& parts) {
+                        if (!parts.empty() && parts[0] != "-1") {
+                            auto val = stouint64(parts[0]);
+                            num = val / period;
+                            if (val % period) {
+                                num++;
+                            }
                         }
-                    }
-                }
-            });
+                        return true;
+                    });
             if (num != 0) {
                 return num;
             }
@@ -347,33 +315,33 @@ public:
 
         auto file = directory / "cpu.stat";
         if (exists(file)) {
-            read_file(file, [&stats](std::vector<std::string> parts) {
+            cb::io::tokenizeFileLineByLine(file, [&stats](const auto& parts) {
                 if (parts.size() < 2) {
-                    return;
+                    return true;
                 }
 
                 if (parts.front() == "usage_usec") {
                     stats.usage =
-                            std::chrono::microseconds{std::stoull(parts[1])};
+                            std::chrono::microseconds{stouint64(parts[1])};
                 } else if (parts.front() == "user_usec") {
-                    stats.user =
-                            std::chrono::microseconds{std::stoull(parts[1])};
+                    stats.user = std::chrono::microseconds{stouint64(parts[1])};
                 } else if (parts.front() == "system_usec") {
                     stats.system =
-                            std::chrono::microseconds{std::stoull(parts[1])};
+                            std::chrono::microseconds{stouint64(parts[1])};
                 } else if (parts.front() == "nr_periods") {
-                    stats.nr_periods = std::stoull(parts[1]);
+                    stats.nr_periods = stouint64(parts[1]);
                 } else if (parts.front() == "nr_throttled") {
-                    stats.nr_throttled = std::stoull(parts[1]);
+                    stats.nr_throttled = stouint64(parts[1]);
                 } else if (parts.front() == "throttled_usec") {
                     stats.throttled =
-                            std::chrono::microseconds{std::stoull(parts[1])};
+                            std::chrono::microseconds{stouint64(parts[1])};
                 } else if (parts.front() == "nr_bursts") {
-                    stats.nr_bursts = std::stoull(parts[1]);
+                    stats.nr_bursts = stouint64(parts[1]);
                 } else if (parts.front() == "burst_usec") {
                     stats.burst =
-                            std::chrono::microseconds{std::stoull(parts[1])};
+                            std::chrono::microseconds{stouint64(parts[1])};
                 }
+                return true;
             });
         }
 
@@ -384,10 +352,11 @@ public:
         auto file = directory / "memory.max";
         if (exists(file)) {
             size_t num = 0;
-            read_file(file, [&num](std::vector<std::string> parts) {
+            cb::io::tokenizeFileLineByLine(file, [&num](const auto& parts) {
                 if (!parts.empty() && parts[0] != "max") {
-                    num = std::stoull(parts[0]);
+                    num = stouint64(parts[0]);
                 }
+                return true;
             });
             if (num != 0) {
                 return num;
@@ -401,10 +370,11 @@ public:
         auto file = directory / "memory.current";
         if (exists(file)) {
             size_t num = 0;
-            read_file(file, [&num](std::vector<std::string> parts) {
+            cb::io::tokenizeFileLineByLine(file, [&num](const auto& parts) {
                 if (!parts.empty()) {
-                    num = std::stoull(parts[0]);
+                    num = stouint64(parts[0]);
                 }
+                return true;
             });
             if (num != 0) {
                 return num;
@@ -418,15 +388,16 @@ protected:
         auto file = directory / "cpu.max";
         if (exists(file)) {
             size_t num = 0;
-            read_file(file, [&num](std::vector<std::string> parts) {
+            cb::io::tokenizeFileLineByLine(file, [&num](const auto& parts) {
                 if (parts.size() > 1 && parts[0] != "max") {
-                    auto v = std::stoi(parts[0]);
-                    auto p = std::stoi(parts[1]);
-                    num = v / p;
+                    auto v = stouint64(parts[0]);
+                    auto p = stouint64(parts[1]);
+                    num = int(v / p);
                     if (v % p) {
                         ++num;
                     }
                 }
+                return true;
             });
             if (num != 0) {
                 return num;
