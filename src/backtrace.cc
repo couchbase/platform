@@ -184,6 +184,13 @@ bool print_backtrace_to_buffer(const char* indent, char* buffer, size_t size) {
 
 void cb::backtrace::initialize() {
 #ifdef WIN32
+    // We can only call SymInitialize once per process; if it's already been
+    // called do nothing.
+    static bool initialized = false;
+    if (initialized) {
+        return;
+    }
+    initialized = true;
     if (!SymInitialize(GetCurrentProcess(), NULL, TRUE)) {
         throw std::system_error(
                 int(GetLastError()), std::system_category(), "SymInitialize()");
