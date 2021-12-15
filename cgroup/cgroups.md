@@ -39,5 +39,8 @@ to scan all of the mount points as different controllers
 may be mounted at different locations. For V2 this is the
 cgroup the process belongs to.
 
-See also https://www.kernel.org/doc/html/latest/admin-guide/cgroup-v1/cgroups.html
-and https://www.kernel.org/doc/html/latest/admin-guide/cgroup-v2.html
+## Resources
+
+ * https://www.kernel.org/doc/html/latest/admin-guide/cgroup-v1/cgroups.html
+ * https://www.kernel.org/doc/html/latest/admin-guide/cgroup-v2.html
+ * https://www.kernel.org/doc/html/latest/scheduler/sched-bwc.html

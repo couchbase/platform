@@ -193,8 +193,17 @@ public:
                             } else if (parts.front() == "nr_throttled") {
                                 stats.nr_throttled = stouint64(parts[1]);
                             } else if (parts.front() == "throttled_time") {
-                                stats.throttled = std::chrono::microseconds{
-                                        stouint64(parts[1])};
+                                stats.throttled = std::chrono::duration_cast<
+                                        std::chrono::microseconds>(
+                                        std::chrono::nanoseconds{
+                                                stouint64(parts[1])});
+                            } else if (parts.front() == "nr_bursts") {
+                                stats.nr_bursts = stouint64(parts[1]);
+                            } else if (parts.front() == "burst_time") {
+                                stats.burst = std::chrono::duration_cast<
+                                        std::chrono::microseconds>(
+                                        std::chrono::nanoseconds{
+                                                stouint64(parts[1])});
                             }
                             return true;
                         });

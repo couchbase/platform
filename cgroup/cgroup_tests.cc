@@ -179,15 +179,17 @@ TEST_F(V1, TestCpuStat) {
     file.open((cgroup_directory / "cpu,cpuacct" / "cpu.stat").generic_string());
     file << "nr_periods 331" << std::endl
          << "nr_throttled 5" << std::endl
-         << "throttled_time 10" << std::endl;
+         << "throttled_time 10000" << std::endl
+         << "nr_bursts 10" << std::endl
+         << "burst_time 100000" << std::endl;
     file.close();
 
     auto cpu = instance->get_cpu_stats();
     EXPECT_EQ(540000, cpu.system.count());
     EXPECT_EQ(1820000, cpu.user.count());
     EXPECT_EQ(2815637, cpu.usage.count());
-    EXPECT_EQ(0, cpu.burst.count());
-    EXPECT_EQ(0, cpu.nr_bursts);
+    EXPECT_EQ(100, cpu.burst.count());
+    EXPECT_EQ(10, cpu.nr_bursts);
     EXPECT_EQ(10, cpu.throttled.count());
     EXPECT_EQ(5, cpu.nr_throttled);
     EXPECT_EQ(331, cpu.nr_periods);
