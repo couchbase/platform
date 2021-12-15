@@ -277,6 +277,11 @@ protected:
                 return true;
             });
         }
+        if (period == 0) {
+            // Invalid period, but we don't want to end up with dividing
+            // on 0
+            return 0;
+        }
 
         fname = *cpu / "cpu.cfs_quota_us";
         if (exists(fname)) {
@@ -285,10 +290,7 @@ protected:
                     fname, [&num, period](const auto& parts) {
                         if (!parts.empty() && parts[0] != "-1") {
                             auto val = stouint64(parts[0]);
-                            num = val / period;
-                            if (val % period) {
-                                num++;
-                            }
+                            num = int((val * 100.0) / period);
                         }
                         return true;
                     });
@@ -401,9 +403,11 @@ protected:
                 if (parts.size() > 1 && parts[0] != "max") {
                     auto v = stouint64(parts[0]);
                     auto p = stouint64(parts[1]);
-                    num = int(v / p);
-                    if (v % p) {
-                        ++num;
+                    if (p != 0) {
+                        // we don't want to divide by zero (but getting 0
+                        // would mean that the file is corrupt, but the
+                        // analyzer tools don't know that)
+                        num = int((v * 100.0) / p);
                     }
                 }
                 return true;

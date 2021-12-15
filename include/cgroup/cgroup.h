@@ -45,7 +45,12 @@ public:
     virtual ~ControlGroup() = default;
 
     /// Get the configured number of CPUs available for this process
+    /// (deprecated)
     size_t get_available_cpu_count();
+
+    /// Get the configured number of CPUs available in % (1 full core is 100%,
+    /// 1.5 cpu is 150% etc)
+    size_t get_available_cpu();
 
     /// Get the cpu statistics
     virtual CpuStat get_cpu_stats() = 0;

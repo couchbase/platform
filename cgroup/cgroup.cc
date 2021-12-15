@@ -20,6 +20,15 @@
 namespace cb::cgroup {
 
 size_t ControlGroup::get_available_cpu_count() {
+    auto ret = get_available_cpu();
+    auto cpu = ret / 100;
+    if (ret % 100) {
+        ++cpu;
+    }
+    return cpu;
+}
+
+size_t ControlGroup::get_available_cpu() {
     int num = get_available_cpu_count_from_environment();
     if (num != 0) {
         return num;
@@ -33,7 +42,7 @@ size_t ControlGroup::get_available_cpu_count() {
     // No quota set, check for cpu sets
     cpu_set_t set;
     if (sched_getaffinity(getpid(), sizeof(set), &set) == 0) {
-        return CPU_COUNT(&set);
+        return CPU_COUNT(&set) * 100;
     }
 
     auto ret = sysconf(_SC_NPROCESSORS_ONLN);
@@ -43,7 +52,7 @@ size_t ControlGroup::get_available_cpu_count() {
                 "cb::cgroup::get_available_cpu_count(): sysconf failed");
     }
 
-    return size_t(ret);
+    return size_t(ret) * 100;
 }
 
 size_t ControlGroup::get_available_cpu_count_from_environment() {
@@ -57,7 +66,7 @@ size_t ControlGroup::get_available_cpu_count_from_environment() {
     // trailing whitespace as well
     auto count = std::stoi(env, &pos);
     if (count > 0 && pos == strlen(env)) {
-        return count;
+        return count * 100;
     }
 
     // there might be characters after the number...
@@ -72,7 +81,7 @@ size_t ControlGroup::get_available_cpu_count_from_environment() {
     } while (*c);
 
     // the string had trailing spaces.. accept it anyway
-    return count;
+    return count * 100;
 }
 
 ControlGroup& ControlGroup::instance() {
