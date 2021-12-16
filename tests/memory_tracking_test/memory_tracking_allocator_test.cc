@@ -20,9 +20,13 @@
  * Unit tests for the MemoryTrackingAllocator class.
  */
 
-using List = std::list<int, MemoryTrackingAllocator<int>>;
-using Deque = std::deque<int, MemoryTrackingAllocator<int>>;
+template <class T>
+using List = std::list<int, MemoryTrackingAllocator<int, T>>;
 
+template <class T>
+using Deque = std::deque<int, MemoryTrackingAllocator<int, T>>;
+
+template <class T>
 class MemoryTrackingAllocatorListTest : public ::testing::Test {
 protected:
     MemoryTrackingAllocatorListTest() : theList(allocator) {
@@ -40,44 +44,56 @@ protected:
 #endif
     }
 
-    MemoryTrackingAllocator<int> allocator;
-    List theList;
+    MemoryTrackingAllocator<int, T> allocator;
+    List<T> theList;
     size_t extra = 0;
     const size_t perElementOverhead = 3 * sizeof(uintptr_t);
 };
 
+using CounterTypes = ::testing::Types<cb::NonNegativeCounter<size_t>,
+                                      cb::AtomicNonNegativeCounter<size_t>>;
+TYPED_TEST_SUITE(MemoryTrackingAllocatorListTest, CounterTypes);
+
 // Test empty List
-TEST_F(MemoryTrackingAllocatorListTest, initialValueForList) {
-    EXPECT_EQ(extra + 0, theList.get_allocator().getBytesAllocated());
+TYPED_TEST(MemoryTrackingAllocatorListTest, initialValueForList) {
+    EXPECT_EQ(this->extra + 0,
+              this->theList.get_allocator().getBytesAllocated());
 }
 
 // Test adding single int to List
-TEST_F(MemoryTrackingAllocatorListTest, addElementToList) {
-    theList.push_back(1);
-    EXPECT_EQ(extra + perElementOverhead,
-              theList.get_allocator().getBytesAllocated());
-    theList.clear();
-    EXPECT_EQ(extra + 0, theList.get_allocator().getBytesAllocated());
+TYPED_TEST(MemoryTrackingAllocatorListTest, addElementToList) {
+    this->theList.push_back(1);
+    EXPECT_EQ(this->extra + this->perElementOverhead,
+              this->theList.get_allocator().getBytesAllocated());
+    this->theList.clear();
+    EXPECT_EQ(this->extra + 0,
+              this->theList.get_allocator().getBytesAllocated());
 }
 
 // Test adding 4096 ints to List.
-TEST_F(MemoryTrackingAllocatorListTest, addManyElementsToList) {
+TYPED_TEST(MemoryTrackingAllocatorListTest, addManyElementsToList) {
     for (int ii = 0; ii < 4096; ++ii) {
-        theList.push_back(ii);
+        this->theList.push_back(ii);
     }
-    EXPECT_EQ(extra + (perElementOverhead * 4096),
-              theList.get_allocator().getBytesAllocated());
-    theList.clear();
-    EXPECT_EQ(extra + 0, theList.get_allocator().getBytesAllocated());
+    EXPECT_EQ(this->extra + (this->perElementOverhead * 4096),
+              this->theList.get_allocator().getBytesAllocated());
+    this->theList.clear();
+    EXPECT_EQ(this->extra + 0,
+              this->theList.get_allocator().getBytesAllocated());
 }
 
+template <typename T>
+class MemoryTrackingAllocatorTest : public testing::Test {};
+
+TYPED_TEST_SUITE(MemoryTrackingAllocatorTest, CounterTypes);
+
 // Test bytesAllocates is correct when a re-bind occurs.
-TEST(MemoryTrackingAllocatorTest, rebindTest) {
-    MemoryTrackingAllocator<int> allocator;
+TYPED_TEST(MemoryTrackingAllocatorTest, rebindTest) {
+    MemoryTrackingAllocator<int, TypeParam> allocator;
     // Create deque passing in the allocator
-    Deque correctlyAllocatedDeque(allocator);
+    Deque<TypeParam> correctlyAllocatedDeque(allocator);
     // Create deque using the default constructor
-    Deque notCorrectlyAllocatedDeque;
+    Deque<TypeParam> notCorrectlyAllocatedDeque;
 
     // Add items to both deques
     correctlyAllocatedDeque.push_back(1);
@@ -102,14 +118,14 @@ TEST(MemoryTrackingAllocatorTest, rebindTest) {
 }
 
 // Test bytesAllocated is correct when a copy occurs.
-TEST(MemoryTrackingAllocatorTest, copyTest) {
-    MemoryTrackingAllocator<int> allocator;
-    Deque theDeque(allocator);
+TYPED_TEST(MemoryTrackingAllocatorTest, copyTest) {
+    MemoryTrackingAllocator<int, TypeParam> allocator;
+    Deque<TypeParam> theDeque(allocator);
     theDeque.push_back(0);
     auto theDequeSize = theDeque.get_allocator().getBytesAllocated();
 
     // Copy the deque.
-    Deque copy = theDeque;
+    Deque<TypeParam> copy = theDeque;
     auto copySize = copy.get_allocator().getBytesAllocated();
     EXPECT_EQ(theDequeSize, copySize);
 
@@ -128,14 +144,14 @@ TEST(MemoryTrackingAllocatorTest, copyTest) {
 
 // Test bytesAllocated is correct when a list is spliced into another
 // list (sharing the same allocator.
-TEST(MemoryTrackingAllocatorTest, spliceList) {
-    MemoryTrackingAllocator<int> allocator;
+TYPED_TEST(MemoryTrackingAllocatorTest, spliceList) {
+    MemoryTrackingAllocator<int, TypeParam> allocator;
     // Sanity check
     ASSERT_EQ(0, allocator.getBytesAllocated());
     {
         // Create a list with 3 items, noting the bytesAllocated of it
         // after 2 items have been added.
-        List list(allocator);
+        List<TypeParam> list(allocator);
         list.push_back(0);
         list.push_back(1);
         const auto listWith2ItemsSize = allocator.getBytesAllocated();
@@ -145,7 +161,7 @@ TEST(MemoryTrackingAllocatorTest, spliceList) {
         // Note: std::list::splice() requires that the source and destination
         // list for the splice have the "same" allocator (they compare equal).
         {
-            List removed(allocator);
+            List<TypeParam> removed(allocator);
             // Note: MSVC's impl of std::list appears to allocate heap memory
             // (from the allocator) when a std::list is default-constructed
             // (without any items) - unlike libstdc++ / libc++ which do not.

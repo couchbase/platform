@@ -50,18 +50,22 @@
  *
  */
 
-template <class T>
+template <class T, class C = cb::NonNegativeCounter<size_t>>
 class MemoryTrackingAllocator {
+    static_assert(std::is_same<size_t, typename C::value_type>::value,
+                  "MemoryTrackingAllocator's counter can only be templated "
+                  "over size_t");
+
 public:
     using value_type = T;
 
     MemoryTrackingAllocator() noexcept
-        : bytesAllocated(std::make_shared<cb::NonNegativeCounter<size_t>>(0)) {
+        : bytesAllocated(std::make_shared<C>(0)) {
     }
 
     template <class U>
     explicit MemoryTrackingAllocator(
-            MemoryTrackingAllocator<U> const& other) noexcept
+            MemoryTrackingAllocator<U, C> const& other) noexcept
         /**
          * Used during a rebind and therefore need to copy over the
          * byteAllocated shared pointer.
@@ -122,24 +126,25 @@ private:
         return bytesAllocated;
     }
 
-    template <class U>
+    // Required by rebind.
+    template <class U, class V>
     friend class MemoryTrackingAllocator;
 
     /// The underlying "real" allocator which we actually use for
     /// allocating / deallocating memory.
     std::allocator<T> baseAllocator;
 
-    std::shared_ptr<cb::NonNegativeCounter<size_t>> bytesAllocated;
+    std::shared_ptr<C> bytesAllocated;
 };
 
-template <class T, class U>
-bool operator==(MemoryTrackingAllocator<T> const& a,
-                MemoryTrackingAllocator<U> const& b) noexcept {
+template <class T, class C, class U, class V>
+bool operator==(MemoryTrackingAllocator<T, C> const& a,
+                MemoryTrackingAllocator<U, V> const& b) noexcept {
     return a.getBytesAllocated() == b.getBytesAllocated();
 }
 
-template <class T, class U>
-bool operator!=(MemoryTrackingAllocator<T> const& a,
-                MemoryTrackingAllocator<U> const& b) noexcept {
+template <class T, class C, class U, class V>
+bool operator!=(MemoryTrackingAllocator<T, C> const& a,
+                MemoryTrackingAllocator<U, V> const& b) noexcept {
     return !(a == b);
 }
