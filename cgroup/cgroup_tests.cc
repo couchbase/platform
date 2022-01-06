@@ -13,7 +13,6 @@
 #include <boost/filesystem.hpp>
 #include <cgroup/cgroup.h>
 #include <folly/portability/GTest.h>
-#include <folly/portability/Stdlib.h>
 #include <platform/dirutils.h>
 
 using namespace cb::cgroup;
@@ -128,10 +127,6 @@ protected:
 };
 
 TEST_F(V1, TestCpuQuota) {
-    setenv("COUCHBASE_CPU_COUNT", "999", 1);
-    EXPECT_EQ(99900, instance->get_available_cpu());
-    unsetenv("COUCHBASE_CPU_COUNT");
-
     EXPECT_LE(100, instance->get_available_cpu());
 
     // Now lets write a CPU quota file for 2 1/2 CPU. We use ceil so we should
@@ -201,10 +196,6 @@ TEST_F(V1, TestCpuStat) {
 }
 
 TEST_F(V2, TestCpuQuota) {
-    setenv("COUCHBASE_CPU_COUNT", "999", 1);
-    EXPECT_EQ(99900, instance->get_available_cpu());
-    unsetenv("COUCHBASE_CPU_COUNT");
-
     auto current = instance->get_available_cpu();
     EXPECT_LE(100, current);
 
@@ -269,9 +260,6 @@ TEST_F(V2, TestCpuStat) {
 }
 
 TEST_F(NoCgroupFound, TestCpuQuota) {
-    setenv("COUCHBASE_CPU_COUNT", "999", 1);
-    EXPECT_EQ(99900, instance->get_available_cpu());
-    unsetenv("COUCHBASE_CPU_COUNT");
     EXPECT_LE(100, instance->get_available_cpu());
 }
 

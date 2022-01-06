@@ -29,12 +29,7 @@ size_t ControlGroup::get_available_cpu_count() {
 }
 
 size_t ControlGroup::get_available_cpu() {
-    int num = get_available_cpu_count_from_environment();
-    if (num != 0) {
-        return num;
-    }
-
-    num = get_available_cpu_count_from_quota();
+    const auto num = get_available_cpu_count_from_quota();
     if (num != 0) {
         return num;
     }
@@ -53,35 +48,6 @@ size_t ControlGroup::get_available_cpu() {
     }
 
     return size_t(ret) * 100;
-}
-
-size_t ControlGroup::get_available_cpu_count_from_environment() {
-    char* env = getenv("COUCHBASE_CPU_COUNT");
-    if (env == nullptr) {
-        return 0;
-    }
-    std::size_t pos;
-
-    // std::stoi allows for leading whitespace, so we should allow for
-    // trailing whitespace as well
-    auto count = std::stoi(env, &pos);
-    if (count > 0 && pos == strlen(env)) {
-        return count * 100;
-    }
-
-    // there might be characters after the number...
-    const char* c = env + pos;
-    do {
-        if (!std::isspace(*c)) {
-            throw std::logic_error(
-                    "cb::cgroup::get_available_cpu_count: Invalid format. "
-                    "COUCHBASE_CPU_COUNT should be a number");
-        }
-        c++;
-    } while (*c);
-
-    // the string had trailing spaces.. accept it anyway
-    return count * 100;
 }
 
 ControlGroup& ControlGroup::instance() {

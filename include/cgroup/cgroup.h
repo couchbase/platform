@@ -69,9 +69,6 @@ public:
 protected:
     /// Read the cpu quota and create a CPU count
     virtual size_t get_available_cpu_count_from_quota() = 0;
-
-    /// Check the environment variable to get the CPU count
-    size_t get_available_cpu_count_from_environment();
 };
 
 } // namespace cb::cgroup
