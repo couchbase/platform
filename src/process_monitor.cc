@@ -88,24 +88,29 @@ public:
  * and other processes so there is two different subclasses handling the
  * logic for that
  */
-class ProcessMonitorImpl : public ProcessMonitor {
+class ProcessMonitorImpl {
 public:
-    ~ProcessMonitorImpl() override {
-        active = false;
-        shutdown_cv.notify_all();
-        thread.join();
 #ifdef WIN32
+    virtual ~ProcessMonitorImpl() {
         if (handle != INVALID_HANDLE_VALUE) {
             CloseHandle(handle);
         }
+    }
+#else
+    virtual ~ProcessMonitorImpl() = default;
 #endif
+
+    void terminateMonitorThread() {
+        active = false;
+        shutdown_cv.notify_all();
+        thread.join();
     }
 
-    nlohmann::json describe() const override {
+    nlohmann::json describe() const {
         return description;
     }
 
-    ExitCode& getExitCode() override {
+    ProcessMonitor::ExitCode& getExitCode() {
         auto locked = state.lock();
         if (isRunning(locked)) {
             throw std::logic_error(
@@ -115,19 +120,19 @@ public:
         return *locked->processExitCode;
     }
 
-    bool isRunning() override {
+    bool isRunning() {
         auto locked = state.lock();
         return isRunning(locked);
     }
 
     void setTimeoutHander(std::chrono::seconds seconds,
-                          TimeoutHandler handler) override {
+                          ProcessMonitor::TimeoutHandler handler) {
         auto locked = state.lock();
         locked->timeout = std::chrono::steady_clock::now() + seconds;
         locked->timeoutHandler = handler;
     }
 
-    void terminate(bool allowGraceful = true) override {
+    void terminate(bool allowGraceful = true) {
         if (!isRunning()) {
             // already stopped
             return;
@@ -220,7 +225,7 @@ public:
 protected:
 #ifdef WIN32
     ProcessMonitorImpl(HANDLE handle,
-                       TerminateHandler terminateHandler,
+                       ProcessMonitor::TerminateHandler terminateHandler,
                        std::string name)
         : name(std::move(name)),
           handle(handle),
@@ -232,7 +237,7 @@ protected:
     }
 #else
     ProcessMonitorImpl(uint64_t pid,
-                       TerminateHandler terminateHandler,
+                       ProcessMonitor::TerminateHandler terminateHandler,
                        std::string name)
         : name(std::move(name)),
           pid(pid_t(pid)),
@@ -249,13 +254,13 @@ protected:
 #endif
 
     std::thread thread;
-    const TerminateHandler terminateHandler;
+    const ProcessMonitor::TerminateHandler terminateHandler;
     std::atomic_bool active{true};
     nlohmann::json description;
     struct State {
         std::unique_ptr<ExitCodeImpl> processExitCode;
         std::chrono::steady_clock::time_point timeout;
-        TimeoutHandler timeoutHandler;
+        ProcessMonitor::TimeoutHandler timeoutHandler;
     };
     folly::Synchronized<State, std::mutex> state;
     std::condition_variable shutdown_cv;
@@ -268,7 +273,7 @@ protected:
 class ChildProcessMonitor : public ProcessMonitorImpl {
 public:
     ChildProcessMonitor(const std::vector<std::string>& argv,
-                        TerminateHandler terminateHandler,
+                        ProcessMonitor::TerminateHandler terminateHandler,
                         std::string name)
         : ProcessMonitorImpl(createProcess(argv),
                              std::move(terminateHandler),
@@ -308,7 +313,7 @@ protected:
                            &pinfo)) {
             throw std::system_error(GetLastError(),
                                     std::system_category(),
-                                    "ProcessMonitorImpl::createProcess: "
+                                    "ChildProcessMonitor::createProcess: "
                                     "CreateProcess() failed");
         }
         return pinfo.hProcess;
@@ -320,7 +325,7 @@ protected:
             throw std::system_error(
                     errno,
                     std::system_category(),
-                    "ProcessMonitorImpl::createProcess: fork() failed");
+                    "ChildProcessMonitor::createProcess: fork() failed");
         }
 
         if (pid != 0) {
@@ -338,7 +343,7 @@ protected:
         throw std::system_error(
                 errno,
                 std::system_category(),
-                "ProcessMonitorImpl::createProcess: execvp() failed");
+                "ChildProcessMonitor::createProcess: execvp() failed");
     }
 #endif
 
@@ -354,7 +359,7 @@ protected:
         if (!GetExitCodeProcess(handle, &exitcode)) {
             throw std::system_error(GetLastError(),
                                     std::system_category(),
-                                    "ProcessMonitor::isRunning(): "
+                                    "ChildProcessMonitor::isRunning(): "
                                     "GetExitCodeProcess() failed");
         }
         if (exitcode == STILL_ACTIVE) {
@@ -383,7 +388,8 @@ protected:
         } else {
             throw std::system_error(errno,
                                     std::system_category(),
-                                    "Unknown error from waitpid");
+                                    "ChildProcessMonitor::isRunning(): Unknown "
+                                    "error from waitpid");
         }
 #endif
         terminateHandler(*locked->processExitCode);
@@ -398,7 +404,7 @@ class OtherProcessMonitor : public ProcessMonitorImpl {
 public:
 #ifdef WIN32
     OtherProcessMonitor(uint64_t pid,
-                        TerminateHandler terminateHandler,
+                        ProcessMonitor::TerminateHandler terminateHandler,
                         std::string name)
         : ProcessMonitorImpl(OpenProcess(SYNCHRONIZE, FALSE, pid),
                              std::move(terminateHandler),
@@ -406,7 +412,7 @@ public:
     }
 #else
     OtherProcessMonitor(uint64_t pid,
-                        TerminateHandler terminateHandler,
+                        ProcessMonitor::TerminateHandler terminateHandler,
                         std::string name)
         : ProcessMonitorImpl(
                   pid, std::move(terminateHandler), std::move(name)) {
@@ -439,7 +445,7 @@ protected:
             throw std::system_error(
                     errno,
                     std::system_category(),
-                    "ProcessMonitorImpl::isRunning(): kill failed");
+                    "OtherProcessMonitor::isRunning(): kill failed");
         }
 
         locked->processExitCode = std::make_unique<ExitCodeImpl>();
@@ -449,20 +455,90 @@ protected:
     }
 };
 
+/// ProcessMonitorProxy is a class used to make sure that we can shut down
+/// the thread monitoring the underlying process before trying to delete
+/// the owning object which would potentially cause a virtual function
+/// to be called from the thread while the class was in the destructor.
+class ProcessMonitorProxy : public ProcessMonitor {
+public:
+    ~ProcessMonitorProxy() override {
+        if (!monitor) {
+            return;
+        }
+        monitor->terminateMonitorThread();
+    }
+
+    bool isRunning() override {
+        if (!monitor) {
+            return false;
+        }
+        return monitor->isRunning();
+    }
+    ExitCode& getExitCode() override {
+        if (!monitor) {
+            throw std::logic_error(
+                    "ProcessMonitorProxy::getExitCode(): monitor not created");
+        }
+        return monitor->getExitCode();
+    }
+    nlohmann::json describe() const override {
+        if (!monitor) {
+            throw std::logic_error(
+                    "ProcessMonitorProxy::describe(): monitor not created");
+        }
+        return monitor->describe();
+    }
+
+    void terminate(bool allowGraceful) override {
+        if (!monitor) {
+            throw std::logic_error(
+                    "ProcessMonitorProxy::terminate(): monitor not created");
+        }
+
+        monitor->terminate(allowGraceful);
+    }
+
+    void setTimeoutHander(std::chrono::seconds timeout,
+                          TimeoutHandler handler) override {
+        if (!monitor) {
+            throw std::logic_error(
+                    "ProcessMonitorProxy::setTimeoutHander(): monitor not "
+                    "created");
+        }
+
+        monitor->setTimeoutHander(timeout, std::move(handler));
+    }
+
+    ProcessMonitorProxy(const std::vector<std::string>& argv,
+                        TerminateHandler terminateHandler,
+                        std::string threadname)
+        : monitor(std::make_unique<ChildProcessMonitor>(
+                  argv, terminateHandler, std::move(threadname))) {
+        monitor->start();
+    }
+
+    ProcessMonitorProxy(uint64_t pid,
+                        TerminateHandler terminateHandler,
+                        std::string name)
+        : monitor(std::make_unique<OtherProcessMonitor>(
+                  pid, terminateHandler, std::move(name))) {
+        monitor->start();
+    }
+
+protected:
+    std::unique_ptr<ProcessMonitorImpl> monitor;
+};
+
 std::unique_ptr<ProcessMonitor> ProcessMonitor::create(
         const std::vector<std::string>& argv,
         TerminateHandler terminateHandler,
         std::string name) {
-    auto ret = std::make_unique<ChildProcessMonitor>(
+    return std::make_unique<ProcessMonitorProxy>(
             argv, terminateHandler, std::move(name));
-    ret->start();
-    return ret;
 }
 
 std::unique_ptr<ProcessMonitor> ProcessMonitor::create(
         uint64_t pid, TerminateHandler terminateHandler, std::string name) {
-    auto ret = std::make_unique<OtherProcessMonitor>(
+    return std::make_unique<ProcessMonitorProxy>(
             pid, terminateHandler, std::move(name));
-    ret->start();
-    return ret;
 }
