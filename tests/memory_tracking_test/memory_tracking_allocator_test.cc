@@ -87,6 +87,17 @@ class MemoryTrackingAllocatorTest : public testing::Test {};
 
 TYPED_TEST_SUITE(MemoryTrackingAllocatorTest, CounterTypes);
 
+TYPED_TEST(MemoryTrackingAllocatorTest, externalCounter) {
+    auto counter = std::make_shared<TypeParam>(0);
+    MemoryTrackingAllocator<int, TypeParam> allocator(counter);
+
+    Deque<TypeParam> d(allocator);
+    d.push_back(1);
+
+    EXPECT_EQ(allocator.getBytesAllocated(), *counter);
+    EXPECT_GT(*counter, 0);
+}
+
 // Test bytesAllocates is correct when a re-bind occurs.
 TYPED_TEST(MemoryTrackingAllocatorTest, rebindTest) {
     MemoryTrackingAllocator<int, TypeParam> allocator;

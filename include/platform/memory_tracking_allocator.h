@@ -63,6 +63,10 @@ public:
         : bytesAllocated(std::make_shared<C>(0)) {
     }
 
+    MemoryTrackingAllocator(std::shared_ptr<C> counter)
+        : bytesAllocated(std::move(counter)) {
+    }
+
     template <class U>
     explicit MemoryTrackingAllocator(
             MemoryTrackingAllocator<U, C> const& other) noexcept
