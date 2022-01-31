@@ -155,6 +155,15 @@ int cb_get_thread_name(char* name, size_t size)
 #endif
 }
 
+std::string cb_get_thread_name(cb_thread_t tid) {
+#if defined(HAVE_PTHREAD_GETNAME_NP)
+    std::array<char, 32> buffer;
+    if (pthread_getname_np(tid, buffer.data(), buffer.size()) == 0) {
+        return std::string{buffer.data()};
+    }
+#endif
+    return std::to_string(uint64_t(tid));
+}
 
 bool is_thread_name_supported()
 {

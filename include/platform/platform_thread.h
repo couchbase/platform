@@ -13,7 +13,6 @@
  */
 #pragma once
 
-
 #ifdef WIN32
 
 #include <folly/portability/Windows.h>
@@ -25,6 +24,8 @@ typedef SRWLOCK cb_rwlock_t;
 typedef pthread_t cb_thread_t;
 typedef pthread_rwlock_t cb_rwlock_t;
 #endif // WIN32
+
+#include <string>
 
 /***********************************************************************
  *                     Thread related functions                        *
@@ -104,6 +105,14 @@ int cb_set_thread_name(const char* name);
  *         -1 if an error occurred
  */
 int cb_get_thread_name(char* name, size_t size);
+
+/**
+ * Get the name of a given tread
+ *
+ * @param tid The thread to get the name for
+ * @return The name of the thread (or std::to_string(tid))
+ */
+std::string cb_get_thread_name(cb_thread_t tid);
 
 /**
  * Does the underlying platform support setting thread names

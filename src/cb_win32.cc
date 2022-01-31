@@ -125,13 +125,13 @@ public:
         return -1;
     }
 
-    std::optional<std::string> getName() {
+    std::optional<std::string> getName(HANDLE tid) {
         if (!supported) {
             return {};
         }
 
         PWSTR data;
-        if (SUCCEEDED(get(GetCurrentThread(), &data))) {
+        if (SUCCEEDED(get(tid, &data))) {
             auto str = to_string(std::wstring{data});
             LocalFree(data);
             return {str};
@@ -199,7 +199,7 @@ int cb_set_thread_name(const char* name) {
 }
 
 int cb_get_thread_name(char* buffer, size_t size) {
-    auto nm = ThreadNameSupport::instance().getName();
+    auto nm = ThreadNameSupport::instance().getName(GetCurrentThread());
     if (nm.has_value()) {
         const auto nb = std::min(nm.value().size(), size);
         strncpy(buffer, nm.value().c_str(), nb);
@@ -208,6 +208,20 @@ int cb_get_thread_name(char* buffer, size_t size) {
     }
 
     return -1;
+}
+
+std::string cb_get_thread_name(cb_thread_t tid) {
+    auto handle = OpenThread(READ_CONTROL, false, tid);
+    if (handle == INVALID_HANDLE_VALUE) {
+        return std::to_string(tid);
+    }
+    auto nm = ThreadNameSupport::instance().getName(handle);
+    CloseHandle(handle);
+    if (nm.has_value()) {
+        return nm.value();
+    }
+
+    return std::to_string(tid);
 }
 
 bool is_thread_name_supported() {

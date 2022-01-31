@@ -56,6 +56,8 @@ TEST(ThreadnameTest, ThreadName) {
     EXPECT_EQ(0, cb_get_thread_name(buffer, sizeof(buffer)));
     EXPECT_EQ(std::string("test"), std::string(buffer));
 
+    EXPECT_EQ("test", cb_get_thread_name(cb_thread_self()));
+
     memset(buffer, 'a', sizeof(buffer));
     buffer[79] ='\0';
     EXPECT_EQ(1, cb_set_thread_name(buffer)) << " errno " << errno << " "
