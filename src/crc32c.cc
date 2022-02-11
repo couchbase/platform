@@ -370,7 +370,17 @@ crc32c_function setup_crc32c() {
 #if CB_CRC32_HW_SUPPORTED
 #if FOLLY_X64
     return folly::CpuId().sse42() ? crc32c_hw : crc32c_sw;
-#elif FOLLY_AARCH64
+#elif FOLLY_AARCH64 && defined(__ARM_FEATURE_CRC32)
+    // AArch64 and compiler has enabled CRC32 by default (hence it is
+    // already permitted to generate CRC32 instructions in it's own
+    // code) - enable unconditionally.
+    // Note: This case matches macOS with Apple Silicon (M1 and newer) -
+    // essentially all ARM-based macOS systems support CRC32.
+    return crc32c_hw;
+#elif FOLLY_AARCH64 && defined (__linux__)
+    // AArch64 and compiler hasn't enabled CRC32 by default
+    // (__ARM_FEATURE_CRC32 is not defined) - perform a runtime
+    // check to see if the running system supports CRC32.
     unsigned long features = getauxval(AT_HWCAP);
     return (features & HWCAP_CRC32) ? crc32c_hw : crc32c_sw;
 #else
