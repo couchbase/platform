@@ -89,9 +89,3 @@ TEST(GetCpuCount, get_cpu_count) {
     EXPECT_NE(0u, count);
     std::cout << "get_cpu_count:" << count << std::endl;
 }
-
-// This test may never fail, but we at least expect the following to never
-// happen
-TEST(GetCpuCount, get_cpu_index) {
-    EXPECT_LE(cb::get_cpu_index(), cb::get_cpu_count());
-}
