@@ -436,16 +436,10 @@ uint64_t cb::io::maximizeFileDescriptors(uint64_t limit) {
         auto max = limit;
         rlim_t last_good = 0;
 
-        while (min <= max) {
-            rlim_t avg;
 
-            // make sure we don't overflow
-            uint64_t high = std::numeric_limits<uint64_t>::max() - min;
-            if (high < max) {
-                avg = max / 2;
-            } else {
-                avg = (min + max) / 2;
-            }
+        while (min <= max) {
+            // Equivalent to std::midpoint from C++20.
+            rlim_t avg = min + ((max - min) / 2);
 
             rlim.rlim_cur = rlim.rlim_max = avg;
             if (setrlimit(RLIMIT_NOFILE, &rlim) == 0) {
