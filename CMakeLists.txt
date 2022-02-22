@@ -191,6 +191,7 @@ else ()
 endif (WIN32)
 
 LIST(APPEND PLATFORM_FILES
+  src/awaitable_semaphore.cc
   src/base64.cc
   src/dirutils.cc
   src/loadfile.cc
@@ -218,6 +219,7 @@ LIST(APPEND PLATFORM_FILES
   src/sysinfo.cc
   src/thread.cc
   src/timeutils.cc
+  src/unique_waiter_queue.cc
   src/uuid.cc
   ${CB_MALLOC_IMPL}
   include/platform/atomic_duration.h

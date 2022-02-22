@@ -9,9 +9,16 @@
  */
 
 #include <folly/portability/GTest.h>
+#include <platform/awaitable_semaphore.h>
 #include <platform/semaphore.h>
 #include <platform/semaphore_guard.h>
 
+#include <boost/thread/barrier.hpp>
+
+#include <atomic>
+#include <condition_variable>
+#include <list>
+#include <memory>
 #include <thread>
 
 TEST(SemaphoreTest, AcquireAndRelease) {
@@ -173,6 +180,192 @@ TEST(SemaphoreTest, MultiThreaded) {
     for (auto& thread : threads) {
         thread.join();
     }
+}
+
+class TestWaiter : public cb::Waiter {
+public:
+    TestWaiter(std::function<void()> cb) : cb(std::move(cb)) {
+    }
+
+    void signal() override {
+        cb();
+    }
+
+private:
+    std::function<void()> cb;
+};
+
+TEST(SemaphoreTest, AwaitableAcquireAndRelease) {
+    cb::AwaitableSemaphore s{1};
+
+    auto waiter = std::make_shared<TestWaiter>(
+            [] { FAIL() << "waiter should not be notified"; });
+
+    EXPECT_TRUE(s.acquire_or_wait(waiter));
+    s.release();
+}
+
+TEST(SemaphoreTest, AwaitableAcquireWaitsIfNoTokens) {
+    cb::AwaitableSemaphore s{1};
+
+    auto waiter1 = std::make_shared<TestWaiter>(
+            [] { FAIL() << "first waiter should not be notified"; });
+
+    EXPECT_TRUE(s.acquire_or_wait(waiter1));
+    EXPECT_EQ(0, s.getWaiters().size());
+
+    int notificationCount = 0;
+
+    auto waiter2 = std::make_shared<TestWaiter>(
+            [&notificationCount] { notificationCount++; });
+
+    EXPECT_FALSE(s.acquire_or_wait(waiter2));
+
+    auto waiters = s.getWaiters();
+    EXPECT_EQ(1, waiters.size());
+
+    // the right waiter is queued
+    EXPECT_EQ(waiter2, waiters.front().lock());
+
+    // no notification yet
+    EXPECT_EQ(0, notificationCount);
+
+    s.release();
+
+    // no one is waiting anymore
+    EXPECT_EQ(0, s.getWaiters().size());
+
+    // notified exactly once
+    EXPECT_EQ(1, notificationCount);
+}
+
+TEST(SemaphoreTest, AwaitableCapacityIncrease) {
+    // waiters are notified after capacity increases
+    cb::AwaitableSemaphore s{1};
+
+    EXPECT_TRUE(s.try_acquire(1)); // hold the one token
+
+    int notificationCount = 0;
+
+    auto waiter = std::make_shared<TestWaiter>(
+            [&notificationCount] { notificationCount++; });
+
+    EXPECT_FALSE(s.acquire_or_wait(waiter));
+
+    auto waiters = s.getWaiters();
+    EXPECT_EQ(1, waiters.size());
+
+    // the right waiter is queued
+    EXPECT_EQ(waiter, waiters.front().lock());
+
+    // no notification yet
+    EXPECT_EQ(0, notificationCount);
+
+    s.setCapacity(10); // add several tokens
+
+    // no waiters anymore
+    EXPECT_EQ(0, s.getWaiters().size());
+
+    // notified exactly once
+    EXPECT_EQ(1, notificationCount);
+}
+
+TEST(SemaphoreTest, AwaitableCapacityDecrease) {
+    // decreasing the capacity reduces how many tokens
+    // are available
+    cb::AwaitableSemaphore s{2};
+
+    EXPECT_TRUE(s.try_acquire()); // 1 held
+    EXPECT_TRUE(s.try_acquire()); // 2 held
+
+    int notificationCount = 0;
+
+    auto waiter = std::make_shared<TestWaiter>(
+            [&notificationCount] { notificationCount++; });
+
+    EXPECT_FALSE(s.acquire_or_wait(waiter));
+
+    // waiting
+    EXPECT_EQ(1, s.getWaiters().size());
+
+    s.setCapacity(1); // remove one token
+    // no notification yet
+    EXPECT_EQ(0, notificationCount);
+
+    // releasing 1 token _does not_ lead to an available token
+    // because the maximum has decreased; the release returned the
+    // semaphore to tokens==0.
+    // However, for simplicity it _does_ notify the task.
+    // a "spurious" notification is possibly wasteful, but is safe.
+    // a _missed_ notification would be bad, so err on the side of safety.
+    s.release(); // back down to 1 held
+
+    // notified
+    EXPECT_EQ(1, notificationCount);
+
+    // no longer waiting
+    EXPECT_EQ(0, s.getWaiters().size());
+
+    // task tries to acquire a token again, but still cannot!
+    // 1 token is already held, and the current capacity is 1.
+    EXPECT_FALSE(s.acquire_or_wait(waiter));
+
+    // back to waiting
+    EXPECT_EQ(1, s.getWaiters().size());
+
+    s.release(); // now there's no tokens held
+
+    // waiter had queued itself again, so was notified again
+    EXPECT_EQ(2, notificationCount);
+
+    // so the task can now acquire a token
+    EXPECT_TRUE(s.acquire_or_wait(waiter));
+
+    // and does not need to wait
+    EXPECT_EQ(0, s.getWaiters().size());
+    s.release();
+}
+
+TEST(SemaphoreTest, AwaitableUniqueWaiters) {
+    // test that waiting on a semaphore twice does not queue the waiter
+    // for notification twice. in situations analogous to spurious wakeups,
+    // it needs to be safe for a waiter to be triggered by "something else"
+    // only to try acquire a token again, and fail.
+    cb::AwaitableSemaphore s{2};
+
+    EXPECT_TRUE(s.try_acquire(2)); // 2 held
+
+    int notificationCount = 0;
+
+    auto waiter = std::make_shared<TestWaiter>(
+            [&notificationCount] { notificationCount++; });
+
+    EXPECT_FALSE(s.acquire_or_wait(waiter));
+
+    // waiting
+    auto waiters = s.getWaiters();
+    EXPECT_EQ(1, waiters.size());
+
+    // the right waiter is queued
+    EXPECT_EQ(waiter, waiters.front().lock());
+
+    // no notification yet
+    EXPECT_EQ(0, notificationCount);
+
+    // if the waiter wakes for some other reason, it should try
+    // to acquire a token again, and still fail.
+    EXPECT_FALSE(s.acquire_or_wait(waiter));
+
+    EXPECT_EQ(1, s.getWaiters().size());
+
+    // now release the tokens
+    s.release(2);
+
+    // the waiter should be notified _once_
+    EXPECT_EQ(1, notificationCount);
+
+    // and now there's no queued waiters
+    EXPECT_EQ(0, s.getWaiters().size());
 }
 
 TEST(SemaphoreTest, Guard) {
@@ -353,5 +546,124 @@ TEST(SemaphoreTest, GuardShared) {
         // owners. Attempting to provoke asan failures if
         // the guard did not take a shared ptr.
         s.reset();
+    }
+}
+
+constexpr int numTestTokens = 2;
+constexpr int numTestThreads = 10;
+constexpr int numTestTasks = 1000;
+
+class SemaphoreTestThread : public cb::Waiter {
+public:
+    SemaphoreTestThread(boost::barrier& readyBarrier,
+                        std::atomic<int>& threadsActive,
+                        boost::barrier& doneBarrier,
+                        cb::AwaitableSemaphore& testSemaphore)
+        : readyBarrier(readyBarrier),
+          threadsActive(threadsActive),
+          doneBarrier(doneBarrier),
+          testSemaphore(testSemaphore) {
+    }
+
+    void start() {
+        workerThread = std::thread([this] { this->run(); });
+    }
+
+    void run() {
+        using namespace std::chrono_literals;
+        // wait for all the threads to be constructed and ready
+        readyBarrier.wait();
+
+        // fake doing `numTestTasks` "tasks" per thread, limited in
+        // concurrency by an AwaitableSemaphore
+        // (note, a normal, blocking semaphore would be sensible
+        // here but this is specifically to test AwaitableSemaphore).
+        while (tasksLeft.load() > 0) {
+            if (!testSemaphore.acquire_or_wait(shared_from_this())) {
+                // couldn't acquire a token yet, and we don't want this
+                // thread spinning. Sleep until signalled that tokens are
+                // available.
+                sleepUntilSignalled();
+                continue;
+            }
+            // only numTestTokens threads should be able to take the semaphore
+            // at the same time. This might by chance not catch anything, but
+            // check it anyway.
+            EXPECT_LE(++threadsActive, numTestTokens);
+            // got a token! Don't have any actual "work" to do while holding it
+            // but yield to give other threads a chance to
+            // exercise the semaphore.
+            std::this_thread::yield();
+
+            threadsActive--;
+
+            // now release the semaphore
+            testSemaphore.release();
+            tasksLeft--;
+        }
+
+        doneBarrier.wait();
+    }
+
+    void sleepUntilSignalled() {
+        auto lh = std::unique_lock(lock);
+        condvar.wait(lh, [&] { return signalled.load(); });
+        signalled = false;
+    }
+
+    void signal() override {
+        auto lh = std::unique_lock(lock);
+        signalled = true;
+        condvar.notify_one();
+    }
+
+    bool done() const {
+        return tasksLeft.load() == 0;
+    }
+
+    std::thread workerThread;
+
+    boost::barrier& readyBarrier;
+    std::atomic<int>& threadsActive;
+    boost::barrier& doneBarrier;
+    cb::AwaitableSemaphore& testSemaphore;
+
+    std::atomic<bool> signalled = false;
+    std::mutex lock;
+    std::condition_variable condvar;
+
+    std::atomic<int> tasksLeft = numTestTasks;
+};
+
+TEST(SemaphoreTest, AwaitableMultiThreaded) {
+    // AwaitableSemaphore was designed with tasks in mind - non-blocking
+    // (as blocking would take up a thread in a pool), and capable of notifying
+    // tasks which wanted to acquire a token but but failed
+    // (tasks can be woken and will be executed in the pool "soon").
+    // To test with multiple threads but without the task/pool requires
+    // a bit of fakery.
+
+    // two "tasks" can run concurrently
+    cb::AwaitableSemaphore testSemaphore{size_t(numTestTokens)};
+    boost::barrier readyBarrier(numTestThreads);
+    std::atomic<int> threadsActive = 0;
+    boost::barrier doneBarrier(numTestThreads + 1);
+
+    std::list<std::shared_ptr<SemaphoreTestThread>> threads;
+
+    for (int i = 0; i < numTestThreads; ++i) {
+        threads.push_back(std::make_shared<SemaphoreTestThread>(
+                readyBarrier, threadsActive, doneBarrier, testSemaphore));
+        threads.back()->start();
+    }
+
+    doneBarrier.wait();
+
+    // if the threads completed, all the "tasks" were executed.
+    // The threads check that it didn't exceed the max
+    // concurrency as set by the semaphore.
+
+    for (const auto& thread : threads) {
+        thread->workerThread.join();
     }
 }

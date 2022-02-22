@@ -48,10 +48,15 @@ public:
     Semaphore& operator=(const Semaphore&) = delete;
     Semaphore& operator=(Semaphore&&) = delete;
 
+    virtual ~Semaphore() = default;
+
     /**
      * Return `count` tokens to the semaphore.
      */
-    void release(size_t count = 1);
+    virtual void release(size_t count);
+    void release() {
+        release(1);
+    }
 
     /**
      * If the semaphore has an available token, decrement the available tokens
