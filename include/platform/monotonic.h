@@ -11,9 +11,8 @@
 
 #pragma once
 
-#include <platform/comparators.h>
-
 #include <platform/atomic.h>
+#include <platform/comparators.h>
 #include <platform/exceptions.h>
 #include <atomic>
 #include <limits>
@@ -24,42 +23,34 @@
 /// Policy class for handling non-monotonic updates by simply ignoring them.
 template <class T>
 struct IgnorePolicy {
-    void nonMonotonic(const T&, const T&) {
+    void nonMonotonic(const T&, const T&, const std::string&) {
         // Ignore the update.
-    }
-
-    void setLabel(const std::string&) {
-        // There is no label on the IgnorePolicy
     }
 };
 
 /// Policy class for handling non-monotonic updates by throwing std::logic_error
 template <class T>
 struct ThrowExceptionPolicy {
-    ThrowExceptionPolicy() = default;
-    ThrowExceptionPolicy(const ThrowExceptionPolicy& other)
-        : label(other.label) {
-    }
-
-    void nonMonotonic(const T& curValue, const T& newValue) {
-        using std::to_string;
-        cb::throwWithTrace(std::logic_error(
-                std::string("Monotonic<") + typeid(T).name() + "> (" + label +
+    void nonMonotonic(const T& curValue,
+                      const T& newValue,
+                      const std::string& label) {
+        using namespace std;
+        cb::throwWithTrace(logic_error(
+                string("Monotonic<") + typeid(T).name() + "> (" + label +
                 ") invariant failed: new value (" + to_string(newValue) +
                 ") breaks invariant on current value (" + to_string(curValue) +
                 ")"));
     }
+};
 
-    /**
-     * Set the label to give this monotonic value. Used in nonMonotonic() to
-     * give a more descriptive exception message to aid debugging.
-     */
-    void setLabel(const std::string& newLabel) {
-        this->label = newLabel;
-    }
-
-private:
-    std::string label{"unlabelled"};
+class BasicNameLabelPolicy {
+public:
+    std::string getLabel(const char* name) const {
+        if (name) {
+            return {name};
+        }
+        return "unlabeled";
+    };
 };
 
 // Default Monotonic OrderReversedPolicy (if user doesn't explicitly
@@ -84,28 +75,37 @@ using DefaultOrderReversedPolicy = IgnorePolicy<T>;
  * @tparam T value type used to represent the value.
  * @tparam OrderReversePolicy Policy class which controls the behaviour if
  *         an operation would break the monotonic invariant.
+ * @tparam Name a pointer to a string literal that stores the name of the
+ *         variable name given to this Monotonic
+ * @tparam LabelPolicy A class that proves a function getLabel() which
+ *         takes a cont char* pointing to the Name and returns a label as
+ *         std::string about the Monotnic<> in question
  * @tparam Invariant The invariant to maintain across updates.
  */
 template <typename T,
           template <class> class OrderReversedPolicy =
                   DefaultOrderReversedPolicy,
+          const char* Name = nullptr,
+          class LabelPolicy = BasicNameLabelPolicy,
           template <class> class Invariant = cb::greater>
 class Monotonic : public OrderReversedPolicy<T> {
 public:
     using value_type = T;
+    using BaseType = OrderReversedPolicy<T>;
 
-    explicit Monotonic(const T val = std::numeric_limits<T>::min()) : val(val) {
+    explicit Monotonic(const T val = std::numeric_limits<T>::min(),
+                       LabelPolicy labeler = {})
+        : val(val), labeler(labeler) {
     }
 
-    Monotonic(const Monotonic& other)
-        : OrderReversedPolicy<T>(other), val(other.val) {
+    Monotonic(const Monotonic& other) : val(other.val), labeler(other.labeler) {
     }
 
     Monotonic& operator=(const Monotonic& other) {
         if (Invariant<T>()(other.val, val)) {
             val = other.val;
         } else {
-            OrderReversedPolicy<T>::nonMonotonic(val, other.val);
+            BaseType::nonMonotonic(val, other.val, labeler.getLabel(Name));
         }
         return *this;
     }
@@ -114,7 +114,7 @@ public:
         if (Invariant<T>()(v, val)) {
             val = v;
         } else {
-            OrderReversedPolicy<T>::nonMonotonic(val, v);
+            BaseType::nonMonotonic(val, v, labeler.getLabel(Name));
         }
         return *this;
     }
@@ -150,8 +150,13 @@ public:
         val = desired;
     }
 
+    void setLabeler(LabelPolicy newLabeler) {
+        labeler = std::move(newLabeler);
+    };
+
 private:
     T val;
+    LabelPolicy labeler;
 };
 
 /**
@@ -160,8 +165,14 @@ private:
  */
 template <class T,
           template <class> class OrderReversedPolicy =
-                  DefaultOrderReversedPolicy>
-using WeaklyMonotonic = Monotonic<T, OrderReversedPolicy, cb::greater_equal>;
+                  DefaultOrderReversedPolicy,
+          const char* Name = nullptr,
+          class LabelFactory = BasicNameLabelPolicy>
+using WeaklyMonotonic = Monotonic<T,
+                                  OrderReversedPolicy,
+                                  Name,
+                                  LabelFactory,
+                                  cb::greater_equal>;
 
 /**
  * Variant of the Monotonic class, except that the type T is wrapped in
@@ -170,10 +181,14 @@ using WeaklyMonotonic = Monotonic<T, OrderReversedPolicy, cb::greater_equal>;
 template <typename T,
           template <class> class OrderReversedPolicy =
                   DefaultOrderReversedPolicy,
+          const char* Name = nullptr,
+          class LabelPolicy = BasicNameLabelPolicy,
           template <class> class Invariant = cb::greater>
 class AtomicMonotonic : public OrderReversedPolicy<T> {
 public:
-    explicit AtomicMonotonic(T val = std::numeric_limits<T>::min()) : val(val) {
+    explicit AtomicMonotonic(T val = std::numeric_limits<T>::min(),
+                             LabelPolicy labeler = {})
+        : val(val), labeler(std::move(labeler)) {
     }
 
     AtomicMonotonic(const AtomicMonotonic<T>& other) = delete;
@@ -191,7 +206,8 @@ public:
                     break;
                 }
             } else {
-                OrderReversedPolicy<T>::nonMonotonic(current, desired);
+                OrderReversedPolicy<T>::nonMonotonic(
+                        current, desired, labeler.getLabel(Name));
                 break;
             }
         }
@@ -241,8 +257,13 @@ public:
         val.store(desired, memoryOrder);
     }
 
+    void setLabeler(LabelPolicy newLabeler) {
+        labeler = std::move(newLabeler);
+    };
+
 private:
     std::atomic<T> val;
+    LabelPolicy labeler;
 };
 
 /**
@@ -251,6 +272,43 @@ private:
  */
 template <class T,
           template <class> class OrderReversedPolicy =
-                  DefaultOrderReversedPolicy>
-using AtomicWeaklyMonotonic =
-        AtomicMonotonic<T, OrderReversedPolicy, cb::greater_equal>;
+                  DefaultOrderReversedPolicy,
+          const char* Name = nullptr,
+          class LabelFactory = BasicNameLabelPolicy>
+using AtomicWeaklyMonotonic = AtomicMonotonic<T,
+                                              OrderReversedPolicy,
+                                              Name,
+                                              LabelFactory,
+                                              cb::greater_equal>;
+
+#define BASE_MONOTONIC(NAME, TYPE, POLICY, LABELER, VARNAME) \
+    /* NOLINTNEXTLINE(modernize-avoid-c-arrays) */           \
+    constexpr static const char VARNAME##Label[] = #VARNAME; \
+    NAME<TYPE, POLICY, VARNAME##Label, LABELER> VARNAME
+
+#define MONOTONIC2(TYPE, NAME) MONOTONIC3(TYPE, DefaultLabeler, NAME)
+#define MONOTONIC3(TYPE, NAME, LABELER) \
+    MONOTONIC4(TYPE, NAME, LABELER, DefaultOrderReversedPolicy)
+#define MONOTONIC4(TYPE, NAME, LABELER, POLICY) \
+    BASE_MONOTONIC(Monotonic, TYPE, POLICY, LABELER, NAME)
+
+#define WEAKLY_MONOTONIC2(TYPE, NAME) \
+    WEAKLY_MONOTONIC3(TYPE, DefaultLabeler, NAME)
+#define WEAKLY_MONOTONIC3(TYPE, NAME, LABELER) \
+    WEAKLY_MONOTONIC4(TYPE, NAME, LABELER, DefaultOrderReversedPolicy)
+#define WEAKLY_MONOTONIC4(TYPE, NAME, LABELER, POLICY) \
+    BASE_MONOTONIC(WeaklyMonotonic, TYPE, POLICY, LABELER, NAME)
+
+#define ATOMIC_MONOTONIC2(TYPE, NAME) \
+    ATOMIC_MONOTONIC3(TYPE, DefaultLabeler, NAME)
+#define ATOMIC_MONOTONIC3(TYPE, NAME, LABELER) \
+    ATOMIC_MONOTONIC4(TYPE, NAME, LABELER, DefaultOrderReversedPolicy)
+#define ATOMIC_MONOTONIC4(TYPE, NAME, LABELER, POLICY) \
+    BASE_MONOTONIC(AtomicMonotonic, TYPE, POLICY, LABELER, NAME)
+
+#define ATOMIC_WEAKLY_MONOTONIC2(TYPE, NAME) \
+    ATOMIC_WEAKLY_MONOTONIC3(TYPE, DefaultLabeler, NAME)
+#define ATOMIC_WEAKLY_MONOTONIC3(TYPE, NAME, LABELER) \
+    ATOMIC_WEAKLY_MONOTONIC4(TYPE, NAME, LABELER, DefaultOrderReversedPolicy)
+#define ATOMIC_WEAKLY_MONOTONIC4(TYPE, NAME, LABELER, POLICY) \
+    BASE_MONOTONIC(AtomicWeaklyMonotonic, TYPE, POLICY, LABELER, NAME)

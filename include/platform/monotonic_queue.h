@@ -23,11 +23,18 @@
  * @tparam T value type used in queue.
  * @tparam OrderReversePolicy Policy class which controls the behaviour if
  *         an operation would break the monotonic invariant.
+ * @tparam Name a pointer to a string literal that stores the name of the
+ *         variable name given to this Monotonic
+ * @tparam LabelPolicy A class that proves a function getLabel() which
+ *         takes a cont char* pointing to the Name and returns a label as
+ *         std::string about the Monotnic<> in question
  * @tparam Invariant The invariant to maintain across pushes.
  */
 template <class T,
           template <class> class OrderReversedPolicy =
                   DefaultOrderReversedPolicy,
+          const char* Name = nullptr,
+          class LabelPolicy = BasicNameLabelPolicy,
           template <class> class Invariant = cb::greater>
 class MonotonicQueue {
 public:
@@ -64,5 +71,5 @@ public:
 
 private:
     std::queue<T> queue;
-    Monotonic<T, OrderReversedPolicy, Invariant> latestValue;
+    Monotonic<T, OrderReversedPolicy, Name, LabelPolicy, Invariant> latestValue;
 };
