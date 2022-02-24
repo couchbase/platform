@@ -79,6 +79,66 @@ TEST(SemaphoreTest, AcquireMultiple) {
     }
 }
 
+TEST(SemaphoreTest, CapacityIncrease) {
+    {
+        // more tokens are available after a capacity increase
+        cb::Semaphore s{2};
+
+        EXPECT_TRUE(s.try_acquire(2)); // 2 held
+        EXPECT_FALSE(s.try_acquire()); // no more available
+        s.setCapacity(3); // add one token
+        EXPECT_TRUE(s.try_acquire()); // can aquire that token
+        EXPECT_FALSE(s.try_acquire()); // but no extra
+        s.release(3);
+    }
+    {
+        // more tokens are available after a capacity increase
+        cb::Semaphore s{2};
+
+        EXPECT_FALSE(s.try_acquire(3)); // 3 is beyond the capacity
+        s.setCapacity(3); // add one token
+        EXPECT_TRUE(s.try_acquire(3)); // can aquire 3 tokens now
+        EXPECT_FALSE(s.try_acquire()); // but no extra
+        s.release(3);
+    }
+}
+
+TEST(SemaphoreTest, CapacityDecrease) {
+    {
+        // decreasing the capacity reduces how many tokens
+        // are available
+        cb::Semaphore s{2};
+
+        EXPECT_TRUE(s.try_acquire(2)); // 2 held
+        EXPECT_FALSE(s.try_acquire()); // no more available
+
+        // decreasing the number of tokens when the max is already held
+        // will drive available tokens negative, but that's okay
+        // Once all outstanding tokens are released, availableTokens=capacity
+        s.setCapacity(1); // remove one token
+
+        EXPECT_FALSE(s.try_acquire()); // still can't acquire more tokens
+        s.release(2);
+
+        EXPECT_FALSE(s.try_acquire(2)); // the new max is respected
+        EXPECT_TRUE(s.try_acquire(1)); // only the one token can be acquired
+        EXPECT_FALSE(s.try_acquire()); // no extra
+        s.release(1);
+    }
+
+    {
+        // decreasing the capacity reduces how many tokens
+        // are available
+        cb::Semaphore s{2};
+
+        EXPECT_TRUE(s.try_acquire(1)); // 1 held, 1 available
+        s.setCapacity(1); // remove one token
+
+        EXPECT_FALSE(s.try_acquire()); // now can't acquire a second token
+        s.release(1);
+    }
+}
+
 TEST(SemaphoreTest, MultiThreaded) {
     // manipulate a semaphore from multiple threads to try expose any issues
     // under TSAN.

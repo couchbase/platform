@@ -9,9 +9,10 @@
  */
 #pragma once
 
+#include <sys/types.h>
+
 #include <atomic>
 #include <cstddef>
-
 
 namespace cb {
 
@@ -39,9 +40,7 @@ class Semaphore {
 public:
     Semaphore() : Semaphore(1) {
     }
-    explicit Semaphore(size_t numTokens)
-        : capacity(numTokens), tokens(numTokens) {
-    }
+    explicit Semaphore(size_t numTokens);
 
     Semaphore(const Semaphore&) = delete;
     Semaphore(Semaphore&&) = delete;
@@ -67,12 +66,38 @@ public:
      */
     bool try_acquire(size_t count = 1);
 
+    /**
+     * Change the maximum number of tokens available from this semaphore.
+     *
+     * If increased, "new" tokens become available.
+     *
+     * If decreased, tokens are logically removed, but there may be more
+     * existing token holders than newCapacity. In this case, `tokens`
+     * may temporarily become negative.
+     * In that case, no additional tokens can be acquired until enough existing
+     * holders call release() such that `tokens` is increased above zero.
+     *
+     * Once all tokens are released, tokens=newCapacity.
+     *
+     * @param newCapacity the new total number of tokens
+     */
+    void setCapacity(size_t newCapacity);
+
     size_t getCapacity() const {
-        return capacity;
+        return capacity.load();
     }
 
 private:
-    const size_t capacity;
-    std::atomic<size_t> tokens;
+    // maximum number of tokens which can be acquired from this semaphore
+    // before further try_acquire() calls fail.
+    std::atomic<size_t> capacity;
+    // Current number of available tokens. As callers acquire tokens this will
+    // decrease, and increase on release().
+    // try_acquire() will fail if decrementing tokens would lead to a < 0 value.
+    // However, this is signed because setCapacity() may decrease the capacity
+    // below the number of tokens currently acquired. In that case, `tokens`
+    // _will_ temporarily become negative, until enough of those tokens are
+    // released().
+    std::atomic<ssize_t> tokens;
 };
 } // end namespace cb
