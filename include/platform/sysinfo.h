@@ -36,12 +36,6 @@ size_t get_available_cpu_count();
 size_t get_cpu_count();
 
 /**
- * @return the current CPU of the caller
- * @throws std::runtime_error if the system call to fetch current CPU fails
- */
-size_t get_cpu_index();
-
-/**
  * Get a (potentially cached) stripe index for the current core.
  * One or more cores may be mapped to a given stripe; if numStripes
  * is equal to the number of cores they will be mapped 1-to-1, if there
