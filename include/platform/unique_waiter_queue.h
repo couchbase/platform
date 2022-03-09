@@ -2,8 +2,8 @@
 
 #include "semaphore_guard.h"
 
+#include <deque>
 #include <memory>
-#include <queue>
 #include <set>
 #include <vector>
 
@@ -43,6 +43,13 @@ public:
     void pushUnique(WaiterPtr waiter);
 
     /**
+     * Try to erase a waiter from the queue.
+     *
+     * If the waiter is not in the queue, do nothing.
+     */
+    void erase(const WaiterPtr& waiter);
+
+    /**
      * Pop a waiter from the front of the queue.
      *
      * If empty, returns a nullptr.
@@ -65,7 +72,8 @@ private:
     WaiterSet waiterSet;
     // queue of iterators pointing into the waiterSet, tracks the order
     // waiters were queued in.
-    std::queue<WaiterSet::iterator> queue;
+    // Deque (rather than queue) to allow erasing.
+    std::deque<WaiterSet::iterator> queue;
 };
 
 /**
