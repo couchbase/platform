@@ -667,3 +667,66 @@ TEST(SemaphoreTest, AwaitableMultiThreaded) {
         thread->workerThread.join();
     }
 }
+
+TEST(SemaphoreTest, AwaitableMultiThreaded_ExternalWake) {
+    // Test that waiters do not get double-notified if they are woken
+    // by something other than the semaphore.
+
+    // only 1 task can run at a time
+    cb::AwaitableSemaphore testSemaphore{1};
+
+    // manually acquire the one token - the waiter can't get it yet
+    ASSERT_TRUE(testSemaphore.try_acquire());
+
+    struct TestWaiter : public cb::Waiter {
+        void signal() override {
+            signalled++;
+        }
+
+        std::atomic<int> signalled = 0;
+    };
+
+    auto waiterA = std::make_shared<TestWaiter>();
+    auto waiterB = std::make_shared<TestWaiter>();
+
+    // simulate waiterA "runs" once, and cannot acquire a token
+    ASSERT_FALSE(testSemaphore.acquire_or_wait(waiterA));
+    // A is now queued for notification
+
+    // simulate waiterB "runs" once, and cannot acquire a token
+    ASSERT_FALSE(testSemaphore.acquire_or_wait(waiterB));
+    // B is now queued for notification too
+
+    // release the token - this should signal waiterA
+    testSemaphore.release();
+
+    ASSERT_EQ(1, waiterA->signalled.load());
+    // the task waiterA represents should now try to run "soon"
+    // but it may not be instant.
+
+    // What if waiterB is woken by "something else"
+    // and tries to acquire a token again, before waiterA does?
+
+    // it should succeed, the token _is_ available
+    // _Here_ is where waiterB must be removed from the notification queue.
+    ASSERT_TRUE(testSemaphore.acquire_or_wait(waiterB));
+
+    // and when A tries, it should fail, as the token is not available.
+    // this will re-queue A for notification.
+    ASSERT_FALSE(testSemaphore.acquire_or_wait(waiterA));
+
+    // B later releases the token
+    testSemaphore.release();
+
+    // and this notifies A again
+    EXPECT_EQ(2, waiterA->signalled.load());
+
+    // _not_ B
+    EXPECT_EQ(0, waiterB->signalled.load());
+    // note that waiterB didn't get notified at all - some "other thing"
+    // coincidentally triggered the task to run again at just the right
+    // time. This is _fine_ - it got a turn to do the work it needed to,
+    // and didn't drop a notification on the floor.
+    // If it had been notified (and ignored it) it would have left waiterA
+    // queued for notification, even though a token was now available.
+}

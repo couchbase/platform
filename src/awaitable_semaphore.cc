@@ -14,22 +14,17 @@
 namespace cb {
 
 void AwaitableSemaphore::release(size_t count) {
-    Semaphore::release(count);
     signalWaiters(count);
 }
 
 bool AwaitableSemaphore::acquire_or_wait(std::weak_ptr<Waiter> waiter) {
-    // first, try to acquire a token - we can try to do this without locking
-    if (try_acquire()) {
-        // token was available and has been acquired
-        return true;
-    }
-    // token couldn't be acquired, might need to queue for notification
     auto wh = waiters.lock();
     if (try_acquire()) {
-        // check for a token again, to avoid missing a notification
-        // tokens have been released after we checked but before we locked
-        // - don't want to have waiters queued if there are no token holders
+        // token was available and has been acquired.
+        // If the waiter is already queued for notification, remove it.
+        // If we did not, a later release() could notify it, even though
+        // it already has a token.
+        wh->erase(waiter);
         return true;
     }
 
@@ -46,6 +41,7 @@ void AwaitableSemaphore::signalWaiters(size_t count) {
 
     {
         auto waitersHandle = waiters.lock();
+        Semaphore::release(count);
         while (count && !waitersHandle->empty()) {
             auto waiter = waitersHandle->pop().lock();
             if (waiter) {
