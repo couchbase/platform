@@ -283,10 +283,8 @@ public:
     uint64_t getMaxValue() const;
 
     /**
-     * Clears the histogram. Please not that this takes a write lock on the
-     * underlying data structure and will wait till all read locks have been
-     * released before completing and thus, could result in dead lock
-     * situations.
+     * Clears the histogram, obtaining a folly shared mutex which blocks new
+     * readers to avoid deadlock situations.
      */
     void reset();
 
@@ -374,7 +372,7 @@ public:
      * @return an iterator range that can be used to iterate over
      * data in this histogram
      */
-    auto defaultView(int64_t valueUnitsPerBucket) const {
+    auto defaultView() const {
         return cb::move_only_iterator_range(begin(), end());
     }
 
