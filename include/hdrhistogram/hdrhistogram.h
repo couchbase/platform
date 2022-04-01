@@ -273,6 +273,11 @@ public:
     uint64_t getValueCount() const;
 
     /**
+     * Returns true if zero values have been added to the histogram.
+     */
+    bool isEmpty() const;
+
+    /**
      * Returns the min value stored to the histogram
      */
     uint64_t getMinValue() const;

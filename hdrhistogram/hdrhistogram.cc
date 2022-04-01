@@ -101,6 +101,10 @@ uint64_t HdrHistogram::getValueCount() const {
     return static_cast<uint64_t>(histogram.rlock()->get()->total_count);
 }
 
+bool HdrHistogram::isEmpty() const {
+    return getValueCount() == 0;
+}
+
 uint64_t HdrHistogram::getMinValue() const {
     return static_cast<uint64_t>(hdr_min(histogram.rlock()->get()));
 }
