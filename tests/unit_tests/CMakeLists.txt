@@ -15,6 +15,7 @@ cb_add_test_executable(platform_unit_tests
                        getopt_test.cc
                        hex_test.cc
                        json_checker_test.cc
+                       monotonic_test.cc
                        n_byte_integer_test.cc
                        non_negative_counter_test.cc
                        optional_test.cc
