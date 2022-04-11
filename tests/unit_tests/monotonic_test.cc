@@ -157,3 +157,54 @@ TYPED_TEST(WeaklyMonotonicThrowTest, Decrease) {
     EXPECT_THROW(this->large = this->mono, std::logic_error);
     EXPECT_THROW(this->large = 0, std::logic_error);
 }
+
+class MonotonicTestMacro : public ::testing::Test {};
+
+struct TestLabeller {
+    std::string getLabel(const char* name) const {
+// MB-51912: Workaround msvc v19.16 compiler bug which means we can use the
+// 'Name' template arg, so name will be a nullptr so don't use it.
+#if defined(_MSC_VER) && (_MSC_VER <= 1916)
+        return "TestLabeller";
+#else
+        return "TestLabeller:" + std::string(name);
+#endif
+    };
+};
+
+TEST_F(MonotonicTestMacro, MonotonicArgMacrosThrow) {
+    MONOTONIC2(uint64_t, m2){1};
+    EXPECT_THROW(m2 = 0, std::logic_error);
+    MONOTONIC3(uint64_t, m3, TestLabeller){1};
+    EXPECT_THROW(m3 = 0, std::logic_error);
+    MONOTONIC4(uint64_t, m4, TestLabeller, ThrowExceptionPolicy){1};
+    EXPECT_THROW(m4 = 0, std::logic_error);
+}
+
+TEST_F(MonotonicTestMacro, WeaklyMonotonicArgMacrosThrow) {
+    WEAKLY_MONOTONIC2(uint64_t, wm2){1};
+    EXPECT_THROW(wm2 = 0, std::logic_error);
+    WEAKLY_MONOTONIC3(uint64_t, wm3, TestLabeller){1};
+    EXPECT_THROW(wm3 = 0, std::logic_error);
+    WEAKLY_MONOTONIC4(uint64_t, wm4, TestLabeller, ThrowExceptionPolicy){1};
+    EXPECT_THROW(wm4 = 0, std::logic_error);
+}
+
+TEST_F(MonotonicTestMacro, AtomicMonotonicArgMacrosThrow) {
+    ATOMIC_MONOTONIC2(uint64_t, am2){1};
+    EXPECT_THROW(am2 = 0, std::logic_error);
+    ATOMIC_MONOTONIC3(uint64_t, am3, TestLabeller){1};
+    EXPECT_THROW(am3 = 0, std::logic_error);
+    ATOMIC_MONOTONIC4(uint64_t, am4, TestLabeller, ThrowExceptionPolicy){1};
+    EXPECT_THROW(am4 = 0, std::logic_error);
+}
+
+TEST_F(MonotonicTestMacro, AtomicWeaklyMonotonicArgMacrosThrow) {
+    ATOMIC_WEAKLY_MONOTONIC2(uint64_t, awm2){1};
+    EXPECT_THROW(awm2 = 0, std::logic_error);
+    ATOMIC_WEAKLY_MONOTONIC3(uint64_t, awm3, TestLabeller){1};
+    EXPECT_THROW(awm3 = 0, std::logic_error);
+    ATOMIC_WEAKLY_MONOTONIC4(
+            uint64_t, awm4, TestLabeller, ThrowExceptionPolicy){1};
+    EXPECT_THROW(awm4 = 0, std::logic_error);
+}
