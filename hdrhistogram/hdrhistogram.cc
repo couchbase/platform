@@ -187,15 +187,15 @@ HdrHistogram::Iterator HdrHistogram::begin() const {
 std::string HdrHistogram::Iterator::dumpValues() {
     fmt::memory_buffer dump;
     while (*this != EndSentinel{}) {
-        fmt::format_to(dump,
+        fmt::format_to(std::back_inserter(dump),
                        "Value[{}-{}]\tCount:{}\t\n",
                        value_iterated_from,
                        value_iterated_to,
                        bucket.count);
         ++(*this);
     }
-    fmt::format_to(dump, "Total:\t{}\n", total_count);
-    return {dump.data(), dump.size()};
+    fmt::format_to(std::back_inserter(dump), "Total:\t{}\n", total_count);
+    return fmt::to_string(dump);
 }
 
 void HdrHistogram::printPercentiles() const {
