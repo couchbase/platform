@@ -42,7 +42,7 @@ static void dump(std::ostream& out, const cb::const_byte_buffer buffer) {
         "        |0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|";
 
     size_t ii = 0;
-    for (; ii < buffer.len; ++ii) {
+    for (; ii < buffer.size(); ++ii) {
         if (ii % 4 == 0) {
             out << std::endl;
             out <<
@@ -52,7 +52,7 @@ static void dump(std::ostream& out, const cb::const_byte_buffer buffer) {
             out << std::setw(8) << ii << "|";
             out.setf(std::ios::fixed);
         }
-        printByte(buffer.buf[ii], out);
+        printByte(buffer[ii], out);
     }
 
     out << std::endl;
@@ -69,7 +69,7 @@ static void dump(std::ostream& out, const cb::const_byte_buffer buffer) {
 }
 
 std::ostream& operator<<(std::ostream& out, const cb::byte_buffer& buffer) {
-    cb::const_byte_buffer buf { buffer.buf, buffer.len };
+    cb::const_byte_buffer buf { buffer.data(), buffer.size() };
     dump(out, buf);
     return out;
 }
