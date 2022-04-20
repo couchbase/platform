@@ -108,7 +108,8 @@ struct sized_buffer {
      *
      * @param other Buffer to copy from
      */
-    constexpr sized_buffer(const ncbuffer_type& other) : buf(other.buf), len(other.len) {
+    constexpr sized_buffer(const ncbuffer_type& other)
+        : buf(const_cast<T*>(other.data())), len(other.size()) {
     }
 
     // Iterators
@@ -287,7 +288,7 @@ struct sized_buffer {
         }
     }
 
-    // Ideally these would be private but they're already in use
+private:
     pointer buf;
     size_type len;
 };
