@@ -49,7 +49,7 @@ public:
         if (name) {
             return {name};
         }
-        return "unlabeled";
+        return "unlabelled";
     };
 };
 
