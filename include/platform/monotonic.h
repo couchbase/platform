@@ -105,7 +105,14 @@ public:
         if (Invariant<T>()(other.val, val)) {
             val = other.val;
         } else {
-            BaseType::nonMonotonic(val, other.val, labeler.getLabel(Name));
+// MB-51912: Workaround msvc v19.16 compiler bug which means we can use the
+// 'Name' template arg
+#if defined(_MSC_VER) && (_MSC_VER <= 1916)
+            const char* name = nullptr;
+#else
+            const char* name = Name;
+#endif
+            BaseType::nonMonotonic(val, other.val, labeler.getLabel(name));
         }
         return *this;
     }
@@ -114,7 +121,14 @@ public:
         if (Invariant<T>()(v, val)) {
             val = v;
         } else {
-            BaseType::nonMonotonic(val, v, labeler.getLabel(Name));
+// MB-51912: Workaround msvc v19.16 compiler bug which means we can use the
+// 'Name' template arg
+#if defined(_MSC_VER) && (_MSC_VER <= 1916)
+            const char* name = nullptr;
+#else
+            const char* name = Name;
+#endif
+            BaseType::nonMonotonic(val, v, labeler.getLabel(name));
         }
         return *this;
     }
@@ -170,7 +184,13 @@ template <class T,
           class LabelFactory = BasicNameLabelPolicy>
 using WeaklyMonotonic = Monotonic<T,
                                   OrderReversedPolicy,
+// MB-51912: Workaround msvc v19.16 compiler bug which means we can use the
+// 'Name' template arg
+#if defined(_MSC_VER) && (_MSC_VER <= 1916)
+                                  nullptr,
+#else
                                   Name,
+#endif
                                   LabelFactory,
                                   cb::greater_equal>;
 
@@ -206,8 +226,15 @@ public:
                     break;
                 }
             } else {
+// MB-51912: Workaround msvc v19.16 compiler bug which means we can use the
+// 'Name' template arg
+#if defined(_MSC_VER) && (_MSC_VER <= 1916)
+                const char* name = nullptr;
+#else
+                const char* name = Name;
+#endif
                 OrderReversedPolicy<T>::nonMonotonic(
-                        current, desired, labeler.getLabel(Name));
+                        current, desired, labeler.getLabel(name));
                 break;
             }
         }
@@ -277,7 +304,13 @@ template <class T,
           class LabelFactory = BasicNameLabelPolicy>
 using AtomicWeaklyMonotonic = AtomicMonotonic<T,
                                               OrderReversedPolicy,
+// MB-51912: Workaround msvc v19.16 compiler bug which means we can use the
+// 'Name' template arg
+#if defined(_MSC_VER) && (_MSC_VER <= 1916)
+                                              nullptr,
+#else
                                               Name,
+#endif
                                               LabelFactory,
                                               cb::greater_equal>;
 
