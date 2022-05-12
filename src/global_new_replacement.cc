@@ -44,6 +44,10 @@
 #warning Only operator new/delete up to C++17 overridden. If later standards add additional overrides they should be added here.
 #endif
 
+// New operators numbered from:
+// https://en.cppreference.com/w/cpp/memory/new/operator_new
+
+// (new 1)
 void* operator new(std::size_t count) {
     void* result = cb_malloc(count);
     if (result == nullptr) {
@@ -52,46 +56,7 @@ void* operator new(std::size_t count) {
     return result;
 }
 
-void* operator new(std::size_t count, std::align_val_t al) {
-    void* result = cb_aligned_alloc(static_cast<size_t>(al), count);
-    if (result == nullptr) {
-        throw std::bad_alloc();
-    }
-    return result;
-}
-
-void* operator new(std::size_t count, const std::nothrow_t& tag) noexcept {
-    void* result = cb_malloc(count);
-    return result;
-}
-
-void* operator new(std::size_t count,
-                   std::align_val_t al,
-                   const std::nothrow_t& tag) noexcept {
-    void* result = cb_aligned_alloc(static_cast<size_t>(al), count);
-    return result;
-}
-
-void operator delete(void* ptr) noexcept {
-    cb_free(ptr);
-}
-
-void operator delete(void* ptr, std::align_val_t) noexcept {
-    cb_aligned_free(ptr);
-}
-
-void operator delete(void* ptr, const std::nothrow_t& tag) noexcept {
-    cb_free(ptr);
-}
-
-void operator delete(void* ptr, std::size_t size) noexcept {
-    cb_sized_free(ptr, size);
-}
-
-void operator delete(void* ptr, std::size_t size, std::align_val_t) noexcept {
-    cb_aligned_free(ptr);
-}
-
+// (new 2)
 void* operator new[](std::size_t count) {
     void* result = cb_malloc(count);
     if (result == nullptr) {
@@ -100,6 +65,16 @@ void* operator new[](std::size_t count) {
     return result;
 }
 
+// (new 3)
+void* operator new(std::size_t count, std::align_val_t al) {
+    void* result = cb_aligned_alloc(static_cast<size_t>(al), count);
+    if (result == nullptr) {
+        throw std::bad_alloc();
+    }
+    return result;
+}
+
+// (new 4)
 void* operator new[](std::size_t count, std::align_val_t al) {
     void* result = cb_aligned_alloc(static_cast<size_t>(al), count);
     if (result == nullptr) {
@@ -108,11 +83,27 @@ void* operator new[](std::size_t count, std::align_val_t al) {
     return result;
 }
 
+// (new 5)
+void* operator new(std::size_t count, const std::nothrow_t& tag) noexcept {
+    void* result = cb_malloc(count);
+    return result;
+}
+
+// (new 6)
 void* operator new[](std::size_t count, const std::nothrow_t& tag) noexcept {
     void* result = cb_malloc(count);
     return result;
 }
 
+// (new 7)
+void* operator new(std::size_t count,
+                   std::align_val_t al,
+                   const std::nothrow_t& tag) noexcept {
+    void* result = cb_aligned_alloc(static_cast<size_t>(al), count);
+    return result;
+}
+
+// (new 8)
 void* operator new[](std::size_t count,
                      std::align_val_t al,
                      const std::nothrow_t& tag) noexcept {
@@ -120,22 +111,55 @@ void* operator new[](std::size_t count,
     return result;
 }
 
+// Delete operators numbered from:
+// https://en.cppreference.com/w/cpp/memory/new/operator_delete
+
+// (del 1)
+void operator delete(void* ptr) noexcept {
+    cb_free(ptr);
+}
+
+// (del 2)
 void operator delete[](void* ptr) noexcept {
     cb_free(ptr);
 }
 
+// (del 3)
+void operator delete(void* ptr, std::align_val_t) noexcept {
+    cb_aligned_free(ptr);
+}
+
+// (del 4)
 void operator delete[](void* ptr, std::align_val_t) noexcept {
     cb_aligned_free(ptr);
 }
 
+// (del 6)
 void operator delete[](void* ptr, std::size_t size) noexcept {
     cb_sized_free(ptr, size);
 }
 
+// (del 5)
+void operator delete(void* ptr, std::size_t size) noexcept {
+    cb_sized_free(ptr, size);
+}
+
+// (del 7)
+void operator delete(void* ptr, std::size_t size, std::align_val_t) noexcept {
+    cb_aligned_free(ptr);
+}
+
+// (del 8)
 void operator delete[](void* ptr, std::size_t size, std::align_val_t) noexcept {
     cb_aligned_free(ptr);
 }
 
+// (del 9)
+void operator delete(void* ptr, const std::nothrow_t& tag) noexcept {
+    cb_free(ptr);
+}
+
+// (del 10)
 void operator delete[](void* ptr, const std::nothrow_t& tag) noexcept {
     cb_free(ptr);
 }
