@@ -328,6 +328,12 @@ bool JEArenaMalloc::setTCacheEnabled(bool value) {
 }
 
 template <>
+bool JEArenaMalloc::getProperty(const char* name, unsigned& value) {
+    size_t size = sizeof(unsigned);
+    return je_mallctl(name, &value, &size, nullptr, 0);
+}
+
+template <>
 bool JEArenaMalloc::getProperty(const char* name, size_t& value) {
     size_t size = sizeof(size_t);
     return je_mallctl(name, &value, &size, nullptr, 0);

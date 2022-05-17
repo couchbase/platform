@@ -78,6 +78,7 @@ public:
     }
     static bool setTCacheEnabled(bool value);
 
+    static bool getProperty(const char* name, unsigned& value);
     static bool getProperty(const char* name, size_t& value);
     static int setProperty(const char* name, const void* newp, size_t newlen);
 

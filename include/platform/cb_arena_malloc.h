@@ -272,6 +272,21 @@ public:
     }
 
     /**
+     * Get the value of an allocator unsigned property.
+     *
+     * This is a thin wrapper for invoking je_mallctl or do nothing on system
+     * allocator builds.
+     *
+     * @param name The name of the parameter to get (maps to mallctl name)
+     * @param[out] value unsigned to write to if successful (maps to mallctl
+     * oldp)
+     * @return true if the call was successful
+     */
+    static bool getProperty(const char* name, unsigned& value) {
+        return Impl::getProperty(name, value);
+    }
+
+    /**
      * Get the value of an allocator size_t property.
      *
      * This is a thin wrapper for invoking je_mallctl or do nothing on system

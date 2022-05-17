@@ -182,6 +182,10 @@ bool SystemArenaMalloc::setTCacheEnabled(bool value) {
     return false;
 }
 
+bool SystemArenaMalloc::getProperty(const char* name, unsigned& value) {
+    return false;
+}
+
 bool SystemArenaMalloc::getProperty(const char* name, size_t& value) {
     return false;
 }
