@@ -99,11 +99,6 @@ static_assert(sizeof(CurrentClient) == sizeof(uint64_t),
  */
 struct ThreadLocalData {
 public:
-    /**
-     * @return a tcache to use for the given client
-     */
-    uint16_t getTCacheID(const ArenaMallocClient& client);
-
     CurrentClient& getCurrentClient() {
         return currentClient;
     }
@@ -115,9 +110,6 @@ public:
 
 private:
     CurrentClient currentClient;
-
-    /// Actual array of identifiers, value of 0 means no tcache has been created
-    uint16_t tcacheIds[ArenaMallocMaxClients] = {0};
 };
 
 /**
@@ -359,48 +351,6 @@ template <>
 void JEArenaMalloc::releaseMemory(const ArenaMallocClient& client) {
     std::string purgeKey = "arena." + std::to_string(client.arena) + ".purge";
     setProperty(purgeKey.c_str(), nullptr, 0);
-}
-
-uint16_t ThreadLocalData::getTCacheID(const ArenaMallocClient& client) {
-    // If no tcache exists one must be created (id:0 means no tcache)
-    if (!tcacheIds[client.index]) {
-        unsigned tcache = 0;
-        size_t sz = sizeof(unsigned);
-        int rv = je_mallctl("tcache.create", (void*)&tcache, &sz, nullptr, 0);
-        if (rv != 0) {
-            throw std::runtime_error(
-                    "ThreadLocalData::getTCacheID: tcache.create failed rv:" +
-                    std::to_string(rv));
-        }
-        tcacheIds[client.index] = tcache;
-
-        // We need to be sure that all allocated tcaches are destroyed at thread
-        // exit, do this by using a destruct function attached to a unique_ptr.
-        struct ThreadLocalDataDestroy {
-            void operator()(ThreadLocalData* ptr) {
-                for (auto tc : ptr->tcacheIds) {
-                    if (tc) {
-                        unsigned tcache = tc;
-                        size_t sz = sizeof(unsigned);
-                        if (je_mallctl("tcache.destroy",
-                                       nullptr,
-                                       nullptr,
-                                       (void*)&tcache,
-                                       sz) != 0) {
-                            throw std::logic_error(
-                                    "JEArenaMalloc::ThreadLocalDataDestroy: "
-                                    "Could not "
-                                    "destroy "
-                                    "tcache");
-                        }
-                    }
-                }
-            }
-        };
-        thread_local std::unique_ptr<ThreadLocalData, ThreadLocalDataDestroy>
-                destroyTcache{this};
-    }
-    return tcacheIds[client.index];
 }
 
 Clients::ClientArray& Clients::get() {
