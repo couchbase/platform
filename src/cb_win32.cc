@@ -198,18 +198,6 @@ int cb_set_thread_name(const char* name) {
     return ThreadNameSupport::instance().setName(name);
 }
 
-int cb_get_thread_name(char* buffer, size_t size) {
-    auto nm = ThreadNameSupport::instance().getName(GetCurrentThread());
-    if (nm.has_value()) {
-        const auto nb = std::min(nm.value().size(), size);
-        strncpy(buffer, nm.value().c_str(), nb);
-        buffer[size - 1] = '\0';
-        return 0;
-    }
-
-    return -1;
-}
-
 std::string cb_get_thread_name(cb_thread_t tid) {
     auto handle = OpenThread(READ_CONTROL, false, tid);
     if (handle == INVALID_HANDLE_VALUE) {

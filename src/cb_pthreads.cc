@@ -146,15 +146,6 @@ int cb_set_thread_name(const char* name)
     return -1;
 }
 
-int cb_get_thread_name(char* name, size_t size)
-{
-#if defined(HAVE_PTHREAD_GETNAME_NP)
-    return pthread_getname_np(pthread_self(), name, size);
-#else
-    return - 1;
-#endif
-}
-
 std::string cb_get_thread_name(cb_thread_t tid) {
 #if defined(HAVE_PTHREAD_GETNAME_NP)
     std::array<char, 32> buffer;

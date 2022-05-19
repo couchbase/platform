@@ -97,16 +97,6 @@ cb_thread_t cb_thread_self();
 int cb_set_thread_name(const char* name);
 
 /**
- * Try to get the name of the current thread
- *
- * @param name destination buffer
- * @param size size of destination buffer
- * @return 0 for success
- *         -1 if an error occurred
- */
-int cb_get_thread_name(char* name, size_t size);
-
-/**
  * Get the name of a given tread
  *
  * @param tid The thread to get the name for

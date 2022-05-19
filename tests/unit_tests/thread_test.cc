@@ -52,20 +52,14 @@ TEST(ThreadnameTest, ThreadName) {
     }
 
     EXPECT_EQ(0, cb_set_thread_name("test"));
-    char buffer[80];
-    EXPECT_EQ(0, cb_get_thread_name(buffer, sizeof(buffer)));
-    EXPECT_EQ(std::string("test"), std::string(buffer));
-
     EXPECT_EQ("test", cb_get_thread_name(cb_thread_self()));
 
-    memset(buffer, 'a', sizeof(buffer));
-    buffer[79] ='\0';
-    EXPECT_EQ(1, cb_set_thread_name(buffer)) << " errno " << errno << " "
-                                             << strerror(errno);
-
-    memset(buffer, 0, sizeof(buffer));
+    std::string buffer;
+    buffer.resize(80);
+    std::fill(buffer.begin(), buffer.end(), 'a');
+    EXPECT_EQ(1, cb_set_thread_name(buffer.c_str()))
+            << " errno " << errno << " " << strerror(errno);
 
     // Check that a failing set thread name didn't mess up the value
-    EXPECT_EQ(0, cb_get_thread_name(buffer, sizeof(buffer)));
-    EXPECT_EQ(std::string("test"), std::string(buffer));
+    EXPECT_EQ("test", cb_get_thread_name(cb_thread_self()));
 }
