@@ -25,11 +25,24 @@ typedef pthread_t cb_thread_t;
 typedef pthread_rwlock_t cb_rwlock_t;
 #endif // WIN32
 
+#include <functional>
 #include <string>
+#include <thread>
 
 /***********************************************************************
  *                     Thread related functions                        *
  **********************************************************************/
+
+/**
+ * Create a thread which runs the provided function (and tries to set the
+ * thread name to the provided name)
+ *
+ * @param main The method to run within the thread object
+ * @param name The name for the thread (not const as it gets moved
+ *             over to the running thread to clean up)
+ * @return The (running) thread object
+ */
+std::thread create_thread(std::function<void()> main, std::string name);
 
 /**
  * Thread function signature.

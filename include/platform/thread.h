@@ -15,6 +15,7 @@
 #include <condition_variable>
 #include <mutex>
 #include <string>
+#include <thread>
 
 namespace Couchbase {
 
@@ -165,7 +166,7 @@ namespace Couchbase {
         /**
          * The thread id for the thread
          */
-        cb_thread_t thread_id;
+        std::thread thread;
 
         /**
          * The state of the thread

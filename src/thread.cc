@@ -7,8 +7,8 @@
  *   software will be governed by the Apache License, Version 2.0, included in
  *   the file licenses/APL2.txt.
  */
+#include <phosphor/phosphor.h>
 #include <platform/thread.h>
-
 #include <utility>
 
 Couchbase::Thread::Thread(std::string name_)
@@ -20,7 +20,7 @@ Couchbase::Thread::~Thread() {
     case ThreadState::Stopped:
         return;
     case ThreadState::Zombie:
-        cb_join_thread(thread_id);
+        thread.join();
         return;
     case ThreadState::Running:
     case ThreadState::Starting:
@@ -62,11 +62,7 @@ void Couchbase::Thread::start() {
     std::unique_lock<std::mutex> lock(synchronization.mutex);
     state = ThreadState::Starting;
 
-    if (cb_create_named_thread(&thread_id, task_thread_main, this,
-                               0, name.c_str()) != 0) {
-        state = ThreadState::Stopped;
-        throw std::bad_alloc();
-    }
+    thread = std::thread{[this]() { task_thread_main(this); }};
 
     while (state != ThreadState::Running && state != ThreadState::Zombie) {
         synchronization.cond.wait(lock);
@@ -96,4 +92,13 @@ Couchbase::ThreadState Couchbase::Thread::waitForState(
         }
         synchronization.cond.wait(lock);
     }
+}
+
+std::thread create_thread(std::function<void()> main, std::string name) {
+    return std::thread{[n = std::move(name), main]() {
+        cb_set_thread_name(n.c_str());
+        PHOSPHOR_INSTANCE.registerThread(n);
+        main();
+        PHOSPHOR_INSTANCE.deregisterThread();
+    }};
 }
