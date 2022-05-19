@@ -45,51 +45,6 @@ typedef pthread_rwlock_t cb_rwlock_t;
 std::thread create_thread(std::function<void()> main, std::string name);
 
 /**
- * Thread function signature.
- */
-typedef void (*cb_thread_main_func)(void* argument);
-
-/**
- * Create a new thread (in a running state).
- *
- * @param id The thread identifier (returned)
- * @param func The entry point for the newly created thread
- * @param arg Arguments passed to the newly created thread
- * @param detached Set to non-null if the thread should be
- *                 created in a detached state (which you
- *                 can't call cb_join_thread on).
- */
-int cb_create_thread(cb_thread_t* id,
-                     cb_thread_main_func func,
-                     void* arg,
-                     int detached);
-
-/**
- * Create a new thread (in a running state), with a name.
- *
- * @param id The thread identifier (returned)
- * @param func The entry point for the newly created thread
- * @param arg Arguments passed to the newly created thread
- * @param detached Set to non-null if the thread should be
- *                 created in a detached state (which you
- *                 can't call cb_join_thread on).
- * @param name Name of the thread. Maximum of 16 characters in length,
- *             including terminating '\0'. (Note: name ignored on Windows).
- */
-int cb_create_named_thread(cb_thread_t* id,
-                           cb_thread_main_func func,
-                           void* arg,
-                           int detached,
-                           const char* name);
-
-/**
- * Wait for a thread to complete
- *
- * @param id The thread identifier to wait for
- */
-int cb_join_thread(cb_thread_t id);
-
-/**
  * Get the id for the running thread
  *
  * @return the id for the running thread
