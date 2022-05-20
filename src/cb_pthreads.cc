@@ -7,9 +7,10 @@
  *   software will be governed by the Apache License, Version 2.0, included in
  *   the file licenses/APL2.txt.
  */
+#include <folly/system/ThreadName.h>
 #include <platform/cb_malloc.h>
-#include <platform/strerror.h>
 #include <platform/platform_thread.h>
+#include <platform/strerror.h>
 
 #include <cerrno>
 #include <cstdio>
@@ -123,46 +124,25 @@ cb_thread_t cb_thread_self()
     return pthread_self();
 }
 
-int cb_set_thread_name(const char* name)
-{
-#if defined(__APPLE__)
-    // No thread argument (implicit current thread).
-    int ret = pthread_setname_np(name);
-    if (ret == 0) {
-        return 0;
-    } else if (errno == ENAMETOOLONG) {
-        return 1;
+bool cb_set_thread_name(std::string_view name) {
+    if (name.size() > MaxThreadNameLength) {
+        throw std::logic_error("cb_set_thread_name: thread name too long");
     }
-#elif defined(HAVE_PTHREAD_SETNAME_NP)
-    errno = 0;
-    int ret = pthread_setname_np(pthread_self(), name);
-    if (ret == 0) {
-        return 0;
-    } else if (errno == ERANGE || ret == ERANGE) {
-        return 1;
-    }
-#endif
 
-    return -1;
+    return folly::setThreadName(name);
 }
 
-std::string cb_get_thread_name(cb_thread_t tid) {
-#if defined(HAVE_PTHREAD_GETNAME_NP)
-    std::array<char, 32> buffer;
-    if (pthread_getname_np(tid, buffer.data(), buffer.size()) == 0) {
-        return std::string{buffer.data()};
+std::string cb_get_thread_name() {
+    auto name = folly::getCurrentThreadName();
+    if (name.has_value()) {
+        return *name;
     }
-#endif
-    return std::to_string(uint64_t(tid));
+
+    return std::to_string(uint64_t(cb_thread_self()));
 }
 
-bool is_thread_name_supported()
-{
-#ifdef HAVE_PTHREAD_SETNAME_NP
-    return true;
-#else
-    return false;
-#endif
+bool is_thread_name_supported() {
+    return folly::canSetCurrentThreadName();
 }
 
 void cb_rw_lock_initialize(cb_rwlock_t *rw)

@@ -47,19 +47,21 @@ TEST_F(ThreadTest, SimpleThreadTest) {
 }
 
 TEST(ThreadnameTest, ThreadName) {
-    if (!is_thread_name_supported()) {
-        GTEST_SKIP();
+    if (is_thread_name_supported()) {
+        EXPECT_TRUE(cb_set_thread_name("test"));
+        EXPECT_EQ("test", cb_get_thread_name());
+
+        try {
+            std::string buffer;
+            buffer.resize(80);
+            std::fill(buffer.begin(), buffer.end(), 'a');
+            cb_set_thread_name(buffer);
+            FAIL() << "Should throw an exception";
+        } catch (const std::logic_error&) {
+        }
+        // Check that a failing set thread name didn't mess up the value
+        EXPECT_EQ("test", cb_get_thread_name());
+    } else {
+        EXPECT_FALSE(cb_set_thread_name("test"));
     }
-
-    EXPECT_EQ(0, cb_set_thread_name("test"));
-    EXPECT_EQ("test", cb_get_thread_name(cb_thread_self()));
-
-    std::string buffer;
-    buffer.resize(80);
-    std::fill(buffer.begin(), buffer.end(), 'a');
-    EXPECT_EQ(1, cb_set_thread_name(buffer.c_str()))
-            << " errno " << errno << " " << strerror(errno);
-
-    // Check that a failing set thread name didn't mess up the value
-    EXPECT_EQ("test", cb_get_thread_name(cb_thread_self()));
 }

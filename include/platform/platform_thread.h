@@ -96,26 +96,32 @@ int cb_join_thread(cb_thread_t id);
  */
 cb_thread_t cb_thread_self();
 
+/// We'll only support a thread name up to 32 characters
+constexpr size_t MaxThreadNameLength = 32;
+
 /**
  * Sets the current threads' name.
  *
- * This method tries to set the current threads name by using
- * pthread_setname_np (which means that it is not implemented
- * on windows)
- *
  * @param name New value for the current threads' name
- * @return 0 for success, 1 if the specified name is too long and
- *         -1 if an error occurred
+ * @return true for success, false otherwise
+ * @throws std::logic_error if the thread name exceeds the max length
  */
-int cb_set_thread_name(const char* name);
+bool cb_set_thread_name(std::string_view name);
 
+#ifdef WIN32
 /**
- * Get the name of a given tread
+ * Get the name of a given tread. This functionality is only used by
+ * sigar on windows
  *
  * @param tid The thread to get the name for
  * @return The name of the thread (or std::to_string(tid))
  */
 std::string cb_get_thread_name(cb_thread_t tid);
+#endif
+
+/// Get the name of the current thread; this functionality is only used
+/// in our unit tests to check that cb_set_thread_name works
+std::string cb_get_thread_name();
 
 /**
  * Does the underlying platform support setting thread names

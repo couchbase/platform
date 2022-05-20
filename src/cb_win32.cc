@@ -106,23 +106,23 @@ cb_thread_t cb_thread_self(void) {
 
 class ThreadNameSupport {
 public:
-    int setName(std::string name) {
+    bool setName(std::string name) {
         if (!supported) {
-            return -1;
+            return false;
         }
 
         // Windows doesn't really have this restriction, but we have a unit
         // test which wants this to fail (because it does on Posix)...
-        if (name.size() > 32) {
-            return 1;
+        if (name.size() > MaxThreadNameLength) {
+            throw std::logic_error("cb_set_thread_name: thread name too long");
         }
 
         const auto thread_name = to_wstring(name);
         if (SUCCEEDED(set(GetCurrentThread(), thread_name.c_str()))) {
-            return 0;
+            return true;
         }
 
-        return -1;
+        return false;
     }
 
     std::optional<std::string> getName(HANDLE tid) {
@@ -194,8 +194,9 @@ protected:
     GetFunc get;
 };
 
-int cb_set_thread_name(const char* name) {
-    return ThreadNameSupport::instance().setName(name);
+bool cb_set_thread_name(std::string_view name) {
+    return ThreadNameSupport::instance().setName(
+            std::string{name.data(), name.size()});
 }
 
 std::string cb_get_thread_name(cb_thread_t tid) {
@@ -210,6 +211,10 @@ std::string cb_get_thread_name(cb_thread_t tid) {
     }
 
     return std::to_string(tid);
+}
+
+std::string cb_get_thread_name() {
+    return cb_get_thread_name(cb_thread_self());
 }
 
 bool is_thread_name_supported() {
