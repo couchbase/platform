@@ -193,7 +193,7 @@ public:
 
                 // Wait for either the shutdown condvar to be notified, or for
                 // 1s. If we hit the timeout then time to check the parent.
-                if (shutdown_cv.wait_for(locked.getUniqueLock(),
+                if (shutdown_cv.wait_for(locked.as_lock(),
                                          std::chrono::seconds(1),
                                          [this] { return !active; })) {
                     // No longer monitoring - exit thread.
