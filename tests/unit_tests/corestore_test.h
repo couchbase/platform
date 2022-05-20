@@ -67,7 +67,6 @@ protected:
  * Ripped this from folly's test class to allow us to manually tell it which CPU
  * it should think we are using.
  */
-#ifdef FOLLY_TLS
 #define DECLARE_SPREADER_TAG(tag, locality, func)        \
     namespace {                                          \
     template <typename dummy>                            \
@@ -89,4 +88,3 @@ protected:
 DECLARE_SPREADER_TAG(ManualTag,
                      CacheLocality::uniform(ArrayTest::cpuCount),
                      ArrayTest::testingGetCpu)
-#endif
