@@ -8,7 +8,7 @@
  *   the file licenses/APL2.txt.
  */
 #include <platform/getopt.h>
-#include <platform/platform_thread.h>
+#include <platform/rwlock.h>
 #include <win32/getopt.h>
 #include <cassert>
 #include <chrono>

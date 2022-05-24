@@ -11,8 +11,54 @@
 
 #include <platform/platform_thread.h>
 
+#ifdef WIN32
+#include <folly/portability/Windows.h>
+using cb_rwlock_t = SRWLOCK;
+#else
+#include <pthread.h>
+using cb_rwlock_t = pthread_rwlock_t;
+#endif // WIN32
+
 #include <stdexcept>
 #include <string>
+
+/***********************************************************************
+ *                 Reader/Writer lock  related functions               *
+ **********************************************************************/
+
+/**
+ * Initialize a read/write lock
+ */
+void cb_rw_lock_initialize(cb_rwlock_t* rw);
+
+/**
+ * Destroy a read/write lock
+ */
+void cb_rw_lock_destroy(cb_rwlock_t* rw);
+
+/*
+ * Obtain reader access to the rw_lock
+ * Return 0 if succesfully entered the critical section.
+ */
+int cb_rw_reader_enter(cb_rwlock_t* rw);
+
+/*
+ * Exit the lock if previously entered as a reader.
+ * Return 0 if succesfully exited the critical section.
+ */
+int cb_rw_reader_exit(cb_rwlock_t* rw);
+
+/*
+ * Obtain writer access to the rw_lock
+ * Return 0 if succesfully entered the critical section.
+ */
+int cb_rw_writer_enter(cb_rwlock_t* rw);
+
+/*
+ * Exit the lock if previously entered as a writer.
+ * Return 0 if succesfully exited the critical section.
+ */
+int cb_rw_writer_exit(cb_rwlock_t* rw);
 
 namespace cb {
 
