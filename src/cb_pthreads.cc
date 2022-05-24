@@ -7,47 +7,13 @@
  *   software will be governed by the Apache License, Version 2.0, included in
  *   the file licenses/APL2.txt.
  */
-#include <folly/system/ThreadName.h>
-#include <platform/cb_malloc.h>
 #include <platform/platform_thread.h>
 #include <platform/strerror.h>
 
-#include <cerrno>
 #include <cstdio>
-#include <cstdlib>
-#include <cstring>
 #include <memory>
-#include <new>
 #include <stdexcept>
-#include <string>
-#include <sys/time.h>
 #include <system_error>
-
-cb_thread_t cb_thread_self()
-{
-    return pthread_self();
-}
-
-bool cb_set_thread_name(std::string_view name) {
-    if (name.size() > MaxThreadNameLength) {
-        throw std::logic_error("cb_set_thread_name: thread name too long");
-    }
-
-    return folly::setThreadName(name);
-}
-
-std::string cb_get_thread_name() {
-    auto name = folly::getCurrentThreadName();
-    if (name.has_value()) {
-        return *name;
-    }
-
-    return std::to_string(uint64_t(cb_thread_self()));
-}
-
-bool is_thread_name_supported() {
-    return folly::canSetCurrentThreadName();
-}
 
 void cb_rw_lock_initialize(cb_rwlock_t *rw)
 {

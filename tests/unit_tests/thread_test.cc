@@ -8,60 +8,38 @@
  *   the file licenses/APL2.txt.
  */
 #include <folly/portability/GTest.h>
+#include <folly/system/ThreadName.h>
 #include <platform/thread.h>
 #include <iostream>
 
-class TestThread : public Couchbase::Thread {
-public:
-    TestThread() : Couchbase::Thread("foo"), tid(0) {}
-
-    std::condition_variable cond;
-    std::mutex mutex;
-    cb_thread_t tid;
-
-    ~TestThread() override {
-        waitForState(Couchbase::ThreadState::Zombie);
-    }
-
-protected:
-    void run() override {
-        setRunning();
-        std::lock_guard<std::mutex> guard(mutex);
-        tid = cb_thread_self();
-        cond.notify_all();
-    }
-};
-
-class ThreadTest : public ::testing::Test {
-};
-
-
-TEST_F(ThreadTest, SimpleThreadTest) {
-    TestThread worker;
-    std::unique_lock<std::mutex> lock(worker.mutex);
-    EXPECT_NO_THROW(worker.start());
-    worker.cond.wait(lock);
-
-    EXPECT_NE((cb_thread_t)0, worker.tid);
-    EXPECT_NE(cb_thread_self(), worker.tid);
-}
-
 TEST(ThreadnameTest, ThreadName) {
-    if (is_thread_name_supported()) {
-        EXPECT_TRUE(cb_set_thread_name("test"));
-        EXPECT_EQ("test", cb_get_thread_name());
-
-        try {
-            std::string buffer;
-            buffer.resize(80);
-            std::fill(buffer.begin(), buffer.end(), 'a');
-            cb_set_thread_name(buffer);
-            FAIL() << "Should throw an exception";
-        } catch (const std::logic_error&) {
+    EXPECT_TRUE(folly::canSetCurrentThreadName());
+#ifndef WIN32
+    // For some reason it seems like folly::getCurrentThreadName() isn't
+    // working properly on Windows, and the thread names on windows is only
+    // available for viewing in the debugger (not by the task manager AFAIK)
+    // so lets just use folly for now (thread names appeared in Windows 10
+    // b1607 so it might not be available on the target system anyway)
+    auto getThreadName = []() -> std::string {
+        auto name = folly::getCurrentThreadName();
+        if (name.has_value()) {
+            return *name;
         }
-        // Check that a failing set thread name didn't mess up the value
-        EXPECT_EQ("test", cb_get_thread_name());
-    } else {
-        EXPECT_FALSE(cb_set_thread_name("test"));
+        return "getCurrentThreadName did not return a thread name";
+    };
+
+    EXPECT_TRUE(cb_set_thread_name("test"));
+    EXPECT_EQ("test", getThreadName());
+
+    try {
+        std::string buffer;
+        buffer.resize(80);
+        std::fill(buffer.begin(), buffer.end(), 'a');
+        cb_set_thread_name(buffer);
+        FAIL() << "Should throw an exception";
+    } catch (const std::logic_error&) {
     }
+    // Check that a failing set thread name didn't mess up the value
+    EXPECT_EQ("test", getThreadName());
+#endif
 }

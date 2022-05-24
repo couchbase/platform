@@ -7,6 +7,7 @@
  *   software will be governed by the Apache License, Version 2.0, included in
  *   the file licenses/APL2.txt.
  */
+#include <folly/system/ThreadName.h>
 #include <phosphor/phosphor.h>
 #include <platform/thread.h>
 #include <utility>
@@ -94,9 +95,24 @@ Couchbase::ThreadState Couchbase::Thread::waitForState(
     }
 }
 
+bool cb_set_thread_name(std::string_view name) {
+    if (name.size() > MaxThreadNameLength) {
+        throw std::logic_error("cb_set_thread_name: thread name too long");
+    }
+
+    return folly::setThreadName(name);
+}
+
 std::thread create_thread(std::function<void()> main, std::string name) {
+    // We don't want the exception being thrown in the new thread...
+    if (name.size() > MaxThreadNameLength) {
+        throw std::logic_error("create_thread: thread name too long");
+    }
+
     return std::thread{[n = std::move(name), main]() {
-        cb_set_thread_name(n.c_str());
+        if (folly::canSetCurrentThreadName()) {
+            folly::setThreadName(n);
+        }
         PHOSPHOR_INSTANCE.registerThread(n);
         main();
         PHOSPHOR_INSTANCE.deregisterThread();

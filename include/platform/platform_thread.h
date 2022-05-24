@@ -17,11 +17,9 @@
 
 #include <folly/portability/Windows.h>
 
-typedef DWORD cb_thread_t;
 typedef SRWLOCK cb_rwlock_t;
 #else
 #include <pthread.h>
-typedef pthread_t cb_thread_t;
 typedef pthread_rwlock_t cb_rwlock_t;
 #endif // WIN32
 
@@ -44,13 +42,6 @@ typedef pthread_rwlock_t cb_rwlock_t;
  */
 std::thread create_thread(std::function<void()> main, std::string name);
 
-/**
- * Get the id for the running thread
- *
- * @return the id for the running thread
- */
-cb_thread_t cb_thread_self();
-
 /// We'll only support a thread name up to 32 characters
 constexpr size_t MaxThreadNameLength = 32;
 
@@ -62,26 +53,6 @@ constexpr size_t MaxThreadNameLength = 32;
  * @throws std::logic_error if the thread name exceeds the max length
  */
 bool cb_set_thread_name(std::string_view name);
-
-#ifdef WIN32
-/**
- * Get the name of a given tread. This functionality is only used by
- * sigar on windows
- *
- * @param tid The thread to get the name for
- * @return The name of the thread (or std::to_string(tid))
- */
-std::string cb_get_thread_name(cb_thread_t tid);
-#endif
-
-/// Get the name of the current thread; this functionality is only used
-/// in our unit tests to check that cb_set_thread_name works
-std::string cb_get_thread_name();
-
-/**
- * Does the underlying platform support setting thread names
- */
-bool is_thread_name_supported();
 
 /***********************************************************************
  *                 Reader/Writer lock  related functions               *
