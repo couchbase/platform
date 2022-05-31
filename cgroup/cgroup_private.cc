@@ -9,13 +9,13 @@
  */
 
 #include "cgroup_private.h"
-#include <boost/filesystem.hpp>
 #include <cgroup/cgroup.h>
 #include <platform/dirutils.h>
 #include <platform/split_string.h>
 #include <unistd.h>
 #include <charconv>
 #include <deque>
+#include <filesystem>
 #include <optional>
 #include <string>
 #include <vector>
@@ -40,7 +40,7 @@ struct MountEntry {
           option(std::move(o)) {
     }
     const Version type;
-    const boost::filesystem::path path;
+    const std::filesystem::path path;
     const std::string option;
 };
 
@@ -63,7 +63,7 @@ static std::vector<MountEntry> parse_proc_mounts(const std::string root) {
     return ret;
 }
 
-static bool search_file(pid_t pid, const boost::filesystem::path& file) {
+static bool search_file(pid_t pid, const std::filesystem::path& file) {
     bool found = false;
     const auto textual = std::to_string(pid);
     cb::io::tokenizeFileLineByLine(file, [&found, &textual](const auto& parts) {
@@ -83,11 +83,11 @@ static bool search_file(pid_t pid, const boost::filesystem::path& file) {
  * @return the path to where I found the pid registered
  * @thros std::system_error for io errors
  */
-static std::optional<boost::filesystem::path> find_cgroup_path(
-        const boost::filesystem::path& root) {
+static std::optional<std::filesystem::path> find_cgroup_path(
+        const std::filesystem::path& root) {
     const auto pid = getpid();
-    std::vector<boost::filesystem::path> ret;
-    std::deque<boost::filesystem::path> paths;
+    std::vector<std::filesystem::path> ret;
+    std::deque<std::filesystem::path> paths;
     paths.push_back(root);
     while (!paths.empty()) {
         auto path = paths.front();
@@ -98,7 +98,7 @@ static std::optional<boost::filesystem::path> find_cgroup_path(
             return path;
         }
 
-        for (const auto& p : boost::filesystem::directory_iterator(path)) {
+        for (const auto& p : std::filesystem::directory_iterator(path)) {
             if (is_directory(p) && !is_symlink(p)) {
                 paths.push_back(p.path());
             }
@@ -117,7 +117,7 @@ public:
         }
     }
 
-    void add_entry(const boost::filesystem::path& path,
+    void add_entry(const std::filesystem::path& path,
                    std::string_view options) {
         auto tokens = cb::string::split(options, ',');
         for (const auto& token : tokens) {
@@ -305,16 +305,16 @@ protected:
 public:
     int user_hz;
     /// The location of the cpu controller if available
-    std::optional<boost::filesystem::path> cpu;
+    std::optional<std::filesystem::path> cpu;
     /// The location of the cpu accounting controller if available
-    std::optional<boost::filesystem::path> cpuacct;
+    std::optional<std::filesystem::path> cpuacct;
     /// The location of the memory controller if available
-    std::optional<boost::filesystem::path> memory;
+    std::optional<std::filesystem::path> memory;
 };
 
 class ControlGroupV2 : public ControlGroup {
 public:
-    ControlGroupV2(boost::filesystem::path path) : directory(std::move(path)) {
+    ControlGroupV2(std::filesystem::path path) : directory(std::move(path)) {
     }
 
     Version get_version() override {
@@ -420,7 +420,7 @@ protected:
         return 0;
     }
 
-    const boost::filesystem::path directory;
+    const std::filesystem::path directory;
 };
 
 std::unique_ptr<ControlGroup> make_control_group(std::string root) {

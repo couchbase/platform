@@ -8,21 +8,21 @@
  *   the file licenses/APL2.txt.
  */
 
-#include <boost/filesystem.hpp>
 #include <getopt.h>
+#include <filesystem>
 #include <iostream>
 #include <string>
 #include <thread>
 #include <vector>
 
-[[noreturn]] void usage(const boost::filesystem::path name) {
+[[noreturn]] void usage(const std::filesystem::path name) {
     std::cerr << "Usage: " << name.filename().string() << " [options]\n"
               << "    --lockfile filename" << std::endl
               << "    --exitcode exitcode" << std::endl;
     exit(5);
 }
 
-void waitWhileLockFile(const boost::filesystem::path lockfile) {
+void waitWhileLockFile(const std::filesystem::path lockfile) {
     while (exists(lockfile)) {
         std::this_thread::sleep_for(std::chrono::microseconds{10});
     }

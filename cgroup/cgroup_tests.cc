@@ -10,10 +10,11 @@
 
 #include "cgroup_private.h"
 
-#include <boost/filesystem.hpp>
 #include <cgroup/cgroup.h>
 #include <folly/portability/GTest.h>
 #include <platform/dirutils.h>
+#include <filesystem>
+#include <fstream>
 
 using namespace cb::cgroup;
 
@@ -22,13 +23,13 @@ public:
     /// Simulate parts of the CGroup directories I see on Ubuntu 20.04
     static void SetUpTestCase() {
         test_directory = absolute(
-                boost::filesystem::path(cb::io::mkdtemp("cgroup_v1_test.")));
+                std::filesystem::path(cb::io::mkdtemp("cgroup_v1_test.")));
         cgroup_directory = test_directory / "sys" / "fs" / "cgroup";
-        boost::filesystem::create_directories(test_directory / "proc");
-        boost::filesystem::create_directories(cgroup_directory);
-        boost::filesystem::create_directories(cgroup_directory / "unified");
-        boost::filesystem::create_directories(cgroup_directory / "cpu,cpuacct");
-        boost::filesystem::create_directories(cgroup_directory / "memory");
+        std::filesystem::create_directories(test_directory / "proc");
+        std::filesystem::create_directories(cgroup_directory);
+        std::filesystem::create_directories(cgroup_directory / "unified");
+        std::filesystem::create_directories(cgroup_directory / "cpu,cpuacct");
+        std::filesystem::create_directories(cgroup_directory / "memory");
 
         std::ofstream file(
                 absolute(test_directory / "proc" / "mounts").generic_string());
@@ -43,7 +44,7 @@ public:
         file.close();
     }
 
-    static void writePids(const boost::filesystem::path& p,
+    static void writePids(const std::filesystem::path& p,
                           const std::vector<pid_t>& pids) {
         std::ofstream file((p / "cgroup.procs").generic_string());
         for (const auto& pid : pids) {
@@ -54,7 +55,7 @@ public:
 
     static void TearDownTestCase() {
         try {
-            boost::filesystem::remove_all(test_directory);
+            std::filesystem::remove_all(test_directory);
         } catch (const std::exception& e) {
             std::cerr << "Failed to remove: " << test_directory.generic_string()
                       << ": " << e.what() << std::endl;
@@ -68,14 +69,14 @@ protected:
     }
 
 public:
-    static boost::filesystem::path test_directory;
-    static boost::filesystem::path cgroup_directory;
+    static std::filesystem::path test_directory;
+    static std::filesystem::path cgroup_directory;
 
     std::unique_ptr<cb::cgroup::ControlGroup> instance;
 };
 
-boost::filesystem::path MockControlGroup::test_directory;
-boost::filesystem::path MockControlGroup::cgroup_directory;
+std::filesystem::path MockControlGroup::test_directory;
+std::filesystem::path MockControlGroup::cgroup_directory;
 
 class V1 : public MockControlGroup {
 protected:
@@ -97,7 +98,7 @@ protected:
         MockControlGroup::SetUp();
     }
 
-    boost::filesystem::path directory;
+    std::filesystem::path directory;
 };
 
 /// We map to CGroup V1 if we fail to find the pid in any cgroup2
@@ -123,7 +124,7 @@ protected:
         MockControlGroup::SetUp();
     }
 
-    boost::filesystem::path directory;
+    std::filesystem::path directory;
 };
 
 TEST_F(V1, TestCpuQuota) {

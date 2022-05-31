@@ -7,8 +7,8 @@
  *   software will be governed by the Apache License, Version 2.0, included in
  *   the file licenses/APL2.txt.
  */
-#include <boost/filesystem.hpp>
 #include <platform/dirutils.h>
+#include <filesystem>
 
 #include <folly/portability/Dirent.h>
 #include <folly/portability/SysResource.h>
@@ -34,16 +34,15 @@
 #include <limits>
 #include <system_error>
 
-boost::filesystem::path cb::io::makeExtendedLengthPath(
-        const std::string& path) {
-    boost::filesystem::path bPath = path;
+std::filesystem::path cb::io::makeExtendedLengthPath(const std::string& path) {
+    std::filesystem::path bPath = path;
 #ifdef _MSC_VER
     constexpr auto prefix = R"(\\?\)";
     // Prefix exists, return.
     if (path.rfind(prefix, 0) != std::string::npos) {
         return bPath;
     }
-    bPath = boost::filesystem::system_complete(bPath);
+    bPath = std::filesystem::absolute(bPath);
     bPath = prefix + bPath.string();
 #endif
     return bPath;
@@ -317,9 +316,9 @@ bool cb::io::isFile(const std::string& file) {
 }
 
 void cb::io::mkdirp(std::string directory) {
-    if (!boost::filesystem::is_directory(directory)) {
+    if (!std::filesystem::is_directory(directory)) {
         auto longDir = makeExtendedLengthPath(directory);
-        boost::filesystem::create_directories(longDir.c_str());
+        std::filesystem::create_directories(longDir.c_str());
     }
 }
 
@@ -402,7 +401,7 @@ std::string cb::io::mkdtemp(const std::string& prefix) {
 }
 
 std::string cb::io::getcwd() {
-    return boost::filesystem::current_path().string();
+    return std::filesystem::current_path().string();
 }
 
 uint64_t cb::io::maximizeFileDescriptors(uint64_t limit) {

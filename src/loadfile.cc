@@ -15,9 +15,9 @@
 #include <folly/FileUtil.h>
 #endif
 
-#include <boost/filesystem/path.hpp>
 #include <platform/split_string.h>
 #include <cerrno>
+#include <filesystem>
 #include <system_error>
 #include <thread>
 
@@ -180,7 +180,7 @@ std::string cb::io::loadFile(const std::string& name,
  * @param delim The delimeter used to separate the fields in the file
  */
 void cb::io::tokenizeFileLineByLine(
-        const boost::filesystem::path& name,
+        const std::filesystem::path& name,
         std::function<bool(const std::vector<std::string_view>&)> callback,
         char delim,
         bool allowEmpty) {

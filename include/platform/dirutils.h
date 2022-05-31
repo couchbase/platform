@@ -9,20 +9,15 @@
  */
 #pragma once
 
-
 #include <algorithm>
 #include <chrono>
 #include <cstdint>
 #include <cstdio>
+#include <filesystem>
 #include <functional>
 #include <memory>
 #include <string>
 #include <vector>
-
-// Forward declaration.
-namespace boost::filesystem {
-class path;
-}
 
 namespace cb::io {
 
@@ -40,7 +35,7 @@ const char DirectorySeparator{'/'};
 /// @return extended-length path.
 /// @see
 /// https://docs.microsoft.com/en-us/windows/win32/fileio/maximum-file-path-limitation
-boost::filesystem::path makeExtendedLengthPath(const std::string& path);
+std::filesystem::path makeExtendedLengthPath(const std::string& path);
 
 /**
  * Return the directory part of an absolute path
@@ -178,7 +173,7 @@ std::string loadFile(const std::string& name,
  * @param allowEmpty Set to true if one wants to allow "empty" slots
  */
 void tokenizeFileLineByLine(
-        const boost::filesystem::path& name,
+        const std::filesystem::path& name,
         std::function<bool(const std::vector<std::string_view>&)> callback,
         char delim = ' ',
         bool allowEmpty = true);

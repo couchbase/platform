@@ -8,12 +8,12 @@
  *   the file licenses/APL2.txt.
  */
 
-#include <boost/filesystem.hpp>
 #include <folly/Synchronized.h>
 #include <folly/portability/GTest.h>
 #include <nlohmann/json.hpp>
 #include <platform/dirutils.h>
 #include <platform/process_monitor.h>
+#include <filesystem>
 #include <thread>
 #include <vector>
 
@@ -22,17 +22,17 @@
 #endif
 
 static void testExitCode(int exitcode) {
-    boost::filesystem::path exe{boost::filesystem::current_path() /
-                                "process_monitor_child"};
-    if (!boost::filesystem::exists(exe)) {
+    std::filesystem::path exe{std::filesystem::current_path() /
+                              "process_monitor_child"};
+    if (!std::filesystem::exists(exe)) {
         exe = exe.generic_string() + ".exe";
-        if (!boost::filesystem::exists(exe)) {
+        if (!std::filesystem::exists(exe)) {
             FAIL() << "Failed to locate " << exe.generic_string();
         }
     }
 
     const auto lockfile =
-            boost::filesystem::path(cb::io::mktemp("./process_monitor."));
+            std::filesystem::path(cb::io::mktemp("./process_monitor."));
     const auto exitcodestring = std::to_string(exitcode);
     std::vector<std::string> argv = {{exe.generic_string(),
                                       "--lockfile",
@@ -76,14 +76,14 @@ TEST(ProcessMonitorChild, Failure) {
 
 #ifndef WIN32
 TEST(ProcessMonitorChild, Abort) {
-    boost::filesystem::path exe{boost::filesystem::current_path() /
-                                "process_monitor_child"};
-    if (!boost::filesystem::exists(exe)) {
+    std::filesystem::path exe{std::filesystem::current_path() /
+                              "process_monitor_child"};
+    if (!std::filesystem::exists(exe)) {
         FAIL() << "Failed to locate " << exe.generic_string();
     }
 
     const auto lockfile =
-            boost::filesystem::path(cb::io::mktemp("./process_monitor."));
+            std::filesystem::path(cb::io::mktemp("./process_monitor."));
     std::vector<std::string> argv = {
             {exe.generic_string(), "--lockfile", lockfile.generic_string()}};
 
@@ -122,17 +122,17 @@ TEST(ProcessMonitorChild, Abort) {
  * second monitor to monitor the child.
  */
 TEST(ProcessMonitor, OtherProcess) {
-    boost::filesystem::path exe{boost::filesystem::current_path() /
-                                "process_monitor_child"};
-    if (!boost::filesystem::exists(exe)) {
+    std::filesystem::path exe{std::filesystem::current_path() /
+                              "process_monitor_child"};
+    if (!std::filesystem::exists(exe)) {
         exe = exe.generic_string() + ".exe";
-        if (!boost::filesystem::exists(exe)) {
+        if (!std::filesystem::exists(exe)) {
             FAIL() << "Failed to locate " << exe.generic_string();
         }
     }
 
     const auto lockfile =
-            boost::filesystem::path(cb::io::mktemp("./process_monitor."));
+            std::filesystem::path(cb::io::mktemp("./process_monitor."));
     std::vector<std::string> argv = {
             {exe.generic_string(), "--lockfile", lockfile.generic_string()}};
 
