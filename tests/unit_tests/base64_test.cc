@@ -16,10 +16,10 @@ protected:
         std::string encoded;
         std::string decoded;
 
-        ASSERT_NO_THROW(encoded = Couchbase::Base64::encode(source));
+        ASSERT_NO_THROW(encoded = cb::base64::encode(source));
         EXPECT_EQ(result, encoded);
 
-        ASSERT_NO_THROW(decoded = Couchbase::Base64::decode(encoded));
+        ASSERT_NO_THROW(decoded = cb::base64::decode(encoded));
         EXPECT_EQ(source, decoded);
     }
 };
@@ -96,8 +96,5 @@ TEST_F(Base64Test, TestPrettyPrint) {
 
     EXPECT_EQ(output, cb::base64::encode(input, true));
 
-    auto decoded = cb::base64::decode(output);
-    EXPECT_EQ(input,
-              std::string(reinterpret_cast<const char*>(decoded.data()),
-                          decoded.size()));
+    EXPECT_EQ(input, cb::base64::decode(output));
 }

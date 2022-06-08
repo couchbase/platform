@@ -20,28 +20,26 @@ BENCHMARK(BM_DecodeEmptyString);
 
 static void BM_EncodeEmptyString(benchmark::State& state) {
     while (state.KeepRunning()) {
-        cb::base64::encode({static_cast<uint8_t*>(nullptr), 0});
+        cb::base64::encode({});
     }
 }
 BENCHMARK(BM_EncodeEmptyString);
 
 static void BM_EncodeBlob(benchmark::State& state) {
-    std::vector<uint8_t> buffer(state.range(0));
-    cb::byte_buffer blob{buffer.data(), buffer.size()};
-
+    std::string buffer;
+    buffer.resize(state.range(0));
     while (state.KeepRunning()) {
-        cb::base64::encode(blob);
+        cb::base64::encode(buffer);
     }
 }
 
 BENCHMARK(BM_EncodeBlob)->RangeMultiplier(100)->Range(1, 100000);
 
 static void BM_EncodeFormattedBlob(benchmark::State& state) {
-    std::vector<uint8_t> buffer(state.range(0));
-    cb::byte_buffer blob{buffer.data(), buffer.size()};
-
+    std::string buffer;
+    buffer.resize(state.range(0));
     while (state.KeepRunning()) {
-        cb::base64::encode(blob, true);
+        cb::base64::encode(buffer, true);
     }
 }
 
@@ -49,9 +47,9 @@ BENCHMARK(BM_EncodeFormattedBlob)->RangeMultiplier(100)->Range(1, 100000);
 
 
 static void BM_DecodeBlob(benchmark::State& state) {
-    std::vector<uint8_t> buffer(state.range(0));
-    cb::byte_buffer blob{buffer.data(), buffer.size()};
-    auto input = cb::base64::encode(blob);
+    std::string buffer;
+    buffer.resize(state.range(0));
+    auto input = cb::base64::encode(buffer);
 
     while (state.KeepRunning()) {
         cb::base64::decode(input);
@@ -61,9 +59,9 @@ static void BM_DecodeBlob(benchmark::State& state) {
 BENCHMARK(BM_DecodeBlob)->RangeMultiplier(100)->Range(1, 100000);
 
 static void BM_DecodeFormattedBlob(benchmark::State& state) {
-    std::vector<uint8_t> buffer(state.range(0));
-    cb::byte_buffer blob{buffer.data(), buffer.size()};
-    auto input = cb::base64::encode(blob, true);
+    std::string buffer;
+    buffer.resize(state.range(0));
+    auto input = cb::base64::encode(buffer, true);
 
     auto idx = input.find('\n', state.range(0));
     if (idx != input.npos) {

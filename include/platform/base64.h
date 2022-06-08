@@ -9,10 +9,7 @@
  */
 #pragma once
 
-#include <platform/sized_buffer.h>
-
 #include <string>
-#include <vector>
 
 namespace cb::base64 {
 
@@ -20,15 +17,10 @@ namespace cb::base64 {
  * Base64 encode data
  *
  * @param source the string to encode
+ * @param prettyprint if set to true insert a newline after 16 chunks (4 chars)
  * @return the base64 encoded value
  */
-std::string encode(const cb::const_byte_buffer blob, bool prettyprint = false);
-
-inline std::string encode(const std::string& source, bool prettyprint) {
-    const_byte_buffer blob{reinterpret_cast<const uint8_t*>(source.data()),
-                           source.size()};
-    return encode(blob, prettyprint);
-}
+std::string encode(std::string_view source, bool prettyprint = false);
 
 /**
  * Decode a base64 encoded blob (which may be pretty-printed to avoid
@@ -37,31 +29,17 @@ inline std::string encode(const std::string& source, bool prettyprint) {
  * @param source string to decode
  * @return the decoded data
  */
-std::vector<uint8_t> decode(std::string_view blob);
+std::string decode(std::string_view blob);
 
 } // namespace cb::base64
 
 // For backwards source compatibility, wrap into the new
 // API
 namespace Couchbase::Base64 {
-/**
- * Base64 encode a string
- *
- * @param source the string to encode
- * @return the base64 encoded value
- */
 inline std::string encode(const std::string& source) {
     return cb::base64::encode(source, false);
 }
-
-/**
- * Decode a base64 encoded string
- *
- * @param source string to decode
- * @return the decoded string
- */
 inline std::string decode(const std::string& source) {
-    auto blob = cb::base64::decode(source);
-    return std::string(reinterpret_cast<const char*>(blob.data()), blob.size());
+    return cb::base64::decode(source);
 }
 } // namespace Couchbase::Base64

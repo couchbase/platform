@@ -14,15 +14,13 @@
  * @author Trond Norbye
  */
 
+#include <platform/base64.h>
 #include <algorithm>
 #include <cctype>
 #include <cstdint>
 #include <cstring>
-#include <iostream>
-#include <platform/base64.h>
 #include <stdexcept>
 #include <string>
-#include <vector>
 
 /**
  * An array of the legal characters used for direct lookup
@@ -108,7 +106,7 @@ static void encode_triplet(const uint8_t* s, std::string& str) {
  * @param d destination
  * @return the number of characters inserted
  */
-static int decode_quad(const uint8_t* s, std::vector<uint8_t>& d) {
+static int decode_quad(const uint8_t* s, std::string& d) {
     uint32_t value = code2val(s[0]) << 18;
     value |= code2val(s[1]) << 12;
 
@@ -137,11 +135,11 @@ static int decode_quad(const uint8_t* s, std::vector<uint8_t>& d) {
 }
 
 namespace cb::base64 {
-std::string encode(const cb::const_byte_buffer blob, bool prettyprint) {
+std::string encode(std::string_view view, bool prettyprint) {
     // base64 encoding encodes up to 3 input characters to 4 output
     // characters in the alphabet above.
-    auto triplets = blob.size() / 3;
-    auto rest = blob.size() % 3;
+    auto triplets = view.size() / 3;
+    auto rest = view.size() % 3;
     auto chunks = triplets;
     if (rest != 0) {
         ++chunks;
@@ -156,7 +154,7 @@ std::string encode(const cb::const_byte_buffer blob, bool prettyprint) {
         result.reserve(chunks * 4);
     }
 
-    const uint8_t* in = blob.data();
+    const auto* in = reinterpret_cast<const uint8_t*>(view.data());
 
     chunks = 0;
     for (size_t ii = 0; ii < triplets; ++ii) {
@@ -179,11 +177,11 @@ std::string encode(const cb::const_byte_buffer blob, bool prettyprint) {
     return result;
 }
 
-std::vector<uint8_t> decode(std::string_view blob) {
-    std::vector<uint8_t> destination;
+std::string decode(std::string_view blob) {
+    std::string destination;
 
     if (blob.empty()) {
-        return destination;
+        return {};
     }
 
     // To reduce the number of reallocations, start by reserving an
