@@ -12,17 +12,11 @@
 #include <platform/uuid.h>
 
 TEST(UUID, to_string) {
-    cb::uuid::uuid_t out{};
-    cb::uuid::random(out);
-
-    // Verify that it is of version 4
-    EXPECT_EQ(0x40, out[6] & 0xf0);
-    EXPECT_EQ(36u, to_string(out).size());
+    EXPECT_EQ(36u, to_string(cb::uuid::random()).size());
 }
 
 TEST(UUID, from_string) {
-    cb::uuid::uuid_t out{};
-    cb::uuid::random(out);
+    auto out = cb::uuid::random();
 
     // Verify that a roundtrip conversion works
     EXPECT_EQ(out, cb::uuid::from_string(to_string(out)));

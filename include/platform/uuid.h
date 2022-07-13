@@ -12,16 +12,11 @@
 #include <array>
 #include <cstdint>
 #include <string>
-
+#include <boost/uuid/uuid.hpp>
 
 namespace cb::uuid {
 
-using uuid_t = std::array<uint8_t, 16>;
-
-/**
- * Get a random uuid (version 4 of the uuids)
- */
-void random(uuid_t& uuid);
+using uuid_t = boost::uuids::uuid;
 
 /**
  * Generate a new random uuid and return it
