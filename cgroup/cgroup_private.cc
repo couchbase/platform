@@ -51,9 +51,9 @@ static std::vector<MountEntry> parse_proc_mounts(const std::string root) {
     cb::io::tokenizeFileLineByLine(
             root + "/proc/mounts", [&ret](const auto& parts) {
                 // pick out the lines which looks like:
-                //   cgroup[2] /sys/fs/cgroup cgroup[2] rw,nosuid,optionblah
+                //   [something] /sys/fs/cgroup cgroup[2] rw,nosuid,optionblah
                 if (parts.size() > 3 &&
-                    parts.front().find("cgroup") != std::string::npos) {
+                    parts[2].find("cgroup") != std::string::npos) {
                     ret.emplace_back(MountEntry{std::string(parts[2]),
                                                 std::string(parts[1]),
                                                 std::string(parts[3])});
