@@ -28,19 +28,24 @@ public:
         std::filesystem::create_directories(test_directory / "proc");
         std::filesystem::create_directories(cgroup_directory);
         std::filesystem::create_directories(cgroup_directory / "unified");
-        std::filesystem::create_directories(cgroup_directory / "cpu,cpuacct");
+        std::filesystem::create_directories(cgroup_directory / "cpu");
+        std::filesystem::create_directories(cgroup_directory / "cpuacct");
         std::filesystem::create_directories(cgroup_directory / "memory");
 
         std::ofstream file(
                 absolute(test_directory / "proc" / "mounts").generic_string());
+
         file << "tempfs " << cgroup_directory.generic_string()
              << " tmpfs ro,nosuid,nodev,noexec,mode=755 0 0\n"
              << "cgroup2 " << (cgroup_directory / "unified").generic_string()
              << " cgroup2 rw,nosuid,nodev,noexec,relatime,nsdelegate 0 0\n"
-             << "cgroup " << (cgroup_directory / "cpu,cpuacct").generic_string()
-             << " cgroup rw,nosuid,nodev,noexec,relatime,cpu,cpuacct 0 0\n"
+             << "cpu " << (cgroup_directory / "cpu").generic_string()
+             << " cgroup rw,nosuid,nodev,noexec,relatime,cpu 0 0\n"
+             << "cpuacct " << (cgroup_directory / "cpuacct").generic_string()
+             << " cgroup rw,nosuid,nodev,noexec,relatime,cpuacct 0 0\n"
              << "cgroup " << (cgroup_directory / "memory").generic_string()
              << " cgroup rw,nosuid,nodev,noexec,relatime,memory 0 0\n";
+
         file.close();
     }
 
@@ -82,7 +87,8 @@ class V1 : public MockControlGroup {
 protected:
     void SetUp() override {
         writePids(cgroup_directory / "unified", {1, 2});
-        writePids(cgroup_directory / "cpu,cpuacct", {getpid()});
+        writePids(cgroup_directory / "cpuacct", {getpid()});
+        writePids(cgroup_directory / "cpu", {getpid()});
         writePids(cgroup_directory / "memory", {getpid()});
         MockControlGroup::SetUp();
     }
@@ -93,7 +99,8 @@ protected:
     void SetUp() override {
         directory = cgroup_directory / "unified";
         writePids(directory, {getpid()});
-        writePids(cgroup_directory / "cpu,cpuacct", {1, 2});
+        writePids(cgroup_directory / "cpu", {1, 2});
+        writePids(cgroup_directory / "cpuacct", {1, 2});
         writePids(cgroup_directory / "memory", {1, 2});
         MockControlGroup::SetUp();
     }
@@ -108,7 +115,8 @@ class NoCgroupFound : public MockControlGroup {
 protected:
     void SetUp() override {
         writePids(cgroup_directory / "unified", {1, 2});
-        writePids(cgroup_directory / "cpu,cpuacct", {1, 2});
+        writePids(cgroup_directory / "cpu", {1, 2});
+        writePids(cgroup_directory / "cpuacct", {1, 2});
         writePids(cgroup_directory / "memory", {1, 2});
         MockControlGroup::SetUp();
     }
@@ -119,7 +127,8 @@ protected:
     void SetUp() override {
         directory = cgroup_directory / "unified";
         writePids(directory, {getpid()});
-        writePids(cgroup_directory / "cpu,cpuacct", {1, 2, getpid()});
+        writePids(cgroup_directory / "cpu", {1, 2, getpid()});
+        writePids(cgroup_directory / "cpuacct", {1, 2, getpid()});
         writePids(cgroup_directory / "memory", {1, 2});
         MockControlGroup::SetUp();
     }
@@ -132,12 +141,11 @@ TEST_F(V1, TestCpuQuota) {
 
     // Now lets write a CPU quota file for 2 1/2 CPU. We use ceil so we should
     // get 3
-    std::ofstream file((cgroup_directory / "cpu,cpuacct" / "cpu.cfs_period_us")
-                               .generic_string());
+    std::ofstream file(
+            (cgroup_directory / "cpu" / "cpu.cfs_period_us").generic_string());
     file << "100000" << std::endl;
     file.close();
-    file.open((cgroup_directory / "cpu,cpuacct" / "cpu.cfs_quota_us")
-                      .generic_string());
+    file.open((cgroup_directory / "cpu" / "cpu.cfs_quota_us").generic_string());
     file << "250000" << std::endl;
     file.close();
 
@@ -167,17 +175,17 @@ TEST_F(V1, TestCurrentMemory) {
 }
 
 TEST_F(V1, TestCpuStat) {
-    std::ofstream file((cgroup_directory / "cpu,cpuacct" / "cpuacct.stat")
-                               .generic_string());
+    std::ofstream file(
+            (cgroup_directory / "cpuacct" / "cpuacct.stat").generic_string());
     file << "user 182" << std::endl << "system 54" << std::endl;
     file.close();
 
-    file.open((cgroup_directory / "cpu,cpuacct" / "cpuacct.usage")
-                      .generic_string());
+    file.open(
+            (cgroup_directory / "cpuacct" / "cpuacct.usage").generic_string());
     file << "2815637074" << std::endl;
     file.close();
 
-    file.open((cgroup_directory / "cpu,cpuacct" / "cpu.stat").generic_string());
+    file.open((cgroup_directory / "cpu" / "cpu.stat").generic_string());
     file << "nr_periods 331" << std::endl
          << "nr_throttled 5" << std::endl
          << "throttled_time 10000" << std::endl
