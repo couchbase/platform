@@ -12,6 +12,8 @@
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
+#include <string_view>
 
 namespace cb::cgroup {
 
@@ -65,6 +67,10 @@ public:
 
     /// Get the one and only instance used by this process
     static ControlGroup& instance();
+
+    /// Set the trace callback to be (must be set before calling instance()
+    /// for the first time)
+    static void setTraceCallback(std::function<void(std::string_view)> cb);
 
 protected:
     /// Read the cpu quota and create a CPU count

@@ -10,6 +10,7 @@
 
 #include "cgroup_private.h"
 #include <cgroup/cgroup.h>
+#include <fmt/core.h>
 #include <platform/dirutils.h>
 #include <platform/split_string.h>
 #include <unistd.h>
@@ -20,7 +21,15 @@
 #include <string>
 #include <vector>
 
+using namespace std::string_view_literals;
+
 namespace cb::cgroup::priv {
+
+static std::function<void(std::string_view)> traceCallback;
+
+void setTraceCallback(std::function<void(std::string_view)> cb) {
+    traceCallback = std::move(cb);
+}
 
 uint64_t stouint64(std::string_view view) {
     uint64_t ret;
@@ -48,12 +57,21 @@ struct MountEntry {
 /// throws std::system_error on errors
 static std::vector<MountEntry> parse_proc_mounts(const std::string root) {
     std::vector<MountEntry> ret;
+    if (traceCallback) {
+        traceCallback(fmt::format("Parsing {}/proc/mounts", root));
+    }
     cb::io::tokenizeFileLineByLine(
             root + "/proc/mounts", [&ret](const auto& parts) {
                 // pick out the lines which looks like:
                 //   [something] /sys/fs/cgroup cgroup[2] rw,nosuid,optionblah
                 if (parts.size() > 3 &&
                     parts[2].find("cgroup") != std::string::npos) {
+                    if (traceCallback) {
+                        traceCallback(fmt::format("Using entry {} {} {}",
+                                                  parts[2],
+                                                  parts[1],
+                                                  parts[3]));
+                    }
                     ret.emplace_back(MountEntry{std::string(parts[2]),
                                                 std::string(parts[1]),
                                                 std::string(parts[3])});
@@ -86,6 +104,12 @@ static bool search_file(pid_t pid, const std::filesystem::path& file) {
 static std::optional<std::filesystem::path> find_cgroup_path(
         const std::filesystem::path& root) {
     const auto pid = getpid();
+    if (traceCallback) {
+        traceCallback(fmt::format("Try to locate my pid ({}) in in {}",
+                                  pid,
+                                  root.generic_string()));
+    }
+
     std::vector<std::filesystem::path> ret;
     std::deque<std::filesystem::path> paths;
     paths.push_back(root);
@@ -95,6 +119,10 @@ static std::optional<std::filesystem::path> find_cgroup_path(
 
         auto file = path / "cgroup.procs";
         if (exists(file) && search_file(pid, file)) {
+            if (traceCallback) {
+                traceCallback(
+                        fmt::format("Found it in {}", file.generic_string()));
+            }
             return path;
         }
 
@@ -105,6 +133,9 @@ static std::optional<std::filesystem::path> find_cgroup_path(
         }
     }
 
+    if (traceCallback) {
+        traceCallback("Pid not found anywhere"sv);
+    }
     return {};
 }
 
@@ -113,6 +144,10 @@ public:
     ControlGroupV1() {
         user_hz = sysconf(_SC_CLK_TCK);
         if (user_hz == -1) {
+            if (traceCallback) {
+                traceCallback(
+                        "sysconf(_SC_CLK_TCK) returned -1. Default to 100"sv);
+            }
             user_hz = 100;
         }
     }
@@ -122,12 +157,27 @@ public:
         auto tokens = cb::string::split(options, ',');
         for (const auto& token : tokens) {
             if (token == "cpu") {
+                if (traceCallback) {
+                    traceCallback(fmt::format("Adding cpu controller from {}",
+
+                                              path.generic_string()));
+                }
                 cpu = path;
             }
             if (token == "cpuacct") {
+                if (traceCallback) {
+                    traceCallback(
+                            fmt::format("Adding cpuacct controller from {}",
+                                        path.generic_string()));
+                }
                 cpuacct = path;
             }
             if (token == "memory") {
+                if (traceCallback) {
+                    traceCallback(
+                            fmt::format("Adding memory controller from {}",
+                                        path.generic_string()));
+                }
                 memory = path;
             }
         }
@@ -143,6 +193,10 @@ public:
         if (cpuacct) {
             auto fname = *cpuacct / "cpuacct.stat";
             if (exists(fname)) {
+                if (traceCallback) {
+                    traceCallback(fmt::format("Try to read {}",
+                                              fname.generic_string()));
+                }
                 cb::io::tokenizeFileLineByLine(
                         fname, [&stats, this](const auto& parts) {
                             if (parts.size() < 2) {
@@ -166,6 +220,10 @@ public:
             }
             fname = *cpuacct / "cpuacct.usage";
             if (exists(fname)) {
+                if (traceCallback) {
+                    traceCallback(fmt::format("Try to read {}",
+                                              fname.generic_string()));
+                }
                 cb::io::tokenizeFileLineByLine(
                         fname, [&stats](const auto& parts) {
                             if (parts.size() < 1) {
@@ -183,6 +241,10 @@ public:
         if (cpu) {
             auto fname = *cpu / "cpu.stat";
             if (exists(fname)) {
+                if (traceCallback) {
+                    traceCallback(fmt::format("Try to read {}",
+                                              fname.generic_string()));
+                }
                 cb::io::tokenizeFileLineByLine(
                         fname, [&stats](const auto& parts) {
                             if (parts.size() < 2) {
@@ -220,6 +282,10 @@ public:
 
         auto fname = *memory / "memory.limit_in_bytes";
         if (exists(fname)) {
+            if (traceCallback) {
+                traceCallback(
+                        fmt::format("Try to read {}", fname.generic_string()));
+            }
             size_t num = 0;
             cb::io::tokenizeFileLineByLine(fname, [&num](const auto& parts) {
                 if (!parts.empty() && parts[0] != "-1") {
@@ -242,6 +308,10 @@ public:
 
         auto fname = *memory / "memory.usage_in_bytes";
         if (exists(fname)) {
+            if (traceCallback) {
+                traceCallback(
+                        fmt::format("Try to read {}", fname.generic_string()));
+            }
             size_t num = 0;
             cb::io::tokenizeFileLineByLine(fname, [&num](const auto& parts) {
                 if (!parts.empty()) {
@@ -270,6 +340,10 @@ protected:
         auto fname = *cpu / "cpu.cfs_period_us";
         size_t period = 100000;
         if (exists(fname)) {
+            if (traceCallback) {
+                traceCallback(
+                        fmt::format("Try to read {}", fname.generic_string()));
+            }
             cb::io::tokenizeFileLineByLine(fname, [&period](const auto& parts) {
                 if (!parts.empty()) {
                     period = stouint64(parts[0]);
@@ -285,6 +359,10 @@ protected:
 
         fname = *cpu / "cpu.cfs_quota_us";
         if (exists(fname)) {
+            if (traceCallback) {
+                traceCallback(
+                        fmt::format("Try to read {}", fname.generic_string()));
+            }
             size_t num = 0;
             cb::io::tokenizeFileLineByLine(
                     fname, [&num, period](const auto& parts) {
@@ -315,6 +393,10 @@ public:
 class ControlGroupV2 : public ControlGroup {
 public:
     ControlGroupV2(std::filesystem::path path) : directory(std::move(path)) {
+        if (traceCallback) {
+            traceCallback(fmt::format("Add V2 controller at {}",
+                                      directory.generic_string()));
+        }
     }
 
     Version get_version() override {
@@ -326,6 +408,10 @@ public:
 
         auto file = directory / "cpu.stat";
         if (exists(file)) {
+            if (traceCallback) {
+                traceCallback(
+                        fmt::format("Try to read {}", file.generic_string()));
+            }
             cb::io::tokenizeFileLineByLine(file, [&stats](const auto& parts) {
                 if (parts.size() < 2) {
                     return true;
@@ -362,6 +448,10 @@ public:
     size_t get_max_memory() override {
         auto file = directory / "memory.max";
         if (exists(file)) {
+            if (traceCallback) {
+                traceCallback(
+                        fmt::format("Try to read {}", file.generic_string()));
+            }
             size_t num = 0;
             cb::io::tokenizeFileLineByLine(file, [&num](const auto& parts) {
                 if (!parts.empty() && parts[0] != "max") {
@@ -380,6 +470,10 @@ public:
     size_t get_current_memory() override {
         auto file = directory / "memory.current";
         if (exists(file)) {
+            if (traceCallback) {
+                traceCallback(
+                        fmt::format("Try to read {}", file.generic_string()));
+            }
             size_t num = 0;
             cb::io::tokenizeFileLineByLine(file, [&num](const auto& parts) {
                 if (!parts.empty()) {
@@ -398,6 +492,10 @@ protected:
     size_t get_available_cpu_count_from_quota() override {
         auto file = directory / "cpu.max";
         if (exists(file)) {
+            if (traceCallback) {
+                traceCallback(
+                        fmt::format("Try to read {}", file.generic_string()));
+            }
             size_t num = 0;
             cb::io::tokenizeFileLineByLine(file, [&num](const auto& parts) {
                 if (parts.size() > 1 && parts[0] != "max") {
@@ -427,6 +525,9 @@ std::unique_ptr<ControlGroup> make_control_group(std::string root) {
     auto mounts = priv::parse_proc_mounts(root);
 
     auto ret = std::make_unique<ControlGroupV1>();
+    if (traceCallback) {
+        traceCallback("Try to configure V1 control groups"sv);
+    }
     for (const auto& mp : mounts) {
         if (mp.type == priv::MountEntry::Version::V1) {
             auto path = find_cgroup_path(mp.path);
@@ -441,6 +542,9 @@ std::unique_ptr<ControlGroup> make_control_group(std::string root) {
         return std::unique_ptr<ControlGroup>{ret.release()};
     }
 
+    if (traceCallback) {
+        traceCallback("No V1 control groups found. Try to configure V2"sv);
+    }
     for (const auto& mp : mounts) {
         if (mp.type == priv::MountEntry::Version::V2) {
             auto path = find_cgroup_path(mp.path);
@@ -450,6 +554,9 @@ std::unique_ptr<ControlGroup> make_control_group(std::string root) {
         }
     }
 
+    if (traceCallback) {
+        traceCallback("No V1 or V2 control groups found"sv);
+    }
     return std::unique_ptr<ControlGroup>{ret.release()};
 }
 

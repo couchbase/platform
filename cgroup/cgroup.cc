@@ -54,4 +54,9 @@ ControlGroup& ControlGroup::instance() {
     static auto instance = priv::make_control_group();
     return *instance;
 }
+
+void ControlGroup::setTraceCallback(std::function<void(std::string_view)> cb) {
+    priv::setTraceCallback(std::move(cb));
+}
+
 } // namespace cb::cgroup

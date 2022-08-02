@@ -5,7 +5,7 @@ add_library(cgroup_objs OBJECT
             cgroup_private.h)
 target_include_directories(cgroup_objs SYSTEM PRIVATE ${BOOST_INCLUDE_DIR})
 target_include_directories(cgroup_objs SYSTEM PUBLIC ${Platform_SOURCE_DIR}/include)
-target_link_libraries(cgroup_objs PRIVATE ${Boost_FILESYSTEM_LIBRARY})
+target_link_libraries(cgroup_objs PRIVATE ${Boost_FILESYSTEM_LIBRARY} fmt::fmt)
 set_property(TARGET cgroup_objs PROPERTY POSITION_INDEPENDENT_CODE 1)
 cb_enable_unity_build(cgroup_objs)
 cb_add_test_executable(cgroup_test cgroup_tests.cc)
@@ -15,3 +15,5 @@ target_link_libraries(cgroup_test
                       GTest::gtest
                       GTest::gtest_main)
 add_test(cgroup_test cgroup_test)
+add_executable(cgroup_trace cgroup_trace.cc)
+target_link_libraries(cgroup_trace platform)
