@@ -354,6 +354,10 @@ std::pair<std::vector<std::string>, std::vector<std::string>> getIpAddresses(
                 rw, std::system_category(), "GetAdaptersAddresses()");
     }
     for (auto* iff = addresses; iff != nullptr; iff = iff->Next) {
+        if (iff->OperStatus != IfOperStatusUp) {
+            // Interface not up
+            continue;
+        }
         for (auto* addr = iff->FirstUnicastAddress; addr != nullptr;
              addr = addr->Next) {
             auto family = addr->Address.lpSockaddr->sa_family;
