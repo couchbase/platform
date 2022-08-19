@@ -98,17 +98,10 @@ struct sized_buffer {
     }
 
     /**
-     * Implicit constructor from non-const variant of instantiation
-     *
-     * This will allow automatic conversions to occur from non-const to const
-     * in the same way that a raw pointer would:
-     *
-     *     cb::sized_buffer<char> buf{vec.data(), vec.size()};
-     *     cb::sized_buffer<const char> cbuf = buf;
-     *
-     * @param other Buffer to copy from
+     * Copy constructor from sized_buffer<> types
      */
-    constexpr sized_buffer(const ncbuffer_type& other)
+    template <typename B>
+    sized_buffer(const sized_buffer<B>& other)
         : buf(const_cast<T*>(other.data())), len(other.size()) {
     }
 
