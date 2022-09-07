@@ -12,6 +12,7 @@
 #include <cctype>
 #include <cmath>
 #include <stdexcept>
+#include <thread>
 
 std::string cb::time2text(std::chrono::nanoseconds time2convert) {
     const char* const extensions[] = {" ns", " us", " ms", " s", nullptr};
@@ -91,4 +92,36 @@ std::chrono::nanoseconds cb::text2time(const std::string& text) {
     }
 
     throw std::invalid_argument("cb::text2time: Invalid format: " + text);
+}
+
+std::chrono::microseconds cb::decayingSleep(
+        std::chrono::microseconds uSeconds) {
+    /* Max sleep time is slightly over a second */
+    static const std::chrono::microseconds maxSleepTime(0x1 << 20);
+    std::this_thread::sleep_for(uSeconds);
+    return std::min(uSeconds * 2, maxSleepTime);
+}
+
+bool cb::waitForPredicateUntil(const std::function<bool()>& pred,
+                               std::chrono::microseconds maxWaitTime) {
+    using namespace std::chrono;
+    auto deadline = steady_clock::now() + maxWaitTime;
+    std::chrono::microseconds sleepTime(128);
+    do {
+        if (pred()) {
+            return true;
+        }
+        sleepTime = decayingSleep(sleepTime);
+    } while (steady_clock::now() < deadline);
+    return false;
+}
+
+void cb::waitForPredicate(const std::function<bool()>& pred) {
+    std::chrono::microseconds sleepTime(128);
+    while (true) {
+        if (pred()) {
+            return;
+        }
+        sleepTime = decayingSleep(sleepTime);
+    };
 }

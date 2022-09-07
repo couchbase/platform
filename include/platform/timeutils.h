@@ -10,6 +10,7 @@
 #pragma once
 
 #include <chrono>
+#include <functional>
 #include <string>
 
 namespace cb {
@@ -142,4 +143,32 @@ ClockOverheadResult estimateClockOverhead(int sampleCount = 1000) {
     return {mean, typename MeasuringClock::duration{1}};
 }
 
-}
+/**
+ * Function to do an exponentially increasing, but max bounded, sleep.
+ * To do exponentially increasing sleep, must be called first with the starting
+ * sleep time and subsequently with the sleep time returned in the previous call
+ *
+ * @param uSeconds Desired sleep time in micro seconds
+ *
+ * @return indicates the next sleep time (doubled from the current value)
+ */
+std::chrono::microseconds decayingSleep(std::chrono::microseconds uSeconds);
+
+/**
+ * Waits for the specified predicate to return true, repeating until either
+ * the predicate is true or timeLimit is exceeded. Between attempts sleeps
+ * the calling thread for an exponentially increasing amount of time.
+ *
+ * @returns true if the predicate returned true within the maximum wait time,
+ *          else false.
+ */
+bool waitForPredicateUntil(const std::function<bool()>& pred,
+                           std::chrono::microseconds maxWaitTime);
+
+/**
+ * Waits for the specified predicate to return true. Between attempts sleeps
+ * the calling thread for an exponentially increasing amount of time.
+ */
+void waitForPredicate(const std::function<bool()>& pred);
+
+} // namespace cb
