@@ -358,6 +358,10 @@ target_link_libraries(platform PRIVATE
   ${MALLOC_LIBRARIES}
   ${PLATFORM_LIBRARIES})
 
+if (UNIX AND NOT APPLE)
+    list(APPEND PLATFORM_FILES $<TARGET_OBJECTS:cgroup_objs>)
+endif()
+
 target_sources(platform PRIVATE ${PLATFORM_FILES})
 
 # Link publically with COUCHBASE_NETWORK_LIBS - strictly speaking this
@@ -370,9 +374,6 @@ TARGET_LINK_LIBRARIES(platform PUBLIC
   ${COUCHBASE_NETWORK_LIBS}
   platform_cbassert nlohmann_json::nlohmann_json)
 
-if (UNIX AND NOT APPLE)
-    target_link_libraries(platform PRIVATE cgroup)
-endif()
 
 SET_TARGET_PROPERTIES(platform PROPERTIES POSITION_INDEPENDENT_CODE true)
 platform_enable_pch(platform)
