@@ -350,9 +350,6 @@ target_link_libraries(platform PRIVATE
 
 if (UNIX AND NOT APPLE)
     list(APPEND PLATFORM_FILES $<TARGET_OBJECTS:cgroup_objs>)
-    # Create an alias until we've fixed up sigar to stop linking with
-    # with cgroup
-    add_library(cgroup ALIAS platform)
 endif()
 
 target_sources(platform PRIVATE ${PLATFORM_FILES})
