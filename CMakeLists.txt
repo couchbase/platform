@@ -308,6 +308,23 @@ target_link_libraries(platform PRIVATE
 
 target_sources(platform PRIVATE ${PLATFORM_FILES})
 
+SET(PLATFORM_FILES_WITHOUT_REPLACEMENT ${PLATFORM_FILES})
+LIST(REMOVE_ITEM PLATFORM_FILES_WITHOUT_REPLACEMENT src/global_new_replacement.cc)
+
+# platform_without_global_new_replacement
+# same as platform but without allocator replacement
+add_library(platform_without_global_new_replacement STATIC)
+target_link_libraries(platform_without_global_new_replacement PUBLIC
+    Folly::folly platform_headers)
+target_link_libraries(platform_without_global_new_replacement PRIVATE
+   phosphor
+   gsl::gsl-lite
+   ${MALLOC_LIBRARIES}
+   ${PLATFORM_LIBRARIES})
+
+target_sources(platform_without_global_new_replacement PRIVATE
+    ${PLATFORM_FILES_WITHOUT_REPLACEMENT})
+
 # Link publically with COUCHBASE_NETWORK_LIBS - strictly speaking this
 # shouldn't be necessary, however a number of downstream components
 # (e.g. couchstore targets) rely on platform to make available
@@ -318,7 +335,14 @@ TARGET_LINK_LIBRARIES(platform PUBLIC
   ${COUCHBASE_NETWORK_LIBS}
   platform_cbassert)
 
+TARGET_LINK_LIBRARIES(platform_without_global_new_replacement PUBLIC
+  ${COUCHBASE_NETWORK_LIBS}
+  platform_cbassert)
+
 SET_TARGET_PROPERTIES(platform PROPERTIES POSITION_INDEPENDENT_CODE true)
+
+SET_TARGET_PROPERTIES(platform_without_global_new_replacement PROPERTIES
+    POSITION_INDEPENDENT_CODE true)
 
 # platform_cb_arena_malloc contains strong symbols for
 # cb_malloc/cb_free et al; which override the default behavour in
