@@ -354,6 +354,27 @@ endif()
 
 target_sources(platform PRIVATE ${PLATFORM_FILES})
 
+SET(PLATFORM_FILES_WITHOUT_REPLACEMENT ${PLATFORM_FILES})
+LIST(REMOVE_ITEM PLATFORM_FILES_WITHOUT_REPLACEMENT src/global_new_replacement.cc)
+
+# platform_without_global_new_replacement
+# same as platform but without allocator replacement
+add_library(platform_without_global_new_replacement STATIC)
+target_link_libraries(platform_without_global_new_replacement PUBLIC
+    Folly::folly platform_headers)
+target_link_libraries(platform_without_global_new_replacement PRIVATE
+   phosphor
+   gsl::gsl-lite
+   ${MALLOC_LIBRARIES}
+   ${PLATFORM_LIBRARIES})
+
+if (UNIX AND NOT APPLE)
+    list(APPEND PLATFORM_FILES_WITHOUT_REPLACEMENT $<TARGET_OBJECTS:cgroup_objs>)
+endif()
+
+target_sources(platform_without_global_new_replacement PRIVATE
+    ${PLATFORM_FILES_WITHOUT_REPLACEMENT})
+
 # Link publically with COUCHBASE_NETWORK_LIBS - strictly speaking this
 # shouldn't be necessary, however a number of downstream components
 # (e.g. couchstore targets) rely on platform to make available
@@ -364,9 +385,19 @@ TARGET_LINK_LIBRARIES(platform PUBLIC
   ${COUCHBASE_NETWORK_LIBS}
   platform_cbassert nlohmann_json::nlohmann_json)
 
+TARGET_LINK_LIBRARIES(platform_without_global_new_replacement PUBLIC
+   ${COUCHBASE_NETWORK_LIBS}
+   platform_cbassert nlohmann_json::nlohmann_json)
+
 SET_TARGET_PROPERTIES(platform PROPERTIES POSITION_INDEPENDENT_CODE true)
 platform_enable_pch(platform)
 cb_enable_unity_build(platform)
+
+SET_TARGET_PROPERTIES(platform_without_global_new_replacement PROPERTIES
+    POSITION_INDEPENDENT_CODE true)
+platform_enable_pch(platform_without_global_new_replacement)
+cb_enable_unity_build(platform_without_global_new_replacement)
+
 # Exclude our defintions of new/delete. When included in a unity build this
 # file has a number of issues to address. Compile failure due to differing
 # defintions of malloc_usable_size on WIN32 and Linux. A second issue occurs
