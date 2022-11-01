@@ -194,7 +194,6 @@ LIST(APPEND PLATFORM_FILES
   src/crc32c_private.h
   src/exceptions.cc
   src/getopt.cc
-  src/global_new_replacement.cc
   src/histogram.cc
   src/interrupt.cc
   src/murmurhash3.cc
@@ -242,6 +241,12 @@ LIST(APPEND PLATFORM_FILES
   include/platform/timeutils.h
   include/platform/uuid.h
 )
+
+# Include global_new_replacement.cc unless we are using ASan, which
+# already replaces operator new / delete.
+if (NOT CB_ADDRESSSANITIZER)
+  list(APPEND PLATFORM_FILES src/global_new_replacement.cc)
+endif()
 
 # Build a separate static library for cbassert/backtrace
 LIST(APPEND CBASSERT_FILES
