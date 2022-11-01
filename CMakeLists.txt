@@ -242,12 +242,6 @@ LIST(APPEND PLATFORM_FILES
   include/platform/uuid.h
 )
 
-# Include global_new_replacement.cc unless we are using ASan, which
-# already replaces operator new / delete.
-if (NOT CB_ADDRESSSANITIZER)
-  list(APPEND PLATFORM_FILES src/global_new_replacement.cc)
-endif()
-
 # Build a separate static library for cbassert/backtrace
 LIST(APPEND CBASSERT_FILES
   src/backtrace.cc
@@ -359,26 +353,11 @@ endif()
 
 target_sources(platform PRIVATE ${PLATFORM_FILES})
 
-SET(PLATFORM_FILES_WITHOUT_REPLACEMENT ${PLATFORM_FILES})
-LIST(REMOVE_ITEM PLATFORM_FILES_WITHOUT_REPLACEMENT src/global_new_replacement.cc)
-
 # platform_without_global_new_replacement
+# Temp: this is now identical to 'platform' so can be removed; keeping
+# it temporarily while users are migrated to 'platform.
 # same as platform but without allocator replacement
-add_library(platform_without_global_new_replacement STATIC)
-target_link_libraries(platform_without_global_new_replacement PUBLIC
-    Folly::folly platform_headers)
-target_link_libraries(platform_without_global_new_replacement PRIVATE
-   phosphor
-   gsl::gsl-lite
-   ${MALLOC_LIBRARIES}
-   ${PLATFORM_LIBRARIES})
-
-if (UNIX AND NOT APPLE)
-    list(APPEND PLATFORM_FILES_WITHOUT_REPLACEMENT $<TARGET_OBJECTS:cgroup_objs>)
-endif()
-
-target_sources(platform_without_global_new_replacement PRIVATE
-    ${PLATFORM_FILES_WITHOUT_REPLACEMENT})
+add_library(platform_without_global_new_replacement ALIAS platform)
 
 # Link publically with COUCHBASE_NETWORK_LIBS - strictly speaking this
 # shouldn't be necessary, however a number of downstream components
@@ -390,18 +369,9 @@ TARGET_LINK_LIBRARIES(platform PUBLIC
   ${COUCHBASE_NETWORK_LIBS}
   platform_cbassert nlohmann_json::nlohmann_json)
 
-TARGET_LINK_LIBRARIES(platform_without_global_new_replacement PUBLIC
-   ${COUCHBASE_NETWORK_LIBS}
-   platform_cbassert nlohmann_json::nlohmann_json)
-
 SET_TARGET_PROPERTIES(platform PROPERTIES POSITION_INDEPENDENT_CODE true)
 platform_enable_pch(platform)
 cb_enable_unity_build(platform)
-
-SET_TARGET_PROPERTIES(platform_without_global_new_replacement PROPERTIES
-    POSITION_INDEPENDENT_CODE true)
-platform_enable_pch(platform_without_global_new_replacement)
-cb_enable_unity_build(platform_without_global_new_replacement)
 
 # Exclude our defintions of new/delete. When included in a unity build this
 # file has a number of issues to address. Compile failure due to differing
@@ -411,18 +381,22 @@ cb_enable_unity_build(platform_without_global_new_replacement)
 set_source_files_properties(src/global_new_replacement.cc
                             PROPERTIES SKIP_UNITY_BUILD_INCLUSION 1)
 
-# platform_cb_arena_malloc contains strong symbols for
-# cb_malloc/cb_free et al; which override the default behavour in
-# platform and call down to cb::ArenaMalloc. In addition to supporting
-# different arenas which can be assigned per-thread, this also
-# facilitates tracking the amount of memory allocated per arena.  The
-# primary use-case for platform_cb_arena_malloc is memcached itself,
+# platform_cb_arena_malloc contains:
+# a) strong symbols for cb_malloc/cb_free et al; which override the
+#    default behavour in platform and call down to cb::ArenaMalloc. In
+#    addition to supporting different arenas which can be assigned
+#    per-thread, this also facilitates tracking the amount of memory
+#    allocated per arena.
+# b) Global replacement of C++ operator new / delete functions which
+#    direct (de)allocations to cb_malloc et al. This means that all
+#    C++ memory allocaion will by default go via cb::ArenaMalloc.
+# The primary use-case for platform_cb_arena_malloc is memcached itself,
 # to track memory usage at the per-Bucket level, by creating an Arena
 # per bucket.
 if (WIN32)
-  # Windows: create an empty interface library so targets can specify they link
-  # to platform_cb_malloc_arena, but it is a no-op on WIN32.
-  add_library(platform_cb_malloc_arena INTERFACE)
+  # Windows: Only include global_new_replacement.cc (below) so operator
+  # new/delete are replaced, platform itself sets CB_MALLOC_IMPL to be
+  # cb_malloc_arena.cc and hence doesn't need it in this library.
 elseif (UNIX)
   # On UNIX any targets that want the full memory tracking allocator and/or
   # JeMalloc must link against this extra library. This library will give
@@ -432,22 +406,29 @@ elseif (UNIX)
   if (MEMORY_ALLOCATOR STREQUAL "jemalloc")
     LIST(APPEND PLATFORM_CB_MALLOC_ARENA_FILES src/je_malloc_conf.cc)
   endif()
-  # Note this must be an object library and not a static library. This
-  # is because the strong symbols for cb_malloc et al will _not_
-  # necessarily override the weak symbols from 'platform' - if
-  # platform is linked first (which it could well be depending on link
-  # order then the first definition is used (weak or
-  # otherwise). However if we use an OBJECT library (which essentially
-  # passes each .o file to the linker, the strong symbol _will_
-  # correctly take presidence.
-  add_library(platform_cb_malloc_arena OBJECT ${PLATFORM_CB_MALLOC_ARENA_FILES})
-  target_link_libraries(platform_cb_malloc_arena platform ${MALLOC_LIBRARIES})
-  set_target_properties(platform_cb_malloc_arena PROPERTIES
-                                           POSITION_INDEPENDENT_CODE true)
-  target_include_directories(platform_cb_malloc_arena PUBLIC include)
 else ()
   message(FATAL_ERROR "Unsupported system")
-endif (WIN32)
+endif ()
+
+# Include global_new_replacement.cc unless we are using ASan, which
+# already replaces operator new / delete.
+if (NOT CB_ADDRESSSANITIZER)
+  list(APPEND PLATFORM_CB_MALLOC_ARENA_FILES src/global_new_replacement.cc)
+endif()
+
+# Note this must be an object library and not a static library. This
+# is because the strong symbols for cb_malloc et al will _not_
+# necessarily override the weak symbols from 'platform' - if
+# platform is linked first (which it could well be depending on link
+# order then the first definition is used (weak or
+# otherwise). However if we use an OBJECT library (which essentially
+# passes each .o file to the linker, the strong symbol _will_
+# correctly take presidence.
+add_library(platform_cb_malloc_arena OBJECT ${PLATFORM_CB_MALLOC_ARENA_FILES})
+target_link_libraries(platform_cb_malloc_arena platform ${MALLOC_LIBRARIES})
+set_target_properties(platform_cb_malloc_arena PROPERTIES
+                                         POSITION_INDEPENDENT_CODE true)
+target_include_directories(platform_cb_malloc_arena PUBLIC include)
 
 # To simplify usage we always build breakpad_wrapper; it'll just
 # do nothing on targets which don't have Breakpad.
