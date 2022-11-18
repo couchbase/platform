@@ -353,12 +353,6 @@ endif()
 
 target_sources(platform PRIVATE ${PLATFORM_FILES})
 
-# platform_without_global_new_replacement
-# Temp: this is now identical to 'platform' so can be removed; keeping
-# it temporarily while users are migrated to 'platform.
-# same as platform but without allocator replacement
-add_library(platform_without_global_new_replacement ALIAS platform)
-
 # Link publically with COUCHBASE_NETWORK_LIBS - strictly speaking this
 # shouldn't be necessary, however a number of downstream components
 # (e.g. couchstore targets) rely on platform to make available
