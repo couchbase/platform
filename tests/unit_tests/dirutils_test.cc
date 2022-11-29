@@ -206,13 +206,6 @@ TEST_F(IoTest, removeNonExistentFile) {
                 << "Expected system error for removing non-existent file";
 }
 
-TEST_F(IoTest, getcwd) {
-    auto cwd = cb::io::getcwd();
-    // I can't really determine the correct value here, but it shouldn't be
-    // empty ;-)
-    ASSERT_FALSE(cwd.empty());
-}
-
 #ifdef WIN32
 // Verify cb::io methods support long paths on Windows.
 TEST_F(IoTest, longpaths) {

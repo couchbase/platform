@@ -400,10 +400,6 @@ std::string cb::io::mkdtemp(const std::string& prefix) {
     return pattern;
 }
 
-std::string cb::io::getcwd() {
-    return std::filesystem::current_path().string();
-}
-
 uint64_t cb::io::maximizeFileDescriptors(uint64_t limit) {
 #ifdef WIN32
     return limit;

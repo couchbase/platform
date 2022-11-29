@@ -117,15 +117,6 @@ std::string mktemp(const std::string& prefix);
 std::string mkdtemp(const std::string& prefix);
 
 /**
- * Get the name of the current working directory
- *
- * @return the name of the current working directory
- * @throws std::system_error if we fail to determine the current working
- *         directory
- */
-std::string getcwd();
-
-/**
  * Try to set the maximum number of file descriptors to the requested
  * limit, and return the number we could get.
  *
