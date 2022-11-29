@@ -71,7 +71,13 @@ namespace JSON_checker {
 
     class Validator {
     public:
-        Validator();
+        /**
+         * Construct a new instance.
+         *
+         * @param preferVectorized Set to true to enable a SIMD-enabled
+         *                         implementation (if available)
+         */
+        Validator(bool preferVectorized = false);
 
         /**
          * Parse a chunk of data to see if it is valid JSON
@@ -106,6 +112,7 @@ namespace JSON_checker {
 
     private:
         Instance instance;
+        const bool preferVectorized;
     };
 }
 
