@@ -10,6 +10,7 @@
 #include <boost/filesystem.hpp>
 #include <platform/dirutils.h>
 
+#include <fmt/format.h>
 #include <folly/portability/Dirent.h>
 #include <folly/portability/SysResource.h>
 #include <folly/portability/SysStat.h>
@@ -338,7 +339,7 @@ std::string cb::io::mktemp(const std::string& prefix) {
 
     do {
         ++counter;
-        sprintf(ptr, "%06" PRIu64, static_cast<uint64_t>(counter) % 1000000);
+        fmt::format_to(ptr, "{:06}", counter % 1000000);
 
 #ifdef WIN32
         auto longPattern = makeExtendedLengthPath(pattern);
@@ -383,7 +384,7 @@ std::string cb::io::mkdtemp(const std::string& prefix) {
 
     do {
         ++counter;
-        sprintf(ptr, "%06" PRIu64, static_cast<uint64_t>(counter) % 1000000);
+        fmt::format_to(ptr, "{:06}", counter % 1000000);
 
 #ifdef WIN32
         auto longPattern = makeExtendedLengthPath(pattern);
