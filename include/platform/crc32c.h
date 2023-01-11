@@ -16,16 +16,21 @@
 // performance.
 //
 #pragma once
+#include <folly/Portability.h>
 #include <cstddef>
 #include <cstdint>
-
-#include <folly/Portability.h>
+#include <string_view>
 
 #if FOLLY_X64 || FOLLY_AARCH64
 #define CB_CRC32_HW_SUPPORTED 1
 #endif
 
 uint32_t crc32c(const uint8_t* buf, size_t len, uint32_t crc_in);
+
+static inline uint32_t crc32c(std::string_view data, uint32_t crc_in = 0) {
+    return crc32c(
+            reinterpret_cast<const uint8_t*>(data.data()), data.size(), crc_in);
+}
 
 // The following methods are used by unit testing to force the calculation
 // of the checksum by using a given implementation.
