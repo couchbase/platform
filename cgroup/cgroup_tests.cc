@@ -12,9 +12,7 @@
 
 #include <cgroup/cgroup.h>
 #include <folly/portability/GTest.h>
-#include <platform/dirutils.h>
 #include <filesystem>
-#include <fstream>
 
 using namespace cb::cgroup;
 
@@ -82,6 +80,17 @@ TEST_F(V1, TestCurrentMemory) {
     EXPECT_EQ(6852075520, instance->get_current_memory());
 }
 
+TEST_F(V1, TestCurrentCache) {
+    EXPECT_EQ(5943459840, instance->get_current_cache_memory());
+}
+
+TEST_F(V1, TestMemInfo) {
+    auto meminfo = instance->get_mem_info();
+    EXPECT_EQ(17179869184, meminfo.max);
+    EXPECT_EQ(6852075520, meminfo.current);
+    EXPECT_EQ(5943459840, meminfo.cache);
+}
+
 TEST_F(V1, TestCpuStat) {
     auto cpu = instance->get_cpu_stats();
     EXPECT_EQ(205950000, cpu.system.count());
@@ -110,6 +119,17 @@ TEST_F(V2, TestCurrentMemory) {
     EXPECT_EQ(2766684160, instance->get_current_memory());
 }
 
+TEST_F(V2, TestCurrentCache) {
+    EXPECT_EQ(590389248, instance->get_current_cache_memory());
+}
+
+TEST_F(V2, TestMemInfo) {
+    auto meminfo = instance->get_mem_info();
+    EXPECT_EQ(8589934592, meminfo.max);
+    EXPECT_EQ(2766684160, meminfo.current);
+    EXPECT_EQ(590389248, meminfo.cache);
+}
+
 TEST_F(V2, TestCpuStat) {
     auto cpu = instance->get_cpu_stats();
     EXPECT_EQ(42293504, cpu.system.count());
@@ -132,6 +152,17 @@ TEST_P(NoCgroupFound, TestMaxMemory) {
 
 TEST_P(NoCgroupFound, TestCurrentMemory) {
     EXPECT_EQ(0, instance->get_current_memory());
+}
+
+TEST_P(NoCgroupFound, TestCurrentCache) {
+    EXPECT_EQ(0, instance->get_current_cache_memory());
+}
+
+TEST_P(NoCgroupFound, TestMemInfo) {
+    auto meminfo = instance->get_mem_info();
+    EXPECT_EQ(0, meminfo.max);
+    EXPECT_EQ(0, meminfo.current);
+    EXPECT_EQ(0, meminfo.cache);
 }
 
 TEST_P(NoCgroupFound, TestCpuStat) {

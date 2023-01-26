@@ -259,6 +259,26 @@ public:
         return 0;
     }
 
+    size_t get_current_cache_memory() override {
+        if (!memory) {
+            return 0;
+        }
+
+        auto fname = *memory / "memory.stat";
+        if (exists(fname)) {
+            size_t cache = 0;
+            cb::io::tokenizeFileLineByLine(fname, [&cache](const auto& parts) {
+                if (parts.size() > 1 && parts[0] == "cache") {
+                    cache = stouint64(parts[1]);
+                }
+                return true;
+            });
+            return cache;
+        }
+
+        return 0;
+    }
+
     bool hasController() {
         return cpu || cpuacct || memory;
     }
@@ -393,6 +413,22 @@ public:
                 return num;
             }
         }
+        return 0;
+    }
+
+    size_t get_current_cache_memory() override {
+        auto fname = directory / "memory.stat";
+        if (exists(fname)) {
+            size_t cache = 0;
+            cb::io::tokenizeFileLineByLine(fname, [&cache](const auto& parts) {
+                if (parts.size() > 1 && parts[0] == "file") {
+                    cache = stouint64(parts[1]);
+                }
+                return true;
+            });
+            return cache;
+        }
+
         return 0;
     }
 

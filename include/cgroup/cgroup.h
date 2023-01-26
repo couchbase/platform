@@ -27,6 +27,21 @@ struct CpuStat {
     std::chrono::microseconds burst{0};
 };
 
+/// Memory information available from cgroups V1 and V2
+/// Note that the information will be collected from multiple files
+/// and is therefore subject to race conditions
+struct MemInfo {
+    MemInfo(size_t max, size_t current, size_t cache)
+        : max(max), current(current), cache(cache) {
+    }
+    /// The max limit (if specified)
+    size_t max = 0;
+    /// The current (total) usage
+    size_t current = 0;
+    /// Current cache size
+    size_t cache = 0;
+};
+
 /// The ControlGroup object offers an abstraction over cgroups v1 and v2
 /// to fetch information for the cgroup where the process lives.
 /// We explicitly don't want to support moving processes from one cgroup
@@ -62,6 +77,16 @@ public:
 
     /// Get the current memory usage by processes in the cgroup (in bytes)
     virtual size_t get_current_memory() = 0;
+
+    /// Get the current cache size by processes in the cgroup (in bytes)
+    virtual size_t get_current_cache_memory() = 0;
+
+    /// Get the memory information
+    MemInfo get_mem_info() {
+        return {get_max_memory(),
+                get_current_memory(),
+                get_current_cache_memory()};
+    }
 
     /// Get the one and only instance used by this process
     static ControlGroup& instance();
