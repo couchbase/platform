@@ -9,6 +9,7 @@
  */
 
 #pragma once
+#include <unistd.h>
 #include <memory>
 #include <string>
 
@@ -17,6 +18,7 @@ class ControlGroup;
 namespace priv {
 // Allow the root of the filesystem to be passed in to allow for unit
 // tests
-std::unique_ptr<ControlGroup> make_control_group(std::string root = "");
+std::unique_ptr<ControlGroup> make_control_group(std::string root = "",
+                                                 pid_t pid = getpid());
 } // namespace priv
 } // namespace cb::cgroup

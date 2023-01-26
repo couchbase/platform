@@ -49,13 +49,13 @@ struct MountEntry {
 static std::vector<MountEntry> parse_proc_mounts(const std::string root) {
     std::vector<MountEntry> ret;
     cb::io::tokenizeFileLineByLine(
-            root + "/proc/mounts", [&ret](const auto& parts) {
+            root + "/proc/mounts", [&ret, &root](const auto& parts) {
                 // pick out the lines which looks like:
                 //   [something] /sys/fs/cgroup cgroup[2] rw,nosuid,optionblah
                 if (parts.size() > 3 &&
                     parts[2].find("cgroup") != std::string::npos) {
                     ret.emplace_back(MountEntry{std::string(parts[2]),
-                                                std::string(parts[1]),
+                                                root + std::string(parts[1]),
                                                 std::string(parts[3])});
                 }
                 return true;
@@ -80,12 +80,12 @@ static bool search_file(pid_t pid, const boost::filesystem::path& file) {
  * current process is located.
  *
  * @param root the root directory to search in
+ * @param pid the pid to search for
  * @return the path to where I found the pid registered
  * @thros std::system_error for io errors
  */
 static std::optional<boost::filesystem::path> find_cgroup_path(
-        const boost::filesystem::path& root) {
-    const auto pid = getpid();
+        const boost::filesystem::path& root, pid_t pid) {
     std::vector<boost::filesystem::path> ret;
     std::deque<boost::filesystem::path> paths;
     paths.push_back(root);
@@ -93,14 +93,16 @@ static std::optional<boost::filesystem::path> find_cgroup_path(
         auto path = paths.front();
         paths.pop_front();
 
-        auto file = path / "cgroup.procs";
-        if (exists(file) && search_file(pid, file)) {
-            return path;
-        }
+        if (exists(path)) {
+            auto file = path / "cgroup.procs";
+            if (exists(file) && search_file(pid, file)) {
+                return path;
+            }
 
-        for (const auto& p : boost::filesystem::directory_iterator(path)) {
-            if (is_directory(p) && !is_symlink(p)) {
-                paths.push_back(p.path());
+            for (const auto& p : boost::filesystem::directory_iterator(path)) {
+                if (is_directory(p) && !is_symlink(p)) {
+                    paths.push_back(p.path());
+                }
             }
         }
     }
@@ -423,13 +425,13 @@ protected:
     const boost::filesystem::path directory;
 };
 
-std::unique_ptr<ControlGroup> make_control_group(std::string root) {
+std::unique_ptr<ControlGroup> make_control_group(std::string root, pid_t pid) {
     auto mounts = priv::parse_proc_mounts(root);
 
     auto ret = std::make_unique<ControlGroupV1>();
     for (const auto& mp : mounts) {
         if (mp.type == priv::MountEntry::Version::V1) {
-            auto path = find_cgroup_path(mp.path);
+            auto path = find_cgroup_path(mp.path, pid);
             if (path) {
                 ret->add_entry(*path, mp.option);
             }
@@ -443,7 +445,7 @@ std::unique_ptr<ControlGroup> make_control_group(std::string root) {
 
     for (const auto& mp : mounts) {
         if (mp.type == priv::MountEntry::Version::V2) {
-            auto path = find_cgroup_path(mp.path);
+            auto path = find_cgroup_path(mp.path, pid);
             if (path) {
                 return std::unique_ptr<ControlGroup>{new ControlGroupV2(*path)};
             }
