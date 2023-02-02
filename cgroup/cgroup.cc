@@ -34,11 +34,16 @@ size_t ControlGroup::get_available_cpu() {
         return num;
     }
 
-    // No quota set, check for cpu sets
+#ifdef __linux__
+    // The library is only intended to be used on Linux in production,
+    // but is also built on mac to make the life easier for developers
+    // (as the unit tests operate on files in the repo). cpu_set_t isn't
+    // available on macosx
     cpu_set_t set;
     if (sched_getaffinity(getpid(), sizeof(set), &set) == 0) {
         return CPU_COUNT(&set) * 100;
     }
+#endif
 
     auto ret = sysconf(_SC_NPROCESSORS_ONLN);
     if (ret == -1) {
