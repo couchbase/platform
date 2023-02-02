@@ -61,7 +61,7 @@ static std::vector<MountEntry> parse_proc_mounts(const std::string root) {
         traceCallback(fmt::format("Parsing {}/proc/mounts", root));
     }
     cb::io::tokenizeFileLineByLine(
-            root + "/proc/mounts", [&ret](const auto& parts) {
+            root + "/proc/mounts", [&ret, &root](const auto& parts) {
                 // pick out the lines which looks like:
                 //   [something] /sys/fs/cgroup cgroup[2] rw,nosuid,optionblah
                 if (parts.size() > 3 &&
@@ -73,7 +73,7 @@ static std::vector<MountEntry> parse_proc_mounts(const std::string root) {
                                                   parts[3]));
                     }
                     ret.emplace_back(MountEntry{std::string(parts[2]),
-                                                std::string(parts[1]),
+                                                root + std::string(parts[1]),
                                                 std::string(parts[3])});
                 }
                 return true;
@@ -98,12 +98,12 @@ static bool search_file(pid_t pid, const std::filesystem::path& file) {
  * current process is located.
  *
  * @param root the root directory to search in
+ * @param pid the pid to search for
  * @return the path to where I found the pid registered
  * @thros std::system_error for io errors
  */
 static std::optional<std::filesystem::path> find_cgroup_path(
-        const std::filesystem::path& root) {
-    const auto pid = getpid();
+        const std::filesystem::path& root, pid_t pid) {
     if (traceCallback) {
         traceCallback(fmt::format("Try to locate my pid ({}) in in {}",
                                   pid,
@@ -117,18 +117,20 @@ static std::optional<std::filesystem::path> find_cgroup_path(
         auto path = paths.front();
         paths.pop_front();
 
-        auto file = path / "cgroup.procs";
-        if (exists(file) && search_file(pid, file)) {
-            if (traceCallback) {
-                traceCallback(
-                        fmt::format("Found it in {}", file.generic_string()));
+        if (exists(path)) {
+            auto file = path / "cgroup.procs";
+            if (exists(file) && search_file(pid, file)) {
+                if (traceCallback) {
+                    traceCallback(fmt::format("Found it in {}",
+                                              file.generic_string()));
+                }
+                return path;
             }
-            return path;
-        }
 
-        for (const auto& p : std::filesystem::directory_iterator(path)) {
-            if (is_directory(p) && !is_symlink(p)) {
-                paths.push_back(p.path());
+            for (const auto& p : std::filesystem::directory_iterator(path)) {
+                if (is_directory(p) && !is_symlink(p)) {
+                    paths.push_back(p.path());
+                }
             }
         }
     }
@@ -327,6 +329,26 @@ public:
         return 0;
     }
 
+    size_t get_current_cache_memory() override {
+        if (!memory) {
+            return 0;
+        }
+
+        auto fname = *memory / "memory.stat";
+        if (exists(fname)) {
+            size_t cache = 0;
+            cb::io::tokenizeFileLineByLine(fname, [&cache](const auto& parts) {
+                if (parts.size() > 1 && parts[0] == "cache") {
+                    cache = stouint64(parts[1]);
+                }
+                return true;
+            });
+            return cache;
+        }
+
+        return 0;
+    }
+
     bool hasController() {
         return cpu || cpuacct || memory;
     }
@@ -488,6 +510,22 @@ public:
         return 0;
     }
 
+    size_t get_current_cache_memory() override {
+        auto fname = directory / "memory.stat";
+        if (exists(fname)) {
+            size_t cache = 0;
+            cb::io::tokenizeFileLineByLine(fname, [&cache](const auto& parts) {
+                if (parts.size() > 1 && parts[0] == "file") {
+                    cache = stouint64(parts[1]);
+                }
+                return true;
+            });
+            return cache;
+        }
+
+        return 0;
+    }
+
 protected:
     size_t get_available_cpu_count_from_quota() override {
         auto file = directory / "cpu.max";
@@ -521,7 +559,7 @@ protected:
     const std::filesystem::path directory;
 };
 
-std::unique_ptr<ControlGroup> make_control_group(std::string root) {
+std::unique_ptr<ControlGroup> make_control_group(std::string root, pid_t pid) {
     auto mounts = priv::parse_proc_mounts(root);
 
     auto ret = std::make_unique<ControlGroupV1>();
@@ -530,7 +568,7 @@ std::unique_ptr<ControlGroup> make_control_group(std::string root) {
     }
     for (const auto& mp : mounts) {
         if (mp.type == priv::MountEntry::Version::V1) {
-            auto path = find_cgroup_path(mp.path);
+            auto path = find_cgroup_path(mp.path, pid);
             if (path) {
                 ret->add_entry(*path, mp.option);
             }
@@ -547,7 +585,7 @@ std::unique_ptr<ControlGroup> make_control_group(std::string root) {
     }
     for (const auto& mp : mounts) {
         if (mp.type == priv::MountEntry::Version::V2) {
-            auto path = find_cgroup_path(mp.path);
+            auto path = find_cgroup_path(mp.path, pid);
             if (path) {
                 return std::unique_ptr<ControlGroup>{new ControlGroupV2(*path)};
             }

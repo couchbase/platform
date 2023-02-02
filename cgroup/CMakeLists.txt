@@ -19,6 +19,7 @@ cb_enable_unity_build(cgroup)
 set_property(TARGET cgroup PROPERTY POSITION_INDEPENDENT_CODE 1)
 
 cb_add_test_executable(cgroup_test cgroup_tests.cc)
+target_compile_definitions(cgroup_test PRIVATE SOURCE_ROOT="${CMAKE_CURRENT_SOURCE_DIR}")
 target_link_libraries(cgroup_test
                       platform
                       Folly::folly
