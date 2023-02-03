@@ -12,7 +12,10 @@
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
+#include <filesystem>
 #include <functional>
+#include <iosfwd>
+#include <optional>
 #include <string_view>
 
 namespace cb::cgroup {
@@ -43,6 +46,28 @@ struct MemInfo {
     /// Current cache size
     size_t cache = 0;
 };
+
+/// Pressure information: See
+/// https://www.kernel.org/doc/Documentation/accounting/psi.rst
+enum class PressureType { Cpu, Io, Memory };
+
+/// Pressure metrics collected. See
+/// https://www.kernel.org/doc/Documentation/accounting/psi.rst
+struct PressureMetric {
+    float avg10;
+    float avg60;
+    float avg300;
+    std::chrono::microseconds total_stall_time;
+};
+
+/// The pressure data collected for each type. See
+/// https://www.kernel.org/doc/Documentation/accounting/psi.rst
+struct PressureData {
+    PressureMetric some;
+    PressureMetric full;
+};
+
+std::ostream& operator<<(std::ostream& os, const PressureType& type);
 
 /// The ControlGroup object offers an abstraction over cgroups v1 and v2
 /// to fetch information for the cgroup where the process lives.
@@ -90,6 +115,14 @@ public:
                 get_current_cache_memory()};
     }
 
+    /// Get the recorded pressure data for the given type (only available
+    /// on cgroup v2)
+    virtual std::optional<PressureData> get_pressure_data(
+            PressureType type) = 0;
+
+    /// Get the recorded pressure data for the system
+    std::optional<PressureData> get_system_pressure_data(PressureType type);
+
     /// Get the one and only instance used by this process
     static ControlGroup& instance();
 
@@ -98,8 +131,19 @@ public:
     static void setTraceCallback(std::function<void(std::string_view)> cb);
 
 protected:
+    ControlGroup(std::filesystem::path root) : root(std::move(root)) {
+    }
+
+    /// The root of the filesystem used to allow mocking in unit tests
+    const std::filesystem::path root;
+
     /// Read the cpu quota and create a CPU count
     virtual size_t get_available_cpu_count_from_quota() = 0;
+
+    /// Parse the provided file containing the pressure information data as
+    /// specified in https://www.kernel.org/doc/Documentation/accounting/psi.rst
+    std::optional<PressureData> get_pressure_data_from_file(
+            const std::filesystem::path& file);
 };
 
 } // namespace cb::cgroup
