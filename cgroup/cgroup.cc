@@ -11,6 +11,7 @@
 #include "cgroup_private.h"
 
 #include <cgroup/cgroup.h>
+#include <nlohmann/json.hpp>
 #include <platform/dirutils.h>
 #include <sched.h>
 #include <unistd.h>
@@ -21,20 +22,34 @@
 
 namespace cb::cgroup {
 
-std::ostream& operator<<(std::ostream& os, const PressureType& type) {
+void to_json(nlohmann::json& json, const PressureMetric& pressure_metric) {
+    json = {{"avg10", pressure_metric.avg10},
+            {"avg60", pressure_metric.avg60},
+            {"avg300", pressure_metric.avg300},
+            {"total_stall_time_usec",
+             std::to_string(pressure_metric.total_stall_time.count())}};
+}
+
+void to_json(nlohmann::json& json, const PressureData& pd) {
+    json = {{"some", pd.some}, {"full", pd.full}};
+}
+
+std::string to_string(PressureType type) {
     switch (type) {
     case PressureType::Cpu:
-        os << "CPU";
-        return os;
+        return "cpu";
     case PressureType::Io:
-        os << "IO";
-        return os;
+        return "io";
     case PressureType::Memory:
-        os << "Memory";
-        return os;
+        return "memory";
     }
-    throw std::invalid_argument("operator<<(): Invalid PressureType: " +
+    throw std::invalid_argument("to_string() Invalid PressureType: " +
                                 std::to_string(int(type)));
+}
+
+std::ostream& operator<<(std::ostream& os, const PressureType& type) {
+    os << to_string(type);
+    return os;
 }
 
 size_t ControlGroup::get_available_cpu_count() {

@@ -9,6 +9,7 @@
  */
 #pragma once
 
+#include <nlohmann/json_fwd.hpp>
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
@@ -50,6 +51,7 @@ struct MemInfo {
 /// Pressure information: See
 /// https://www.kernel.org/doc/Documentation/accounting/psi.rst
 enum class PressureType { Cpu, Io, Memory };
+std::string to_string(PressureType type);
 
 /// Pressure metrics collected. See
 /// https://www.kernel.org/doc/Documentation/accounting/psi.rst
@@ -60,6 +62,8 @@ struct PressureMetric {
     std::chrono::microseconds total_stall_time;
 };
 
+void to_json(nlohmann::json& json, const PressureMetric& pressure_metric);
+
 /// The pressure data collected for each type. See
 /// https://www.kernel.org/doc/Documentation/accounting/psi.rst
 struct PressureData {
@@ -68,6 +72,7 @@ struct PressureData {
 };
 
 std::ostream& operator<<(std::ostream& os, const PressureType& type);
+void to_json(nlohmann::json& json, const PressureData& pd);
 
 /// The ControlGroup object offers an abstraction over cgroups v1 and v2
 /// to fetch information for the cgroup where the process lives.
