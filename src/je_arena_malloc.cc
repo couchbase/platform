@@ -210,7 +210,6 @@ MemoryDomain JEArenaMalloc::switchToClient(const ArenaMallocClient& client,
     auto& currentClient = ThreadLocalData::get().getCurrentClient();
     auto currentDomain = currentClient.domain;
     if (client.index == NoClientIndex) {
-        // This sets to the "default" arena with tcache auto or none
         currentClient.setup(
                 client.threadCache && tcacheEnabled ? 0 : MALLOCX_TCACHE_NONE,
                 NoClientIndex,
@@ -219,15 +218,18 @@ MemoryDomain JEArenaMalloc::switchToClient(const ArenaMallocClient& client,
     }
 
     int tcacheFlags = MALLOCX_TCACHE_NONE;
-
-    // tcache can be disabled by:
-    // 1) the global tcacheEnabled flag = false
-    // 2) client's ArenaMallocClient::threadCache = false
-    // 3) an individual switchToClient setting tcache = false
-    // AND all inputs together, if any are false then we keep TCACHE_NONE
+    // client can change tcache setting via their client object or for a single
+    // swicthToClient call.
+    // AND all inputs together, if any is false then no tcache
     if (tcache && client.threadCache && tcacheEnabled) {
-        // else all true, enable automatic tcache selection
-        tcacheFlags = 0;
+        tcacheFlags =
+                MALLOCX_TCACHE(ThreadLocalData::get().getTCacheID(client));
+    } else {
+        // tcache is disabled but we still need to trigger a call to initialise
+        // the per thread tracker, which is a side affect of tcache creation.
+        // So call get (which will create a tcache), but we don't add it to the
+        // flags so tcache is still MALLOCX_TCACHE_NONE
+        ThreadLocalData::get().getTCacheID(client);
     }
 
     // Set the malloc flags to the correct arena + tcache setting and set the
