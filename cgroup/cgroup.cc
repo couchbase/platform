@@ -11,6 +11,7 @@
 #include "cgroup_private.h"
 
 #include <cgroup/cgroup.h>
+#include <fmt/format.h>
 #include <nlohmann/json.hpp>
 #include <platform/dirutils.h>
 #include <sched.h>
@@ -21,11 +22,10 @@
 #include <system_error>
 
 namespace cb::cgroup {
-
 void to_json(nlohmann::json& json, const PressureMetric& pressure_metric) {
-    json = {{"avg10", pressure_metric.avg10},
-            {"avg60", pressure_metric.avg60},
-            {"avg300", pressure_metric.avg300},
+    json = {{"avg10", fmt::format("{:.{}f}", pressure_metric.avg10, 2)},
+            {"avg60", fmt::format("{:.{}f}", pressure_metric.avg60, 2)},
+            {"avg300", fmt::format("{:.{}f}", pressure_metric.avg300)},
             {"total_stall_time_usec",
              std::to_string(pressure_metric.total_stall_time.count())}};
 }
