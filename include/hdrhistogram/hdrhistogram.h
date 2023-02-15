@@ -17,6 +17,7 @@
 #include <iterator>
 #include <memory>
 #include <optional>
+#include <relaxed_atomic.h>
 #include <utility>
 
 #include "iterator_range.h"
@@ -268,9 +269,17 @@ public:
     bool addValueAndCount(uint64_t v, uint64_t count);
 
     /**
-     * Returns the number of values added to the histogram.
+     * Returns the number of values tracked in the histogram. This excludes
+     * any which overflowed (were larger than highest_trackable_value) - see
+     * getOverflowCount().
      */
     uint64_t getValueCount() const;
+
+    /**
+     * @returns the number of values added which exceeded the underlying
+     * hdr_histograms' highest_trackable_value.
+     */
+    uint64_t getOverflowCount() const;
 
     /**
      * Returns the min value stored to the histogram
@@ -563,6 +572,12 @@ private:
      * Synchronized unique pointer to a struct hdr_histogram
      */
     SyncHdrHistogramPtr histogram;
+
+    /**
+     * Count of samples which were larger than highest_trackable_value and hence
+     * cannot be recorded in `histogram`.
+     */
+    cb::RelaxedAtomic<uint64_t> overflowed;
 };
 
 std::ostream& operator<<(std::ostream&,
