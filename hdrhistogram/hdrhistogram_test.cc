@@ -557,7 +557,7 @@ void resetThread(HdrHistogram& histo, folly::Baton<true>& baton) {
  * doesn't end up in an infinite loop.
  */
 TEST(HdrHistogramTest, ResetItoratorInfLoop) {
-    Hdr2sfMicroSecHistogram histogram;
+    Hdr1sfMicroSecHistogram histogram;
     for (int i = 0; i < 10; i++) {
         histogram.addValue(i);
     }

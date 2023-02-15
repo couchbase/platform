@@ -597,20 +597,6 @@ public:
     }
 };
 
-/** Histogram to store counts for microsecond intervals
- *  Can hold a range of 0us to 60000000us (60 seconds) with a
- *  precision of 2 significant figures
- */
-class Hdr2sfMicroSecHistogram : public HdrHistogram {
-public:
-    Hdr2sfMicroSecHistogram()
-        : HdrHistogram(1, 60000000, 2, Iterator::IterMode::Percentiles){};
-    bool add(std::chrono::microseconds v, size_t count = 1) {
-        return addValueAndCount(static_cast<uint64_t>(v.count()),
-                                static_cast<uint64_t>(count));
-    }
-};
-
 using HdrMicroSecBlockTimer = GenericBlockTimer<Hdr1sfMicroSecHistogram, 0>;
 using HdrMicroSecStopwatch = MicrosecondStopwatch<Hdr1sfMicroSecHistogram>;
 
