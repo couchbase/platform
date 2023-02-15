@@ -98,7 +98,7 @@ void ControlGroup::setTraceCallback(std::function<void(std::string_view)> cb) {
 }
 
 std::optional<PressureData> ControlGroup::get_pressure_data_from_file(
-        const std::filesystem::path& file) {
+        const std::filesystem::path& file, PressureType type, bool global) {
     if (!exists(file)) {
         return {};
     }
@@ -145,6 +145,13 @@ std::optional<PressureData> ControlGroup::get_pressure_data_from_file(
     if (some && full) {
         return data;
     }
+
+    // Ubuntu 20.04 does not provide a full line for the global CPU pressure
+    if (some && !full && type == PressureType::Cpu && global) {
+        data.full = {};
+        return data;
+    }
+
     return {};
 }
 
@@ -153,12 +160,16 @@ std::optional<PressureData> ControlGroup::get_system_pressure_data(
         PressureType type) {
     switch (type) {
     case PressureType::Cpu:
-        return get_pressure_data_from_file(root / "proc" / "pressure" / "cpu");
+        return get_pressure_data_from_file(
+                root / "proc" / "pressure" / "cpu", PressureType::Cpu, true);
     case PressureType::Io:
-        return get_pressure_data_from_file(root / "proc" / "pressure" / "io");
+        return get_pressure_data_from_file(
+                root / "proc" / "pressure" / "io", PressureType::Io, true);
     case PressureType::Memory:
-        return get_pressure_data_from_file(root / "proc" / "pressure" /
-                                           "memory");
+        return get_pressure_data_from_file(
+                root / "proc" / "pressure" / "memory",
+                PressureType::Memory,
+                true);
     }
     throw std::invalid_argument("get_system_pressure_data(): Unknown type: " +
                                 std::to_string(int(type)));

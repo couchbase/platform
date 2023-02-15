@@ -148,7 +148,7 @@ protected:
     /// Parse the provided file containing the pressure information data as
     /// specified in https://www.kernel.org/doc/Documentation/accounting/psi.rst
     std::optional<PressureData> get_pressure_data_from_file(
-            const std::filesystem::path& file);
+            const std::filesystem::path& file, PressureType type, bool global);
 };
 
 } // namespace cb::cgroup

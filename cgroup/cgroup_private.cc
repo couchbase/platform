@@ -534,11 +534,14 @@ public:
     std::optional<PressureData> get_pressure_data(PressureType type) override {
         switch (type) {
         case PressureType::Cpu:
-            return get_pressure_data_from_file(directory / "cpu.pressure");
+            return get_pressure_data_from_file(
+                    directory / "cpu.pressure", PressureType::Cpu, false);
         case PressureType::Io:
-            return get_pressure_data_from_file(directory / "io.pressure");
+            return get_pressure_data_from_file(
+                    directory / "io.pressure", PressureType::Io, false);
         case PressureType::Memory:
-            return get_pressure_data_from_file(directory / "memory.pressure");
+            return get_pressure_data_from_file(
+                    directory / "memory.pressure", PressureType::Memory, false);
         }
 
         throw std::invalid_argument("get_pressure_data(): Invalid type: " +
