@@ -16,8 +16,18 @@
 
 class MockTimer {
 public:
-    MockTimer(std::vector<std::chrono::steady_clock::time_point>& startTimes,
-              std::vector<std::chrono::steady_clock::time_point>& stopTimes)
+    // Duration since unix epoch representation stored in the start / stop times
+    // vectors. We use this and not the higher-level steady_clock::duration or
+    // time_point for ease of use with GTest EXPECT_xxx() macros - it can
+    // print the values of the underlying representation, but not necessarily
+    // duration or time_point.
+    using SinceEpoch = std::chrono::steady_clock::duration::rep;
+
+    // Ordered collection of start / stop times recorded by the MockTimer.
+    using TimeVector = std::vector<SinceEpoch>;
+
+    MockTimer(TimeVector& startTimes,
+              TimeVector& stopTimes)
         : startTimes(startTimes), stopTimes(stopTimes) {
     }
 
@@ -26,13 +36,13 @@ public:
     }
 
     void start(std::chrono::steady_clock::time_point time) {
-        startTimes.emplace_back(time);
+        startTimes.emplace_back(time.time_since_epoch().count());
         startCalled = true;
     }
 
     void stop(std::chrono::steady_clock::time_point time) {
         EXPECT_TRUE(startCalled);
-        stopTimes.emplace_back(time);
+        stopTimes.emplace_back(time.time_since_epoch().count());
     }
 
     bool isEnabled() const {
@@ -40,14 +50,14 @@ public:
     }
 
     bool startCalled = false;
-    std::vector<std::chrono::steady_clock::time_point>& startTimes;
-    std::vector<std::chrono::steady_clock::time_point>& stopTimes;
+    TimeVector& startTimes;
+    TimeVector& stopTimes;
 };
 
 class ScopeTimerTest : public ::testing::Test {
 protected:
-    std::vector<std::chrono::steady_clock::time_point> start;
-    std::vector<std::chrono::steady_clock::time_point> stop;
+    MockTimer::TimeVector start;
+    MockTimer::TimeVector stop;
 };
 
 TEST_F(ScopeTimerTest, SingleListener) {
