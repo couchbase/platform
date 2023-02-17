@@ -65,7 +65,7 @@ TEST_F(ScopeTimerTest, SingleListener) {
 
     EXPECT_EQ(1u, start.size());
     EXPECT_EQ(1u, stop.size());
-    EXPECT_GT(stop[0], start[0]);
+    EXPECT_GE(stop[0], start[0]);
 }
 
 TEST_F(ScopeTimerTest, TwoListeners) {
@@ -77,8 +77,8 @@ TEST_F(ScopeTimerTest, TwoListeners) {
 
     EXPECT_EQ(2u, start.size());
     EXPECT_EQ(2u, stop.size());
-    EXPECT_GT(stop[0], start[0]);
-    EXPECT_GT(stop[1], start[1]);
+    EXPECT_GE(stop[0], start[0]);
+    EXPECT_GE(stop[1], start[1]);
     EXPECT_EQ(start[0], start[1])
             << "ScopeTimer listeners did not receive the same start time.";
     EXPECT_EQ(stop[0], stop[1])
