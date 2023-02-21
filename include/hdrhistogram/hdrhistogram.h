@@ -282,6 +282,12 @@ public:
     uint64_t getOverflowCount() const;
 
     /**
+     * @returns the sum of values added which exceeded the underlying
+     * hdr_histograms' highest_trackable_value.
+     */
+    uint64_t getOverflowSum() const;
+
+    /**
      * Returns the min value stored to the histogram
      */
     uint64_t getMinValue() const;
@@ -578,6 +584,12 @@ private:
      * cannot be recorded in `histogram`.
      */
     cb::RelaxedAtomic<uint64_t> overflowed;
+
+    /**
+     * Sum of sample values which were larger than highest_trackable_value and
+     * hence cannot be recorded in `histogram`.
+     */
+    cb::RelaxedAtomic<uint64_t> overflowedSum;
 };
 
 std::ostream& operator<<(std::ostream&,

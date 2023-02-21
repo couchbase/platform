@@ -76,6 +76,7 @@ HdrHistogram& HdrHistogram::operator+=(const HdrHistogram& other) {
         hdr_add(thisLock->get(), otherLock->get());
     }
     overflowed += other.overflowed;
+    overflowedSum += other.overflowedSum;
 
     return *this;
 }
@@ -99,6 +100,7 @@ bool HdrHistogram::addValueAndCount(uint64_t v, uint64_t count) {
     bool recorded = hdr_record_values(histogram.rlock()->get(), v, count);
     if (!recorded) {
         overflowed += count;
+        overflowedSum += v * count;
     }
     return recorded;
 }
@@ -109,6 +111,10 @@ uint64_t HdrHistogram::getValueCount() const {
 
 uint64_t HdrHistogram::getOverflowCount() const {
     return overflowed;
+}
+
+uint64_t HdrHistogram::getOverflowSum() const {
+    return overflowedSum;
 }
 
 uint64_t HdrHistogram::getMinValue() const {
@@ -122,6 +128,7 @@ uint64_t HdrHistogram::getMaxValue() const {
 void HdrHistogram::reset() {
     hdr_reset(histogram.wlock()->get());
     overflowed = 0;
+    overflowedSum = 0;
 }
 
 uint64_t HdrHistogram::getValueAtPercentile(double percentage) const {
@@ -393,6 +400,8 @@ nlohmann::json HdrHistogram::to_json() const {
     // As such, add as its own element in the JSON to make explicit these
     // are not part of the normal buckets.
     rootObj["overflowed"] = overflowed.load();
+    rootObj["overflowed_sum"] = overflowedSum.load();
+
     // max trackable value allows us to show what overflowed values must
     // be greater than.
     rootObj["max_trackable"] = this->getMaxTrackableValue();
@@ -409,7 +418,14 @@ size_t HdrHistogram::getMemFootPrint() const {
 }
 
 double HdrHistogram::getMean() const {
-    return hdr_mean(histogram.rlock()->get());
+    // Include the overflowed samples in mean calculation.
+    const auto [trackedMean, trackedCount] =
+            histogram.withRLock([](auto& hist) -> std::pair<double, int64_t> {
+                return {hdr_mean(hist.get()), hist->total_count};
+            });
+    const auto combinedMean = ((trackedMean * trackedCount) + overflowedSum) /
+                              (trackedCount + overflowed);
+    return combinedMean;
 }
 
 void HdrHistogram::resize(WHistoLockedPtr& histoLockPtr,
