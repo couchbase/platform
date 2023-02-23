@@ -12,6 +12,7 @@
 
 #include <cgroup/cgroup.h>
 #include <folly/portability/GTest.h>
+#include <nlohmann/json.hpp>
 #include <filesystem>
 
 using namespace cb::cgroup;
@@ -130,6 +131,18 @@ TEST_F(V1, TestSystemPressureCpu) {
     EXPECT_EQ(0.0f, data.full.avg60);
     EXPECT_EQ(0.0f, data.full.avg300);
     EXPECT_EQ(0ULL, data.full.total_stall_time.count());
+}
+
+/// Test that the JSON conversion of a pressure metric don't crash
+TEST_F(V1, TestPressureToJson) {
+    // some avg10=78.29 avg60=75.76 avg300=66.71 total=733785593
+    // full avg10=0.00 avg60=0.00 avg300=0.00 total=0
+    auto pressure = instance->get_system_pressure_data(PressureType::Cpu);
+    ASSERT_TRUE(pressure);
+    nlohmann::json json = pressure->some;
+    EXPECT_EQ("78.29", json["avg10"]);
+    EXPECT_EQ("75.76", json["avg60"]);
+    EXPECT_EQ("66.71", json["avg300"]);
 }
 
 TEST_F(V1, TestSystemPressureIo) {

@@ -25,7 +25,7 @@ namespace cb::cgroup {
 void to_json(nlohmann::json& json, const PressureMetric& pressure_metric) {
     json = {{"avg10", fmt::format("{:.{}f}", pressure_metric.avg10, 2)},
             {"avg60", fmt::format("{:.{}f}", pressure_metric.avg60, 2)},
-            {"avg300", fmt::format("{:.{}f}", pressure_metric.avg300)},
+            {"avg300", fmt::format("{:.{}f}", pressure_metric.avg300, 2)},
             {"total_stall_time_usec",
              std::to_string(pressure_metric.total_stall_time.count())}};
 }
