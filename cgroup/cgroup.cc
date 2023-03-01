@@ -107,40 +107,50 @@ std::optional<PressureData> ControlGroup::get_pressure_data_from_file(
     bool some = false;
     bool full = false;
 
-    cb::io::tokenizeFileLineByLine(
-            file, [&data, &some, &full](const auto& parts) {
-                if (parts.size() < 5) {
-                    return true;
-                }
-
-                if ((parts.front() != "some" && parts.front() != "full") ||
-                    parts[1].find("avg10=") != 0 ||
-                    parts[2].find("avg60=") != 0 ||
-                    parts[3].find("avg300=") != 0 ||
-                    parts[4].find("total=") != 0) {
-                    // unexpected line
-                    return true;
-                }
-                try {
-                    PressureMetric metric;
-                    metric.avg10 = std::stof(std::string(parts[1].substr(6)));
-                    metric.avg60 = std::stof(std::string(parts[2].substr(6)));
-                    metric.avg300 = std::stof(std::string(parts[3].substr(7)));
-                    metric.total_stall_time = std::chrono::microseconds{
-                            std::stoull(std::string(parts[4].substr(6)))};
-
-                    if (parts.front() == "some") {
-                        data.some = metric;
-                        some = true;
-                    } else {
-                        data.full = metric;
-                        full = true;
+    try {
+        cb::io::tokenizeFileLineByLine(
+                file, [&data, &some, &full](const auto& parts) {
+                    if (parts.size() < 5) {
+                        return true;
                     }
-                } catch (const std::exception&) {
-                    // swallow
-                }
-                return true;
-            });
+
+                    if ((parts.front() != "some" && parts.front() != "full") ||
+                        parts[1].find("avg10=") != 0 ||
+                        parts[2].find("avg60=") != 0 ||
+                        parts[3].find("avg300=") != 0 ||
+                        parts[4].find("total=") != 0) {
+                        // unexpected line
+                        return true;
+                    }
+                    try {
+                        PressureMetric metric;
+                        metric.avg10 =
+                                std::stof(std::string(parts[1].substr(6)));
+                        metric.avg60 =
+                                std::stof(std::string(parts[2].substr(6)));
+                        metric.avg300 =
+                                std::stof(std::string(parts[3].substr(7)));
+                        metric.total_stall_time = std::chrono::microseconds{
+                                std::stoull(std::string(parts[4].substr(6)))};
+
+                        if (parts.front() == "some") {
+                            data.some = metric;
+                            some = true;
+                        } else {
+                            data.full = metric;
+                            full = true;
+                        }
+                    } catch (const std::exception&) {
+                        // swallow
+                    }
+                    return true;
+                });
+    } catch (const std::system_error& error) {
+        if (error.code().value() == ENOTSUP) {
+            return {};
+        }
+        throw;
+    }
 
     if (some && full) {
         return data;
