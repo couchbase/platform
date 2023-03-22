@@ -8,6 +8,7 @@ cb_add_test_executable(platform_unit_tests
                        bitset_test.cc
                        cb_getopt_test.cc
                        checked_snprintf_test.cc
+                       command_line_options_parser_test.cc
                        corestore_test.cc
                        corestore_test.h
                        dirutils_test.cc
@@ -32,6 +33,12 @@ cb_add_test_executable(platform_unit_tests
                        timeutils_test.cc
                        uuid_test.cc
                        )
+
+# cb_getopt_test includes platform/getopt.h which is in conflict with
+# <getopt.h> as the system getopt.h defines macros for something
+# platform/getopt.h defines as const int ..
+set_source_files_properties(cb_getopt_test.cc
+        PROPERTIES SKIP_UNITY_BUILD_INCLUSION 1)
 target_link_libraries(platform_unit_tests
         PRIVATE fmt::fmt GTest::gtest GTest::gtest_main platform JSON_checker)
 platform_enable_pch(platform_unit_tests)

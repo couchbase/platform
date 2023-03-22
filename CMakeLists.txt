@@ -190,6 +190,7 @@ LIST(APPEND PLATFORM_FILES
   src/cb_arena_malloc.cc
   src/cb_time.cc
   src/checked_snprintf.cc
+  src/command_line_options_parser.cc
   src/crc32c.cc
   src/crc32c_private.h
   src/exceptions.cc
@@ -219,6 +220,7 @@ LIST(APPEND PLATFORM_FILES
   include/platform/byte_buffer_dump.h
   include/platform/cb_malloc.h
   include/platform/checked_snprintf.h
+  include/platform/command_line_options_parser.h
   include/platform/corestore.h
   include/platform/crc32c.h
   include/platform/dirutils.h
@@ -245,6 +247,14 @@ LIST(APPEND PLATFORM_FILES
   include/platform/timeutils.h
   include/platform/uuid.h
 )
+
+# src/getopt.cc tires to include our own version of getopt.h
+# and if that's included _after_ the systems getopt.h
+# in the same unity build batch the #define's will conflict
+# with content for let's say 'const int no_argument = 0;'
+# (no_argument being #defined to a value etc)
+set_source_files_properties(src/getopt.cc
+        PROPERTIES SKIP_UNITY_BUILD_INCLUSION 1)
 
 # Build a separate static library for cbassert/backtrace
 LIST(APPEND CBASSERT_FILES
