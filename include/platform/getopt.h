@@ -35,12 +35,12 @@ extern int optind;
 extern int optopt;
 
 extern int getopt_long(int argc,
-                       char** argv,
+                       char* const* argv,
                        const char* optstring,
                        const struct option* longopts,
                        int* longindex);
 
-extern int getopt(int argc, char** argv, const char* optstring);
+extern int getopt(int argc, char* const* argv, const char* optstring);
 
 /**
  * This is for unit tests only and used to reset the internal state

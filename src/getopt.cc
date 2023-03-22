@@ -21,7 +21,7 @@ int cb::getopt::optopt;
 static bool silent = false;
 
 static int parse_longopt(int argc,
-                         char** argv,
+                         char* const* argv,
                          const cb::getopt::option* longopts,
                          int* longindex) {
     std::string name{argv[cb::getopt::optind] + 2};
@@ -77,7 +77,7 @@ static int parse_longopt(int argc,
 }
 
 int cb::getopt::getopt_long(int argc,
-                            char** argv,
+                            char* const* argv,
                             const char* optstring,
                             const cb::getopt::option* longopts,
                             int* longindex) {
@@ -129,7 +129,7 @@ int cb::getopt::getopt_long(int argc,
     }
 }
 
-int cb::getopt::getopt(int argc, char** argv, const char* optstring) {
+int cb::getopt::getopt(int argc, char* const* argv, const char* optstring) {
     return cb::getopt::getopt_long(argc, argv, optstring, nullptr, nullptr);
 }
 

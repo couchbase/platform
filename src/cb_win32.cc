@@ -53,7 +53,7 @@ int optind = 1;
 int optopt;
 
 int getopt_long(int argc,
-                char** argv,
+                char* const* argv,
                 const char* optstring,
                 const struct option* longopts,
                 int* longindex) {
@@ -73,7 +73,7 @@ int getopt_long(int argc,
     return ret;
 }
 
-int getopt(int argc, char** argv, const char* optstring) {
+int getopt(int argc, char* const* argv, const char* optstring) {
     cb::getopt::optind = optind;
     cb::getopt::opterr = opterr;
     cb::getopt::optopt = optopt;
