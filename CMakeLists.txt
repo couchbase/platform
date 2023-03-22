@@ -206,6 +206,8 @@ LIST(APPEND PLATFORM_FILES
   src/strerror.cc
   src/string_hex.cc
   src/sysinfo.cc
+  src/terminal_color.cc
+  src/terminal_size.cc
   src/thread.cc
   src/timeutils.cc
   src/unique_waiter_queue.cc
@@ -237,6 +239,8 @@ LIST(APPEND PLATFORM_FILES
   include/platform/strerror.h
   include/platform/string_hex.h
   include/platform/sysinfo.h
+  include/platform/terminal_color.h
+  include/platform/terminal_size.h
   include/platform/thread.h
   include/platform/timeutils.h
   include/platform/uuid.h
