@@ -352,12 +352,10 @@ public:
     }
 
     /**
-     * Return a detailed, human readable allocator statistic blob
-     * @param buffer to write to
+     * Return a detailed, human readable allocator statistic blob.
      */
-    static void getDetailedStats(void (*callback)(void*, const char*),
-                                 void* cbopaque) {
-        return Impl::getDetailedStats(callback, cbopaque);
+    static std::string getDetailedStats() {
+        return Impl::getDetailedStats();
     }
 
     /**

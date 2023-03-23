@@ -100,9 +100,17 @@ struct write_state {
 };
 
 template <>
-void cb::JEArenaMalloc::getDetailedStats(void (*callback)(void*, const char*),
-                                         void* cbopaque) {
-    je_malloc_stats_print(callback, cbopaque, "");
+std::string cb::JEArenaMalloc::getDetailedStats() {
+    std::string buffer;
+    buffer.reserve(8192);
+
+    auto callback = [](void* opaque, const char* msg) {
+        auto& buffer = *reinterpret_cast<std::string*>(opaque);
+        buffer.append(msg);
+    };
+    je_malloc_stats_print(callback, &buffer, "");
+
+    return buffer;
 }
 
 template <>
