@@ -15,7 +15,8 @@
 
 namespace cb {
 /**
- * Convert a time (in ns) to a human readable form...
+ * Convert a time (in ns) to a human readable form (will loose information
+ * as part of converting the time to a more readable format)...
  *
  * Up to 9999ns, print as ns
  * up to 9999µs, print as µs
@@ -30,7 +31,9 @@ namespace cb {
 std::string time2text(std::chrono::nanoseconds time);
 
 /**
- * Try to parse the string. It should be of the following format:
+ * Try to parse the string. It should be of the two following formats:
+ *
+ * Alternative 1:
  *
  * value [specifier]
  *
@@ -45,8 +48,13 @@ std::string time2text(std::chrono::nanoseconds time);
  *    h / hours
  *
  * If no specifier is provided, the value specifies the number in milliseconds
+ *
+ * Alternative 2 (the output from time2text):
+ *
+ * 1h:2m:3s
+ *
  */
-std::chrono::nanoseconds text2time(const std::string& text);
+std::chrono::nanoseconds text2time(std::string_view text);
 
 struct ClockOverheadResult {
     /**

@@ -7,9 +7,11 @@
  *   software will be governed by the Apache License, Version 2.0, included in
  *   the file licenses/APL2.txt.
  */
-
+#include <fmt/format.h>
+#include <platform/split_string.h>
 #include <platform/timeutils.h>
 #include <cctype>
+#include <charconv>
 #include <cmath>
 #include <stdexcept>
 #include <thread>
@@ -47,22 +49,40 @@ std::string cb::time2text(std::chrono::nanoseconds time2convert) {
     return ret;
 }
 
-std::chrono::nanoseconds cb::text2time(const std::string& text) {
-    std::size_t pos = 0;
-    auto value = std::stoi(text, &pos);
-
-    // trim off whitespace between the number and the textual description
-    while (std::isspace(text[pos])) {
-        ++pos;
+static std::string_view trim_space(std::string_view text) {
+    while (!text.empty() && text.front() == ' ') {
+        text.remove_prefix(1);
     }
 
-    std::string specifier{text.substr(pos)};
-    // Trim off trailing whitespace
-    pos = specifier.find(' ');
-    if (pos != std::string::npos) {
-        specifier.resize(pos);
+    while (!text.empty() && text.back() == ' ') {
+        text.remove_suffix(1);
+    }
+    return text;
+}
+
+static std::chrono::nanoseconds text2nano(std::string_view text) {
+    text = trim_space(text);
+
+    int value{};
+    const auto [ptr, ec]{
+            std::from_chars(text.data(), text.data() + text.size(), value)};
+    if (ec != std::errc()) {
+        if (ec == std::errc::invalid_argument) {
+            throw std::invalid_argument("text2nano: no conversion");
+        }
+        if (ec == std::errc::result_out_of_range) {
+            throw std::out_of_range("text2nano: value exceeds integer");
+        }
+        throw std::system_error(std::make_error_code(ec));
     }
 
+    // trim off what we've parsed
+    text.remove_prefix(ptr - text.data());
+
+    // trim off leading and trailing space
+    text = trim_space(text);
+
+    const auto specifier = text;
     if (specifier.empty()) {
         return std::chrono::milliseconds(value);
     }
@@ -91,7 +111,21 @@ std::chrono::nanoseconds cb::text2time(const std::string& text) {
         return std::chrono::hours(value);
     }
 
-    throw std::invalid_argument("cb::text2time: Invalid format: " + text);
+    throw std::invalid_argument(
+            fmt::format("cb::text2time: Invalid format: {}", text));
+}
+
+std::chrono::nanoseconds cb::text2time(std::string_view text) {
+    if (text.empty()) {
+        throw std::invalid_argument(
+                "cb::text2time: can't convert empty string");
+    }
+    auto pieces = cb::string::split(text, ':');
+    std::chrono::nanoseconds ret{0};
+    for (const auto& p : pieces) {
+        ret += text2nano(std::string{p});
+    }
+    return ret;
 }
 
 std::chrono::microseconds cb::decayingSleep(

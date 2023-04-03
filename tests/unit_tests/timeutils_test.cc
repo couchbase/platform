@@ -157,11 +157,45 @@ TEST(Text2timeTest, hours) {
     EXPECT_EQ(std::chrono::hours(12340), text2time("12340 hours"));
 }
 
+TEST(Text2timeTest, Mixed_1) {
+    const auto mytime = std::chrono::hours(2) + std::chrono::minutes(15) +
+                        std::chrono::seconds(4);
+    EXPECT_EQ("2h:15m:4s", time2text(mytime));
+    EXPECT_EQ(mytime, text2time("2h:15m:4s"));
+}
+
+TEST(Text2timeTest, Mixed_2) {
+    const auto mytime = std::chrono::minutes(15) + std::chrono::seconds(4);
+    EXPECT_EQ("15m:4s", time2text(mytime));
+    EXPECT_EQ(mytime, text2time("15m:4s"));
+}
+
+TEST(Text2timeTest, Mixed_3) {
+    const auto mytime =
+            std::chrono::seconds(4) + std::chrono::milliseconds{320};
+    EXPECT_EQ("4320 ms", time2text(mytime));
+    EXPECT_EQ(mytime, text2time("4s:320ms"));
+}
+
+TEST(Text2timeTest, Mixed_4) {
+    const auto mytime =
+            std::chrono::seconds(4) + std::chrono::milliseconds{320} +
+            std::chrono::microseconds{50} + std::chrono::nanoseconds{101};
+    EXPECT_EQ(mytime, text2time("4s:320ms:50us:101ns"));
+}
+
+TEST(Text2timeTest, Mixed_Whitespace) {
+    const auto mytime = std::chrono::hours(2) + std::chrono::minutes{4} +
+                        std::chrono::microseconds{50};
+    EXPECT_EQ(mytime, text2time(" 2  h :  4 m  :50us"));
+}
+
 TEST(Text2timeTest, InvalidInput) {
     EXPECT_THROW(text2time(""), std::invalid_argument);
     EXPECT_THROW(text2time("a"), std::invalid_argument);
     EXPECT_THROW(text2time("!"), std::invalid_argument);
     EXPECT_THROW(text2time("2 units"), std::invalid_argument);
+    EXPECT_THROW(text2time(" 2  h :4m:\n00000s"), std::invalid_argument);
 }
 
 /// Test clock which always advances by 10 nanoseconds every time now() is called.
