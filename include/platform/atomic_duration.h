@@ -22,8 +22,7 @@ namespace cb {
  *         defaults to relaxed memory ordering, suitable for statistics.
  */
 template <typename Duration = std::chrono::steady_clock::duration,
-          std::memory_order MemoryOrder =
-                  std::memory_order::memory_order_relaxed>
+          std::memory_order MemoryOrder = std::memory_order_relaxed>
 class AtomicDuration {
 public:
     AtomicDuration() {
@@ -121,8 +120,7 @@ private:
  *         defaults to relaxed memory ordering, suitable for statistics.
  */
 template <typename TimePoint = std::chrono::steady_clock::time_point,
-        std::memory_order MemoryOrder =
-        std::memory_order::memory_order_relaxed>
+          std::memory_order MemoryOrder = std::memory_order_relaxed>
 class AtomicTimePoint {
 public:
     AtomicTimePoint() {
