@@ -14,7 +14,7 @@
 #include <getopt.h>
 #include <platform/terminal_color.h>
 #include <platform/terminal_size.h>
-#include <filesystem>
+#include <sstream>
 #include <unordered_map>
 
 namespace cb::getopt {
