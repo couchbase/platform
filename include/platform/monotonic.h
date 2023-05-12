@@ -63,6 +63,14 @@ using DefaultOrderReversedPolicy = ThrowExceptionPolicy<T>;
 using DefaultOrderReversedPolicy = IgnorePolicy<T>;
 #endif
 
+// We want EBO to trigger for the Monotonic classes. On MSVC, this requires
+// an explicit declspec to opt into EBO for multiple empty bases.
+#ifdef _MSC_VER
+#define CB_MONOTONIC_EBO __declspec(empty_bases)
+#else
+#define CB_MONOTONIC_EBO
+#endif // defined(_MSC_VER)
+
 /**
  * Monotonic is a class template for simple types T. It provides guarantee
  * of updating the class objects by only values that are greater than what is
@@ -71,6 +79,8 @@ using DefaultOrderReversedPolicy = IgnorePolicy<T>;
  *
  * Note: This is not atomic/thread-safe. If you need thread-safely, see
  * AtomicMonotonic.
+ *
+ * Note 2: We privately inherit from the LabelPolicy to allow for EBO.
  *
  * @tparam T value type used to represent the value.
  * @tparam OrderReversePolicy Policy class which controls the behaviour if
@@ -88,17 +98,19 @@ template <typename T,
           const char* Name = nullptr,
           class LabelPolicy = BasicNameLabelPolicy,
           template <class> class Invariant = cb::greater>
-class Monotonic : public OrderReversedPolicy<T> {
+class CB_MONOTONIC_EBO Monotonic : public OrderReversedPolicy<T>,
+                                   private LabelPolicy {
 public:
     using value_type = T;
     using BaseType = OrderReversedPolicy<T>;
 
     explicit Monotonic(const T val = std::numeric_limits<T>::min(),
                        LabelPolicy labeler = {})
-        : val(val), labeler(labeler) {
+        : LabelPolicy(labeler), val(val) {
     }
 
-    Monotonic(const Monotonic& other) : val(other.val), labeler(other.labeler) {
+    Monotonic(const Monotonic& other)
+        : LabelPolicy(static_cast<const LabelPolicy&>(other)), val(other.val) {
     }
 
     Monotonic& operator=(const Monotonic& other) {
@@ -112,7 +124,7 @@ public:
 #else
             const char* name = Name;
 #endif
-            BaseType::nonMonotonic(val, other.val, labeler.getLabel(name));
+            BaseType::nonMonotonic(val, other.val, LabelPolicy::getLabel(name));
         }
         return *this;
     }
@@ -128,7 +140,7 @@ public:
 #else
             const char* name = Name;
 #endif
-            BaseType::nonMonotonic(val, v, labeler.getLabel(name));
+            BaseType::nonMonotonic(val, v, LabelPolicy::getLabel(name));
         }
         return *this;
     }
@@ -165,13 +177,15 @@ public:
     }
 
     void setLabeler(LabelPolicy newLabeler) {
-        labeler = std::move(newLabeler);
+        LabelPolicy::operator=(std::move(newLabeler));
     };
 
 private:
     T val;
-    LabelPolicy labeler;
 };
+
+static_assert(sizeof(Monotonic<int, IgnorePolicy>) == sizeof(int),
+              "Expected EBO to kick in.");
 
 /**
  * A weakly increasing template type (allows the same existing value to be
@@ -197,6 +211,8 @@ using WeaklyMonotonic = Monotonic<T,
 /**
  * Variant of the Monotonic class, except that the type T is wrapped in
  * std::atomic, so all updates are atomic. T must be TriviallyCopyable.
+ *
+ * Note: We privately inherit from the LabelPolicy to allow for EBO.
  */
 template <typename T,
           template <class> class OrderReversedPolicy =
@@ -204,11 +220,12 @@ template <typename T,
           const char* Name = nullptr,
           class LabelPolicy = BasicNameLabelPolicy,
           template <class> class Invariant = cb::greater>
-class AtomicMonotonic : public OrderReversedPolicy<T> {
+class CB_MONOTONIC_EBO AtomicMonotonic : public OrderReversedPolicy<T>,
+                                         private LabelPolicy {
 public:
     explicit AtomicMonotonic(T val = std::numeric_limits<T>::min(),
                              LabelPolicy labeler = {})
-        : val(val), labeler(std::move(labeler)) {
+        : LabelPolicy(std::move(labeler)), val(val) {
     }
 
     AtomicMonotonic(const AtomicMonotonic<T>& other) = delete;
@@ -234,7 +251,7 @@ public:
                 const char* name = Name;
 #endif
                 OrderReversedPolicy<T>::nonMonotonic(
-                        current, desired, labeler.getLabel(name));
+                        current, desired, LabelPolicy::getLabel(name));
                 break;
             }
         }
@@ -285,13 +302,17 @@ public:
     }
 
     void setLabeler(LabelPolicy newLabeler) {
-        labeler = std::move(newLabeler);
+        LabelPolicy::operator=(std::move(newLabeler));
     };
 
 private:
     std::atomic<T> val;
-    LabelPolicy labeler;
 };
+
+static_assert(sizeof(AtomicMonotonic<int, IgnorePolicy>) == sizeof(int),
+              "Expected EBO to kick in.");
+
+#undef CB_MONOTONIC_EBO
 
 /**
  * A weakly increasing atomic template type (allows the same existing value to
