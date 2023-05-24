@@ -8,13 +8,12 @@
  *   the file licenses/APL2.txt.
  */
 
-#include <platform/platform_socket.h>
 #include <platform/socket.h>
 
 #include <event2/util.h>
-#include <nlohmann/json.hpp>
-
 #include <gsl/gsl-lite.hpp>
+#include <nlohmann/json.hpp>
+#include <platform/platform_socket.h>
 #include <cerrno>
 
 #ifdef WIN32
@@ -445,6 +444,41 @@ std::string getHostname() {
     }
 
     return std::string(host.data());
+}
+
+nlohmann::json getSocketOptions(SOCKET sfd) {
+    nlohmann::json ret;
+    auto add_option = [sfd, &ret](const char* key, int level, int option) {
+        try {
+            ret[key] = getSocketOption<int>(sfd, level, option);
+        } catch (const std::exception& exception) {
+            ret[key] = exception.what();
+        }
+    };
+
+    add_option("so_sndbuf", SOL_SOCKET, SO_SNDBUF);
+    add_option("so_rcvbuf", SOL_SOCKET, SO_RCVBUF);
+    add_option("so_keepalive", SOL_SOCKET, SO_KEEPALIVE);
+    add_option("tcp_keepidle", IPPROTO_TCP, TCP_KEEPIDLE);
+    add_option("tcp_keepintvl", IPPROTO_TCP, TCP_KEEPINTVL);
+    add_option("tcp_keepcnt", IPPROTO_TCP, TCP_KEEPCNT);
+#ifdef __linux__
+    add_option("tcp_user_timeout", IPPROTO_TCP, TCP_USER_TIMEOUT);
+#endif
+
+    try {
+        auto linger =
+                getSocketOption<struct linger>(sfd, SOL_SOCKET, SO_LINGER);
+        if (linger.l_onoff) {
+            ret["so_linger"] = linger.l_linger;
+        } else {
+            ret["so_linger"] = "off";
+        }
+    } catch (const std::exception& exception) {
+        ret["so_linger"] = exception.what();
+    }
+
+    return ret;
 }
 
 } // namespace cb::net

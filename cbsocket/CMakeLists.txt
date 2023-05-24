@@ -10,6 +10,7 @@ target_link_libraries(cbsocket
                       nlohmann_json::nlohmann_json
                       ${LIBEVENT_LIBRARIES}
                       ${COUCHBASE_NETWORK_LIBS})
+target_link_libraries(cbsocket PUBLIC fmt::fmt)
 platform_enable_pch(cbsocket)
 
 cb_add_test_executable(cbsocket_test cbsocket_test.cc)

@@ -29,10 +29,16 @@ using SOCKET = int;
 #define SOCKETPAIR_AF AF_UNIX
 #endif
 
+#include <fmt/format.h>
 #include <nlohmann/json_fwd.hpp>
 #include <cerrno>
 #include <cstdint>
 #include <string>
+#include <system_error>
+
+#if defined(__APPLE__) && !defined(TCP_KEEPIDLE)
+#define TCP_KEEPIDLE TCP_KEEPALIVE
+#endif
 
 namespace cb::net {
 
@@ -89,6 +95,28 @@ int setsockopt(SOCKET sock,
                int option_name,
                const void* option_value,
                socklen_t option_len);
+
+template <typename T>
+inline bool setSocketOption(SOCKET sock, int level, int name, const T& value) {
+    return cb::net::setsockopt(sock,
+                               level,
+                               name,
+                               static_cast<const void*>(&value),
+                               sizeof(value)) == 0;
+}
+
+template <typename T>
+inline T getSocketOption(SOCKET sock, int level, int name) {
+    T ret;
+    socklen_t size(sizeof(T));
+    if (cb::net::getsockopt(sock, level, name, &ret, &size) == 0) {
+        return ret;
+    }
+    throw std::system_error(
+            get_socket_error(),
+            std::system_category(),
+            fmt::format("getSocketOption(level:{}, option:{})", level, name));
+}
 
 int socketpair(int domain, int type, int protocol, SOCKET socket_vector[2]);
 
@@ -212,5 +240,14 @@ std::pair<std::vector<std::string>, std::vector<std::string>> getIpAddresses(
  * @throws std::system_error if an error occurs
  */
 std::string getHostname();
+
+/**
+ * Get a JSON object containing a subset of known Socket Options
+ * for the provided socket. If an error occurs the element contains
+ * the error text returned from getsockopt
+ *
+ * @param sfd the socket to look up options for
+ */
+nlohmann::json getSocketOptions(SOCKET sfd);
 
 } // namespace cb::net
