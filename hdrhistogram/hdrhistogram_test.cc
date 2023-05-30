@@ -56,6 +56,33 @@ TEST(HdrHistogramTest, addMax) {
     EXPECT_EQ(255, histogram.getMaxValue());
 }
 
+// Test can add a value exceeding the max is counted in overflow, but is
+// otherwise ignored for percentile calculations etc.
+TEST(HdrHistogramTest, addOverflow) {
+    HdrHistogram histogram{1, 2047, 1};
+    histogram.addValue(2047);
+    histogram.addValue(histogram.getMaxTrackableValue() * 2);
+    EXPECT_EQ(1, histogram.getValueCount());
+    EXPECT_EQ(2047, histogram.getValueAtPercentile(100.0));
+    EXPECT_EQ(2047, histogram.getMaxValue());
+    EXPECT_EQ(1, histogram.getOverflowCount());
+}
+
+// Test that reset clears all counts.
+TEST(HdrHistogramTest, reset) {
+    HdrHistogram histogram{1, 2047, 1};
+    histogram.addValue(1023);
+    histogram.addValue(2047);
+    histogram.addValue(histogram.getMaxTrackableValue() * 2);
+    EXPECT_EQ(2, histogram.getValueCount());
+    EXPECT_EQ(1, histogram.getOverflowCount());
+
+    histogram.reset();
+    EXPECT_EQ(0, histogram.getValueCount());
+    EXPECT_EQ(0, histogram.getOverflowCount());
+    EXPECT_EQ(0, histogram.getValueAtPercentile(100.0));
+}
+
 // Test the bias of +1 used by the underlying hdr_histogram data structure
 // does not affect the overall behaviour.
 TEST(HdrHistogramTest, biasTest) {
@@ -344,6 +371,10 @@ TEST(HdrHistogramTest, aggregationTest) {
         histogramOne.addValue(i);
         histogramTwo.addValue(i);
     }
+    // Also add overflowed values so we can check they are also copied.
+    histogramOne.addValue(std::numeric_limits<uint64_t>::max());
+    histogramTwo.addValue(std::numeric_limits<uint64_t>::max());
+
     // Do aggregation
     histogramOne += histogramTwo;
 
@@ -369,6 +400,9 @@ TEST(HdrHistogramTest, aggregationTest) {
     // Check the totals of each histogram
     EXPECT_EQ((maxValue + 1) * 2, histogramOne.getValueCount());
     EXPECT_EQ(maxValue + 1, histogramTwo.getValueCount());
+
+    EXPECT_EQ(2, histogramOne.getOverflowCount());
+    EXPECT_EQ(1, histogramTwo.getOverflowCount());
 }
 
 // Test the aggregation operator method
@@ -523,7 +557,7 @@ void resetThread(HdrHistogram& histo, folly::Baton<true>& baton) {
  * doesn't end up in an infinite loop.
  */
 TEST(HdrHistogramTest, ResetItoratorInfLoop) {
-    Hdr2sfMicroSecHistogram histogram;
+    Hdr1sfMicroSecHistogram histogram;
     for (int i = 0; i < 10; i++) {
         histogram.addValue(i);
     }

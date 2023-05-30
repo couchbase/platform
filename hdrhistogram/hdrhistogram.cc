@@ -75,6 +75,8 @@ HdrHistogram& HdrHistogram::operator+=(const HdrHistogram& other) {
         }
         hdr_add(thisLock->get(), otherLock->get());
     }
+    overflowed += other.overflowed;
+
     return *this;
 }
 
@@ -90,11 +92,15 @@ HdrHistogram& HdrHistogram::operator=(const HdrHistogram& other) {
 }
 
 bool HdrHistogram::addValue(uint64_t v) {
-    return hdr_record_value(histogram.rlock()->get(), v);
+    return addValueAndCount(v, 1);
 }
 
 bool HdrHistogram::addValueAndCount(uint64_t v, uint64_t count) {
-    return hdr_record_values(histogram.rlock()->get(), v, count);
+    bool recorded = hdr_record_values(histogram.rlock()->get(), v, count);
+    if (!recorded) {
+        overflowed += count;
+    }
+    return recorded;
 }
 
 uint64_t HdrHistogram::getValueCount() const {
@@ -103,6 +109,10 @@ uint64_t HdrHistogram::getValueCount() const {
 
 bool HdrHistogram::isEmpty() const {
     return getValueCount() == 0;
+}
+
+uint64_t HdrHistogram::getOverflowCount() const {
+    return overflowed;
 }
 
 uint64_t HdrHistogram::getMinValue() const {
@@ -115,6 +125,7 @@ uint64_t HdrHistogram::getMaxValue() const {
 
 void HdrHistogram::reset() {
     hdr_reset(histogram.wlock()->get());
+    overflowed = 0;
 }
 
 uint64_t HdrHistogram::getValueAtPercentile(double percentage) const {
@@ -379,6 +390,16 @@ nlohmann::json HdrHistogram::to_json() const {
         ++itr;
     }
     rootObj["data"] = dataArr;
+
+    // Include overflowed samples. These are not included in the
+    // percentile calculation (i.e. 100% stops at the last
+    // non-overflow bucket) as the underlying hdr_histogram doesn't track them.
+    // As such, add as its own element in the JSON to make explicit these
+    // are not part of the normal buckets.
+    rootObj["overflowed"] = overflowed.load();
+    // max trackable value allows us to show what overflowed values must
+    // be greater than.
+    rootObj["max_trackable"] = this->getMaxTrackableValue();
 
     return rootObj;
 }
