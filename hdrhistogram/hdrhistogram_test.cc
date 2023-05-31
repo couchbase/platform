@@ -66,6 +66,7 @@ TEST(HdrHistogramTest, addOverflow) {
     EXPECT_EQ(2047, histogram.getValueAtPercentile(100.0));
     EXPECT_EQ(2047, histogram.getMaxValue());
     EXPECT_EQ(1, histogram.getOverflowCount());
+    EXPECT_EQ(histogram.getMaxTrackableValue() * 2, histogram.getOverflowSum());
 }
 
 // Test that reset clears all counts.
@@ -76,10 +77,12 @@ TEST(HdrHistogramTest, reset) {
     histogram.addValue(histogram.getMaxTrackableValue() * 2);
     EXPECT_EQ(2, histogram.getValueCount());
     EXPECT_EQ(1, histogram.getOverflowCount());
+    EXPECT_EQ(histogram.getMaxTrackableValue() * 2, histogram.getOverflowSum());
 
     histogram.reset();
     EXPECT_EQ(0, histogram.getValueCount());
     EXPECT_EQ(0, histogram.getOverflowCount());
+    EXPECT_EQ(0, histogram.getOverflowSum());
     EXPECT_EQ(0, histogram.getValueAtPercentile(100.0));
 }
 
@@ -277,7 +280,7 @@ TEST(HdrHistogramTest, meanTest) {
         uint64_t value = GetNextLogNormalValue();
 
         // only add random values inside the histograms range
-        // otherwise we sill skew the mean
+        // otherwise we will skew the mean
         if (value <= static_cast<uint64_t>(histogram.getMaxTrackableValue())) {
             histogram.addValueAndCount(value, count);
             // store values so we can calculate the real mean
@@ -291,6 +294,37 @@ TEST(HdrHistogramTest, meanTest) {
 
     uint64_t meanDiff = std::abs(avg - histogram.getMean());
     double_t errorPer = (meanDiff / avg) * 100.0;
+
+    // check that the error percentage is less than 0.05%
+    EXPECT_GT(0.05, std::abs(errorPer));
+}
+
+// Test that getMean also includes overflowed samples.
+TEST(HdrHistogramTest, meanOverflowTest) {
+    HdrHistogram histogram{1, 10000, 3};
+    uint64_t sum = 0;
+    uint64_t total_count = 0;
+
+    // Add three samples: 1, 10000 and 19999. 19999 is too large to track
+    // in histogram, but should be tracked in overflow. Confirm that the
+    // mean calculation includes the overflow value - i.e. comes out at ~10,000
+    // and not ~5000.
+    histogram.addValue(1);
+    histogram.addValue(10000);
+    histogram.addValue(19999);
+
+    sum = 1 + 10000 + 19999;
+    total_count = 3;
+
+    // Sanity check - only two samples were tracked; third overflowed.
+    ASSERT_EQ(2, histogram.getValueCount());
+    ASSERT_EQ(1, histogram.getOverflowCount());
+
+    // calculate the "real" mean, and difference from what HdrHistogram
+    // calculated.
+    double_t realMean = (sum / static_cast<double_t>(total_count));
+    uint64_t meanDiff = std::abs(realMean - histogram.getMean());
+    double_t errorPer = (meanDiff / realMean) * 100.0;
 
     // check that the error percentage is less than 0.05%
     EXPECT_GT(0.05, std::abs(errorPer));
@@ -372,8 +406,8 @@ TEST(HdrHistogramTest, aggregationTest) {
         histogramTwo.addValue(i);
     }
     // Also add overflowed values so we can check they are also copied.
-    histogramOne.addValue(std::numeric_limits<uint64_t>::max());
-    histogramTwo.addValue(std::numeric_limits<uint64_t>::max());
+    histogramOne.addValue(1'000'000);
+    histogramTwo.addValue(1'000'000);
 
     // Do aggregation
     histogramOne += histogramTwo;
@@ -402,7 +436,9 @@ TEST(HdrHistogramTest, aggregationTest) {
     EXPECT_EQ(maxValue + 1, histogramTwo.getValueCount());
 
     EXPECT_EQ(2, histogramOne.getOverflowCount());
+    EXPECT_EQ(2 * 1'000'000, histogramOne.getOverflowSum());
     EXPECT_EQ(1, histogramTwo.getOverflowCount());
+    EXPECT_EQ(1'000'000, histogramTwo.getOverflowSum());
 }
 
 // Test the aggregation operator method

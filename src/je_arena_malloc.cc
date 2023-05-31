@@ -21,8 +21,8 @@
 
 // We are storing the arena in a uint16_t, assert that this constant is as
 // expected, MALLCTL_ARENAS_ALL -1 is the largest possible arena ID
-static_assert(MALLCTL_ARENAS_ALL == 4096,
-              "je_malloc MALLCTL_ARENAS_ALL is not the expected 4096");
+static_assert(MALLCTL_ARENAS_ALL <= std::numeric_limits<uint16_t>::max(),
+              "je_malloc MALLCTL_ARENAS_ALL is not in the expected range");
 
 namespace cb {
 
