@@ -13,7 +13,7 @@
 #include <platform/compression/buffer.h>
 
 namespace cb::compression {
-enum class Algorithm { Snappy, LZ4 };
+enum class Algorithm { Snappy };
 /**
  * The default maximum size used during inflating of buffers to avoid having
  * the library go ahead and allocate crazy big sizes if the input is

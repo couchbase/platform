@@ -13,10 +13,6 @@
 #include <array>
 #include <memory>
 
-#ifdef CB_LZ4_SUPPORT
-#include <lz4.h>
-#endif
-
 // We don't use the cbcompress API here, as it include memory allocation
 // in each operation..
 #define START 256
@@ -41,31 +37,6 @@ static void SnappyCompress(benchmark::State& state) {
 }
 
 BENCHMARK(SnappyCompress)->RangeMultiplier(FACTOR)->Range(START, END);
-
-#ifdef CB_LZ4_SUPPORT
-static void Lz4Compress(benchmark::State& state) {
-    const auto size = size_t(state.range(0));
-    const auto buffersize = size_t(LZ4_compressBound(state.range(0)));
-    std::unique_ptr<char[]> temp(new char[buffersize]);
-    int compressed_length = 0;
-
-    while (state.KeepRunning()) {
-        benchmark::DoNotOptimize(temp.get());
-        compressed_length = LZ4_compress_default(
-                blob.data(), temp.get(), int(size), int(buffersize));
-        if (compressed_length <= 0) {
-            abort();
-        }
-#ifndef WIN32
-        benchmark::ClobberMemory();
-#endif
-    }
-
-    state.counters["compressed"] = compressed_length;
-}
-
-BENCHMARK(Lz4Compress)->RangeMultiplier(FACTOR)->Range(START, END);
-#endif
 
 int main(int argc, char** argv) {
     int ii = 0;
