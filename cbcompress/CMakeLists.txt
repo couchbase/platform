@@ -18,6 +18,9 @@ target_link_libraries(cbcompress
                       ${SNAPPY_LIBRARIES}
                       )
 
+# including Compression.h to get the codec's cause inclusion of fmt/format.h
+target_link_libraries(cbcompress PUBLIC Folly::headers fmt::fmt)
+
 cb_add_test_executable(platform-compression-test
                ${Platform_SOURCE_DIR}/include/platform/compress.h
                compression_test.cc)

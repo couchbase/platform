@@ -54,35 +54,79 @@ static size_t doSnappyUncompressedLength(std::string_view buffer) {
     return uncompressed_length;
 }
 
-bool cb::compression::inflate(Algorithm algorithm,
+bool cb::compression::inflate(folly::io::CodecType,
                               std::string_view input_buffer,
                               Buffer& output,
                               size_t max_inflated_size) {
-    switch (algorithm) {
-    case Algorithm::Snappy:
-        if (!doSnappyUncompress(input_buffer, output, max_inflated_size)) {
-            output.reset();
-            return false;
-        }
-        return true;
+    if (!doSnappyUncompress(input_buffer, output, max_inflated_size)) {
+        output.reset();
+        return false;
     }
-    throw std::invalid_argument(
-        "cb::compression::inflate: Unknown compression algorithm");
+    return true;
 }
 
-bool cb::compression::deflate(Algorithm algorithm,
+std::unique_ptr<folly::IOBuf> cb::compression::inflate(
+        folly::io::CodecType type,
+        std::string_view input,
+        size_t max_inflated_size) {
+    if (type != folly::io::CodecType::SNAPPY) {
+        throw std::invalid_argument(
+                "cb::compression::inflate(): type must be SNAPPY");
+    }
+
+    size_t inflated_length;
+    if (!snappy::GetUncompressedLength(
+                input.data(), input.size(), &inflated_length)) {
+        throw std::runtime_error(
+                "cb::compression::inflate(Snappy): Failed to get uncompressed "
+                "length");
+    }
+
+    if (inflated_length > max_inflated_size) {
+        throw std::range_error(
+                fmt::format("cb::compression::inflate(): Inflated length {} "
+                            "would exceed max: {}",
+                            inflated_length,
+                            max_inflated_size));
+    }
+
+    auto ret = folly::IOBuf::createCombined(inflated_length);
+    if (!snappy::RawUncompress(input.data(),
+                               input.size(),
+                               reinterpret_cast<char*>(ret->writableData()))) {
+        throw std::runtime_error(
+                "cb::compression::inflate(Snappy): Failed to inflate data");
+    }
+    ret->append(inflated_length);
+    return ret;
+}
+
+bool cb::compression::deflate(folly::io::CodecType,
                               std::string_view input_buffer,
                               Buffer& output) {
-    switch (algorithm) {
-    case Algorithm::Snappy:
-        if (!doSnappyCompress(input_buffer, output)) {
-            output.reset();
-            return false;
-        }
-        return true;
+    if (!doSnappyCompress(input_buffer, output)) {
+        output.reset();
+        return false;
     }
-    throw std::invalid_argument(
-        "cb::compression::deflate: Unknown compression algorithm");
+    return true;
+}
+
+std::unique_ptr<folly::IOBuf> cb::compression::deflate(
+        folly::io::CodecType type, std::string_view input) {
+    if (type != folly::io::CodecType::SNAPPY) {
+        throw std::invalid_argument(
+                "cb::compression::deflate(): type must be SNAPPY");
+    }
+
+    size_t max_compressed_length = snappy::MaxCompressedLength(input.size());
+    auto ret = folly::IOBuf::createCombined(max_compressed_length);
+    size_t compressed_length = max_compressed_length;
+    snappy::RawCompress(input.data(),
+                        input.size(),
+                        reinterpret_cast<char*>(ret->writableData()),
+                        &compressed_length);
+    ret->append(compressed_length);
+    return ret;
 }
 
 cb::compression::Algorithm cb::compression::to_algorithm(
@@ -110,25 +154,13 @@ std::string to_string(cb::compression::Algorithm algorithm) {
             "algorithm");
 }
 
-bool cb::compression::validate(cb::compression::Algorithm algorithm,
+bool cb::compression::validate(folly::io::CodecType,
                                std::string_view input_buffer,
                                size_t max_inflated_size) {
-    switch (algorithm) {
-    case Algorithm::Snappy:
-        return doSnappyValidate(input_buffer);
-    }
-    throw std::invalid_argument(
-        "cb::compression::validate: Unknown compression algorithm");
+    return doSnappyValidate(input_buffer);
 }
 
-size_t cb::compression::get_uncompressed_length(
-        cb::compression::Algorithm algorithm,
-        std::string_view input_buffer) {
-    switch (algorithm) {
-    case Algorithm::Snappy:
-        return doSnappyUncompressedLength(input_buffer);
-    }
-    throw std::invalid_argument(
-            "cb::compression::get_uncompressed_length: Unknown compression "
-            "algorithm");
+size_t cb::compression::get_uncompressed_length(folly::io::CodecType,
+                                                std::string_view input_buffer) {
+    return doSnappyUncompressedLength(input_buffer);
 }

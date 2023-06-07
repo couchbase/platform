@@ -10,7 +10,13 @@
 
 #pragma once
 
+#include <folly/compression/Compression.h>
 #include <platform/compression/buffer.h>
+#include <memory>
+
+namespace folly {
+class IOBuf;
+}
 
 namespace cb::compression {
 enum class Algorithm { Snappy };
@@ -24,7 +30,7 @@ static const size_t DEFAULT_MAX_INFLATED_SIZE = 30 * 1024 * 1024;
 /**
  * Inflate the data in the buffer into the output buffer
  *
- * @param algorithm the algorithm to use
+ * @param type The codec to use (currently ignored)
  * @param input_buffer buffer pointing to the input data
  * @param output Where to store the result
  * @param max_inflated_size The maximum size for the inflated object (the
@@ -36,24 +42,65 @@ static const size_t DEFAULT_MAX_INFLATED_SIZE = 30 * 1024 * 1024;
  * @throws std::bad_alloc if we fail to allocate memory for the
  *                        destination buffer
  */
-bool inflate(Algorithm algorithm,
+bool inflate(folly::io::CodecType type,
              std::string_view input_buffer,
              Buffer& output,
              size_t max_inflated_size = DEFAULT_MAX_INFLATED_SIZE);
 
+/// Wrapper function for the old (deprecated) version using Algorithm
+static inline bool inflate(
+        Algorithm,
+        std::string_view input_buffer,
+        Buffer& output,
+        size_t max_inflated_size = DEFAULT_MAX_INFLATED_SIZE) {
+    return inflate(folly::io::CodecType::SNAPPY,
+                   input_buffer,
+                   output,
+                   max_inflated_size);
+}
+
+/**
+ * Inflate the data and return a std::unique_ptr to a folly IOBuf
+ * containing the inflated data
+ *
+ * @param type The codec to use (currently ignored)
+ * @param input The data to inflate
+ * @param max_inflated_size The maximum size for the inflated object (the
+ *                          library needs to allocate buffers this big, which
+ *                          could affect other components in the system. If
+ *                          the resulting object becomes bigger than this
+ *                          limit we'll abort and return false)
+ * @return The inflated data
+ * @throws std::invalid_argument for unsupported CodecTypes
+ * @throws std::bad_alloc if allocation fails for the destination buffer
+ * @throws std::range_error if the inflated data would exceed max_inflated_size
+ * @throws std::runtime_error if there is an error related to inflating data
+ */
+std::unique_ptr<folly::IOBuf> inflate(
+        folly::io::CodecType type,
+        std::string_view input_buffer,
+        size_t max_inflated_size = DEFAULT_MAX_INFLATED_SIZE);
+
 /**
  * Deflate the data in the buffer into the output buffer
  *
- * @param algorithm the algorithm to use
+ * @param type The codec type to use
  * @param input_buffer buffer pointing to the input data
  * @param output Where to store the result
  * @return true if success, false otherwise
  * @throws std::bad_alloc if we fail to allocate memory for the
  *                        destination buffer
  */
-bool deflate(Algorithm algorithm,
+bool deflate(folly::io::CodecType type,
              std::string_view input_buffer,
              Buffer& output);
+
+/// Wrapper function for the old (deprecated) version using Algorithm
+static inline bool deflate(Algorithm,
+                           std::string_view input_buffer,
+                           Buffer& output) {
+    return deflate(folly::io::CodecType::SNAPPY, input_buffer, output);
+}
 
 /**
  * Get the algorithm as specified by the textual string
@@ -61,10 +108,24 @@ bool deflate(Algorithm algorithm,
 Algorithm to_algorithm(const std::string& string);
 
 /**
+ * Deflate the data and return a std::unique_ptr to a folly IOBuf
+ * containing the deflated data
+ *
+ * @param type The codec to use (currently ignored)
+ * @param input The data to deflate
+ * @return The deflated data
+ * @throws std::invalid_argument for unsupported CodecTypes
+ * @throws std::bad_alloc if allocation fails for the destination buffer
+ * @throws std::runtime_error if there is an error related to deflating data
+ */
+std::unique_ptr<folly::IOBuf> deflate(folly::io::CodecType type,
+                                      std::string_view input);
+
+/**
  * Validate whether the data is compressed correctly by the given
  * algorithm
  *
- * @param algorithm the algorithm to use
+ * @param type The codec type to use
  * @param input_buffer buffer pointing to the input data
  * @param max_inflated_size The maximum size for the inflated object (if the
  *                          library needs to allocate buffers exceeding this
@@ -74,21 +135,68 @@ Algorithm to_algorithm(const std::string& string);
  * @throws std::invalid_argument if the algorithm provided is an
  *                               an unknown algorithm
  */
-bool validate(Algorithm algorithm,
+bool validate(folly::io::CodecType type,
               std::string_view input_buffer,
               size_t max_inflated_size = DEFAULT_MAX_INFLATED_SIZE);
+
+static inline bool validate(
+        Algorithm,
+        std::string_view input_buffer,
+        size_t max_inflated_size = DEFAULT_MAX_INFLATED_SIZE) {
+    return validate(
+            folly::io::CodecType::SNAPPY, input_buffer, max_inflated_size);
+}
 
 /**
  * Get the uncompressed length from the given compressed input buffer
  *
- * @param algorithm the algorithm to use
+ * @param type The codec type to use
  * @param input_buffer buffer pointing to the input buffer
  * @return the uncompressed length if success, false otherwise
  * @throws std::invalid_argument if the algorithm provided is an
  *                               unknown algorithm
  */
-size_t get_uncompressed_length(Algorithm algorithm,
+size_t get_uncompressed_length(folly::io::CodecType type,
                                std::string_view input_buffer);
-} // namespace cb::compression
+static inline size_t get_uncompressed_length(Algorithm,
+                                             std::string_view input_buffer) {
+    return get_uncompressed_length(folly::io::CodecType::SNAPPY, input_buffer);
+}
 
+/**
+ * All data inside kv-engine (and on the wire) use Snappy compression.
+ * This is a wrapper method used to save some typing ;)
+ */
+static inline bool inflateSnappy(
+        std::string_view input_buffer,
+        Buffer& output,
+        size_t max_inflated_size = DEFAULT_MAX_INFLATED_SIZE) {
+    return inflate(folly::io::CodecType::SNAPPY,
+                   input_buffer,
+                   output,
+                   max_inflated_size);
+}
+
+static inline std::unique_ptr<folly::IOBuf> inflateSnappy(
+        std::string_view input_buffer,
+        size_t max_inflated_size = DEFAULT_MAX_INFLATED_SIZE) {
+    return inflate(
+            folly::io::CodecType::SNAPPY, input_buffer, max_inflated_size);
+}
+
+/**
+ * All data inside kv-engine (and on the wire) use Snappy compression.
+ * This is a wrapper method used to save some typing ;)
+ */
+static inline bool deflateSnappy(std::string_view input_buffer,
+                                 Buffer& output) {
+    return deflate(folly::io::CodecType::SNAPPY, input_buffer, output);
+}
+
+static inline std::unique_ptr<folly::IOBuf> deflateSnappy(
+        std::string_view input_buffer) {
+    return deflate(folly::io::CodecType::SNAPPY, input_buffer);
+}
+
+} // namespace cb::compression
 std::string to_string(cb::compression::Algorithm algorithm);

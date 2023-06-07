@@ -9,51 +9,59 @@
  */
 #include <folly/portability/GTest.h>
 #include <platform/compress.h>
+#include <stdexcept>
 
-TEST(Compression, DetectInvalidAlgoritm) {
-    cb::compression::Buffer buffer;
-    EXPECT_THROW(cb::compression::inflate(
-                     (cb::compression::Algorithm)5, {}, buffer),
-                 std::invalid_argument);
-    EXPECT_THROW(cb::compression::deflate(
-                     (cb::compression::Algorithm)5, {}, buffer),
-                 std::invalid_argument);
-}
+using cb::compression::Allocator;
+using cb::compression::Buffer;
+using cb::compression::deflateSnappy;
+using cb::compression::get_uncompressed_length;
+using cb::compression::inflateSnappy;
 
 TEST(Compression, TestSnappyCompression) {
-    cb::compression::Buffer input;
-    cb::compression::Buffer output(cb::compression::Allocator{
-            cb::compression::Allocator::Mode::Malloc});
+    Buffer input;
+    Buffer output(Allocator{Allocator::Mode::Malloc});
 
     input.resize(8192);
     memset(input.data(), 'a', 8192);
 
-    EXPECT_TRUE(cb::compression::deflate(
-            cb::compression::Algorithm::Snappy, input, output));
+    EXPECT_TRUE(deflateSnappy(input, output));
     EXPECT_LT(output.size(), 8192u);
     EXPECT_NE(nullptr, output.data());
+    auto def = deflateSnappy(input);
+    EXPECT_EQ(output.size(), def->length());
+    EXPECT_EQ(0, std::memcmp(output.data(), def->data(), def->length()));
 
-    cb::compression::Buffer back;
-    EXPECT_TRUE(cb::compression::inflate(
-            cb::compression::Algorithm::Snappy, output, back));
+    Buffer back;
+    EXPECT_TRUE(inflateSnappy(output, back));
+
     EXPECT_EQ(8192u, back.size());
     EXPECT_NE(nullptr, back.data());
     EXPECT_EQ(0, memcmp(input.data(), back.data(), input.size()));
+    auto inf = inflateSnappy(output);
+    EXPECT_EQ(input.size(), inf->length());
+    EXPECT_EQ(0, memcmp(input.data(), inf->data(), input.size()));
 
     // Verify that we don't exceed the max size:
-    EXPECT_FALSE(cb::compression::inflate(
-            cb::compression::Algorithm::Snappy, output, back, 4096));
+    EXPECT_FALSE(inflateSnappy(output, back, 4096));
+    try {
+        auto ret = inflateSnappy(output, 4096);
+        FAIL() << "Should not allow inflate of such a big blob";
+    } catch (const std::range_error& e) {
+        EXPECT_STREQ(
+                "cb::compression::inflate(): Inflated length 8192 would exceed "
+                "max: 4096",
+                e.what());
+    }
 }
 
 TEST(Compression, TestIllegalSnappyInflate) {
-    cb::compression::Buffer input;
-    cb::compression::Buffer output;
+    Buffer input;
+    Buffer output;
 
     input.resize(8192);
     memset(input.data(), 'a', 8192);
 
-    EXPECT_FALSE(cb::compression::inflate(
-            cb::compression::Algorithm::Snappy, input, output));
+    EXPECT_FALSE(inflateSnappy(input, output));
 }
 
 TEST(Compression, ToString) {
@@ -67,19 +75,16 @@ TEST(Compression, ToAlgorithm) {
 }
 
 TEST(Compression, TestGetUncompressedLength) {
-    cb::compression::Buffer input;
-    cb::compression::Buffer output;
+    Buffer input;
+    Buffer output;
 
     input.resize(8192);
     memset(input.data(), 'a', 8192);
-    EXPECT_TRUE(cb::compression::deflate(cb::compression::Algorithm::Snappy,
-                                         {input.data(), input.size()},
-                                         output));
+    EXPECT_TRUE(deflateSnappy({input.data(), input.size()}, output));
     EXPECT_LT(output.size(), 8192u);
     EXPECT_NE(nullptr, output.data());
 
     EXPECT_EQ(8192u,
-              cb::compression::get_uncompressed_length(
-                      cb::compression::Algorithm::Snappy,
-                      {output.data(), output.size()}));
+              get_uncompressed_length(folly::io::CodecType::SNAPPY,
+                                      {output.data(), output.size()}));
 }
