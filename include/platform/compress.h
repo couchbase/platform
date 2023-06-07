@@ -19,7 +19,7 @@ class IOBuf;
 }
 
 namespace cb::compression {
-enum class Algorithm { Snappy };
+
 /**
  * The default maximum size used during inflating of buffers to avoid having
  * the library go ahead and allocate crazy big sizes if the input is
@@ -46,18 +46,6 @@ bool inflate(folly::io::CodecType type,
              std::string_view input_buffer,
              Buffer& output,
              size_t max_inflated_size = DEFAULT_MAX_INFLATED_SIZE);
-
-/// Wrapper function for the old (deprecated) version using Algorithm
-static inline bool inflate(
-        Algorithm,
-        std::string_view input_buffer,
-        Buffer& output,
-        size_t max_inflated_size = DEFAULT_MAX_INFLATED_SIZE) {
-    return inflate(folly::io::CodecType::SNAPPY,
-                   input_buffer,
-                   output,
-                   max_inflated_size);
-}
 
 /**
  * Inflate the data and return a std::unique_ptr to a folly IOBuf
@@ -95,18 +83,6 @@ bool deflate(folly::io::CodecType type,
              std::string_view input_buffer,
              Buffer& output);
 
-/// Wrapper function for the old (deprecated) version using Algorithm
-static inline bool deflate(Algorithm,
-                           std::string_view input_buffer,
-                           Buffer& output) {
-    return deflate(folly::io::CodecType::SNAPPY, input_buffer, output);
-}
-
-/**
- * Get the algorithm as specified by the textual string
- */
-Algorithm to_algorithm(const std::string& string);
-
 /**
  * Deflate the data and return a std::unique_ptr to a folly IOBuf
  * containing the deflated data
@@ -139,14 +115,6 @@ bool validate(folly::io::CodecType type,
               std::string_view input_buffer,
               size_t max_inflated_size = DEFAULT_MAX_INFLATED_SIZE);
 
-static inline bool validate(
-        Algorithm,
-        std::string_view input_buffer,
-        size_t max_inflated_size = DEFAULT_MAX_INFLATED_SIZE) {
-    return validate(
-            folly::io::CodecType::SNAPPY, input_buffer, max_inflated_size);
-}
-
 /**
  * Get the uncompressed length from the given compressed input buffer
  *
@@ -158,10 +126,6 @@ static inline bool validate(
  */
 size_t get_uncompressed_length(folly::io::CodecType type,
                                std::string_view input_buffer);
-static inline size_t get_uncompressed_length(Algorithm,
-                                             std::string_view input_buffer) {
-    return get_uncompressed_length(folly::io::CodecType::SNAPPY, input_buffer);
-}
 
 /**
  * All data inside kv-engine (and on the wire) use Snappy compression.
@@ -197,6 +161,4 @@ static inline std::unique_ptr<folly::IOBuf> deflateSnappy(
         std::string_view input_buffer) {
     return deflate(folly::io::CodecType::SNAPPY, input_buffer);
 }
-
 } // namespace cb::compression
-std::string to_string(cb::compression::Algorithm algorithm);

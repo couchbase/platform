@@ -129,31 +129,6 @@ std::unique_ptr<folly::IOBuf> cb::compression::deflate(
     return ret;
 }
 
-cb::compression::Algorithm cb::compression::to_algorithm(
-        const std::string& string) {
-    std::string input;
-    std::transform(
-            string.begin(), string.end(), std::back_inserter(input), ::toupper);
-
-    if (input == "SNAPPY") {
-        return Algorithm::Snappy;
-    }
-
-    throw std::invalid_argument(
-            "cb::compression::to_algorithm: Unknown algorithm: " + string);
-}
-
-std::string to_string(cb::compression::Algorithm algorithm) {
-    switch (algorithm) {
-    case cb::compression::Algorithm::Snappy:
-        return "Snappy";
-    }
-
-    throw std::invalid_argument(
-            "to_string(cb::compression::Algorithm): Unknown compression "
-            "algorithm");
-}
-
 bool cb::compression::validate(folly::io::CodecType,
                                std::string_view input_buffer,
                                size_t max_inflated_size) {

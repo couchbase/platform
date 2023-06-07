@@ -64,16 +64,6 @@ TEST(Compression, TestIllegalSnappyInflate) {
     EXPECT_FALSE(inflateSnappy(input, output));
 }
 
-TEST(Compression, ToString) {
-    EXPECT_EQ("Snappy", to_string(cb::compression::Algorithm::Snappy));
-}
-
-TEST(Compression, ToAlgorithm) {
-    using namespace cb::compression;
-    EXPECT_EQ(Algorithm::Snappy, to_algorithm("SnApPy"));
-    EXPECT_THROW(to_algorithm("foo"), std::invalid_argument);
-}
-
 TEST(Compression, TestGetUncompressedLength) {
     Buffer input;
     Buffer output;
