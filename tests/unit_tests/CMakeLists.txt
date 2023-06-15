@@ -5,6 +5,7 @@ cb_add_test_executable(platform_unit_tests
                        atomic_duration_test.cc
                        backtrace_test.cc
                        base64_test.cc
+                       bifurcated_counter_test.cc
                        bitset_test.cc
                        cb_getopt_test.cc
                        checked_snprintf_test.cc
