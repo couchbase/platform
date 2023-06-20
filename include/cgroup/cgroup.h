@@ -56,10 +56,10 @@ std::string to_string(PressureType type);
 /// Pressure metrics collected. See
 /// https://www.kernel.org/doc/Documentation/accounting/psi.rst
 struct PressureMetric {
-    float avg10;
-    float avg60;
-    float avg300;
-    std::chrono::microseconds total_stall_time;
+    float avg10{0};
+    float avg60{0};
+    float avg300{0};
+    std::chrono::microseconds total_stall_time{0};
 };
 
 void to_json(nlohmann::json& json, const PressureMetric& pressure_metric);
