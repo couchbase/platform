@@ -152,6 +152,44 @@ ClockOverheadResult estimateClockOverhead(int sampleCount = 1000) {
 }
 
 /**
+ * Estimates the resolution of the given clock - i.e. the smallest measurable
+ * time period between two consecutive calls to now().
+ *
+ * Notes:
+ * The resolution of a clock in practical terms is a function of both:
+ * a) How long it takes to read the clock
+ * b) The underlying resolution of the clock's time source.
+ *
+ * For example, we could have a clock which is very fast (nanoseconds) to read,
+ * but the underlying time source is only updated say every millisecond - this
+ * results in a resolution of 1 millisecond.
+ * Conversely, we could have a clock whose time source is very high precision
+ * (1 nanosecond), but it takes a long time to read (1 microsecond) and hence
+ * the external "observed" resolution is only 1 microsecond; given we cannot
+ * actually get back values from it faster than 2x calls to now().
+ *
+ * Note also this is only an estimate - it's possible that the running thread
+ * is suspended by the OS when inside the while() loop, and hence we
+ * incorrectly interpret that thread yield / re-schedule time as the clock
+ * tick interval.
+ *
+ * @tparam Clock
+ * @return Estimated clock resolution
+ */
+template <typename Clock>
+std::chrono::nanoseconds estimateClockResolution() {
+    // Q: How do we estimate the resolution?
+    // We call now() in a tight loop, waiting for it to "tick" forward.
+    // We then return the difference between the initial time and the "tick".
+    const typename Clock::time_point start = Clock::now();
+    typename Clock::time_point end;
+    do {
+        end = Clock::now();
+    } while (start == end);
+    return end - start;
+}
+
+/**
  * Function to do an exponentially increasing, but max bounded, sleep.
  * To do exponentially increasing sleep, must be called first with the starting
  * sleep time and subsequently with the sleep time returned in the previous call

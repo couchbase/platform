@@ -251,3 +251,37 @@ TEST(EstimateClockOverhead, CoarseSteadyClock) {
     fmt::print("estimateClockOverhead(coarse_steady_clock) overhead: {}\n",
                result.overhead);
 }
+
+// Verify the resolution calculation is correct, using a test clock as the
+// measuring clock which always advances by 10ns.
+TEST(EstimateClockResolution, Calculation) {
+    auto result = cb::estimateClockResolution<TestClock>();
+
+    EXPECT_EQ(10, result.count())
+            << "Expected estimated resolution of 10 TestClock used which "
+               "always ticks by a fixed amount.";
+}
+
+TEST(EstimateClockResolution, SteadyClock) {
+    auto result = cb::estimateClockResolution<std::chrono::steady_clock>();
+    // Difficult to test with a real clock which will vary based on environment
+    // system load etc, just perform some basic sanity checks.
+
+    // Expect to have a non-zero resolution.
+    EXPECT_NE(0, result.count());
+
+    fmt::print("estimateClockResolution(steady_clock): {}\n", result);
+}
+
+TEST(EstimateClockResolution, CoarseSteadyClock) {
+    auto result =
+            cb::estimateClockResolution<folly::chrono::coarse_steady_clock>();
+    // Difficult to test with a real clock which will vary based on environment
+    // system load etc, just perform some basic sanity checks.
+
+    // Expect to have a non-zero resolution.
+    EXPECT_NE(0, result.count());
+
+    fmt::print("estimateClockResolution(coarse_steady_clock): {}\n",
+               result);
+}
