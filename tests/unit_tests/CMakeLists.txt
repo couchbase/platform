@@ -28,7 +28,6 @@ cb_add_test_executable(platform_unit_tests
                        ring_buffer_test.cc
                        scope_timer_test.cc
                        semaphore_test.cc
-                       simd_scan_test.cc
                        split_string_test.cc
                        sysinfo_test.cc
                        thread_test.cc

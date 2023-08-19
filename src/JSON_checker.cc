@@ -26,19 +26,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+#include <stdlib.h>
 #include "JSON_checker.h"
-
-#include <folly/Portability.h>
-#include <cstdlib>
-#include <cstring>
-
-#if FOLLY_X64 || FOLLY_AARCH64
-#define CB_JSON_CHECKER_VECTORIZED_SUPPORTED 1
-#include <platform/simd/scan.h>
-#include <simdutf.h>
-#else
-#define CB_JSON_CHECKER_VECTORIZED_SUPPORTED 0
-#endif
 
 #define __   -1     /* the universal error code */
 
@@ -82,8 +71,7 @@ enum classes {
     NR_CLASSES
 };
 
-// NOLINTNEXTLINE(modernize-avoid-c-arrays)
-static const int ascii_class[128] = {
+static int ascii_class[128] = {
 /*
     This array maps the 128 ASCII characters into character classes.
     The remaining Unicode characters should be mapped to C_ETC.
@@ -149,8 +137,8 @@ enum states {
     NR_STATES
 };
 
-// NOLINTNEXTLINE(modernize-avoid-c-arrays)
-static const int state_transition_table[NR_STATES][NR_CLASSES] = {
+
+static int state_transition_table[NR_STATES][NR_CLASSES] = {
 /*
     The state transition table takes the current state and the current symbol,
     and returns either a new state or an action. An action is represented as a
@@ -387,7 +375,7 @@ static bool checkUTF8JSON(JSON_checker::Instance &jc,
         /* Feed fake space to the validator to force it to finish validating */
         /* numerical values, iff it hasn't marked the current stream as valid */
         if(jc.state != OK) {
-            badjson = !JSON_checker_char(jc, ' ');
+            badjson = !JSON_checker_char(jc, 32);
         }
         if(!badjson) {
             badjson = !JSON_checker_done(jc);
@@ -395,94 +383,6 @@ static bool checkUTF8JSON(JSON_checker::Instance &jc,
     }
     return (!badjson && !badutf);
 }
-
-#if CB_JSON_CHECKER_VECTORIZED_SUPPORTED
-
-/**
- * Reads 16 bytes of data and returns the number of bytes until the first
- * character which requires special handling in a JSON string (escapes sequence,
- * disallowed whitespace, etc.)
- */
-int scan_any_of_128bit_ST(gsl::span<const unsigned char> data) {
-    return cb::simd::scan_any_of_128bit<'"', '\\', '\t', '\n', '\r'>(data);
-}
-
-/**
- * A vectorized JSON checker loop.
- *
- * Verifies that the input is well-formed JSON. Does _not_ check for UTF-8.
- *
- * How do we vectorize?
- *
- * The JSON checker uses a state machine to validate input. Each byte is a state
- * transition. In the case of the ST (string) state, the only possible state
- * transitions to another state are for the following 5 characters:
- * - ' ' space (perfectly legal)
- * - '\n' line feed (error)
- * - '\r' carriage return (error)
- * - '\t' tab (error)
- * - '\"' quote (ends string)
- * - '\\' backslash (escape sequence)
- *
- * What we do to speed up processing of strings is we read bytes in bulk to a
- * vector register and use vector operations to count how many bytes which are
- * not in the above list are there in the sequence. Then, we just advance
- * the pointer by that many bytes, without calling into the JSON_checker_char
- * method and without touching the state machine (slow).
- */
-bool checkJSONVectorized(JSON_checker::Instance& jc,
-                         const unsigned char* bytes,
-                         size_t size) {
-    jc.reset();
-
-    const unsigned char* const end = bytes + size;
-    // While we have enough bytes to read into a register
-    while (bytes + 16 < end) {
-        int c = 0;
-        // And the state is ST (string) and the number of skippable characters
-        // is non-zero
-        if (jc.state == ST && (c = scan_any_of_128bit_ST({bytes, 16}))) {
-            // just move the pointer forwards
-            bytes += c;
-        } else {
-            if (!JSON_checker_char(jc, *bytes)) {
-                return false;
-            }
-            ++bytes;
-        }
-    }
-
-    // Remaining bytes
-    while (bytes < end) {
-        if (!JSON_checker_char(jc, *bytes)) {
-            return false;
-        }
-        ++bytes;
-    }
-
-    /* Feed fake space to the validator to force it to finish validating */
-    /* numerical values, iff it hasn't marked the current stream as valid */
-    if (jc.state != OK && !JSON_checker_char(jc, ' ')) {
-        return false;
-    }
-    return JSON_checker_done(jc);
-}
-
-bool checkUTF8JSONVectorized(JSON_checker::Instance& jc,
-                             const unsigned char* data,
-                             size_t size) {
-    try {
-        // Verify JSON, then UTF-8.
-        // The first check is more likely to fail quickly.
-        return checkJSONVectorized(jc, data, size) &&
-               simdutf::validate_utf8(reinterpret_cast<const char*>(data),
-                                      size);
-    } catch (std::bad_alloc&) {
-        return false;
-    }
-}
-
-#endif // CB_JSON_CHECKER_VECTORIZED_SUPPORTED
 
 // Backwards compatible to avoid build breaks..
 bool checkUTF8JSON(const unsigned char* data, size_t size)
@@ -495,18 +395,11 @@ bool checkUTF8JSON(const unsigned char* data, size_t size)
     }
 }
 
-JSON_checker::Validator::Validator(bool preferVectorized)
-    : instance(), preferVectorized(preferVectorized) {
+JSON_checker::Validator::Validator() {
     // empty
 }
 
 bool JSON_checker::Validator::validate(const uint8_t* data, size_t size) {
-#if CB_JSON_CHECKER_VECTORIZED_SUPPORTED
-    if (preferVectorized) {
-        return checkUTF8JSONVectorized(instance, data, size);
-    }
-#endif // CB_JSON_CHECKER_VECTORIZED_SUPPORTED
-    (void)preferVectorized;
     return checkUTF8JSON(instance, data, size);
 }
 
