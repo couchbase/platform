@@ -37,8 +37,16 @@ struct CpuStat {
 /// Note that the information will be collected from multiple files
 /// and is therefore subject to race conditions
 struct MemInfo {
-    MemInfo(size_t max, size_t current, size_t cache)
-        : max(max), current(current), cache(cache) {
+    MemInfo(size_t max,
+            size_t current,
+            size_t cache,
+            size_t active_file,
+            size_t inactive_file)
+        : max(max),
+          current(current),
+          cache(cache),
+          active_file(active_file),
+          inactive_file(inactive_file) {
     }
     /// The max limit (if specified)
     size_t max = 0;
@@ -46,6 +54,10 @@ struct MemInfo {
     size_t current = 0;
     /// Current cache size
     size_t cache = 0;
+    /// Current active file size
+    size_t active_file = 0;
+    /// Current inactive file size
+    size_t inactive_file = 0;
 };
 
 /// Pressure information: See
@@ -113,11 +125,19 @@ public:
     /// Get the current cache size by processes in the cgroup (in bytes)
     virtual size_t get_current_cache_memory() = 0;
 
+    /// Get the current active file by processes in the cgroup (in bytes)
+    virtual size_t get_current_active_file_memory() = 0;
+
+    /// Get the current inactive file by processes in the cgroup (in bytes)
+    virtual size_t get_current_inactive_file_memory() = 0;
+
     /// Get the memory information
     MemInfo get_mem_info() {
         return {get_max_memory(),
                 get_current_memory(),
-                get_current_cache_memory()};
+                get_current_cache_memory(),
+                get_current_active_file_memory(),
+                get_current_inactive_file_memory()};
     }
 
     /// Get the recorded pressure data for the given type (only available
