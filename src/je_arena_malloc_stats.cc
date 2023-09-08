@@ -85,7 +85,9 @@ template <>
 bool cb::JEArenaMalloc::getStats(
         const cb::ArenaMallocClient& client,
         std::unordered_map<std::string, size_t>& statsMap) {
-    return getJeMallocStats(client.arena, statsMap);
+    // TODO: Just give stats about primary domain for now, maybe aggregate ?
+    return getJeMallocStats(client.arenas.at(size_t(MemoryDomain::Primary)),
+                            statsMap);
 }
 
 template <>
@@ -116,7 +118,8 @@ std::string cb::JEArenaMalloc::getDetailedStats() {
 template <>
 cb::FragmentationStats cb::JEArenaMalloc::getFragmentationStats(
         const cb::ArenaMallocClient& client) {
-    return getFragmentation(client.arena);
+    // TODO: Aggregate all arenas? For now just return primary.
+    return getFragmentation(client.arenas.at(size_t(MemoryDomain::Primary)));
 }
 
 template <>

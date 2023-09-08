@@ -32,19 +32,23 @@ public:
      */
     struct CurrentClient {
         CurrentClient() = default;
-        CurrentClient(int mallocFlags, uint8_t index, MemoryDomain domain);
+        CurrentClient(uint8_t index,
+                      MemoryDomain domain,
+                      uint16_t arena,
+                      int tcacheFlags);
 
-        void setNoClient();
-
-        void setup(int mallocFlags, uint8_t index, cb::MemoryDomain domain);
-
-        MemoryDomain setDomain(MemoryDomain domain);
+        MemoryDomain setDomain(MemoryDomain domain, uint16_t arena);
 
         /**
          * The flags to be passed to all je_malloc 'x' calls, this is where the
-         * current arena is stored and tcache id (if enabled).
+         * current arena is specified and tcache id (if enabled).
          */
-        int mallocFlags{0};
+        int getMallocFlags() const;
+
+        int tcacheFlags{0};
+
+        /// The current arena
+        uint16_t arena{0};
 
         /**
          * The index of the currently switched-to client, used for updating
@@ -56,10 +60,6 @@ public:
          * The current domain
          */
         MemoryDomain domain{MemoryDomain::None};
-
-        /// struct is intended to be a max of u64 - 2 unused bytes remain.
-        uint8_t unused1{0};
-        uint8_t unused2{0};
     };
 };
 

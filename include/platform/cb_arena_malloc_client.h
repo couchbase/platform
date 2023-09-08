@@ -38,6 +38,16 @@ const uint8_t NoClientIndex = ArenaMallocMaxClients;
 
 enum class MemoryDomain : uint8_t { Primary, Secondary, Count, None = Count };
 
+std::ostream& operator<<(std::ostream& os, const MemoryDomain& md);
+
+// Map from MemoryDomain to the Arena to use for that domain. In production
+// (NDEBUG) builds we use JEArenaCoreLocalTracker which always uses the same
+// arena for all domains owned by a given client (to minimise arena usage),
+// in Debug builds we use JEArenaSimpleTracker, which (if enabled at runtime via
+// env var) can assign one arena per domain to allow us to check that memory
+// is allocated / freed consistently against the correct domain.
+using DomainToArena = std::array<uint16_t, size_t(MemoryDomain::Count)>;
+
 /**
  * The cb::ArenaMallocClient is an object that any client of the cb::ArenaMalloc
  * class must keep for use with cb::ArenaMalloc class.
@@ -50,8 +60,8 @@ struct ArenaMallocClient {
     ArenaMallocClient() {
     }
 
-    ArenaMallocClient(int arena, uint8_t index, bool threadCache)
-        : arena(arena), index(index), threadCache(threadCache) {
+    ArenaMallocClient(DomainToArena arenas, uint8_t index, bool threadCache)
+        : arenas(arenas), index(index), threadCache(threadCache) {
     }
 
     /**
@@ -72,7 +82,11 @@ struct ArenaMallocClient {
     /// How many bytes a core can alloc or dealloc before the arena's
     /// estimated memory is update.
     cb::RelaxedAtomic<uint32_t> estimateUpdateThreshold{100 * 1024};
-    uint16_t arena{0}; // uniquely identifies the arena assigned to the client
+
+    // Map each domain to arena to use for that domain.
+    // The same arena may be used for multiple domains (production), or
+    // one arena per domain (debug) depending on the build setting.
+    DomainToArena arenas{0};
     uint8_t index{NoClientIndex}; // uniquely identifies the registered client
     bool threadCache{true}; // should thread caching be used
 };

@@ -15,6 +15,18 @@
 
 namespace cb {
 
+std::ostream& operator<<(std::ostream& os, const MemoryDomain& md) {
+    switch (md) {
+    case MemoryDomain::Primary:
+        return os << "Primary";
+    case MemoryDomain::Secondary:
+        return os << "Secondary";
+    case MemoryDomain::None:
+        return os << "None";
+    }
+    folly::assume_unreachable();
+}
+
 ArenaMallocGuard::ArenaMallocGuard(const ArenaMallocClient& client) {
     ArenaMalloc::switchToClient(client);
 }

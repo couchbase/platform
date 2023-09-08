@@ -53,7 +53,7 @@ ArenaMallocClient SystemArenaMalloc::registerClient(bool threadCache) {
             client.used = true;
 
             // arena and threadCache unused for SystemArenaMalloc.
-            return ArenaMallocClient{/*used*/ 0, index, /*unused*/ false};
+            return ArenaMallocClient{{}, index, /*unused*/ false};
         }
     }
     throw std::runtime_error(
@@ -93,7 +93,7 @@ MemoryDomain SystemArenaMalloc::setDomain(MemoryDomain domain) {
 
 SystemArenaMalloc::ClientHandle SystemArenaMalloc::switchFromClient() {
     // Set to index of NoClientIndex and domain to None.
-    return switchToClient({0, NoClientIndex, false},
+    return switchToClient({{}, NoClientIndex, false},
                           cb::MemoryDomain::None,
                           false /*tcache unused here*/);
 }

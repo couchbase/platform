@@ -39,7 +39,7 @@ using BenchJEArenaMalloc = TestJEArenaMalloc<cb::JEArenaCoreLocalTracker>;
 
 class MemoryAllocationStat : public benchmark::Fixture {
 public:
-    cb::ArenaMallocClient client{0, 1, true};
+    cb::ArenaMallocClient client{{}, 1, true};
 };
 
 BENCHMARK_DEFINE_F(MemoryAllocationStat, AllocNRead1)(benchmark::State& state) {

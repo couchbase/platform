@@ -9,10 +9,14 @@
  */
 
 #include "relaxed_atomic.h"
+
+#include <platform/backtrace.h>
 #include <platform/je_arena_malloc.h>
 
-#include <folly/lang/Aligned.h>
+#include <fmt/format.h>
+#include <fmt/ostream.h>
 #include <jemalloc/jemalloc.h>
+#include <platform/terminal_color.h>
 
 #include <stdexcept>
 #include <string>
@@ -33,29 +37,44 @@ static bool tcacheEnabled{true};
 static const bool arenaDebugChecksEnabled{
         getenv("CB_ARENA_MALLOC_VERIFY_DEALLOC_CLIENT") != nullptr};
 
-JEArenaMallocBase::CurrentClient::CurrentClient(int mallocFlags,
-                                                uint8_t index,
-                                                MemoryDomain domain)
-    : mallocFlags(mallocFlags), index(index), domain(domain) {
+/**
+ * Should Tcache be used?
+ * @returns true if tcacheRequested is true, and tcache is not otherwise
+ * inhibited.
+ *
+ * TCache is inhibited if either it's been globally disabled (via
+ * setTCacheEnabled), or if arena debug checks are enabled. This is because
+ * arena verification doesn't work with tcaches - while memory is initially
+ * taken from the specified arena, if tcaches are enabled and the allocation is
+ * freed, it may be returned to the tcache and *not* the arena. If the same
+ * thread subsequently requests an allocation of the same size (from a
+ * different arena), that thread can get memory from the tcache - i.e when
+ * tcaches are enabled, a caller doesn't necessary get memory from the
+ * specified arena. As a result when we attempt to verify that the
+ * deallocating client is the same as the one which originally allocated it,
+ * we can get a false error.
+ */
+static bool isTcacheEnabled(bool requested) {
+    return tcacheEnabled && requested && !arenaDebugChecksEnabled;
 }
 
-void JEArenaMallocBase::CurrentClient::setNoClient() {
-    mallocFlags = 0;
-    index = NoClientIndex;
+JEArenaMallocBase::CurrentClient::CurrentClient(uint8_t index,
+                                                MemoryDomain domain,
+                                                uint16_t arena,
+                                                int tcacheFlags)
+    : tcacheFlags(tcacheFlags), arena(arena), index(index), domain(domain) {
 }
 
-void JEArenaMallocBase::CurrentClient::setup(int mallocFlags,
-                                             uint8_t index,
-                                             cb::MemoryDomain domain) {
-    this->mallocFlags = mallocFlags;
-    this->index = index;
-    this->domain = domain;
-}
-
-MemoryDomain JEArenaMallocBase::CurrentClient::setDomain(MemoryDomain domain) {
+MemoryDomain JEArenaMallocBase::CurrentClient::setDomain(MemoryDomain domain,
+                                                         uint16_t arena) {
     auto currentDomain = this->domain;
+    this->arena = arena;
     this->domain = domain;
     return currentDomain;
+}
+
+int JEArenaMallocBase::CurrentClient::getMallocFlags() const {
+    return MALLOCX_ARENA(arena) | tcacheFlags;
 }
 
 // Note: we can exceed uint64_t - just incurs an extra TLS read on what is
@@ -107,11 +126,10 @@ private:
 class Clients {
 public:
     struct Client {
-        void reset(int arena) {
+        void reset() {
             used = false;
-            this->arena = arena;
         }
-        int arena = 0;
+        DomainToArena arenas;
         bool used = false;
     };
 
@@ -128,6 +146,9 @@ private:
     };
 };
 
+/// How should arenas be assigned to domains?
+enum class ArenaMode { SingleArena, OnePerDomain };
+
 /// @return a jemalloc arena
 static int makeArena() {
     unsigned arena = 0;
@@ -142,13 +163,95 @@ static int makeArena() {
     return arena;
 }
 
+/**
+ * Assign arena(s) to the specified domain to arena map, if not already
+ * assigned (if arenas already assigned then keep previous assignment).
+ * @param arenas DomainToArena mapping to populate.
+ * @param arenaMode By what mode should arens be assigned.
+ */
+void assignClientArenas(DomainToArena& arenas, ArenaMode arenaMode) {
+    switch (arenaMode) {
+    case ArenaMode::SingleArena:
+        // Use a single arena for all domains.
+        if (arenas.front() == 0) {
+            // No arena yet assigned, create one.
+            int arena = makeArena();
+            // We use arena 0 as no arena and don't expect it to be created
+            if (arena == 0) {
+                throw std::runtime_error(
+                        "JEArenaMalloc::registerClient did not expect to have "
+                        "arena 0");
+            }
+            arenas.fill(arena);
+        }
+        return;
+    case ArenaMode::OnePerDomain:
+        // Assign one arena per domain, uses more resource (Nx arenas per
+        // client, but permits additional sanity-checks.
+        for (auto& arena : arenas) {
+            // Debug configuration, one arena per domain
+            if (arena == 0) {
+                arena = makeArena();
+            }
+            // We use arena 0 as no arena and don't expect it to be created
+            if (arena == 0) {
+                throw std::runtime_error(
+                        "JEArenaMalloc::registerClient did not expect to have "
+                        "arena 0");
+            }
+        }
+        return;
+    }
+}
+
+// Lookup arena of memory being freed, check it matches current
+// client / domain.
+static void verifyMemDeallocatedByCorrectClient(
+        const JEArenaMallocBase::CurrentClient& client,
+        void* ptr,
+        size_t size) {
+    unsigned allocatedFromArena = 0;
+    size_t sz = sizeof(allocatedFromArena);
+    int rv = je_mallctl(
+            "arenas.lookup", &allocatedFromArena, &sz, &ptr, sizeof(void*));
+
+    if (rv != 0) {
+        throw std::runtime_error("JEArenaMalloc::cannot get arena:" +
+                                 std::to_string(rv));
+    }
+
+    unsigned currentClientArena = client.arena;
+    if (client.index != NoClientIndex &&
+        allocatedFromArena != currentClientArena) {
+        fmt::print(stderr,
+                   "{}===ERROR===: JeArenaMalloc deallocation mismatch{}\n"
+                   "\tMemory freed by client:{} domain:{} which is assigned "
+                   "arena:{}, but memory was previously allocated from "
+                   "arena:{} ({}).\n"
+                   "\tAllocation address:{} size:{}\n",
+                   cb::terminal::TerminalColor::Red,
+                   cb::terminal::TerminalColor::Reset,
+                   client.index,
+                   client.domain,
+                   currentClientArena,
+                   allocatedFromArena,
+                   allocatedFromArena == 0 ? "global arena"
+                                           : "client-specific arena",
+                   ptr,
+                   size);
+        print_backtrace_to_file(stderr);
+        abort();
+    }
+}
+
 JEArenaMalloc::ClientHandle switchToClientImpl(uint8_t index,
                                                MemoryDomain domain,
-                                               int mallocFlags) {
+                                               uint16_t arena,
+                                               int tcacheFlags) {
     auto& currentClient = ThreadLocalData::get().getCurrentClient();
     auto previous = currentClient;
 
-    currentClient.setup(mallocFlags, index, domain);
+    currentClient = {index, domain, arena, tcacheFlags};
     return previous;
 }
 
@@ -158,19 +261,14 @@ ArenaMallocClient JEArenaMalloc::registerClient(bool threadCache) {
     for (uint8_t index = 0; index < lockedClients->size(); index++) {
         auto& client = lockedClients->at(index);
         if (!client.used) {
-            if (client.arena == 0) {
-                client.arena = makeArena();
-            }
-
-            // We use arena 0 as no arena and don't expect it to be created
-            if (client.arena == 0) {
-                throw std::runtime_error(
-                        "JEArenaMalloc::registerClient did not expect to have "
-                        "arena 0");
-            }
+            assignClientArenas(client.arenas,
+                               arenaDebugChecksEnabled
+                                       ? ArenaMode::OnePerDomain
+                                       : ArenaMode::SingleArena);
             client.used = true;
+
             ArenaMallocClient newClient{
-                    client.arena, index, threadCache && tcacheEnabled};
+                    client.arenas, index, isTcacheEnabled(threadCache)};
             clientRegistered(newClient, arenaDebugChecksEnabled);
             return newClient;
         }
@@ -190,8 +288,9 @@ void JEArenaMalloc::unregisterClient(const ArenaMallocClient& client) {
                 "client.index:" +
                 std::to_string(client.index));
     }
-    // Reset the state, but we re-use the arena
-    c.reset(c.arena);
+    // Reset the state, but we re-use the arenas for the next time this is
+    // used.
+    c.reset();
 }
 
 template <>
@@ -206,14 +305,15 @@ JEArenaMalloc::ClientHandle JEArenaMalloc::switchToClient(
         return switchToClientImpl(
                 NoClientIndex,
                 cb::MemoryDomain::None,
-                client.threadCache && tcacheEnabled ? 0 : MALLOCX_TCACHE_NONE);
+                /* arena */ 0,
+                isTcacheEnabled(client.threadCache) ? 0 : MALLOCX_TCACHE_NONE);
     }
 
     int tcacheFlags = MALLOCX_TCACHE_NONE;
     // client can change tcache setting via their client object or for a single
     // swicthToClient call.
     // AND all inputs together, if any is false then no tcache
-    if (tcache && client.threadCache && tcacheEnabled) {
+    if (isTcacheEnabled(tcache && client.threadCache)) {
         tcacheFlags =
                 MALLOCX_TCACHE(ThreadLocalData::get().getTCacheID(client));
     } else {
@@ -223,19 +323,30 @@ JEArenaMalloc::ClientHandle JEArenaMalloc::switchToClient(
         // flags so tcache is still MALLOCX_TCACHE_NONE
         ThreadLocalData::get().getTCacheID(client);
     }
-    return switchToClientImpl(
-            client.index, domain, MALLOCX_ARENA(client.arena) | tcacheFlags);
+    return switchToClientImpl(client.index,
+                              domain,
+                              client.arenas.at(size_t(domain)),
+                              tcacheFlags);
 }
 
 template <>
 JEArenaMalloc::ClientHandle JEArenaMalloc::switchToClient(
         const ClientHandle& client) {
-    return switchToClientImpl(client.index, client.domain, client.mallocFlags);
+    return switchToClientImpl(
+            client.index, client.domain, client.arena, client.tcacheFlags);
 }
 
 template <>
 MemoryDomain JEArenaMalloc::setDomain(MemoryDomain domain) {
-    return ThreadLocalData::get().getCurrentClient().setDomain(domain);
+    auto& currentClient = ThreadLocalData::get().getCurrentClient();
+    if (currentClient.index == NoClientIndex) {
+        return ThreadLocalData::get().getCurrentClient().setDomain(domain, 0);
+    }
+    auto locked = Clients::get().rlock();
+    const auto arenaForDomain =
+            locked->at(currentClient.index).arenas.at(size_t(domain));
+    return ThreadLocalData::get().getCurrentClient().setDomain(domain,
+                                                               arenaForDomain);
 }
 
 template <>
@@ -245,9 +356,10 @@ JEArenaMalloc::ClientHandle JEArenaMalloc::switchFromClient() {
     // And domain to none (no use when tracking is off)
     // Now all allocations go to default arena and we don't do any counting
     return switchToClient(
-            ArenaMallocClient{0 /*arena*/, NoClientIndex, tcacheEnabled},
+            ArenaMallocClient{
+                    DomainToArena{}, NoClientIndex, isTcacheEnabled(true)},
             cb::MemoryDomain::None,
-            tcacheEnabled);
+            isTcacheEnabled(true));
 }
 
 template <>
@@ -257,14 +369,14 @@ void* JEArenaMalloc::malloc(size_t size) {
     }
     auto c = ThreadLocalData::get().getCurrentClient();
     memAllocated(c.index, c.domain, size);
-    return je_mallocx(size, c.mallocFlags);
+    return je_mallocx(size, c.getMallocFlags());
 }
 
 template <>
 void* JEArenaMalloc::calloc(size_t nmemb, size_t size) {
     auto c = ThreadLocalData::get().getCurrentClient();
     memAllocated(c.index, c.domain, nmemb * size);
-    return je_mallocx(nmemb * size, c.mallocFlags | MALLOCX_ZERO);
+    return je_mallocx(nmemb * size, c.getMallocFlags() | MALLOCX_ZERO);
 }
 
 template <>
@@ -277,12 +389,12 @@ void* JEArenaMalloc::realloc(void* ptr, size_t size) {
 
     if (!ptr) {
         memAllocated(c.index, c.domain, size);
-        return je_mallocx(size, c.mallocFlags);
+        return je_mallocx(size, c.getMallocFlags());
     }
 
     memDeallocated(c.index, c.domain, ptr);
     memAllocated(c.index, c.domain, size);
-    return je_rallocx(ptr, size, c.mallocFlags);
+    return je_rallocx(ptr, size, c.getMallocFlags());
 }
 
 template <>
@@ -292,15 +404,18 @@ void* JEArenaMalloc::aligned_alloc(size_t alignment, size_t size) {
     }
     auto c = ThreadLocalData::get().getCurrentClient();
     memAllocated(c.index, c.domain, size, std::align_val_t{alignment});
-    return je_mallocx(size, c.mallocFlags | MALLOCX_ALIGN(alignment));
+    return je_mallocx(size, c.getMallocFlags() | MALLOCX_ALIGN(alignment));
 }
 
 template <>
 void JEArenaMalloc::free(void* ptr) {
     if (ptr) {
         auto c = ThreadLocalData::get().getCurrentClient();
+        if (arenaDebugChecksEnabled) {
+            verifyMemDeallocatedByCorrectClient(c, ptr, je_sallocx(ptr, 0));
+        }
         memDeallocated(c.index, c.domain, ptr);
-        je_dallocx(ptr, c.mallocFlags);
+        je_dallocx(ptr, c.getMallocFlags());
     }
 }
 
@@ -314,8 +429,11 @@ template <>
 void JEArenaMalloc::sized_free(void* ptr, size_t size) {
     if (ptr) {
         auto c = ThreadLocalData::get().getCurrentClient();
+        if (arenaDebugChecksEnabled) {
+            verifyMemDeallocatedByCorrectClient(c, ptr, size);
+        }
         memDeallocated(c.index, c.domain, size);
-        je_sdallocx(ptr, size, c.mallocFlags);
+        je_sdallocx(ptr, size, c.getMallocFlags());
     }
 }
 
@@ -359,7 +477,11 @@ void JEArenaMalloc::releaseMemory() {
 
 template <>
 void JEArenaMalloc::releaseMemory(const ArenaMallocClient& client) {
-    std::string purgeKey = "arena." + std::to_string(client.arena) + ".purge";
+    // TODO: Purge all areans (for each domain)? For now just purge primary.
+    std::string purgeKey =
+            "arena." +
+            std::to_string(client.arenas.at(size_t(MemoryDomain::Primary))) +
+            ".purge";
     setProperty(purgeKey.c_str(), nullptr, 0);
 }
 
@@ -388,7 +510,7 @@ uint16_t ThreadLocalData::getTCacheID(const ArenaMallocClient& client) {
                 // client before we destroy the tcache(s), to avoid us
                 // attempting to reference the thread's current tcache
                 // once that tcache has been destroyed.
-                ThreadLocalData::get().getCurrentClient().setNoClient();
+                ThreadLocalData::get().getCurrentClient() = {};
                 for (auto tc : ptr->tcacheIds) {
                     if (tc) {
                         unsigned tcache = tc;
