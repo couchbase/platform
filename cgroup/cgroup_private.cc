@@ -279,6 +279,48 @@ public:
         return 0;
     }
 
+    size_t get_current_active_file_memory() override {
+        if (!memory) {
+            return 0;
+        }
+
+        auto fname = *memory / "memory.stat";
+        if (exists(fname)) {
+            size_t activeFile = 0;
+            cb::io::tokenizeFileLineByLine(
+                    fname, [&activeFile](const auto& parts) {
+                        if (parts.size() > 1 && parts[0] == "active_file") {
+                            activeFile = stouint64(parts[1]);
+                        }
+                        return true;
+                    });
+            return activeFile;
+        }
+
+        return 0;
+    }
+
+    size_t get_current_inactive_file_memory() override {
+        if (!memory) {
+            return 0;
+        }
+
+        auto fname = *memory / "memory.stat";
+        if (exists(fname)) {
+            size_t inactiveFile = 0;
+            cb::io::tokenizeFileLineByLine(
+                    fname, [&inactiveFile](const auto& parts) {
+                        if (parts.size() > 1 && parts[0] == "inactive_file") {
+                            inactiveFile = stouint64(parts[1]);
+                        }
+                        return true;
+                    });
+            return inactiveFile;
+        }
+
+        return 0;
+    }
+
     std::optional<PressureData> get_pressure_data(PressureType type) override {
         return {};
     }
@@ -432,6 +474,40 @@ public:
                 return true;
             });
             return cache;
+        }
+
+        return 0;
+    }
+
+    size_t get_current_active_file_memory() override {
+        auto fname = directory / "memory.stat";
+        if (exists(fname)) {
+            size_t activeFile = 0;
+            cb::io::tokenizeFileLineByLine(
+                    fname, [&activeFile](const auto& parts) {
+                        if (parts.size() > 1 && parts[0] == "active_file") {
+                            activeFile = stouint64(parts[1]);
+                        }
+                        return true;
+                    });
+            return activeFile;
+        }
+
+        return 0;
+    }
+
+    size_t get_current_inactive_file_memory() override {
+        auto fname = directory / "memory.stat";
+        if (exists(fname)) {
+            size_t inactiveFile = 0;
+            cb::io::tokenizeFileLineByLine(
+                    fname, [&inactiveFile](const auto& parts) {
+                        if (parts.size() > 1 && parts[0] == "inactive_file") {
+                            inactiveFile = stouint64(parts[1]);
+                        }
+                        return true;
+                    });
+            return inactiveFile;
         }
 
         return 0;

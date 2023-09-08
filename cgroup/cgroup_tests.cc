@@ -87,11 +87,21 @@ TEST_F(V1, TestCurrentCache) {
     EXPECT_EQ(5943459840, instance->get_current_cache_memory());
 }
 
+TEST_F(V1, TestCurrentActiveFileMemory) {
+    EXPECT_EQ(1750560768, instance->get_current_active_file_memory());
+}
+
+TEST_F(V1, TestCurrentInactiveFileMemory) {
+    EXPECT_EQ(4192505856, instance->get_current_inactive_file_memory());
+}
+
 TEST_F(V1, TestMemInfo) {
     auto meminfo = instance->get_mem_info();
     EXPECT_EQ(17179869184, meminfo.max);
     EXPECT_EQ(6852075520, meminfo.current);
     EXPECT_EQ(5943459840, meminfo.cache);
+    EXPECT_EQ(1750560768, meminfo.active_file);
+    EXPECT_EQ(4192505856, meminfo.inactive_file);
 }
 
 TEST_F(V1, TestCpuStat) {
@@ -201,11 +211,21 @@ TEST_F(V2, TestCurrentCache) {
     EXPECT_EQ(590389248, instance->get_current_cache_memory());
 }
 
+TEST_F(V2, TestCurrentActiveFileMemory) {
+    EXPECT_EQ(548282368, instance->get_current_active_file_memory());
+}
+
+TEST_F(V2, TestCurrentInactiveFileMemory) {
+    EXPECT_EQ(42106880, instance->get_current_inactive_file_memory());
+}
+
 TEST_F(V2, TestMemInfo) {
     auto meminfo = instance->get_mem_info();
     EXPECT_EQ(8589934592, meminfo.max);
     EXPECT_EQ(2766684160, meminfo.current);
     EXPECT_EQ(590389248, meminfo.cache);
+    EXPECT_EQ(548282368, meminfo.active_file);
+    EXPECT_EQ(42106880, meminfo.inactive_file);
 }
 
 TEST_F(V2, TestCpuStat) {
@@ -338,11 +358,21 @@ TEST_P(NoCgroupFound, TestCurrentCache) {
     EXPECT_EQ(0, instance->get_current_cache_memory());
 }
 
+TEST_P(NoCgroupFound, TestCurrentActiveFileMemory) {
+    EXPECT_EQ(0, instance->get_current_active_file_memory());
+}
+
+TEST_P(NoCgroupFound, TestCurrentInactiveFileMemory) {
+    EXPECT_EQ(0, instance->get_current_inactive_file_memory());
+}
+
 TEST_P(NoCgroupFound, TestMemInfo) {
     auto meminfo = instance->get_mem_info();
     EXPECT_EQ(0, meminfo.max);
     EXPECT_EQ(0, meminfo.current);
     EXPECT_EQ(0, meminfo.cache);
+    EXPECT_EQ(0, meminfo.active_file);
+    EXPECT_EQ(0, meminfo.inactive_file);
 }
 
 TEST_P(NoCgroupFound, TestCpuStat) {
