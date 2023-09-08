@@ -10,8 +10,6 @@
 
 #include <platform/system_arena_malloc.h>
 
-#include "relaxed_atomic.h"
-
 #include <stdexcept>
 #include <string>
 #include <system_error>
@@ -132,7 +130,9 @@ void* SystemArenaMalloc::realloc(void* ptr, size_t size) {
 
 void* SystemArenaMalloc::aligned_alloc(size_t alignment, size_t size) {
     void* newAlloc = nullptr;
-#if defined(HAVE_ALIGNED_ALLOC)
+#if defined(HAVE_JEMALLOC)
+    newAlloc = je_aligned_alloc(alignment, size);
+#elif defined(HAVE_ALIGNED_ALLOC)
     newAlloc = ::aligned_alloc(alignment, size);
 #elif defined(WIN32)
     newAlloc = _aligned_malloc(size, alignment);
