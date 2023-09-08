@@ -21,8 +21,9 @@
 template <class trackingImpl>
 class TestJEArenaMalloc : public cb::JEArenaMalloc {
 public:
-    static void clientRegistered(const cb::ArenaMallocClient& client) {
-        trackingImpl::clientRegistered(client);
+    static void clientRegistered(const cb::ArenaMallocClient& client,
+                                 bool arenaDebugChecksEnabled) {
+        trackingImpl::clientRegistered(client, arenaDebugChecksEnabled);
     }
 
     static void memAllocated(uint8_t index, size_t size) {
@@ -54,7 +55,7 @@ BENCHMARK_DEFINE_F(MemoryAllocationStat, AllocNRead1)(benchmark::State& state) {
         for (int i = 0; i < state.range(0); i++) {
             if (i == 0) {
                 // calling this will clear the counters
-                BenchJEArenaMalloc::clientRegistered(client);
+                BenchJEArenaMalloc::clientRegistered(client, false);
             } else {
                 BenchJEArenaMalloc::memAllocated(1, 128);
             }
@@ -75,7 +76,7 @@ BENCHMARK_DEFINE_F(MemoryAllocationStat, AllocNReadM)(benchmark::State& state) {
         // range = allocations per read
         for (int i = 0; i < state.range(0); i++) {
             if (i == 0) {
-                BenchJEArenaMalloc::clientRegistered(client);
+                BenchJEArenaMalloc::clientRegistered(client, false);
             } else {
                 BenchJEArenaMalloc::memAllocated(1, 128);
             }
@@ -99,7 +100,7 @@ BENCHMARK_DEFINE_F(MemoryAllocationStat, AllocNReadPreciseM)
         // range = allocations per read
         for (int i = 0; i < state.range(0); i++) {
             if (i == 0) {
-                BenchJEArenaMalloc::clientRegistered(client);
+                BenchJEArenaMalloc::clientRegistered(client, false);
             } else {
                 BenchJEArenaMalloc::memAllocated(1, 128);
             }

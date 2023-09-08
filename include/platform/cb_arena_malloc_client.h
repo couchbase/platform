@@ -12,12 +12,11 @@
 
 #include "relaxed_atomic.h"
 
-#include <algorithm>
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <iosfwd>
 #include <limits>
-#include <ostream>
 
 namespace cb {
 

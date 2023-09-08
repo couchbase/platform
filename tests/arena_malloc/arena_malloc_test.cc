@@ -184,10 +184,6 @@ TEST_F(ArenaMalloc, DomainGuard) {
         EXPECT_EQ(0,
                   cb::ArenaMalloc::getEstimatedAllocated(
                           client, cb::MemoryDomain::Secondary));
-        // Finally demonstrate that if the caller gets the domain wrong - we
-        // cannot figure it out for them. P2 should be freed against Primary.
-        // Same issue could happen if the wrong client was used
-        cb_free(p2);
     }
 
     // Counters will hit 0 (we wouldn't report negative mem_used)
@@ -212,6 +208,9 @@ TEST_F(ArenaMalloc, DomainGuard) {
     domain = cb::ArenaMalloc::switchToClient(client, cb::MemoryDomain::Primary)
                      .domain;
     EXPECT_EQ(cb::MemoryDomain::Secondary, domain);
+
+    // Cleanup - deallocate memory accounted to primary.
+    cb_free(p2);
 
     cb::ArenaMalloc::unregisterClient(client);
 }
@@ -305,12 +304,17 @@ TEST_F(ArenaMalloc, NoArenaGuard) {
 }
 
 #if defined(HAVE_JEMALLOC)
-// Only when we have jemalloc do we use the thresholds to defer totalling memory
+// Only when we have jemalloc + JEArenaCoreLocalTracker do we use the
+// thresholds to defer totalling memory
 // usage.
 TEST_F(ArenaMalloc, thresholds) {
 #else
 TEST_F(ArenaMalloc, DISABLED_thresholds) {
 #endif
+    if (cb::ArenaMalloc::isTrackingAlwaysPrecise()) {
+        // Tracking always precise, test not applicable.
+        return;
+    }
     auto client = cb::ArenaMalloc::registerClient();
     client.estimateUpdateThreshold = 1024;
     cb::ArenaMalloc::setAllocatedThreshold(client);
@@ -540,6 +544,7 @@ TEST_F(ArenaMalloc, ThreadDestroyWhenTcacheStillAssigned) {
 
     // Create a new arena client using tcache.
     auto client = cb::ArenaMalloc::registerClient();
+    cb::ArenaMalloc::switchToClient(client);
 
     // Function to create a thread which will switch to our arena
     // client, but not switch away before it is destroyed.

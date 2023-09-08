@@ -29,6 +29,10 @@ namespace cb {
 /// Overrides any client tcache wishes
 static bool tcacheEnabled{true};
 
+/// Are additional checks on arena allocations enabled?
+static const bool arenaDebugChecksEnabled{
+        getenv("CB_ARENA_MALLOC_VERIFY_DEALLOC_CLIENT") != nullptr};
+
 JEArenaMallocBase::CurrentClient::CurrentClient(int mallocFlags,
                                                 uint8_t index,
                                                 MemoryDomain domain)
@@ -167,7 +171,7 @@ ArenaMallocClient JEArenaMalloc::registerClient(bool threadCache) {
             client.used = true;
             ArenaMallocClient newClient{
                     client.arena, index, threadCache && tcacheEnabled};
-            clientRegistered(newClient);
+            clientRegistered(newClient, arenaDebugChecksEnabled);
             return newClient;
         }
     }

@@ -303,6 +303,7 @@ endif()
 
 if (MEMORY_ALLOCATOR STREQUAL "jemalloc")
 LIST(APPEND PLATFORM_FILES src/je_arena_corelocal_tracker.cc)
+LIST(APPEND PLATFORM_FILES src/je_arena_simple_tracker.cc)
 LIST(APPEND PLATFORM_FILES src/je_arena_malloc.cc)
 LIST(APPEND PLATFORM_FILES src/je_arena_malloc_stats.cc)
 endif()

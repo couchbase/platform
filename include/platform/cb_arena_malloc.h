@@ -153,6 +153,14 @@ public:
     }
 
     /**
+     * @returns true if memory tracking is always precise and estimates are
+     * not used (always are the same as precise value).
+     */
+    static bool isTrackingAlwaysPrecise() {
+        return Impl::isTrackingAlwaysPrecise();
+    }
+
+    /**
      * Switch away from the client, disabling any memory tracking.
      * @return the previous client
      */

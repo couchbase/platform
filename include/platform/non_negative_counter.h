@@ -43,6 +43,30 @@ struct ThrowExceptionUnderflowPolicy {
     }
 };
 
+/// Policy class for handling underflow dynamically based on the current mode
+/// of the object. Allows runtime selection of how underflows are handled.
+template <class T>
+struct DynamicUnderflowPolicy {
+    using SignedT = typename std::make_signed<T>::type;
+
+    enum class Mode { ClampAtZero, ThrowException };
+
+    Mode mode{Mode::ClampAtZero};
+
+    void underflow(T& desired, T current, SignedT arg) {
+        switch (mode) {
+        case Mode::ClampAtZero:
+            clampAtZero.underflow(desired, current, arg);
+            return;
+        case Mode::ThrowException:
+            throwException.underflow(desired, current, arg);
+            return;
+        }
+    }
+    ClampAtZeroUnderflowPolicy<T> clampAtZero;
+    ThrowExceptionUnderflowPolicy<T> throwException;
+};
+
 // Default NonNegativeCounter OrdereReversedPolicy (if user doesn't explicitly
 // specify otherwise) - use ClampAtZeroUnderflowPolicy for Release builds, and
 // ThrowExceptionPolicy for Pre-Release builds.

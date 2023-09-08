@@ -13,6 +13,7 @@
 #include <folly/Synchronized.h>
 #include <platform/cb_arena_malloc_client.h>
 #include <platform/je_arena_corelocal_tracker.h>
+#include <platform/je_arena_simple_tracker.h>
 #include <platform/non_negative_counter.h>
 #include <platform/sized_buffer.h>
 
@@ -87,6 +88,9 @@ public:
     static void setAllocatedThreshold(const ArenaMallocClient& client) {
         trackingImpl::setAllocatedThreshold(client);
     }
+    static bool isTrackingAlwaysPrecise() {
+        return trackingImpl::isTrackingAlwaysPrecise();
+    }
     static size_t getPreciseAllocated(const ArenaMallocClient& client) {
         return trackingImpl::getPreciseAllocated(client);
     }
@@ -132,8 +136,9 @@ public:
     static FragmentationStats getGlobalFragmentationStats();
 
 protected:
-    static void clientRegistered(const ArenaMallocClient& client) {
-        trackingImpl::clientRegistered(client);
+    static void clientRegistered(const ArenaMallocClient& client,
+                                 bool arenaDebugChecksEnabled) {
+        trackingImpl::clientRegistered(client, arenaDebugChecksEnabled);
     }
 
     /**
@@ -174,6 +179,14 @@ protected:
     }
 };
 
+#ifndef NDEBUG
+// For debug builds, use JEArenaSimpleTracker - slower, but with additional
+// sanity checks.
+using JEArenaMalloc = _JEArenaMalloc<JEArenaSimpleTracker>;
+#else
+// For non-debug builds, use JEArenaCoreLocalTracker - higher performance,
+// but with very limited sanity checks.
 using JEArenaMalloc = _JEArenaMalloc<JEArenaCoreLocalTracker>;
+#endif
 
 } // namespace cb

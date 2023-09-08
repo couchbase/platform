@@ -10,6 +10,7 @@
 
 #include "relaxed_atomic.h"
 #include <folly/lang/Aligned.h>
+#include <gsl/gsl-lite.hpp>
 #include <platform/corestore.h>
 #include <platform/je_arena_corelocal_tracker.h>
 #include <platform/non_negative_counter.h>
@@ -56,8 +57,10 @@ struct ClientData {
 static std::array<folly::cacheline_aligned<ClientData>, ArenaMallocMaxClients>
         clientData;
 
-void JEArenaCoreLocalTracker::clientRegistered(
-        const ArenaMallocClient& client) {
+void JEArenaCoreLocalTracker::clientRegistered(const ArenaMallocClient& client,
+                                               bool arenaDebugChecksEnabled) {
+    // CoreLocalTracker doesn't support debug checks.
+    (void)arenaDebugChecksEnabled;
     // Clear all core/domain
     for (auto& core : coreAllocated[client.index]) {
         for (size_t domain = 0; domain < size_t(MemoryDomain::Count);

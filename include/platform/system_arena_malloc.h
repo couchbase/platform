@@ -65,6 +65,9 @@ public:
     static void setAllocatedThreshold(const ArenaMallocClient& client) {
         // Does nothing
     }
+    static bool isTrackingAlwaysPrecise() {
+        return true;
+    }
     static size_t getPreciseAllocated(const ArenaMallocClient& client);
     static size_t getEstimatedAllocated(const ArenaMallocClient& client);
 
