@@ -47,6 +47,11 @@ class RelaxedAtomic;
  */
 class SystemArenaMalloc {
 public:
+    struct ClientAndDomain {
+        ArenaMallocClient client;
+        MemoryDomain domain{MemoryDomain::None};
+    };
+
     static ArenaMallocClient registerClient(bool threadCache);
     static void unregisterClient(const ArenaMallocClient& client);
     static MemoryDomain switchToClient(const ArenaMallocClient& client,

@@ -41,10 +41,7 @@
 
 namespace cb {
 
-static thread_local struct ClientAndDomain {
-    ArenaMallocClient client;
-    MemoryDomain domain{MemoryDomain::None};
-} currentClient;
+static thread_local SystemArenaMalloc::ClientAndDomain currentClient;
 
 ArenaMallocClient SystemArenaMalloc::registerClient(bool threadCache) {
     (void)threadCache; // Has no affect on system arena
