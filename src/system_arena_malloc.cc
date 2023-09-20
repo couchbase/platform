@@ -65,12 +65,20 @@ void SystemArenaMalloc::unregisterClient(const ArenaMallocClient& client) {
     clients.wlock()->at(client.index).reset();
 }
 
-MemoryDomain SystemArenaMalloc::switchToClient(const ArenaMallocClient& client,
-                                               MemoryDomain domain,
-                                               bool tcache) {
+SystemArenaMalloc::ClientHandle SystemArenaMalloc::switchToClient(
+        const ArenaMallocClient& client, MemoryDomain domain, bool tcache) {
     (void)tcache; // no use in system allocator
+    auto prev = currentClient;
     currentClient.client = client;
-    return setDomain(domain);
+    setDomain(domain);
+    return prev;
+}
+
+SystemArenaMalloc::ClientHandle SystemArenaMalloc::switchToClient(
+        const ClientHandle& client) {
+    auto prev = currentClient;
+    currentClient = client;
+    return prev;
 }
 
 MemoryDomain SystemArenaMalloc::setDomain(MemoryDomain domain) {
@@ -79,7 +87,7 @@ MemoryDomain SystemArenaMalloc::setDomain(MemoryDomain domain) {
     return currentDomain;
 }
 
-MemoryDomain SystemArenaMalloc::switchFromClient() {
+SystemArenaMalloc::ClientHandle SystemArenaMalloc::switchFromClient() {
     // Set to index of NoClientIndex and domain to None.
     return switchToClient({0, NoClientIndex, false},
                           cb::MemoryDomain::None,

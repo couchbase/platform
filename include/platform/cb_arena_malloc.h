@@ -85,6 +85,8 @@ class RelaxedAtomic;
 template <class Impl>
 class _ArenaMalloc {
 public:
+    using ClientHandle = typename Impl::ClientHandle;
+
     /**
      * Register a new client for allocation tracking
      * @param threadCache should this arena use a thread cache
@@ -117,13 +119,17 @@ public:
      *        Primary or Secondary.
      * @param tcache The caller can switch to the client and turn off tcache
      *               for the current thread only.
-     * @return the previous MemoryDomain
+     * @return the previous client
      */
-    static MemoryDomain switchToClient(
+    static ClientHandle switchToClient(
             const ArenaMallocClient& client,
             MemoryDomain domain = MemoryDomain::Primary,
             bool tcache = true) {
         return Impl::switchToClient(client, domain, tcache);
+    }
+
+    static ClientHandle switchToClient(const ClientHandle& client) {
+        return Impl::switchToClient(client);
     }
 
     /**
@@ -148,9 +154,9 @@ public:
 
     /**
      * Switch away from the client, disabling any memory tracking.
-     * @return the previous MemoryDomain
+     * @return the previous client
      */
-    static MemoryDomain switchFromClient() {
+    static ClientHandle switchFromClient() {
         return Impl::switchFromClient();
     }
 
@@ -408,6 +414,24 @@ struct ArenaMallocGuard {
 
     /// Will call switchFromClient
     ~ArenaMallocGuard();
+};
+
+/***
+ * Guard object which on construction records the current Arena settings and
+ * switches memory tracking to "No Arena". When the guard goes out of scope,
+ * the original Arena settings are restored.
+ *
+ * Used to guard scopes where we do not want to account memory to the current
+ * client temporarily (e.g (de)allocating memory which is global and shouldn't
+ * be associated with the current client.
+ */
+struct [[nodiscard]] NoArenaGuard {
+    NoArenaGuard();
+
+    ~NoArenaGuard();
+
+private:
+    ArenaMalloc::ClientHandle previous;
 };
 
 /**

@@ -130,6 +130,16 @@ static int makeArena() {
     return arena;
 }
 
+JEArenaMalloc::ClientHandle switchToClientImpl(uint8_t index,
+                                               MemoryDomain domain,
+                                               int mallocFlags) {
+    auto& currentClient = ThreadLocalData::get().getCurrentClient();
+    auto previous = currentClient;
+
+    currentClient.setup(mallocFlags, index, domain);
+    return previous;
+}
+
 template <>
 ArenaMallocClient JEArenaMalloc::registerClient(bool threadCache) {
     auto lockedClients = Clients::get().wlock();
@@ -173,18 +183,13 @@ void JEArenaMalloc::unregisterClient(const ArenaMallocClient& client) {
 }
 
 template <>
-MemoryDomain JEArenaMalloc::switchToClient(const ArenaMallocClient& client,
-                                           MemoryDomain domain,
-                                           bool tcache) {
-    auto& currentClient = ThreadLocalData::get().getCurrentClient();
-    auto currentDomain = currentClient.domain;
+JEArenaMalloc::ClientHandle JEArenaMalloc::switchToClient(
+        const ArenaMallocClient& client, MemoryDomain domain, bool tcache) {
     if (client.index == NoClientIndex) {
-        // This sets to the "default" arena with tcache auto or none
-        currentClient.setup(
-                client.threadCache && tcacheEnabled ? 0 : MALLOCX_TCACHE_NONE,
+        return switchToClientImpl(
                 NoClientIndex,
-                cb::MemoryDomain::None);
-        return currentDomain;
+                cb::MemoryDomain::None,
+                client.threadCache && tcacheEnabled ? 0 : MALLOCX_TCACHE_NONE);
     }
 
     int tcacheFlags = MALLOCX_TCACHE_NONE;
@@ -198,12 +203,14 @@ MemoryDomain JEArenaMalloc::switchToClient(const ArenaMallocClient& client,
         // else all true, enable automatic tcache selection
         tcacheFlags = 0;
     }
+    return switchToClientImpl(
+            client.index, domain, MALLOCX_ARENA(client.arena) | tcacheFlags);
+}
 
-    // Set the malloc flags to the correct arena + tcache setting and set the
-    // client index
-    currentClient.setup(
-            MALLOCX_ARENA(client.arena) | tcacheFlags, client.index, domain);
-    return currentDomain;
+template <>
+JEArenaMalloc::ClientHandle JEArenaMalloc::switchToClient(
+        const ClientHandle& client) {
+    return switchToClientImpl(client.index, client.domain, client.mallocFlags);
 }
 
 template <>
@@ -212,7 +219,7 @@ MemoryDomain JEArenaMalloc::setDomain(MemoryDomain domain) {
 }
 
 template <>
-MemoryDomain JEArenaMalloc::switchFromClient() {
+JEArenaMalloc::ClientHandle JEArenaMalloc::switchFromClient() {
     // Set arena to 0 - which JEMALLOC means use auto select arena
     // Index to the special NoClientIndex (so no tracking occurs)
     // And domain to none (no use when tracking is off)

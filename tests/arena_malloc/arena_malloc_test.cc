@@ -140,7 +140,7 @@ TEST_F(ArenaMalloc, basicUsage) {
 
 TEST_F(ArenaMalloc, DomainGuard) {
     auto client = cb::ArenaMalloc::registerClient();
-    auto domain = cb::ArenaMalloc::switchToClient(client);
+    auto domain = cb::ArenaMalloc::switchToClient(client).domain;
     EXPECT_EQ(cb::MemoryDomain::None, domain);
 
     void *p1, *p2;
@@ -204,11 +204,101 @@ TEST_F(ArenaMalloc, DomainGuard) {
               cb::ArenaMalloc::getEstimatedAllocated(
                       client, cb::MemoryDomain::Primary));
 
-    domain = cb::ArenaMalloc::switchToClient(client,
-                                             cb::MemoryDomain::Secondary);
+    domain =
+            cb::ArenaMalloc::switchToClient(client, cb::MemoryDomain::Secondary)
+                    .domain;
     EXPECT_EQ(cb::MemoryDomain::Primary, domain);
-    domain = cb::ArenaMalloc::switchToClient(client, cb::MemoryDomain::Primary);
+    domain = cb::ArenaMalloc::switchToClient(client, cb::MemoryDomain::Primary)
+                     .domain;
     EXPECT_EQ(cb::MemoryDomain::Secondary, domain);
+
+    cb::ArenaMalloc::unregisterClient(client);
+}
+
+// Test NoArenaGuard - that memory allocations are not tracked when NoArenaGuard
+// is in scope.
+TEST_F(ArenaMalloc, NoArenaGuard) {
+    auto client = cb::ArenaMalloc::registerClient();
+    cb::ArenaMalloc::switchToClient(client);
+
+    // Preamble - allocate some memory to primary domain, so we have a non-zero
+    // value to check.
+    auto* p1 = cb_malloc(4096);
+    ASSERT_EQ(4096,
+              cb::ArenaMalloc::getPreciseAllocated(client,
+                                                   cb::MemoryDomain::Primary));
+    ASSERT_EQ(0,
+              cb::ArenaMalloc::getPreciseAllocated(
+                      client, cb::MemoryDomain::Secondary));
+
+    // Test - check that allocations when NoArenaGuard is in scope are not
+    // accounted to client arena.
+    {
+        cb::NoArenaGuard guard;
+        auto* p2 = cb_malloc(4096);
+        EXPECT_EQ(4096,
+                  cb::ArenaMalloc::getPreciseAllocated(
+                          client, cb::MemoryDomain::Primary))
+                << "client allocated memory after cb_malloc should be "
+                   "unchanged when NoArenaGuard active";
+        cb_free(p2);
+        EXPECT_EQ(4096,
+                  cb::ArenaMalloc::getPreciseAllocated(
+                          client, cb::MemoryDomain::Primary))
+                << "client allocated memory after cb_free should be unchanged "
+                   "when NoArenaGuard active";
+    }
+
+    // Test - once guard is out of scope, allocations should be tracked again.
+    auto* p3 = cb_malloc(4096);
+    EXPECT_EQ(8192,
+              cb::ArenaMalloc::getPreciseAllocated(client,
+                                                   cb::MemoryDomain::Primary))
+            << "client allocated memory should be tracked again once "
+               "NoArenaGuard destroyed";
+    cb_free(p3);
+    EXPECT_EQ(4096,
+              cb::ArenaMalloc::getPreciseAllocated(client,
+                                                   cb::MemoryDomain::Primary))
+            << "client deallocated memory should be tracked again once "
+               "NoArenaGuard destroyed";
+
+    // Test - nesting of NoArenaGuard should work as expected.
+    {
+        cb::NoArenaGuard guard;
+        {
+            cb::NoArenaGuard guard2;
+            auto* p4 = cb_malloc(4096);
+            EXPECT_EQ(4096,
+                      cb::ArenaMalloc::getPreciseAllocated(
+                              client, cb::MemoryDomain::Primary))
+                    << "client allocated memory after cb_malloc should be "
+                       "unchanged when nested NoArenaGuard active";
+            cb_free(p4);
+        }
+    }
+    auto* p5 = cb_malloc(4096);
+    EXPECT_EQ(8192,
+              cb::ArenaMalloc::getPreciseAllocated(client,
+                                                   cb::MemoryDomain::Primary))
+            << "client allocated memory should be tracked again once "
+               "nested NoArenaGuard destroyed";
+    cb_free(p5);
+    EXPECT_EQ(4096,
+              cb::ArenaMalloc::getPreciseAllocated(client,
+                                                   cb::MemoryDomain::Primary))
+            << "client deallocated memory should be tracked again once "
+               "nested NoArenaGuard destroyed";
+
+    cb_free(p1);
+
+    // Sanity checks - should be back to zero now.
+    EXPECT_EQ(0,
+              cb::ArenaMalloc::getPreciseAllocated(client,
+                                                   cb::MemoryDomain::Primary));
+    EXPECT_EQ(0,
+              cb::ArenaMalloc::getPreciseAllocated(
+                      client, cb::MemoryDomain::Secondary));
 
     cb::ArenaMalloc::unregisterClient(client);
 }

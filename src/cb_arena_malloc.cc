@@ -23,6 +23,13 @@ ArenaMallocGuard::~ArenaMallocGuard() {
     ArenaMalloc::switchFromClient();
 }
 
+NoArenaGuard::NoArenaGuard() : previous(ArenaMalloc::switchFromClient()) {
+}
+
+NoArenaGuard::~NoArenaGuard() {
+    ArenaMalloc::switchToClient(previous);
+}
+
 void ArenaMallocClient::setEstimateUpdateThreshold(size_t maxDataSize,
                                                    float percentage) {
     // Set the threshold to the smaller of the % calculation and max u32

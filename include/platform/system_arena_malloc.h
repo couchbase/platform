@@ -52,13 +52,16 @@ public:
         MemoryDomain domain{MemoryDomain::None};
     };
 
+    using ClientHandle = ClientAndDomain;
+
     static ArenaMallocClient registerClient(bool threadCache);
     static void unregisterClient(const ArenaMallocClient& client);
-    static MemoryDomain switchToClient(const ArenaMallocClient& client,
+    static ClientHandle switchToClient(const ArenaMallocClient& client,
                                        cb::MemoryDomain domain,
                                        bool tcache);
+    static ClientHandle switchToClient(const ClientHandle& client);
     static MemoryDomain setDomain(MemoryDomain domain);
-    static MemoryDomain switchFromClient();
+    static ClientHandle switchFromClient();
     static void setAllocatedThreshold(const ArenaMallocClient& client) {
         // Does nothing
     }
