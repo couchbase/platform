@@ -29,57 +29,34 @@ namespace cb {
 /// Overrides any client tcache wishes
 static bool tcacheEnabled{true};
 
-/**
- * Structure storing data for the currently executing client
- */
-struct CurrentClient {
-    CurrentClient() = default;
-    CurrentClient(int mallocFlags, uint8_t index, MemoryDomain domain)
-        : mallocFlags(mallocFlags), index(index), domain(domain) {
-    }
+JEArenaMallocBase::CurrentClient::CurrentClient(int mallocFlags,
+                                                uint8_t index,
+                                                MemoryDomain domain)
+    : mallocFlags(mallocFlags), index(index), domain(domain) {
+}
 
-    void setNoClient() {
-        mallocFlags = 0;
-        index = NoClientIndex;
-    }
+void JEArenaMallocBase::CurrentClient::setNoClient() {
+    mallocFlags = 0;
+    index = NoClientIndex;
+}
 
-    void setup(int mallocFlags, uint8_t index, cb::MemoryDomain domain) {
-        this->mallocFlags = mallocFlags;
-        this->index = index;
-        this->domain = domain;
-    }
+void JEArenaMallocBase::CurrentClient::setup(int mallocFlags,
+                                             uint8_t index,
+                                             cb::MemoryDomain domain) {
+    this->mallocFlags = mallocFlags;
+    this->index = index;
+    this->domain = domain;
+}
 
-    MemoryDomain setDomain(MemoryDomain domain) {
-        auto currentDomain = this->domain;
-        this->domain = domain;
-        return currentDomain;
-    }
-
-    /**
-     * The flags to be passed to all je_malloc 'x' calls, this is where the
-     * current arena is stored and tcache id (if enabled).
-     */
-    int mallocFlags{0};
-
-    /**
-     * The index of the currently switched-to client, used for updating client
-     * stat counters (e.g. the mem_used counters)
-     */
-    uint8_t index{NoClientIndex};
-
-    /**
-     * The current domain
-     */
-    MemoryDomain domain{MemoryDomain::None};
-
-    /// struct is intended to be a max of u64 - 2 unused bytes remain.
-    uint8_t unused1{0};
-    uint8_t unused2{0};
-};
+MemoryDomain JEArenaMallocBase::CurrentClient::setDomain(MemoryDomain domain) {
+    auto currentDomain = this->domain;
+    this->domain = domain;
+    return currentDomain;
+}
 
 // Note: we can exceed uint64_t - just incurs an extra TLS read on what is
 // quite hot code.
-static_assert(sizeof(CurrentClient) == sizeof(uint64_t),
+static_assert(sizeof(JEArenaMallocBase::CurrentClient) == sizeof(uint64_t),
               "Expected CurrentClient to be sizeof(uint64_t)");
 
 /**
@@ -99,7 +76,7 @@ static_assert(sizeof(CurrentClient) == sizeof(uint64_t),
  */
 struct ThreadLocalData {
 public:
-    CurrentClient& getCurrentClient() {
+    JEArenaMallocBase::CurrentClient& getCurrentClient() {
         return currentClient;
     }
 
@@ -109,7 +86,7 @@ public:
     }
 
 private:
-    CurrentClient currentClient;
+    JEArenaMallocBase::CurrentClient currentClient;
 };
 
 /**

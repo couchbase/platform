@@ -24,6 +24,44 @@
 
 namespace cb {
 
+class JEArenaMallocBase {
+public:
+    /**
+     * Structure storing data for the currently executing client
+     */
+    struct CurrentClient {
+        CurrentClient() = default;
+        CurrentClient(int mallocFlags, uint8_t index, MemoryDomain domain);
+
+        void setNoClient();
+
+        void setup(int mallocFlags, uint8_t index, cb::MemoryDomain domain);
+
+        MemoryDomain setDomain(MemoryDomain domain);
+
+        /**
+         * The flags to be passed to all je_malloc 'x' calls, this is where the
+         * current arena is stored and tcache id (if enabled).
+         */
+        int mallocFlags{0};
+
+        /**
+         * The index of the currently switched-to client, used for updating
+         * client stat counters (e.g. the mem_used counters)
+         */
+        uint8_t index{NoClientIndex};
+
+        /**
+         * The current domain
+         */
+        MemoryDomain domain{MemoryDomain::None};
+
+        /// struct is intended to be a max of u64 - 2 unused bytes remain.
+        uint8_t unused1{0};
+        uint8_t unused2{0};
+    };
+};
+
 /**
  * JEArenaMalloc implements the ArenaMalloc class providing memory allocation
  * via je_malloc - https://github.com/jemalloc/jemalloc.
@@ -33,7 +71,7 @@ namespace cb {
  *
  */
 template <class trackingImpl>
-class _JEArenaMalloc {
+class _JEArenaMalloc : public JEArenaMallocBase {
 public:
     static ArenaMallocClient registerClient(bool threadCache);
     static void unregisterClient(const ArenaMallocClient& client);
