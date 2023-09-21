@@ -227,8 +227,7 @@ struct sized_buffer {
      */
     [[nodiscard]] int compare(buffer_type v) const {
         const size_type rlen = std::min(size(), v.size());
-        const int cmp =
-                std::char_traits<base_type>::compare(data(), v.data(), rlen);
+        const int cmp = std::memcmp(data(), v.data(), rlen);
 
         if (cmp != 0) {
             return cmp;
