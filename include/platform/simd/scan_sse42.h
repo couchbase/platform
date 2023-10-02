@@ -59,7 +59,9 @@ inline int scan_any_of_128bit(gsl::span<const unsigned char> data) {
     // which has bit 17 set to 1.
     mask |= 0x10000;
 #if defined(_WIN32)
-    return _tzcnt_u32(mask);
+    unsigned long index;
+    _BitScanForward(&index, mask);
+    return index;
 #else
     return __builtin_ctz(mask);
 #endif

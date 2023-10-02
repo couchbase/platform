@@ -10,6 +10,7 @@
 #include <JSON_checker.h>
 #include <folly/portability/GTest.h>
 #include <iostream>
+#include <memory>
 
 class DeprecatedInterfaceValidatorTest : public ::testing::Test {
 };
@@ -72,41 +73,59 @@ TEST_F(DeprecatedInterfaceValidatorTest, MB15778BadUtf8IsNotOk5) {
     EXPECT_FALSE(CHECK_JSON(mb15778));
 }
 
-class ValidatorTest : public ::testing::Test {
+class ValidatorTest : public ::testing::Test,
+                      public ::testing::WithParamInterface<bool> {
+public:
+    void SetUp() override {
+        validator = std::make_unique<JSON_checker::Validator>(GetParam());
+    }
+
 protected:
-    JSON_checker::Validator validator;
+    std::unique_ptr<JSON_checker::Validator> validator;
 };
 
-TEST_F(ValidatorTest, SimpleValidatorTest) {
+TEST_P(ValidatorTest, SimpleValidatorTest) {
     const uint8_t value1[] = "{\"test\": 12}";
-    EXPECT_TRUE(validator.validate(value1, sizeof(value1) - 1));
-    EXPECT_FALSE(validator.validate(value1, sizeof(value1) - 3));
-    EXPECT_TRUE(validator.validate(value1, sizeof(value1) - 1));
+    EXPECT_TRUE(validator->validate(value1, sizeof(value1) - 1));
+    EXPECT_FALSE(validator->validate(value1, sizeof(value1) - 3));
+    EXPECT_TRUE(validator->validate(value1, sizeof(value1) - 1));
 }
 
-TEST_F(ValidatorTest, ByteArrayValidatorTest) {
+TEST_P(ValidatorTest, StringLengthTest) {
+    for (int i = 0; i < 50; i++) {
+        std::string json = R"({"test": ")" + std::string(i, 'x') + "\"}";
+        EXPECT_TRUE(validator->validate(json)) << "Failed: " << json;
+    }
+}
+
+TEST_P(ValidatorTest, ByteArrayValidatorTest) {
     const uint8_t value1[] = "{\"test\": 12}";
     std::vector<uint8_t> data;
     data.resize(sizeof(value1) - 1);
     memcpy(data.data(), value1, sizeof(value1) - 1);
-    EXPECT_TRUE(validator.validate(data));
+    EXPECT_TRUE(validator->validate(data));
     data.resize(data.size() - 1);
-    EXPECT_FALSE(validator.validate(data));
+    EXPECT_FALSE(validator->validate(data));
     data.emplace_back('}');
-    EXPECT_TRUE(validator.validate(data));
+    EXPECT_TRUE(validator->validate(data));
 }
 
-TEST_F(ValidatorTest, StringValidatorTest) {
+TEST_P(ValidatorTest, StringValidatorTest) {
     std::string value("{\"test\": 12}");
-    EXPECT_TRUE(validator.validate(value));
+    EXPECT_TRUE(validator->validate(value));
     value.append("}");
-    EXPECT_FALSE(validator.validate(value));
+    EXPECT_FALSE(validator->validate(value));
     value.resize(value.length() - 1);
-    EXPECT_TRUE(validator.validate(value));
+    EXPECT_TRUE(validator->validate(value));
 }
 
-TEST_F(ValidatorTest, NumberExponentValidatorTest) {
-    EXPECT_TRUE(validator.validate("0e5"));
-    EXPECT_TRUE(validator.validate("0E5"));
-    EXPECT_TRUE(validator.validate("0.00e5"));
+TEST_P(ValidatorTest, NumberExponentValidatorTest) {
+    EXPECT_TRUE(validator->validate("0e5"));
+    EXPECT_TRUE(validator->validate("0E5"));
+    EXPECT_TRUE(validator->validate("0.00e5"));
 }
+
+INSTANTIATE_TEST_SUITE_P(JSON_checker,
+                         ValidatorTest,
+                         ::testing::Bool(),
+                         ::testing::PrintToStringParamName());
