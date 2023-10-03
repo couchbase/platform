@@ -13,6 +13,7 @@
 #include <platform/cb_arena_malloc.h>
 #include <platform/cb_malloc.h>
 
+#include <folly/ScopeGuard.h>
 #include <folly/portability/GTest.h>
 
 #include <vector>
@@ -458,3 +459,74 @@ TEST_F(ArenaMalloc, CheckCustomConfiguration) {
     }
 }
 #endif
+
+/**
+ * Showcase that tcache slabs are allocated from the current arena and that
+ * consecutive allocations after a switch to a different arena can be served
+ * from the slab allocated from the former arena.
+ *
+ * In effect, allocating memory from the "wrong" arena.
+ */
+#if defined(HAVE_JEMALLOC)
+TEST_F(ArenaMalloc, MB_55268) {
+    // We need tcache to demonstrate the issue
+    auto oldTCache = cb::ArenaMalloc::setTCacheEnabled(true);
+    // Other tests might expect tcache to be disabled
+    auto restoreTCache = folly::makeGuard(
+            [oldTCache]() { cb::ArenaMalloc::setTCacheEnabled(oldTCache); });
+
+    auto getMemoryStats = [](auto& client) -> std::pair<size_t, size_t> {
+        std::unordered_map<std::string, size_t> stats;
+        cb::ArenaMalloc::getStats(client, stats);
+        return {stats["allocated"], stats["resident"]};
+    };
+
+    // Create two arenas with tcache=enabled
+    auto first = cb::ArenaMalloc::registerClient(true);
+    auto second = cb::ArenaMalloc::registerClient(true);
+
+    auto [initialFirstAllocated, initialFirstResident] = getMemoryStats(first);
+    auto [initialSecondAllocated, initialSecondResident] =
+            getMemoryStats(second);
+    // Nothing has been allocated
+    ASSERT_EQ(0, initialFirstAllocated);
+    ASSERT_EQ(0, initialSecondAllocated);
+    // But arenas have some overhead
+    ASSERT_NE(0, initialFirstResident);
+    ASSERT_NE(0, initialSecondResident);
+
+    const size_t testAllocationSize = 3000;
+    // Exhaust any pre-assigned memory to the arena
+    const size_t testAllocations = initialFirstResident / testAllocationSize;
+
+    for (size_t i = 0; i < testAllocations; i++) {
+        // Allocate some bytes. Tcache will allocate a slab from the "first"
+        // arena.
+        cb::ArenaMalloc::switchToClient(first);
+        cb::ArenaMalloc::malloc(3000);
+
+        // Switch to arena "second" and allocate some more bytes. This
+        // allocation will be serviced using the slab allocated from the "first"
+        // arenas slab, already in the tcache.
+        cb::ArenaMalloc::switchToClient(second);
+        cb::ArenaMalloc::malloc(3000);
+
+        // Switch back to the first arena -- the malloc(3000) is the only
+        // allocation from "second".
+        cb::ArenaMalloc::switchToClient(first);
+    }
+
+    // Flush the tcache -- any slabs are returned to their arenas.
+    je_mallctl("thread.tcache.flush", nullptr, nullptr, nullptr, 0);
+
+    auto [firstAllocated, firstResident] = getMemoryStats(first);
+    auto [secondAllocated, secondResident] = getMemoryStats(second);
+
+    // With per-arena tcaches, we should expect to have allocated some
+    // memory from both arenas.
+    EXPECT_NE(0, firstAllocated);
+    EXPECT_LT(initialFirstResident, firstResident);
+    EXPECT_NE(0, secondAllocated);
+    EXPECT_LT(initialSecondResident, secondResident);
+}
+#endif // defined(HAVE_JEMALLOC)
