@@ -13,7 +13,27 @@
 #include <functional>
 #include <string>
 
+/**
+ * Format a time-point into the following format:
+ *
+ * YYYY-MM-DDThh:mm::ss.uuuuuu[timezone]
+ *
+ * In UTC it'll look something like: 2023-10-03T02:36:00.000000Z
+ * In PST it'll look something like: 2023-10-03T02:36:00.000000-07:00
+ */
+std::string to_string(std::chrono::system_clock::time_point tp);
+
 namespace cb {
+namespace time {
+/// Generate a timestamp for the provided (or current) time
+std::string timestamp(std::chrono::system_clock::time_point tp =
+                              std::chrono::system_clock::now());
+/// Generate a timestamp from a time_t with an optional microseconds delta
+std::string timestamp(time_t tp, uint32_t microseconds = 0);
+/// Generate a timestamp with a number of nanoseconds form epoch
+std::string timestamp(std::chrono::nanoseconds time_since_epoc);
+} // namespace time
+
 /**
  * Convert a time (in ns) to a human readable form (will loose information
  * as part of converting the time to a more readable format)...

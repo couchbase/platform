@@ -361,6 +361,7 @@ target_link_libraries(platform PUBLIC Folly::folly platform_headers)
 target_link_libraries(platform PRIVATE
   phosphor
   gsl::gsl-lite
+  spdlog::spdlog
   ${MALLOC_LIBRARIES}
   ${PLATFORM_LIBRARIES})
 
