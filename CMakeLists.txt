@@ -356,6 +356,7 @@ target_link_libraries(platform PRIVATE
   phosphor
   gsl::gsl-lite
   fmt::fmt
+  spdlog::spdlog
   ${MALLOC_LIBRARIES}
   ${PLATFORM_LIBRARIES})
 
@@ -377,6 +378,7 @@ target_link_libraries(platform_without_global_new_replacement PRIVATE
    phosphor
    gsl::gsl-lite
    fmt::fmt
+   spdlog::spdlog
    ${MALLOC_LIBRARIES}
    ${PLATFORM_LIBRARIES})
 

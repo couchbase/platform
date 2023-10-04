@@ -9,9 +9,57 @@
  */
 
 #include <platform/timeutils.h>
+#include <spdlog/details/fmt_helper.h>
+#include <spdlog/pattern_formatter.h>
 #include <cctype>
 #include <cmath>
 #include <stdexcept>
+
+std::string to_string(std::chrono::system_clock::time_point tp) {
+    static const std::string log_pattern{"%^%Y-%m-%dT%T.%f%z"};
+    spdlog::details::log_msg msg;
+    msg.time = tp;
+
+    spdlog::memory_buf_t formatted;
+    spdlog::pattern_formatter formatter(log_pattern,
+                                        spdlog::pattern_time_type::local);
+
+    formatter.format(msg, formatted);
+    std::string_view view{formatted.data(), formatted.size()};
+    while (isspace(view.back())) {
+        view.remove_suffix(1);
+    }
+
+    std::string ret{view};
+    if (ret.rfind("00:00") == ret.size() - 5) {
+        ret.resize(ret.size() - 6);
+        ret.append("Z");
+    }
+
+    return ret;
+}
+
+namespace cb::time {
+std::string timestamp(std::chrono::system_clock::time_point tp) {
+    return ::to_string(tp);
+}
+
+std::string timestamp(time_t tp, uint32_t microseconds) {
+    auto point = std::chrono::system_clock::from_time_t(tp);
+    point += std::chrono::microseconds(microseconds);
+    return timestamp(point);
+}
+
+std::string timestamp(std::chrono::nanoseconds time_since_epoc) {
+    const auto sec =
+            std::chrono::duration_cast<std::chrono::seconds>(time_since_epoc);
+    const auto usec = std::chrono::duration_cast<std::chrono::microseconds>(
+            time_since_epoc - sec);
+    auto point = std::chrono::system_clock::from_time_t(sec.count());
+    point += std::chrono::microseconds(usec.count());
+    return timestamp(point);
+}
+} // namespace cb::time
 
 std::string cb::time2text(std::chrono::nanoseconds time2convert) {
     const char* const extensions[] = {" ns", " us", " ms", " s", nullptr};
