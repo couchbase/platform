@@ -371,6 +371,15 @@ uint16_t ThreadLocalData::getTCacheID(const ArenaMallocClient& client) {
         // exit, do this by using a destruct function attached to a unique_ptr.
         struct ThreadLocalDataDestroy {
             void operator()(ThreadLocalData* ptr) {
+                // MB-58949: Ideally a thread should not be associated
+                // with any client when it is destroyed, but there's
+                // some cases where we don't have full control of the
+                // given thread (e.g. RocksDB background threads) and
+                // the thread may still have a client set. Clear the
+                // client before we destroy the tcache(s), to avoid us
+                // attempting to reference the thread's current tcache
+                // once that tcache has been destroyed.
+                ThreadLocalData::get().getCurrentClient().setNoClient();
                 for (auto tc : ptr->tcacheIds) {
                     if (tc) {
                         unsigned tcache = tc;

@@ -530,3 +530,36 @@ TEST_F(ArenaMalloc, MB_55268) {
     EXPECT_LT(initialSecondResident, secondResident);
 }
 #endif // defined(HAVE_JEMALLOC)
+
+// Regression test for MB-58949 - if a thread which has performed
+// memory allocations against some arena client (with tcache enabled)
+// is destroyed while still associated with the arena client, we
+// should not segfault in jemalloc.
+TEST_F(ArenaMalloc, ThreadDestroyWhenTcacheStillAssigned) {
+    cb::ArenaMalloc::setTCacheEnabled(true);
+
+    // Create a new arena client using tcache.
+    auto client = cb::ArenaMalloc::registerClient();
+
+    // Function to create a thread which will switch to our arena
+    // client, but not switch away before it is destroyed.
+    auto spawnThread = [client]() {
+        cb::ArenaMalloc::switchToClient(client);
+        // Alloc and delete some memory to exercise the arena / tcache.
+        auto foo = std::make_unique<int>(1);
+    };
+
+    // Don't reliably see the issue with a single thread, but two threads
+    // seems sufficient to trigger the issue.
+    std::thread t1{spawnThread};
+    std::thread t2{spawnThread};
+
+    // Before the fix we observed a crash in the created threads
+    // cleanup when jemalloc was called (via operator delete in
+    // libstdc++.so) to delete the metadata managing the thread-local
+    // cleanup functions, as tcache which has been deleted was used.
+    t1.join();
+    t2.join();
+
+    cb::ArenaMalloc::unregisterClient(client);
+}
