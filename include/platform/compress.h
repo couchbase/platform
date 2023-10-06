@@ -161,4 +161,13 @@ static inline std::unique_ptr<folly::IOBuf> deflateSnappy(
         std::string_view input_buffer) {
     return deflate(folly::io::CodecType::SNAPPY, input_buffer);
 }
+
+/**
+ * Get the uncompressed length from the given Snappy compressed input buffer
+ *
+ * @param input_buffer buffer pointing to the input buffer
+ * @return the uncompressed length if success, false otherwise
+ */
+size_t getUncompressedLengthSnappy(std::string_view input_buffer);
+
 } // namespace cb::compression

@@ -139,3 +139,8 @@ size_t cb::compression::get_uncompressed_length(folly::io::CodecType,
                                                 std::string_view input_buffer) {
     return doSnappyUncompressedLength(input_buffer);
 }
+
+size_t cb::compression::getUncompressedLengthSnappy(
+        std::string_view input_buffer) {
+    return doSnappyUncompressedLength(input_buffer);
+}
