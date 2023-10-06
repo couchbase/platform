@@ -8,8 +8,9 @@
  *   the file licenses/APL2.txt.
  */
 #include <platform/compress.h>
+
+#include <folly/compression/Compression.h>
 #include <snappy.h>
-#include <cctype>
 #include <stdexcept>
 
 static bool doSnappyUncompress(std::string_view input,
@@ -138,6 +139,31 @@ bool cb::compression::validate(folly::io::CodecType,
 size_t cb::compression::get_uncompressed_length(folly::io::CodecType,
                                                 std::string_view input_buffer) {
     return doSnappyUncompressedLength(input_buffer);
+}
+
+bool cb::compression::inflateSnappy(std::string_view input_buffer,
+                                    cb::compression::Buffer& output,
+                                    size_t max_inflated_size) {
+    return inflate(folly::io::CodecType::SNAPPY,
+                   input_buffer,
+                   output,
+                   max_inflated_size);
+}
+
+std::unique_ptr<folly::IOBuf> cb::compression::inflateSnappy(
+        std::string_view input_buffer, size_t max_inflated_size) {
+    return inflate(
+            folly::io::CodecType::SNAPPY, input_buffer, max_inflated_size);
+}
+
+bool cb::compression::deflateSnappy(std::string_view input_buffer,
+                                    cb::compression::Buffer& output) {
+    return deflate(folly::io::CodecType::SNAPPY, input_buffer, output);
+}
+
+std::unique_ptr<folly::IOBuf> cb::compression::deflateSnappy(
+        std::string_view input_buffer) {
+    return deflate(folly::io::CodecType::SNAPPY, input_buffer);
 }
 
 size_t cb::compression::getUncompressedLengthSnappy(

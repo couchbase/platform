@@ -7,6 +7,7 @@
  *   software will be governed by the Apache License, Version 2.0, included in
  *   the file licenses/APL2.txt.
  */
+#include <folly/io/IOBuf.h>
 #include <folly/portability/GTest.h>
 #include <platform/compress.h>
 #include <stdexcept>
@@ -14,7 +15,7 @@
 using cb::compression::Allocator;
 using cb::compression::Buffer;
 using cb::compression::deflateSnappy;
-using cb::compression::get_uncompressed_length;
+using cb::compression::getUncompressedLengthSnappy;
 using cb::compression::inflateSnappy;
 
 TEST(Compression, TestSnappyCompression) {
@@ -75,6 +76,5 @@ TEST(Compression, TestGetUncompressedLength) {
     EXPECT_NE(nullptr, output.data());
 
     EXPECT_EQ(8192u,
-              get_uncompressed_length(folly::io::CodecType::SNAPPY,
-                                      {output.data(), output.size()}));
+              getUncompressedLengthSnappy({output.data(), output.size()}));
 }

@@ -10,12 +10,14 @@
 
 #pragma once
 
-#include <folly/compression/Compression.h>
 #include <platform/compression/buffer.h>
 #include <memory>
 
 namespace folly {
 class IOBuf;
+}
+namespace folly::io {
+enum class CodecType;
 }
 
 namespace cb::compression {
@@ -131,36 +133,21 @@ size_t get_uncompressed_length(folly::io::CodecType type,
  * All data inside kv-engine (and on the wire) use Snappy compression.
  * This is a wrapper method used to save some typing ;)
  */
-static inline bool inflateSnappy(
-        std::string_view input_buffer,
-        Buffer& output,
-        size_t max_inflated_size = DEFAULT_MAX_INFLATED_SIZE) {
-    return inflate(folly::io::CodecType::SNAPPY,
-                   input_buffer,
-                   output,
-                   max_inflated_size);
-}
+bool inflateSnappy(std::string_view input_buffer,
+                   Buffer& output,
+                   size_t max_inflated_size = DEFAULT_MAX_INFLATED_SIZE);
 
-static inline std::unique_ptr<folly::IOBuf> inflateSnappy(
+std::unique_ptr<folly::IOBuf> inflateSnappy(
         std::string_view input_buffer,
-        size_t max_inflated_size = DEFAULT_MAX_INFLATED_SIZE) {
-    return inflate(
-            folly::io::CodecType::SNAPPY, input_buffer, max_inflated_size);
-}
+        size_t max_inflated_size = DEFAULT_MAX_INFLATED_SIZE);
 
 /**
  * All data inside kv-engine (and on the wire) use Snappy compression.
  * This is a wrapper method used to save some typing ;)
  */
-static inline bool deflateSnappy(std::string_view input_buffer,
-                                 Buffer& output) {
-    return deflate(folly::io::CodecType::SNAPPY, input_buffer, output);
-}
+bool deflateSnappy(std::string_view input_buffer, Buffer& output);
 
-static inline std::unique_ptr<folly::IOBuf> deflateSnappy(
-        std::string_view input_buffer) {
-    return deflate(folly::io::CodecType::SNAPPY, input_buffer);
-}
+std::unique_ptr<folly::IOBuf> deflateSnappy(std::string_view input_buffer);
 
 /**
  * Get the uncompressed length from the given Snappy compressed input buffer
