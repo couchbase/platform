@@ -11,7 +11,6 @@
 #include "relaxed_atomic.h"
 #include <platform/je_arena_malloc.h>
 
-#include <fmt/format.h>
 #include <folly/lang/Aligned.h>
 #include <jemalloc/jemalloc.h>
 
@@ -89,39 +88,6 @@ public:
     static ThreadLocalData& get() {
         static thread_local ThreadLocalData tld = {};
         return tld;
-    }
-
-    /**
-     * Clean up any jemalloc tcaches created for the thread when it is
-     * destroyed.
-     */
-    ~ThreadLocalData() {
-        // MB-58949: Ideally a thread should not be associated with any
-        // client when it is destroyed, but there's some cases where we don't
-        // have full control of the given thread (e.g. RocksDB background
-        // threads) and the thread may still have a client set. Clear the client
-        // before we destroy the tcache(s), to avoid us attempting to reference
-        // the thread's current tcache once that tcache has been destroyed.
-        ThreadLocalData::get().getCurrentClient().setNoClient();
-
-        // Clean up all tcaches created in jemalloc for this thread.
-        for (auto tc : tcacheIds) {
-            if (tc == 0) {
-                continue;
-            }
-            unsigned tcache = tc;
-            size_t sz = sizeof(unsigned);
-            int rc = je_mallctl(
-                    "tcache.destroy", nullptr, nullptr, (void*)&tcache, sz);
-            if (rc != 0) {
-                fmt::print(stderr,
-                           "JEArenaMalloc::ThreadLocalDataDestroy: "
-                           "Could not destroy tcache:{} - status:{} ({})\n",
-                           tcache,
-                           rc,
-                           strerror(rc));
-            }
-        }
     }
 
 private:
@@ -402,7 +368,39 @@ uint16_t ThreadLocalData::getTCacheID(const ArenaMallocClient& client) {
         tcacheIds[client.index] = tcache;
 
         // We need to be sure that all allocated tcaches are destroyed at thread
-        // exit - this is done in ThreadLocalData dtor.
+        // exit, do this by using a destruct function attached to a unique_ptr.
+        struct ThreadLocalDataDestroy {
+            void operator()(ThreadLocalData* ptr) {
+                // MB-58949: Ideally a thread should not be associated
+                // with any client when it is destroyed, but there's
+                // some cases where we don't have full control of the
+                // given thread (e.g. RocksDB background threads) and
+                // the thread may still have a client set. Clear the
+                // client before we destroy the tcache(s), to avoid us
+                // attempting to reference the thread's current tcache
+                // once that tcache has been destroyed.
+                ThreadLocalData::get().getCurrentClient().setNoClient();
+                for (auto tc : ptr->tcacheIds) {
+                    if (tc) {
+                        unsigned tcache = tc;
+                        size_t sz = sizeof(unsigned);
+                        if (je_mallctl("tcache.destroy",
+                                       nullptr,
+                                       nullptr,
+                                       (void*)&tcache,
+                                       sz) != 0) {
+                            throw std::logic_error(
+                                    "JEArenaMalloc::ThreadLocalDataDestroy: "
+                                    "Could not "
+                                    "destroy "
+                                    "tcache");
+                        }
+                    }
+                }
+            }
+        };
+        thread_local std::unique_ptr<ThreadLocalData, ThreadLocalDataDestroy>
+                destroyTcache{this};
     }
     return tcacheIds[client.index];
 }
