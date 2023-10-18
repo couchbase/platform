@@ -291,7 +291,7 @@ foreach(platform_cbassert_variant ${platform_cbassert_VARIANTS})
   target_link_libraries(${platform_cbassert_variant} PRIVATE Folly::headers)
 endforeach()
 
-if (UNIX AND NOT APPLE)
+if (UNIX)
     add_subdirectory(cgroup)
 endif()
 
@@ -355,10 +355,11 @@ target_link_libraries(platform PUBLIC Folly::folly platform_headers)
 target_link_libraries(platform PRIVATE
   phosphor
   gsl::gsl-lite
+  fmt::fmt
   ${MALLOC_LIBRARIES}
   ${PLATFORM_LIBRARIES})
 
-if (UNIX AND NOT APPLE)
+if (UNIX)
     list(APPEND PLATFORM_FILES $<TARGET_OBJECTS:cgroup_objs>)
 endif()
 
@@ -375,10 +376,11 @@ target_link_libraries(platform_without_global_new_replacement PUBLIC
 target_link_libraries(platform_without_global_new_replacement PRIVATE
    phosphor
    gsl::gsl-lite
+   fmt::fmt
    ${MALLOC_LIBRARIES}
    ${PLATFORM_LIBRARIES})
 
-if (UNIX AND NOT APPLE)
+if (UNIX)
     list(APPEND PLATFORM_FILES_WITHOUT_REPLACEMENT $<TARGET_OBJECTS:cgroup_objs>)
 endif()
 

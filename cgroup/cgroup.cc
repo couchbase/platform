@@ -11,13 +11,46 @@
 #include "cgroup_private.h"
 
 #include <cgroup/cgroup.h>
+#include <fmt/format.h>
+#include <nlohmann/json.hpp>
+#include <platform/dirutils.h>
 #include <sched.h>
 #include <unistd.h>
 #include <cstring>
+#include <ostream>
 #include <stdexcept>
 #include <system_error>
 
 namespace cb::cgroup {
+void to_json(nlohmann::json& json, const PressureMetric& pressure_metric) {
+    json = {{"avg10", fmt::format("{:.{}f}", pressure_metric.avg10, 2)},
+            {"avg60", fmt::format("{:.{}f}", pressure_metric.avg60, 2)},
+            {"avg300", fmt::format("{:.{}f}", pressure_metric.avg300, 2)},
+            {"total_stall_time_usec",
+             std::to_string(pressure_metric.total_stall_time.count())}};
+}
+
+void to_json(nlohmann::json& json, const PressureData& pd) {
+    json = {{"some", pd.some}, {"full", pd.full}};
+}
+
+std::string to_string(PressureType type) {
+    switch (type) {
+    case PressureType::Cpu:
+        return "cpu";
+    case PressureType::Io:
+        return "io";
+    case PressureType::Memory:
+        return "memory";
+    }
+    throw std::invalid_argument("to_string() Invalid PressureType: " +
+                                std::to_string(int(type)));
+}
+
+std::ostream& operator<<(std::ostream& os, const PressureType& type) {
+    os << to_string(type);
+    return os;
+}
 
 size_t ControlGroup::get_available_cpu_count() {
     auto ret = get_available_cpu();
@@ -34,11 +67,16 @@ size_t ControlGroup::get_available_cpu() {
         return num;
     }
 
-    // No quota set, check for cpu sets
+#ifdef __linux__
+    // The library is only intended to be used on Linux in production,
+    // but is also built on mac to make the life easier for developers
+    // (as the unit tests operate on files in the repo). cpu_set_t isn't
+    // available on macosx
     cpu_set_t set;
     if (sched_getaffinity(getpid(), sizeof(set), &set) == 0) {
         return CPU_COUNT(&set) * 100;
     }
+#endif
 
     auto ret = sysconf(_SC_NPROCESSORS_ONLN);
     if (ret == -1) {
@@ -54,4 +92,93 @@ ControlGroup& ControlGroup::instance() {
     static auto instance = priv::make_control_group();
     return *instance;
 }
+
+std::optional<PressureData> ControlGroup::get_pressure_data_from_file(
+        const boost::filesystem::path& file, PressureType type, bool global) {
+    if (!exists(file)) {
+        return {};
+    }
+
+    PressureData data;
+    bool some = false;
+    bool full = false;
+
+    try {
+        cb::io::tokenizeFileLineByLine(
+                file, [&data, &some, &full](const auto& parts) {
+                    if (parts.size() < 5) {
+                        return true;
+                    }
+
+                    if ((parts.front() != "some" && parts.front() != "full") ||
+                        parts[1].find("avg10=") != 0 ||
+                        parts[2].find("avg60=") != 0 ||
+                        parts[3].find("avg300=") != 0 ||
+                        parts[4].find("total=") != 0) {
+                        // unexpected line
+                        return true;
+                    }
+                    try {
+                        PressureMetric metric;
+                        metric.avg10 =
+                                std::stof(std::string(parts[1].substr(6)));
+                        metric.avg60 =
+                                std::stof(std::string(parts[2].substr(6)));
+                        metric.avg300 =
+                                std::stof(std::string(parts[3].substr(7)));
+                        metric.total_stall_time = std::chrono::microseconds{
+                                std::stoull(std::string(parts[4].substr(6)))};
+
+                        if (parts.front() == "some") {
+                            data.some = metric;
+                            some = true;
+                        } else {
+                            data.full = metric;
+                            full = true;
+                        }
+                    } catch (const std::exception&) {
+                        // swallow
+                    }
+                    return true;
+                });
+    } catch (const std::system_error& error) {
+        if (error.code().value() == ENOTSUP) {
+            return {};
+        }
+        throw;
+    }
+
+    if (some && full) {
+        return data;
+    }
+
+    // Ubuntu 20.04 does not provide a full line for the global CPU pressure
+    if (some && !full && type == PressureType::Cpu && global) {
+        data.full = {};
+        return data;
+    }
+
+    return {};
+}
+
+/// Get the recorded pressure data for the system
+std::optional<PressureData> ControlGroup::get_system_pressure_data(
+        PressureType type) {
+    switch (type) {
+    case PressureType::Cpu:
+        return get_pressure_data_from_file(
+                root / "proc" / "pressure" / "cpu", PressureType::Cpu, true);
+    case PressureType::Io:
+        return get_pressure_data_from_file(
+                root / "proc" / "pressure" / "io", PressureType::Io, true);
+    case PressureType::Memory:
+        return get_pressure_data_from_file(
+                root / "proc" / "pressure" / "memory",
+                PressureType::Memory,
+                true);
+    }
+    throw std::invalid_argument("get_system_pressure_data(): Unknown type: " +
+                                std::to_string(int(type)));
+}
+
 } // namespace cb::cgroup

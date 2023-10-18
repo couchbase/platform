@@ -6,6 +6,7 @@ add_library(cgroup_objs OBJECT
 target_include_directories(cgroup_objs SYSTEM PUBLIC
                            ${Platform_SOURCE_DIR}/include)
 target_link_libraries(cgroup_objs PRIVATE Boost::filesystem fmt::fmt)
+target_link_libraries(cgroup_objs PUBLIC nlohmann_json::nlohmann_json)
 set_property(TARGET cgroup_objs PROPERTY POSITION_INDEPENDENT_CODE 1)
 cb_enable_unity_build(cgroup_objs)
 
@@ -15,6 +16,7 @@ add_library(cgroup STATIC
             $<TARGET_OBJECTS:cgroup_objs>)
 target_include_directories(cgroup SYSTEM PUBLIC ${Platform_SOURCE_DIR}/include)
 target_link_libraries(cgroup PRIVATE Boost::filesystem fmt::fmt Folly::folly)
+target_link_libraries(cgroup PUBLIC nlohmann_json::nlohmann_json Boost::filesystem)
 cb_enable_unity_build(cgroup)
 set_property(TARGET cgroup PROPERTY POSITION_INDEPENDENT_CODE 1)
 

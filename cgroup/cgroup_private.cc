@@ -112,7 +112,7 @@ static std::optional<boost::filesystem::path> find_cgroup_path(
 
 class ControlGroupV1 : public ControlGroup {
 public:
-    ControlGroupV1() {
+    ControlGroupV1(boost::filesystem::path root) : ControlGroup(root) {
         user_hz = sysconf(_SC_CLK_TCK);
         if (user_hz == -1) {
             user_hz = 100;
@@ -279,6 +279,10 @@ public:
         return 0;
     }
 
+    std::optional<PressureData> get_pressure_data(PressureType type) override {
+        return {};
+    }
+
     bool hasController() {
         return cpu || cpuacct || memory;
     }
@@ -336,7 +340,8 @@ public:
 
 class ControlGroupV2 : public ControlGroup {
 public:
-    ControlGroupV2(boost::filesystem::path path) : directory(std::move(path)) {
+    ControlGroupV2(boost::filesystem::path root, boost::filesystem::path path)
+        : ControlGroup(std::move(root)), directory(std::move(path)) {
     }
 
     Version get_version() override {
@@ -432,6 +437,23 @@ public:
         return 0;
     }
 
+    std::optional<PressureData> get_pressure_data(PressureType type) override {
+        switch (type) {
+        case PressureType::Cpu:
+            return get_pressure_data_from_file(
+                    directory / "cpu.pressure", PressureType::Cpu, false);
+        case PressureType::Io:
+            return get_pressure_data_from_file(
+                    directory / "io.pressure", PressureType::Io, false);
+        case PressureType::Memory:
+            return get_pressure_data_from_file(
+                    directory / "memory.pressure", PressureType::Memory, false);
+        }
+
+        throw std::invalid_argument("get_pressure_data(): Invalid type: " +
+                                    std::to_string(int(type)));
+    }
+
 protected:
     size_t get_available_cpu_count_from_quota() override {
         auto file = directory / "cpu.max";
@@ -464,7 +486,7 @@ protected:
 std::unique_ptr<ControlGroup> make_control_group(std::string root, pid_t pid) {
     auto mounts = priv::parse_proc_mounts(root);
 
-    auto ret = std::make_unique<ControlGroupV1>();
+    auto ret = std::make_unique<ControlGroupV1>(root.empty() ? "/" : root);
     for (const auto& mp : mounts) {
         if (mp.type == priv::MountEntry::Version::V1) {
             auto path = find_cgroup_path(mp.path, pid);
@@ -483,7 +505,8 @@ std::unique_ptr<ControlGroup> make_control_group(std::string root, pid_t pid) {
         if (mp.type == priv::MountEntry::Version::V2) {
             auto path = find_cgroup_path(mp.path, pid);
             if (path) {
-                return std::unique_ptr<ControlGroup>{new ControlGroupV2(*path)};
+                return std::unique_ptr<ControlGroup>{
+                        new ControlGroupV2(root.empty() ? "/" : root, *path)};
             }
         }
     }

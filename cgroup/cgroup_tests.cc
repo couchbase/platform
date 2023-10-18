@@ -10,33 +10,34 @@
 
 #include "cgroup_private.h"
 
+#include <boost/filesystem.hpp>
 #include <cgroup/cgroup.h>
 #include <folly/portability/GTest.h>
-#include <filesystem>
+#include <nlohmann/json.hpp>
 
 using namespace cb::cgroup;
 
 class V1 : public ::testing::Test {
 protected:
     void SetUp() override {
-        test_directory = std::filesystem::path(SOURCE_ROOT) / "test" / "v1";
+        test_directory = boost::filesystem::path(SOURCE_ROOT) / "test" / "v1";
         instance = cb::cgroup::priv::make_control_group(
                 test_directory.generic_string(), pid_t{1});
     }
 
-    std::filesystem::path test_directory;
+    boost::filesystem::path test_directory;
     std::unique_ptr<cb::cgroup::ControlGroup> instance;
 };
 
 class V2 : public ::testing::Test {
 protected:
     void SetUp() override {
-        test_directory = std::filesystem::path(SOURCE_ROOT) / "test" / "v2";
+        test_directory = boost::filesystem::path(SOURCE_ROOT) / "test" / "v2";
         instance = cb::cgroup::priv::make_control_group(
                 test_directory.generic_string(), pid_t{2});
     }
 
-    std::filesystem::path test_directory;
+    boost::filesystem::path test_directory;
     std::unique_ptr<cb::cgroup::ControlGroup> instance;
 };
 
@@ -50,17 +51,19 @@ protected:
     void SetUp() override {
         switch (GetParam()) {
         case Version::V1:
-            test_directory = std::filesystem::path(SOURCE_ROOT) / "test" / "v1";
+            test_directory =
+                    boost::filesystem::path(SOURCE_ROOT) / "test" / "v1";
             break;
         case Version::V2:
-            test_directory = std::filesystem::path(SOURCE_ROOT) / "test" / "v2";
+            test_directory =
+                    boost::filesystem::path(SOURCE_ROOT) / "test" / "v2";
             break;
         }
         instance = cb::cgroup::priv::make_control_group(
                 test_directory.generic_string(), pid_t{3});
     }
 
-    std::filesystem::path test_directory;
+    boost::filesystem::path test_directory;
     std::unique_ptr<cb::cgroup::ControlGroup> instance;
 };
 
@@ -103,6 +106,81 @@ TEST_F(V1, TestCpuStat) {
     EXPECT_EQ(13498, cpu.nr_periods);
 }
 
+TEST_F(V1, TestPressureCpu) {
+    EXPECT_FALSE(instance->get_pressure_data(PressureType::Cpu));
+}
+
+TEST_F(V1, TestPressureIo) {
+    EXPECT_FALSE(instance->get_pressure_data(PressureType::Io));
+}
+
+TEST_F(V1, TestPressureMemory) {
+    EXPECT_FALSE(instance->get_pressure_data(PressureType::Memory));
+}
+
+TEST_F(V1, TestSystemPressureCpu) {
+    // some avg10=78.29 avg60=75.76 avg300=66.71 total=733785593
+    // full avg10=0.00 avg60=0.00 avg300=0.00 total=0
+    auto pressure = instance->get_system_pressure_data(PressureType::Cpu);
+    ASSERT_TRUE(pressure);
+    auto data = *pressure;
+    EXPECT_EQ(78.29f, data.some.avg10);
+    EXPECT_EQ(75.76f, data.some.avg60);
+    EXPECT_EQ(66.71f, data.some.avg300);
+    EXPECT_EQ(733785593ULL, data.some.total_stall_time.count());
+    // Full is undefined for CPU at the system level and set to 0
+    EXPECT_EQ(0.0f, data.full.avg10);
+    EXPECT_EQ(0.0f, data.full.avg60);
+    EXPECT_EQ(0.0f, data.full.avg300);
+    EXPECT_EQ(0ULL, data.full.total_stall_time.count());
+}
+
+/// Test that the JSON conversion of a pressure metric don't crash
+TEST_F(V1, TestPressureToJson) {
+    // some avg10=78.29 avg60=75.76 avg300=66.71 total=733785593
+    // full avg10=0.00 avg60=0.00 avg300=0.00 total=0
+    auto pressure = instance->get_system_pressure_data(PressureType::Cpu);
+    ASSERT_TRUE(pressure);
+    nlohmann::json json = pressure->some;
+    EXPECT_EQ("78.29", json["avg10"]);
+    EXPECT_EQ("75.76", json["avg60"]);
+    EXPECT_EQ("66.71", json["avg300"]);
+}
+
+TEST_F(V1, TestSystemPressureIo) {
+    // some avg10=0.01 avg60=0.03 avg300=0.00 total=6691960
+    // full avg10=0.00 avg60=0.00 avg300=0.00 total=4176792
+    auto pressure = instance->get_system_pressure_data(PressureType::Io);
+    ASSERT_TRUE(pressure);
+    auto data = *pressure;
+    EXPECT_EQ(0.01f, data.some.avg10);
+    EXPECT_EQ(0.03f, data.some.avg60);
+    EXPECT_EQ(0.0f, data.some.avg300);
+    EXPECT_EQ(6691960ULL, data.some.total_stall_time.count());
+
+    EXPECT_EQ(0.0f, data.full.avg10);
+    EXPECT_EQ(0.0f, data.full.avg60);
+    EXPECT_EQ(0.0f, data.full.avg300);
+    EXPECT_EQ(4176792ULL, data.full.total_stall_time.count());
+}
+
+TEST_F(V1, TestSystemPressureMemory) {
+    // some avg10=0.00 avg60=0.04 avg300=0.08 total=855273
+    // full avg10=0.00 avg60=0.02 avg300=0.04 total=527201
+    auto pressure = instance->get_system_pressure_data(PressureType::Memory);
+    ASSERT_TRUE(pressure);
+    auto data = *pressure;
+    EXPECT_EQ(0.0f, data.some.avg10);
+    EXPECT_EQ(0.04f, data.some.avg60);
+    EXPECT_EQ(0.08f, data.some.avg300);
+    EXPECT_EQ(855273ULL, data.some.total_stall_time.count());
+
+    EXPECT_EQ(0.0f, data.full.avg10);
+    EXPECT_EQ(0.02f, data.full.avg60);
+    EXPECT_EQ(0.04f, data.full.avg300);
+    EXPECT_EQ(527201ULL, data.full.total_stall_time.count());
+}
+
 TEST_F(V2, Version) {
     EXPECT_EQ(ControlGroup::Version::V2, instance->get_version());
 }
@@ -142,6 +220,108 @@ TEST_F(V2, TestCpuStat) {
     EXPECT_EQ(0, cpu.burst.count());
 }
 
+TEST_F(V2, TestPressureCpu) {
+    // some avg10=65.95 avg60=69.61 avg300=60.79 total=576908731
+    // full avg10=32.86 avg60=32.71 avg300=30.53 total=338250181
+    auto pressure = instance->get_pressure_data(PressureType::Cpu);
+    ASSERT_TRUE(pressure);
+    auto data = *pressure;
+    EXPECT_EQ(65.95f, data.some.avg10);
+    EXPECT_EQ(69.61f, data.some.avg60);
+    EXPECT_EQ(60.79f, data.some.avg300);
+    EXPECT_EQ(576908731ULL, data.some.total_stall_time.count());
+
+    EXPECT_EQ(32.86f, data.full.avg10);
+    EXPECT_EQ(32.71f, data.full.avg60);
+    EXPECT_EQ(30.53f, data.full.avg300);
+    EXPECT_EQ(338250181ULL, data.full.total_stall_time.count());
+}
+
+TEST_F(V2, TestPressureIo) {
+    // some avg10=0.60 avg60=1.30 avg300=0.76 total=4120174
+    // full avg10=0.60 avg60=1.28 avg300=0.75 total=4106664
+    auto pressure = instance->get_pressure_data(PressureType::Io);
+    ASSERT_TRUE(pressure);
+    auto data = *pressure;
+    EXPECT_EQ(0.6f, data.some.avg10);
+    EXPECT_EQ(1.3f, data.some.avg60);
+    EXPECT_EQ(0.76f, data.some.avg300);
+    EXPECT_EQ(4120174ULL, data.some.total_stall_time.count());
+
+    EXPECT_EQ(0.6f, data.full.avg10);
+    EXPECT_EQ(1.28f, data.full.avg60);
+    EXPECT_EQ(0.75f, data.full.avg300);
+    EXPECT_EQ(4106664ULL, data.full.total_stall_time.count());
+}
+
+TEST_F(V2, TestPressureMemory) {
+    // some avg10=1.05 avg60=0.29 avg300=0.06 total=446327
+    // full avg10=0.36 avg60=0.11 avg300=0.02 total=308567
+    auto pressure = instance->get_pressure_data(PressureType::Memory);
+    ASSERT_TRUE(pressure);
+    auto data = *pressure;
+    EXPECT_EQ(1.05f, data.some.avg10);
+    EXPECT_EQ(0.29f, data.some.avg60);
+    EXPECT_EQ(0.06f, data.some.avg300);
+    EXPECT_EQ(446327ULL, data.some.total_stall_time.count());
+
+    EXPECT_EQ(0.36f, data.full.avg10);
+    EXPECT_EQ(0.11f, data.full.avg60);
+    EXPECT_EQ(0.02f, data.full.avg300);
+    EXPECT_EQ(308567ULL, data.full.total_stall_time.count());
+}
+
+TEST_F(V2, TestSystemPressureCpu) {
+    // some avg10=78.29 avg60=75.76 avg300=66.71 total=733785593
+    // full avg10=0.00 avg60=0.00 avg300=0.00 total=0
+    auto pressure = instance->get_system_pressure_data(PressureType::Cpu);
+    ASSERT_TRUE(pressure);
+    auto data = *pressure;
+    EXPECT_EQ(78.29f, data.some.avg10);
+    EXPECT_EQ(75.76f, data.some.avg60);
+    EXPECT_EQ(66.71f, data.some.avg300);
+    EXPECT_EQ(733785593ULL, data.some.total_stall_time.count());
+    // Full is undefined for CPU at the system level and set to 0
+    EXPECT_EQ(0.0f, data.full.avg10);
+    EXPECT_EQ(0.0f, data.full.avg60);
+    EXPECT_EQ(0.0f, data.full.avg300);
+    EXPECT_EQ(0ULL, data.full.total_stall_time.count());
+}
+
+TEST_F(V2, TestSystemPressureIo) {
+    // some avg10=0.01 avg60=0.03 avg300=0.00 total=6691960
+    // full avg10=0.00 avg60=0.00 avg300=0.00 total=4176792
+    auto pressure = instance->get_system_pressure_data(PressureType::Io);
+    ASSERT_TRUE(pressure);
+    auto data = *pressure;
+    EXPECT_EQ(0.01f, data.some.avg10);
+    EXPECT_EQ(0.03f, data.some.avg60);
+    EXPECT_EQ(0.0f, data.some.avg300);
+    EXPECT_EQ(6691960ULL, data.some.total_stall_time.count());
+
+    EXPECT_EQ(0.0f, data.full.avg10);
+    EXPECT_EQ(0.0f, data.full.avg60);
+    EXPECT_EQ(0.0f, data.full.avg300);
+    EXPECT_EQ(4176792ULL, data.full.total_stall_time.count());
+}
+
+TEST_F(V2, TestSystemPressureMemory) {
+    // some avg10=0.00 avg60=0.04 avg300=0.08 total=855273
+    // full avg10=0.00 avg60=0.02 avg300=0.04 total=527201
+    auto pressure = instance->get_system_pressure_data(PressureType::Memory);
+    ASSERT_TRUE(pressure);
+    auto data = *pressure;
+    EXPECT_EQ(0.0f, data.some.avg10);
+    EXPECT_EQ(0.04f, data.some.avg60);
+    EXPECT_EQ(0.08f, data.some.avg300);
+    EXPECT_EQ(855273ULL, data.some.total_stall_time.count());
+
+    EXPECT_EQ(0.0f, data.full.avg10);
+    EXPECT_EQ(0.02f, data.full.avg60);
+    EXPECT_EQ(0.04f, data.full.avg300);
+    EXPECT_EQ(527201ULL, data.full.total_stall_time.count());
+}
+
 TEST_P(NoCgroupFound, TestCpuQuota) {
     EXPECT_LE(100, instance->get_available_cpu());
 }
@@ -175,6 +355,65 @@ TEST_P(NoCgroupFound, TestCpuStat) {
     EXPECT_EQ(0, cpu.throttled.count());
     EXPECT_EQ(0, cpu.nr_throttled);
     EXPECT_EQ(0, cpu.nr_periods);
+}
+
+TEST_P(NoCgroupFound, TestPressureCpu) {
+    EXPECT_FALSE(instance->get_pressure_data(PressureType::Cpu));
+}
+
+TEST_P(NoCgroupFound, TestPressureIo) {
+    EXPECT_FALSE(instance->get_pressure_data(PressureType::Io));
+}
+
+TEST_P(NoCgroupFound, TestPressureMemory) {
+    EXPECT_FALSE(instance->get_pressure_data(PressureType::Memory));
+}
+
+TEST_P(NoCgroupFound, TestSystemPressureCpu) {
+    // some avg10=78.29 avg60=75.76 avg300=66.71 total=733785593
+    // full avg10=0.00 avg60=0.00 avg300=0.00 total=0
+    auto pressure = instance->get_system_pressure_data(PressureType::Cpu);
+    ASSERT_TRUE(pressure);
+    auto data = *pressure;
+    EXPECT_EQ(78.29f, data.some.avg10);
+    EXPECT_EQ(75.76f, data.some.avg60);
+    EXPECT_EQ(66.71f, data.some.avg300);
+    EXPECT_EQ(733785593ULL, data.some.total_stall_time.count());
+    // Full is undefined for CPU
+}
+
+TEST_P(NoCgroupFound, TestSystemPressureIo) {
+    // some avg10=0.01 avg60=0.03 avg300=0.00 total=6691960
+    // full avg10=0.00 avg60=0.00 avg300=0.00 total=4176792
+    auto pressure = instance->get_system_pressure_data(PressureType::Io);
+    ASSERT_TRUE(pressure);
+    auto data = *pressure;
+    EXPECT_EQ(0.01f, data.some.avg10);
+    EXPECT_EQ(0.03f, data.some.avg60);
+    EXPECT_EQ(0.0f, data.some.avg300);
+    EXPECT_EQ(6691960ULL, data.some.total_stall_time.count());
+
+    EXPECT_EQ(0.0f, data.full.avg10);
+    EXPECT_EQ(0.0f, data.full.avg60);
+    EXPECT_EQ(0.0f, data.full.avg300);
+    EXPECT_EQ(4176792ULL, data.full.total_stall_time.count());
+}
+
+TEST_P(NoCgroupFound, TestSystemPressureMemory) {
+    // some avg10=0.00 avg60=0.04 avg300=0.08 total=855273
+    // full avg10=0.00 avg60=0.02 avg300=0.04 total=527201
+    auto pressure = instance->get_system_pressure_data(PressureType::Memory);
+    ASSERT_TRUE(pressure);
+    auto data = *pressure;
+    EXPECT_EQ(0.0f, data.some.avg10);
+    EXPECT_EQ(0.04f, data.some.avg60);
+    EXPECT_EQ(0.08f, data.some.avg300);
+    EXPECT_EQ(855273ULL, data.some.total_stall_time.count());
+
+    EXPECT_EQ(0.0f, data.full.avg10);
+    EXPECT_EQ(0.02f, data.full.avg60);
+    EXPECT_EQ(0.04f, data.full.avg300);
+    EXPECT_EQ(527201ULL, data.full.total_stall_time.count());
 }
 
 INSTANTIATE_TEST_SUITE_P(CGroupsTest,

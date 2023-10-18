@@ -9,9 +9,15 @@
  */
 #pragma once
 
+#include <boost/filesystem.hpp>
+#include <nlohmann/json_fwd.hpp>
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
+#include <iosfwd>
+#include <optional>
+#include <string_view>
 
 namespace cb::cgroup {
 
@@ -31,8 +37,12 @@ struct CpuStat {
 /// Note that the information will be collected from multiple files
 /// and is therefore subject to race conditions
 struct MemInfo {
-    MemInfo(size_t max, size_t current, size_t cache)
-        : max(max), current(current), cache(cache) {
+    MemInfo(size_t max,
+            size_t current,
+            size_t cache)
+        : max(max),
+          current(current),
+          cache(cache) {
     }
     /// The max limit (if specified)
     size_t max = 0;
@@ -41,6 +51,32 @@ struct MemInfo {
     /// Current cache size
     size_t cache = 0;
 };
+
+/// Pressure information: See
+/// https://www.kernel.org/doc/Documentation/accounting/psi.rst
+enum class PressureType { Cpu, Io, Memory };
+std::string to_string(PressureType type);
+
+/// Pressure metrics collected. See
+/// https://www.kernel.org/doc/Documentation/accounting/psi.rst
+struct PressureMetric {
+    float avg10{0};
+    float avg60{0};
+    float avg300{0};
+    std::chrono::microseconds total_stall_time{0};
+};
+
+void to_json(nlohmann::json& json, const PressureMetric& pressure_metric);
+
+/// The pressure data collected for each type. See
+/// https://www.kernel.org/doc/Documentation/accounting/psi.rst
+struct PressureData {
+    PressureMetric some;
+    PressureMetric full;
+};
+
+std::ostream& operator<<(std::ostream& os, const PressureType& type);
+void to_json(nlohmann::json& json, const PressureData& pd);
 
 /// The ControlGroup object offers an abstraction over cgroups v1 and v2
 /// to fetch information for the cgroup where the process lives.
@@ -88,12 +124,33 @@ public:
                 get_current_cache_memory()};
     }
 
+    /// Get the recorded pressure data for the given type (only available
+    /// on cgroup v2)
+    virtual std::optional<PressureData> get_pressure_data(
+            PressureType type) = 0;
+
+    /// Get the recorded pressure data for the system
+    std::optional<PressureData> get_system_pressure_data(PressureType type);
+
     /// Get the one and only instance used by this process
     static ControlGroup& instance();
 
 protected:
+    ControlGroup(boost::filesystem::path root) : root(std::move(root)) {
+    }
+
+    /// The root of the filesystem used to allow mocking in unit tests
+    const boost::filesystem::path root;
+
     /// Read the cpu quota and create a CPU count
     virtual size_t get_available_cpu_count_from_quota() = 0;
+
+    /// Parse the provided file containing the pressure information data as
+    /// specified in https://www.kernel.org/doc/Documentation/accounting/psi.rst
+    std::optional<PressureData> get_pressure_data_from_file(
+            const boost::filesystem::path& file,
+            PressureType type,
+            bool global);
 };
 
 } // namespace cb::cgroup
