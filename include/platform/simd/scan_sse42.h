@@ -23,20 +23,30 @@
 #include <smmintrin.h>
 #endif
 
-namespace cb::simd {
+namespace cb::simd::detail {
 
-template <char... Chars>
-inline int scan_any_of_128bit(gsl::span<const unsigned char> data) {
+using simd_vector_t = __m128i;
+
+/**
+ * Load some data into a vector.
+ */
+inline simd_vector_t load_128bit(gsl::span<const unsigned char> data) {
 #if CB_DEVELOPMENT_ASSERTS
     Expects(data.size() >= 16);
 #endif
-    static_assert(sizeof...(Chars) != 0);
     uint64_t r;
     memcpy(&r, data.data(), sizeof(uint64_t));
     uint64_t r2;
     memcpy(&r2, data.data() + sizeof(uint64_t), sizeof(uint64_t));
     // Load the two 64-bit integers into an SSE register.
-    auto bytes = _mm_set_epi64x(r2, r);
+    return _mm_set_epi64x(r2, r);
+}
+
+/**
+ * Set all bits of any matching elements to 1.
+ */
+template <char... Chars>
+inline simd_vector_t eq_any_of_128bit(simd_vector_t bytes) {
     // Set all bits of any matching elements to 1.
 #if defined(_WIN32)
     // MSVC from VS 2017 struggles with the variadic expansion used for other
@@ -51,6 +61,16 @@ inline int scan_any_of_128bit(gsl::span<const unsigned char> data) {
 #else
     auto rv = (... | _mm_cmpeq_epi8(bytes, _mm_set1_epi8(Chars)));
 #endif
+    return rv;
+}
+
+/**
+ * Count the number of elements until the first match in the result of a logical
+ * operation (after eq_any_of_128bit).
+ * @return the number of elements until the match or the number of elements in
+ * the vector if everything matches.
+ */
+inline int scan_matches(simd_vector_t rv) {
     // Extract the highest order bit of each byte in the vector.
     // This will be 1 if the element was equal to any character and 0 otherwise.
     auto mask = _mm_movemask_epi8(rv);
@@ -67,6 +87,6 @@ inline int scan_any_of_128bit(gsl::span<const unsigned char> data) {
 #endif
 }
 
-} // namespace cb::simd
+} // namespace cb::simd::detail
 
 #endif // FOLLY_X64

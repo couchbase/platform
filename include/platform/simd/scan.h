@@ -12,6 +12,14 @@
 #include <folly/Portability.h>
 #include <gsl/gsl-lite.hpp>
 
+#if FOLLY_X64
+#include "scan_sse42.h"
+#endif // FOLLY_X64
+
+#if FOLLY_AARCH64
+#include "scan_neon.h"
+#endif // FOLLY_AARCH64
+
 namespace cb::simd {
 
 /**
@@ -24,14 +32,11 @@ namespace cb::simd {
  * @return Number of characters until the first match
  */
 template <char... Chars>
-inline int scan_any_of_128bit(gsl::span<const unsigned char> data);
+inline int scan_any_of_128bit(gsl::span<const unsigned char> data) {
+    static_assert(sizeof...(Chars) != 0);
+    auto bytes = detail::load_128bit(data);
+    auto rv = detail::eq_any_of_128bit<Chars...>(bytes);
+    return detail::scan_matches(rv);
+}
 
 } // namespace cb::simd
-
-#if FOLLY_X64
-#include "scan_sse42.h"
-#endif // FOLLY_X64
-
-#if FOLLY_AARCH64
-#include "scan_neon.h"
-#endif // FOLLY_AARCH64

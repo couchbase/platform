@@ -17,18 +17,37 @@
 #include <arm_acle.h>
 #include <arm_neon.h>
 
-namespace cb::simd {
+namespace cb::simd::detail {
 
-template <char... Chars>
-inline int scan_any_of_128bit(gsl::span<const unsigned char> data) {
+using simd_vector_t = uint8x16_t;
+
+/**
+ * Load some data into a vector.
+ */
+inline simd_vector_t load_128bit(gsl::span<const unsigned char> data) {
 #if CB_DEVELOPMENT_ASSERTS
     Expects(data.size() >= 16);
 #endif
-    static_assert(sizeof...(Chars) != 0);
     // Load 16 bytes into an SIMD register.
-    auto bytes = vld1q_u8(data.data());
+    return vld1q_u8(data.data());
+}
+
+/**
+ * Set all bits of any matching elements to 1.
+ */
+template <char... Chars>
+inline simd_vector_t eq_any_of_128bit(simd_vector_t bytes) {
     // Set all bits of any matching elements to 1.
-    auto rv = (... | vceqq_u8(bytes, vdupq_n_u8(Chars)));
+    return (... | vceqq_u8(bytes, vdupq_n_u8(Chars)));
+}
+
+/**
+ * Count the number of elements until the first match in the result of a logical
+ * operation (after eq_any_of_128bit).
+ * @return the number of elements until the match or the number of elements in
+ * the vector if everything matches.
+ */
+inline int scan_matches(simd_vector_t rv) {
     // (16 x elements) ... 00000000 11111111 00000000 11111111
     // <<shift right by 4 and truncate>> gives
     // (16 x elements) ... 00000000 00000000 00001111 00001111
@@ -43,6 +62,6 @@ inline int scan_any_of_128bit(gsl::span<const unsigned char> data) {
     return __builtin_ctzll(mask) >> 2;
 }
 
-} // namespace cb::simd
+} // namespace cb::simd::detail
 
 #endif // FOLLY_AARCH64
