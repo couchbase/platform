@@ -10,6 +10,7 @@
 #include <JSON_checker.h>
 #include <folly/portability/GTest.h>
 #include <iostream>
+#include <limits>
 #include <memory>
 
 class DeprecatedInterfaceValidatorTest : public ::testing::Test {
@@ -123,6 +124,37 @@ TEST_P(ValidatorTest, NumberExponentValidatorTest) {
     EXPECT_TRUE(validator->validate("0e5"));
     EXPECT_TRUE(validator->validate("0E5"));
     EXPECT_TRUE(validator->validate("0.00e5"));
+}
+
+TEST_P(ValidatorTest, ControlCharactersTest) {
+    // Code points up to 0x1f are all control characters which are illegal.
+    for (char i = 0; i <= 0x1f; i++) {
+        // Sufficiently large such that vectorisation kicks in
+        std::string s = "\"Illegal code point>>";
+        s.push_back(i);
+        s += "<<inserted into a string\"";
+
+        EXPECT_FALSE(validator->validate(s))
+                << "Code point 0x" << std::hex << (int)i << std::dec;
+    }
+}
+
+TEST_P(ValidatorTest, EquivalenceTest) {
+    auto otherValidator =
+            std::make_unique<JSON_checker::Validator>(!GetParam());
+
+    for (int i = std::numeric_limits<char>::min();
+         i <= std::numeric_limits<char>::max();
+         i++) {
+        // Sufficiently large such that vectorisation kicks in
+        std::string s = "\"Test code>>";
+        s.push_back((char)i);
+        s += "<<in a string\"";
+
+        EXPECT_EQ(validator->validate(s), otherValidator->validate(s))
+                << "Validators do not agree when parsing 0x" << std::hex
+                << (int)i << std::dec;
+    }
 }
 
 INSTANTIATE_TEST_SUITE_P(JSON_checker,

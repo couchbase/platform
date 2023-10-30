@@ -15,6 +15,9 @@
 static gsl::span<const unsigned char> testString = {
         reinterpret_cast<const unsigned char*>("0123456789ABCDEF"), 16};
 
+static gsl::span<const unsigned char> testStringReversed = {
+        reinterpret_cast<const unsigned char*>("FEDCBA9876543210"), 16};
+
 TEST(ScanAnyOf128, SingleMatch) {
     EXPECT_EQ(0, cb::simd::scan_any_of_128bit<'0'>(testString));
     EXPECT_EQ(1, cb::simd::scan_any_of_128bit<'1'>(testString));
@@ -42,4 +45,31 @@ TEST(ScanAnyOf128, MultipleMatches) {
     EXPECT_EQ(1,
               (cb::simd::scan_any_of_128bit<'1', '2', '3', '4'>(testString)));
     EXPECT_EQ(16, (cb::simd::scan_any_of_128bit<'?', '!'>(testString)));
+}
+
+TEST(ScanLtOrAnyOf128, SingleMatch) {
+    EXPECT_EQ(0, (cb::simd::scan_lt_or_any_of_128bit<'\0', '0'>(testString)));
+    EXPECT_EQ(1, (cb::simd::scan_lt_or_any_of_128bit<'\0', '1'>(testString)));
+
+    EXPECT_EQ(3, (cb::simd::scan_lt_or_any_of_128bit<'0', '3'>(testString)));
+    EXPECT_EQ(3, (cb::simd::scan_lt_or_any_of_128bit<'0', '3'>(testString)));
+
+    EXPECT_EQ(0, (cb::simd::scan_lt_or_any_of_128bit<'1', '3'>(testString)));
+    EXPECT_EQ(0, (cb::simd::scan_lt_or_any_of_128bit<'1', '3'>(testString)));
+
+    EXPECT_EQ(0, (cb::simd::scan_lt_or_any_of_128bit<'5', '3'>(testString)));
+    EXPECT_EQ(0, (cb::simd::scan_lt_or_any_of_128bit<'5', '3'>(testString)));
+
+    EXPECT_EQ(15,
+              (cb::simd::scan_lt_or_any_of_128bit<'\0', '0'>(
+                      testStringReversed)));
+    EXPECT_EQ(14,
+              (cb::simd::scan_lt_or_any_of_128bit<'\0', '1'>(
+                      testStringReversed)));
+
+    // First character less than 'A' is 9, which is the 7th character (after
+    // A-F).
+    EXPECT_EQ(
+            6,
+            (cb::simd::scan_lt_or_any_of_128bit<'A', '3'>(testStringReversed)));
 }

@@ -400,11 +400,15 @@ static bool checkUTF8JSON(JSON_checker::Instance &jc,
 
 /**
  * Reads 16 bytes of data and returns the number of bytes until the first
- * character which requires special handling in a JSON string (escapes sequence,
- * disallowed whitespace, etc.)
+ * character which requires special handling in a JSON string.
+ * This includes any of the ASCII control characters (up to and including code
+ * point 0x1F), as well as the quotes (end of string) and reverse solidus
+ * (escape sequence).
+ *
+ * See https://datatracker.ietf.org/doc/html/rfc7159#section-7.
  */
 int scan_any_of_128bit_ST(gsl::span<const unsigned char> data) {
-    return cb::simd::scan_any_of_128bit<'"', '\\', '\t', '\n', '\r'>(data);
+    return cb::simd::scan_lt_or_any_of_128bit<0x20, '"', '\\'>(data);
 }
 
 /**

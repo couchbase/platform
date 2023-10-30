@@ -65,6 +65,21 @@ inline simd_vector_t eq_any_of_128bit(simd_vector_t bytes) {
 }
 
 /**
+ * Performs a bitwise OR between the elements of the two vectors.
+ */
+inline simd_vector_t or_128bit(simd_vector_t x, simd_vector_t y) {
+    return _mm_or_si128(x, y);
+}
+
+/**
+ * Compares the elements with the value of LessThan.
+ */
+template <char LessThan>
+inline simd_vector_t lt_128bit(simd_vector_t bytes) {
+    return _mm_cmplt_epi8(bytes, _mm_set1_epi8(LessThan));
+}
+
+/**
  * Count the number of elements until the first match in the result of a logical
  * operation (after eq_any_of_128bit).
  * @return the number of elements until the match or the number of elements in

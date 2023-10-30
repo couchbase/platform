@@ -39,4 +39,23 @@ inline int scan_any_of_128bit(gsl::span<const unsigned char> data) {
     return detail::scan_matches(rv);
 }
 
+/**
+ * Reads 16 bytes of data, then matches all of the characters passed in as
+ * template parameters and returns the number of bytes until the first match
+ * (or 16 if none of the characters was seen in the input).
+ *
+ * @tparam LessThan A constant value below which to match any input.
+ * @tparam OrChars Additional characters to match.
+ * @param data The 16 byte input.
+ * @return Number of characters until the first match
+ */
+template <char LessThan, char... OrChars>
+inline int scan_lt_or_any_of_128bit(gsl::span<const unsigned char> data) {
+    static_assert(sizeof...(OrChars) != 0);
+    auto bytes = detail::load_128bit(data);
+    auto rv = detail::eq_any_of_128bit<OrChars...>(bytes);
+    rv = detail::or_128bit(rv, detail::lt_128bit<LessThan>(bytes));
+    return detail::scan_matches(rv);
+}
+
 } // namespace cb::simd
