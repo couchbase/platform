@@ -65,6 +65,10 @@ void SystemArenaMalloc::unregisterClient(const ArenaMallocClient& client) {
     clients.wlock()->at(client.index).reset();
 }
 
+uint8_t SystemArenaMalloc::getCurrentClientIndex() {
+    return currentClient.client.index;
+}
+
 SystemArenaMalloc::ClientHandle SystemArenaMalloc::switchToClient(
         const ArenaMallocClient& client, MemoryDomain domain, bool tcache) {
     (void)tcache; // no use in system allocator

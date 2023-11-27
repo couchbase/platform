@@ -105,6 +105,14 @@ public:
     }
 
     /**
+     * Returns the index of the current client. Primarily for diagnostics,
+     * the client index alone otherwise isn't very useful.
+     */
+    static uint8_t getCurrentClientIndex() {
+        return Impl::getCurrentClientIndex();
+    }
+
+    /**
      * Switch to the given client, all subsequent memory allocations made by
      * the current thread will be accounted to the client.
      *
