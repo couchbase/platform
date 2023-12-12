@@ -216,4 +216,10 @@ public:
 private:
     std::atomic<T> value;
 };
+
+template <typename T>
+T format_as(const RelaxedAtomic<T>& ra) {
+    return ra.load();
+}
+
 } // namespace cb

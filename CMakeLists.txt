@@ -396,6 +396,7 @@ target_sources(platform_without_global_new_replacement PRIVATE
 # Until all such targets are updated to link directly to Ws2_32, we
 # link publically.
 TARGET_LINK_LIBRARIES(platform PUBLIC
+  fmt::fmt
   ${COUCHBASE_NETWORK_LIBS}
   platform_cbassert nlohmann_json::nlohmann_json)
 

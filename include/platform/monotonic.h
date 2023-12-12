@@ -254,3 +254,20 @@ template <class T,
                   DefaultOrderReversedPolicy>
 using AtomicWeaklyMonotonic =
         AtomicMonotonic<T, OrderReversedPolicy, cb::greater_equal>;
+
+template <typename T>
+T format_as(const WeaklyMonotonic<T>& t) {
+    return t.load();
+}
+template <typename T>
+T format_as(const Monotonic<T>& t) {
+    return t.load();
+}
+template <typename T>
+T format_as(const AtomicMonotonic<T>& t) {
+    return t.load();
+}
+template <typename T>
+T format_as(const AtomicWeaklyMonotonic<T>& t) {
+    return t.load();
+}

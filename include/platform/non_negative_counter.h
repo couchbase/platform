@@ -365,4 +365,13 @@ private:
     std::atomic<T> value{0};
 };
 
+template <typename T, template <class> class P>
+static inline T format_as(const NonNegativeCounter<T, P>& nnc) {
+    return nnc.load();
+}
+
+template <typename T, template <class> class P>
+static inline T format_as(const AtomicNonNegativeCounter<T, P>& annc) {
+    return annc.load();
+}
 } // namespace cb
