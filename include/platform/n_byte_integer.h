@@ -136,4 +136,8 @@ private:
 
 using uint48_t = UnsignedNByteInteger<6>;
 
+inline uint64_t format_as(uint48_t val) {
+    return val;
+}
+
 } // namespace cb

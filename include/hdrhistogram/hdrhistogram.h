@@ -646,3 +646,9 @@ public:
         return addValueAndCount(v, count);
     }
 };
+
+#include <fmt/ostream.h>
+#if FMT_VERSION >= 90000
+template <>
+struct fmt::formatter<HdrHistogram::Iterator::IterMode> : ostream_formatter {};
+#endif

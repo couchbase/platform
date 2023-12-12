@@ -36,3 +36,9 @@ bool isTerminalColorEnabled();
 /// Insert the formatting code the requested color to the stream
 std::ostream& operator<<(std::ostream& os, const TerminalColor& color);
 } // namespace cb::terminal
+
+#include <fmt/ostream.h>
+#if FMT_VERSION >= 90000
+template <>
+struct fmt::formatter<cb::terminal::TerminalColor> : ostream_formatter {};
+#endif

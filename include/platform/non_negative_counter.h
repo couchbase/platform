@@ -389,4 +389,13 @@ private:
     std::atomic<T> value{0};
 };
 
+template <typename T>
+T format_as(const NonNegativeCounter<T>& nnc) {
+    return nnc.load();
+}
+template <typename T>
+T format_as(const NonNegativeCounter<T, ClampAtZeroUnderflowPolicy>& nnc) {
+    return nnc.load();
+}
+
 } // namespace cb

@@ -373,3 +373,20 @@ using AtomicWeaklyMonotonic = AtomicMonotonic<T,
     ATOMIC_WEAKLY_MONOTONIC4(TYPE, NAME, LABELER, DefaultOrderReversedPolicy)
 #define ATOMIC_WEAKLY_MONOTONIC4(TYPE, NAME, LABELER, POLICY) \
     BASE_MONOTONIC(AtomicWeaklyMonotonic, TYPE, POLICY, LABELER, NAME)
+
+template <typename T>
+T format_as(const WeaklyMonotonic<T>& t) {
+    return t.load();
+}
+template <typename T>
+T format_as(const Monotonic<T>& t) {
+    return t.load();
+}
+template <typename T>
+T format_as(const AtomicMonotonic<T>& t) {
+    return t.load();
+}
+template <typename T>
+T format_as(const AtomicWeaklyMonotonic<T>& t) {
+    return t.load();
+}
