@@ -398,4 +398,14 @@ T format_as(const NonNegativeCounter<T, ClampAtZeroUnderflowPolicy>& nnc) {
     return nnc.load();
 }
 
+template <typename T>
+T format_as(const AtomicNonNegativeCounter<T>& annc) {
+    return annc.load();
+}
+template <typename T>
+T format_as(
+        const AtomicNonNegativeCounter<T, ClampAtZeroUnderflowPolicy>& annc) {
+    return annc.load();
+}
+
 } // namespace cb
