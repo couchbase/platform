@@ -695,10 +695,8 @@ std::ostream& operator<<(std::ostream& os,
     folly::assume_unreachable();
 }
 
-#if FMT_VERSION >= 90000
 template <>
 struct fmt::formatter<HistogramInitialPopulation> : ostream_formatter {};
-#endif
 
 class HdrHistogramItrTest : public ::testing::TestWithParam<
                                     std::tuple<HistogramInitialPopulation,

@@ -12,6 +12,7 @@
 
 #include "relaxed_atomic.h"
 
+#include <fmt/ostream.h>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -130,10 +131,7 @@ std::ostream& operator<<(std::ostream&, const FragmentationStats&);
 
 } // namespace cb
 
-#include <fmt/ostream.h>
-#if FMT_VERSION >= 90000
 template <>
 struct fmt::formatter<cb::MemoryDomain> : ostream_formatter {};
 template <>
 struct fmt::formatter<cb::FragmentationStats> : ostream_formatter {};
-#endif

@@ -11,6 +11,7 @@
 
 #pragma once
 
+#include <fmt/ostream.h>
 #include <folly/Synchronized.h>
 #include <nlohmann/json_fwd.hpp>
 #include <relaxed_atomic.h>
@@ -647,8 +648,5 @@ public:
     }
 };
 
-#include <fmt/ostream.h>
-#if FMT_VERSION >= 90000
 template <>
 struct fmt::formatter<HdrHistogram::Iterator::IterMode> : ostream_formatter {};
-#endif

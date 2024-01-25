@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include <fmt/ostream.h>
 #include <ostream>
 
 namespace cb::terminal {
@@ -37,8 +38,5 @@ bool isTerminalColorEnabled();
 std::ostream& operator<<(std::ostream& os, const TerminalColor& color);
 } // namespace cb::terminal
 
-#include <fmt/ostream.h>
-#if FMT_VERSION >= 90000
 template <>
 struct fmt::formatter<cb::terminal::TerminalColor> : ostream_formatter {};
-#endif
