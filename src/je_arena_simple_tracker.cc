@@ -68,7 +68,7 @@ void JEArenaSimpleTracker::clientUnregistered(const ArenaMallocClient& client) {
 size_t JEArenaSimpleTracker::getPreciseAllocated(
         const ArenaMallocClient& client) {
     const auto& clientData = allocated.at(client.index);
-    return std::accumulate(clientData.begin(), clientData.end(), 0);
+    return std::accumulate(clientData.begin(), clientData.end(), size_t(0));
 }
 
 size_t JEArenaSimpleTracker::getPreciseAllocated(
