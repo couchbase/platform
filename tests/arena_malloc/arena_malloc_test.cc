@@ -533,6 +533,50 @@ TEST_F(ArenaMalloc, MB_55268) {
     EXPECT_NE(0, secondAllocated);
     EXPECT_LT(initialSecondResident, secondResident);
 }
+
+/**
+ * jemalloc has a feature for allocating "oversized" allocations in a separate
+ * hidden arena. This is enabled by default and controlled by the
+ * opt.oversize_threshold which defaults to 8 MiB.
+ *
+ * This has the effect that any "oversize" allocations are not counted in the
+ * expected arena allocation stats.
+ *
+ * The oversized allocation feature is disabled for any requests which
+ * explicitly specify the arena to use using MALLOCX_ARENA.
+ */
+static constexpr size_t OversizeAllocation = 20 * 1024 * 1024;
+
+/**
+ * Test to make sure that we never use the "oversize" arena.
+ */
+TEST_F(ArenaMalloc, GlobalOversizeAllocationsAreTracked) {
+    cb::ArenaMalloc::switchFromClient();
+
+    const size_t initialAllocated = cb::ArenaMalloc::getGlobalAllocated();
+    // NOLINTNEXTLINE(modernize-avoid-c-arrays)
+    auto oversize = std::make_unique<char[]>(OversizeAllocation);
+    const size_t allocated = cb::ArenaMalloc::getGlobalAllocated();
+
+    EXPECT_GE(allocated, initialAllocated + OversizeAllocation);
+}
+
+TEST_F(ArenaMalloc, DedicatedArenaOversizeAllocationsAreTracked) {
+    auto testClient = cb::ArenaMalloc::registerClient(false);
+    cb::ArenaMalloc::switchToClient(testClient);
+
+    const size_t initialAllocated =
+            cb::ArenaMalloc::getPreciseAllocated(testClient);
+    cb::ArenaMalloc::switchToClient(testClient);
+    // NOLINTNEXTLINE(modernize-avoid-c-arrays)
+    auto oversize = std::make_unique<char[]>(OversizeAllocation);
+    cb::ArenaMalloc::switchFromClient();
+    const size_t allocated = cb::ArenaMalloc::getPreciseAllocated(testClient);
+    cb::ArenaMalloc::unregisterClient(testClient);
+
+    EXPECT_GE(allocated, initialAllocated + OversizeAllocation);
+}
+
 #endif // defined(HAVE_JEMALLOC)
 
 // Regression test for MB-58949 - if a thread which has performed
