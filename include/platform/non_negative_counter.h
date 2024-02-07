@@ -393,10 +393,13 @@ template <typename T>
 T format_as(const NonNegativeCounter<T>& nnc) {
     return nnc.load();
 }
+
+#if CB_DEVELOPMENT_ASSERTS
 template <typename T>
 T format_as(const NonNegativeCounter<T, ClampAtZeroUnderflowPolicy>& nnc) {
     return nnc.load();
 }
+#endif
 
 template <typename T>
 T format_as(const AtomicNonNegativeCounter<T>& annc) {
