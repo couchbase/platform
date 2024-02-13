@@ -22,6 +22,7 @@
 #include <iphlpapi.h>
 #pragma comment(lib, "IPHLPAPI.lib")
 #else
+#include <fcntl.h>
 #include <ifaddrs.h>
 #include <netdb.h>
 #include <unistd.h>
@@ -232,6 +233,32 @@ int setsockopt(SOCKET sock,
 
 int set_socket_noblocking(SOCKET sock) {
     return evutil_make_socket_nonblocking(sock);
+}
+
+void set_socket_blocking(SOCKET sock) {
+#ifdef WIN32
+    DWORD imode = 0;
+    auto st = ioctlsocket(sock, FIONBIO, &imode);
+    if (st != 0) {
+        if (st == SOCKET_ERROR) {
+            throw std::system_error(
+                    WSAGetLastError(), std::system_category(), "ioctlsocket");
+        }
+        throw std::system_error(st, std::system_category(), "ioctlsocket");
+    }
+#else
+    int flags = fcntl(sock, F_GETFL, 0);
+    if (flags == -1) {
+        throw std::system_error(
+                errno, std::system_category(), "fcntl(F_GETFL)");
+    }
+
+    flags &= ~O_NONBLOCK;
+    if (fcntl(sock, F_SETFL, flags) == -1) {
+        throw std::system_error(
+                errno, std::system_category(), "fcntl(F_SETFL)");
+    }
+#endif
 }
 
 std::string to_string(const struct sockaddr_storage* addr, socklen_t addr_len) {

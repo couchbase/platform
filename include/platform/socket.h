@@ -121,6 +121,7 @@ inline T getSocketOption(SOCKET sock, int level, int name) {
 int socketpair(int domain, int type, int protocol, SOCKET socket_vector[2]);
 
 int set_socket_noblocking(SOCKET sock);
+void set_socket_blocking(SOCKET sock);
 
 int listen(SOCKET sock, int backlog);
 
