@@ -97,6 +97,27 @@ std::string cb::time2text(std::chrono::nanoseconds time2convert) {
     return ret;
 }
 
+std::string cb::calculateThroughput(std::size_t bytes,
+                                    const std::chrono::nanoseconds duration) {
+    const auto sec =
+            std::chrono::duration_cast<std::chrono::seconds>(duration).count();
+    if (sec > 1) {
+        bytes /= sec;
+    }
+
+    const std::vector suffix = {"B/s", "kB/s", "MB/s", "GB/s"};
+    int ii = 0;
+
+    while (bytes > 10240) {
+        bytes /= 1024;
+        if (++ii == 3) {
+            break;
+        }
+    }
+
+    return fmt::format("{}{}", bytes, suffix[ii]);
+}
+
 static std::string_view trim_space(std::string_view text) {
     while (!text.empty() && text.front() == ' ') {
         text.remove_prefix(1);

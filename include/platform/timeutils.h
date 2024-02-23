@@ -50,6 +50,11 @@ std::string timestamp(std::chrono::nanoseconds time_since_epoc);
  */
 std::string time2text(std::chrono::nanoseconds time);
 
+/// Get a human readable form of "bytes per sec" by converting to
+/// B/s, kB/s, MB/s or GB/s
+std::string calculateThroughput(std::size_t bytes,
+                                std::chrono::nanoseconds duration);
+
 /**
  * Try to parse the string. It should be of the two following formats:
  *
