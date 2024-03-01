@@ -12,6 +12,8 @@
 #include <cinttypes>
 
 #if defined(WIN32)
+#include <cstdlib>
+#include <system_error>
 #include <windows.h>
 #include <Dbghelp.h>
 #else

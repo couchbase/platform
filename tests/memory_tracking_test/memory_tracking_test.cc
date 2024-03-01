@@ -9,6 +9,7 @@
  */
 
 #include <folly/portability/GTest.h>
+#include <folly/portability/Malloc.h>
 #include <platform/cb_arena_malloc.h>
 #include <platform/cb_malloc.h>
 
