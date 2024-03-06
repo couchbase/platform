@@ -1,0 +1,138 @@
+/*
+ *     Copyright 2024-Present Couchbase, Inc.
+ *
+ *   Use of this software is governed by the Business Source License included
+ *   in the file licenses/BSL-Couchbase.txt.  As of the Change Date specified
+ *   in that file, in accordance with the Business Source License, use of this
+ *   software will be governed by the Apache License, Version 2.0, included in
+ *   the file licenses/APL2.txt.
+ */
+#pragma once
+
+#include <fmt/core.h>
+#include <gsl/gsl-lite.hpp>
+#include <nlohmann/json.hpp>
+#include <platform/ordered_map.h>
+#include <platform/thread_local_monotonic_resource.h>
+
+namespace cb::logger {
+namespace detail {
+
+struct LogAllocatorTag {};
+
+/**
+ * We use the ThreadLocalMonotonicResource allocator, to make sure we rarely
+ * have to call new/delete for during log formatting. We've configured a 8 KiB
+ * preallocated thread-local buffer and an allocation limit of 20 MiB (to catch
+ * any case where we might end up leaking memory).
+ */
+template <typename T>
+using Allocator = ThreadLocalMonotonicResource<detail::LogAllocatorTag,
+                                               8 * 1024,
+                                               20 * 1024 * 1024>::Allocator<T>;
+
+/**
+ * Like std::string, but using our allocator. Note that constructing from
+ * std::string always requires a copy (even from std::string&&).
+ */
+using String = std::
+        basic_string<char, std::char_traits<char>, detail::Allocator<char>>;
+
+/**
+ * Map type used for objects stored in a LogJson object.
+ */
+template <typename Key, typename T, typename KeyCompare, typename Allocator>
+using Map = cb::OrderedMap<
+        Key,
+        T,
+        KeyCompare,
+        std::vector<std::pair<Key, T>,
+                    typename std::allocator_traits<Allocator>::
+                            template rebind_alloc<std::pair<Key, T>>>>;
+
+} // namespace detail
+
+/**
+ * The nlohmann::basic_json<> template used by cb::logger::Json.
+ * Can be used in the signature of:
+ *   void to_json(BasicJsonType j, T value);
+ * To customize how objects are represented in log messages.
+ */
+using BasicJsonType = nlohmann::basic_json<
+        detail::Map,
+        std::vector,
+        detail::String,
+        bool,
+        std::int64_t,
+        std::uint64_t,
+        double,
+        detail::Allocator,
+        nlohmann::adl_serializer,
+        std::vector<std::uint8_t, detail::Allocator<std::uint8_t>>>;
+
+/**
+ * Custom JSON type used for logging with the following properties:
+ * - uses cb::OrderedMap to preserve ordering of JSON keys
+ * - uses LogAllocator, which is a thread-local bump-allocator
+ *
+ * Inheriting from nlohmann::basic_json<> allows us to:
+ * - forward-declare class Json
+ * - have a non-allocating destructor
+ * - simplify the usage of initializer lists in macros, by preferring moving the
+ *   someValue in `Json{someValue}` versus creating a 1-element array.
+ *
+ * NOTE: Since we use a bump allocator, instances of this type should not be
+ * stored in any persistent data structures. This type is intended to be used
+ * only as argument to a logging or formatting function.
+ */
+class Json : public BasicJsonType {
+public:
+    using BasicJsonType::BasicJsonType;
+    using BasicJsonType::operator=;
+
+    /**
+     * Create Json from an initializer_list.
+     */
+    Json(initializer_list_t init)
+        // Avoid creating 1-element object arrays.
+        // Makes Json b{std::move(a)} move a into b, as opposed to creating [a].
+        : BasicJsonType(init.size() == 1 && (*init.begin())->is_object()
+                                ? BasicJsonType(*init.begin())
+                                : BasicJsonType(init)) {
+    }
+
+    ~Json() {
+        destroyRecursive(*this);
+    }
+
+private:
+    /**
+     * Destroy any sub-objects manually. Otherwise, nlohmann::basic_json will do
+     * the same using a std::stack which always allocates using std::allocator.
+     */
+    static void destroyRecursive(BasicJsonType& json) {
+        const auto type = json.type();
+        if (type == value_t::array) {
+            auto& array = json.template get_ref<array_t&>();
+            for (auto& sub : json.template get_ref<array_t&>()) {
+                destroyRecursive(sub);
+            }
+            array.clear();
+        } else if (type == value_t::object) {
+            auto& object = json.template get_ref<object_t&>();
+            for (auto& sub : json.template get_ref<object_t&>()) {
+                destroyRecursive(sub.second);
+            }
+            object.clear();
+        }
+    }
+};
+
+} // namespace cb::logger
+
+template <>
+struct fmt::formatter<cb::logger::Json> : formatter<string_view> {
+    auto format(cb::logger::Json json, format_context& ctx) const {
+        return fmt::format_to(ctx.out(), "{}", json.dump());
+    }
+};

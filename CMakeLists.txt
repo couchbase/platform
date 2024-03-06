@@ -229,6 +229,7 @@ LIST(APPEND PLATFORM_FILES
   include/platform/dirutils.h
   include/platform/getopt.h
   include/platform/interrupt.h
+  include/platform/json_log.h
   include/platform/non_negative_counter.h
   include/platform/ordered_map.h
   include/platform/platform_socket.h
