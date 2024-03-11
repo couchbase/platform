@@ -247,6 +247,7 @@ LIST(APPEND PLATFORM_FILES
   include/platform/terminal_color.h
   include/platform/terminal_size.h
   include/platform/thread.h
+  include/platform/thread_local_monotonic_resource.h
   include/platform/timeutils.h
   include/platform/uuid.h
 )
@@ -365,6 +366,11 @@ target_link_libraries(platform PRIVATE
   spdlog::spdlog
   ${MALLOC_LIBRARIES}
   ${PLATFORM_LIBRARIES})
+
+if (APPLE)
+  # Need Boost for pmr::monotonic_buffer_resource polyfill for macOS.
+  target_link_libraries(platform PUBLIC ${Boost_LIBRARIES})
+endif()
 
 if (UNIX)
     list(APPEND PLATFORM_FILES $<TARGET_OBJECTS:cgroup_objs>)

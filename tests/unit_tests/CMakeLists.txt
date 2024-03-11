@@ -33,6 +33,7 @@ cb_add_test_executable(platform_unit_tests
                        simd_scan_test.cc
                        split_string_test.cc
                        sysinfo_test.cc
+                       thread_local_monotonic_resource_test.cc
                        thread_test.cc
                        timeutils_test.cc
                        uuid_test.cc
