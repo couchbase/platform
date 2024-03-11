@@ -230,6 +230,7 @@ LIST(APPEND PLATFORM_FILES
   include/platform/getopt.h
   include/platform/interrupt.h
   include/platform/non_negative_counter.h
+  include/platform/ordered_map.h
   include/platform/platform_socket.h
   include/platform/platform_thread.h
   include/platform/platform_time.h

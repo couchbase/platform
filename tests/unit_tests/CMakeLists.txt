@@ -23,6 +23,7 @@ cb_add_test_executable(platform_unit_tests
                        non_blocking_mutex_test.cc
                        non_negative_counter_test.cc
                        optional_test.cc
+                       ordered_map_test.cc
                        process_monitor_test.cc
                        processclock_test.cc
                        random_test.cc
