@@ -37,6 +37,7 @@ cb_add_test_executable(platform_unit_tests
                        thread_local_monotonic_resource_test.cc
                        thread_test.cc
                        timeutils_test.cc
+                       unshared_test.cc
                        uuid_test.cc
                        )
 
