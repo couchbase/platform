@@ -78,9 +78,6 @@ public:
      * before we have to update the estimate.
      */
     void setCoreThreshold(Integer value) {
-#if CB_DEVELOPMENT_ASSERTS
-        Expects(value > 0);
-#endif
         coreThreshold = value;
     }
 
@@ -105,9 +102,6 @@ public:
      * above the allowed threshold.
      */
     void add(Integer value, Index index = Index::Default) {
-#if CB_DEVELOPMENT_ASSERTS
-        Expects(coreThreshold);
-#endif
         const auto i = static_cast<std::size_t>(index);
         auto& delta = (*coreDeltas.get())[i];
         auto newDelta = delta.fetch_add(value) + value;

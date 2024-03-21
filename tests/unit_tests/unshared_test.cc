@@ -40,6 +40,16 @@ TEST(Unshared, Reset) {
     EXPECT_EQ(1, counter.getCoreThreshold());
 }
 
+// Althoguh 0 threshold doesn't make sense, Unshared supports this as it can
+// happen it test.
+TEST(Unshared, ZeroThreshold) {
+    cb::MonoUnshared<> counter;
+
+    counter.setCoreThreshold(0);
+    counter.add(10);
+    counter.reset();
+}
+
 TEST(Unshared, Add) {
     cb::MonoUnshared<> counter;
 
