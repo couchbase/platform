@@ -161,6 +161,15 @@ struct ThreadLocalMonotonicResource {
     struct Allocator {
         using value_type = T;
 
+        Allocator() = default;
+
+        // Required for MSVC, see:
+        // https://learn.microsoft.com/en-us/cpp/standard-library/allocators?view=msvc-170#code-try-1
+        // Otherwise, some std::basic_string constructors become unavailable.
+        template <typename U>
+        Allocator(const Allocator<U>&) noexcept {
+        }
+
         /**
          * Access the internal buffer (for debugging).
          */

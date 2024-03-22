@@ -87,9 +87,6 @@ using BasicJsonType = nlohmann::basic_json<
  */
 class Json : public BasicJsonType {
 public:
-    using BasicJsonType::BasicJsonType;
-    using BasicJsonType::operator=;
-
     /**
      * Create Json from an initializer_list.
      */
@@ -100,6 +97,36 @@ public:
                                 ? BasicJsonType(*init.begin())
                                 : BasicJsonType(init)) {
     }
+
+    Json(const Json& other)
+        : BasicJsonType(static_cast<const BasicJsonType&>(other)) {
+    }
+
+    Json(Json&& other) : BasicJsonType(static_cast<BasicJsonType&&>(other)) {
+    }
+
+    /**
+     * Normally, we could use `using BasicJsonType::BasicJsonType` to inherit
+     * the base class constructors. However, MSVC seems to then generate
+     * Json::Json(const Json&) which calls BasicJsonType(const Json&) instead of
+     * BasicJsonType(const BasicJsonType&).
+     *
+     * It gets mixed up with the templated constructor of BasicJsonType, which
+     * then ends up in a complicated chain of template magic which results in
+     * nlohmann::basic_json<> throwing a type_error.
+     *
+     * Instead of inheriting constructors, use an explicit constructor taking
+     * BasicJsonType + some of the constructors available in basic_json<>.
+     */
+
+    Json(const value_t v = value_t::null) : BasicJsonType(v) {
+    }
+
+    Json(BasicJsonType other) : BasicJsonType(std::move(other)) {
+    }
+
+    Json& operator=(const Json&) = default;
+    Json& operator=(Json&&) = default;
 
     ~Json() {
         destroyRecursive(*this);
