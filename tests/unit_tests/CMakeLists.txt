@@ -34,6 +34,7 @@ cb_add_test_executable(platform_unit_tests
                        semaphore_test.cc
                        simd_scan_test.cc
                        split_string_test.cc
+                       string_utilities_test.cc
                        sysinfo_test.cc
                        thread_local_monotonic_resource_test.cc
                        thread_test.cc

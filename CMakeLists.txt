@@ -209,6 +209,7 @@ LIST(APPEND PLATFORM_FILES
   src/split_string.cc
   src/strerror.cc
   src/string_hex.cc
+  src/string_utilities.cc
   src/sysinfo.cc
   src/terminal_color.cc
   src/terminal_size.cc
