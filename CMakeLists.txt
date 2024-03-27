@@ -7,8 +7,6 @@ INCLUDE(CheckIncludeFileCXX)
 INCLUDE(CheckSymbolExists)
 INCLUDE(CTest)
 
-OPTION(PLATFORM_ENABLE_CBSOCKET "Build cbsocket support" ON)
-
 enable_code_coverage_report()
 
 if (WIN32)
@@ -478,11 +476,6 @@ INSTALL(TARGETS breakpad_wrapper
         ARCHIVE DESTINATION lib)
 
 ADD_SUBDIRECTORY(cbcompress)
-
 ADD_SUBDIRECTORY(hdrhistogram)
-
-IF (PLATFORM_ENABLE_CBSOCKET)
-   ADD_SUBDIRECTORY(cbsocket)
-ENDIF (PLATFORM_ENABLE_CBSOCKET)
-
+ADD_SUBDIRECTORY(cbsocket)
 add_subdirectory(tests)
