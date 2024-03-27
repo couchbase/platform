@@ -8,6 +8,7 @@
  *   the file licenses/APL2.txt.
  */
 
+#include <folly/lang/Assume.h>
 #include <platform/cb_arena_malloc.h>
 #include <platform/sysinfo.h>
 

@@ -10,6 +10,7 @@
 
 #include <jemalloc/jemalloc.h>
 #include <platform/je_arena_malloc.h>
+#include <platform/sized_buffer.h>
 
 #include <array>
 #include <cstdio>

@@ -8,14 +8,11 @@
  *   the file licenses/APL2.txt.
  */
 
-#include "relaxed_atomic.h"
-
-#include <platform/cb_arena_malloc.h>
-#include <platform/cb_malloc.h>
-
 #include <folly/ScopeGuard.h>
 #include <folly/portability/GTest.h>
-
+#include <platform/cb_arena_malloc.h>
+#include <platform/cb_malloc.h>
+#include <thread>
 #include <vector>
 
 #if defined(HAVE_JEMALLOC)

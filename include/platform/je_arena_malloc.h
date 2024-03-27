@@ -10,17 +10,10 @@
 
 #pragma once
 
-#include <folly/Synchronized.h>
 #include <platform/cb_arena_malloc_client.h>
 #include <platform/je_arena_corelocal_tracker.h>
 #include <platform/je_arena_simple_tracker.h>
-#include <platform/non_negative_counter.h>
-#include <platform/sized_buffer.h>
 
-#include <array>
-#include <atomic>
-#include <memory>
-#include <mutex>
 #include <unordered_map>
 
 namespace cb {

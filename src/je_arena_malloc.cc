@@ -15,6 +15,7 @@
 
 #include <fmt/format.h>
 #include <fmt/ostream.h>
+#include <folly/Synchronized.h>
 #include <jemalloc/jemalloc.h>
 #include <platform/terminal_color.h>
 
