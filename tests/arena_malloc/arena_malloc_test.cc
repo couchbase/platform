@@ -551,8 +551,7 @@ TEST_F(ArenaMalloc, GlobalOversizeAllocationsAreTracked) {
     cb::ArenaMalloc::switchFromClient();
 
     const size_t initialAllocated = cb::ArenaMalloc::getGlobalAllocated();
-    // NOLINTNEXTLINE(modernize-avoid-c-arrays)
-    auto oversize = std::make_unique<char[]>(OversizeAllocation);
+    std::vector<char> oversize(OversizeAllocation);
     const size_t allocated = cb::ArenaMalloc::getGlobalAllocated();
 
     EXPECT_GE(allocated, initialAllocated + OversizeAllocation);
@@ -565,8 +564,7 @@ TEST_F(ArenaMalloc, DedicatedArenaOversizeAllocationsAreTracked) {
     const size_t initialAllocated =
             cb::ArenaMalloc::getPreciseAllocated(testClient);
     cb::ArenaMalloc::switchToClient(testClient);
-    // NOLINTNEXTLINE(modernize-avoid-c-arrays)
-    auto oversize = std::make_unique<char[]>(OversizeAllocation);
+    std::vector<char> oversize(OversizeAllocation);
     cb::ArenaMalloc::switchFromClient();
     const size_t allocated = cb::ArenaMalloc::getPreciseAllocated(testClient);
     cb::ArenaMalloc::unregisterClient(testClient);
