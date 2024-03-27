@@ -369,9 +369,16 @@ target_link_libraries(platform PRIVATE
   ${PLATFORM_LIBRARIES})
 
 if (APPLE)
-  # Need Boost for pmr::monotonic_buffer_resource polyfill for macOS.
-  target_link_libraries(platform PUBLIC ${Boost_LIBRARIES})
-endif()
+    if (${CMAKE_OSX_DEPLOYMENT_TARGET} VERSION_LESS "14.0")
+        # XCode 15 added support for <memory_resource>, but requires macOS 14
+        # (aka Sonoma). Fall back to Boost for pmr::monotonic_buffer_resource
+        # polyfill for macOS.
+        # See https://developer.apple.com/xcode/cpp/
+        target_link_libraries(platform PUBLIC ${Boost_LIBRARIES})
+    else ()
+        message(WARNING "MacOS now supports <memory_resource> and we do not need Boost.Container")
+    endif ()
+endif ()
 
 if (UNIX)
     list(APPEND PLATFORM_FILES $<TARGET_OBJECTS:cgroup_objs>)

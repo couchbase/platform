@@ -9,25 +9,20 @@
  */
 #pragma once
 
-#if __has_include(<memory_resource>)
-
 #ifdef __APPLE__
-#warning MacOS now supports <memory_resource> and we do not need Boost.Container
-#endif
-
-#include <memory_resource>
-namespace cb::detail {
-using monotonic_buffer_resource = std::pmr::monotonic_buffer_resource;
-}
-#else
-/// Fallback for macOS, where this C++17 header is not available.
+/// Need macOS 14 for memory_resource.
+/// See https://developer.apple.com/xcode/cpp/
 #include <boost/container/pmr/monotonic_buffer_resource.hpp>
 namespace cb::detail {
 using monotonic_buffer_resource =
         boost::container::pmr::monotonic_buffer_resource;
 }
+#else
+#include <memory_resource>
+namespace cb::detail {
+using monotonic_buffer_resource = std::pmr::monotonic_buffer_resource;
+}
 #endif
-
 #include <vector>
 
 namespace cb {
