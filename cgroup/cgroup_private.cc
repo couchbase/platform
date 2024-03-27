@@ -66,12 +66,18 @@ static std::vector<MountEntry> parse_proc_mounts(const std::string root) {
 static bool search_file(pid_t pid, const boost::filesystem::path& file) {
     bool found = false;
     const auto textual = std::to_string(pid);
-    cb::io::tokenizeFileLineByLine(file, [&found, &textual](const auto& parts) {
-        if (!parts.empty() && parts.front() == textual) {
-            found = true;
-        }
-        return true;
-    });
+    try {
+        cb::io::tokenizeFileLineByLine(
+                file, [&found, &textual](const auto& parts) {
+                    if (!parts.empty() && parts.front() == textual) {
+                        found = true;
+                    }
+                    return true;
+                });
+    } catch (const std::exception&) {
+        // The file may no longer be there or an IO error may have
+        // occurred
+    }
     return found;
 }
 
@@ -93,14 +99,16 @@ static std::optional<boost::filesystem::path> find_cgroup_path(
         auto path = paths.front();
         paths.pop_front();
 
-        if (exists(path)) {
+        boost::system::error_code ec;
+        if (exists(path, ec)) {
             auto file = path / "cgroup.procs";
-            if (exists(file) && search_file(pid, file)) {
+            if (exists(file, ec) && search_file(pid, file)) {
                 return path;
             }
 
-            for (const auto& p : boost::filesystem::directory_iterator(path)) {
-                if (is_directory(p) && !is_symlink(p)) {
+            for (const auto& p :
+                 boost::filesystem::directory_iterator(path, ec)) {
+                if (is_directory(p, ec) && !is_symlink(p, ec)) {
                     paths.push_back(p.path());
                 }
             }
