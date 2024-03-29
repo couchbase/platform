@@ -84,12 +84,22 @@ static std::vector<MountEntry> parse_proc_mounts(const std::string root) {
 static bool search_file(pid_t pid, const std::filesystem::path& file) {
     bool found = false;
     const auto textual = std::to_string(pid);
-    cb::io::tokenizeFileLineByLine(file, [&found, &textual](const auto& parts) {
-        if (!parts.empty() && parts.front() == textual) {
-            found = true;
+    try {
+        cb::io::tokenizeFileLineByLine(
+                file, [&found, &textual](const auto& parts) {
+                    if (!parts.empty() && parts.front() == textual) {
+                        found = true;
+                    }
+                    return true;
+                });
+    } catch (const std::exception& exception) {
+        if (traceCallback) {
+            traceCallback(
+                    fmt::format("Exception occurred while reading \"{}\": {}",
+                                file.generic_string(),
+                                exception.what()));
         }
-        return true;
-    });
+    }
     return found;
 }
 
@@ -117,9 +127,10 @@ static std::optional<std::filesystem::path> find_cgroup_path(
         auto path = paths.front();
         paths.pop_front();
 
-        if (exists(path)) {
+        std::error_code ec;
+        if (exists(path, ec)) {
             auto file = path / "cgroup.procs";
-            if (exists(file) && search_file(pid, file)) {
+            if (exists(file, ec) && search_file(pid, file)) {
                 if (traceCallback) {
                     traceCallback(fmt::format("Found it in {}",
                                               file.generic_string()));
@@ -127,8 +138,9 @@ static std::optional<std::filesystem::path> find_cgroup_path(
                 return path;
             }
 
-            for (const auto& p : std::filesystem::directory_iterator(path)) {
-                if (is_directory(p) && !is_symlink(p)) {
+            for (const auto& p :
+                 std::filesystem::directory_iterator(path, ec)) {
+                if (is_directory(p, ec) && !is_symlink(p, ec)) {
                     paths.push_back(p.path());
                 }
             }
