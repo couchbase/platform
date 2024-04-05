@@ -477,3 +477,12 @@ IF (PLATFORM_ENABLE_CBSOCKET)
 ENDIF (PLATFORM_ENABLE_CBSOCKET)
 
 add_subdirectory(tests)
+
+add_subdirectory(tools)
+add_test(NAME platform-check-header-define-once-guard
+        COMMAND check_pragma_once
+        --rootdir ${Platform_SOURCE_DIR}
+        --exclude include/platform/simd/scan_sse42.h
+        --exclude include/platform/simd/scan_neon.h
+        --exclude external/valgrind/valgrind.h
+        --exclude external/valgrind/memcheck.h)
