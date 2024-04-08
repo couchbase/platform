@@ -1,0 +1,2 @@
+add_executable(check_pragma_once check_pragma_once.cc)
+target_link_libraries(check_pragma_once PRIVATE platform)
