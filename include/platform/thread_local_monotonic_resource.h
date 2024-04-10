@@ -55,11 +55,7 @@ struct ThreadLocalMonotonicResource {
     public:
         Buffer()
             : initialBuffer(InitialSize),
-              resource(initialBuffer.data(), initialBuffer.size()),
-              allocatedBytes(0),
-              allocationCount(0),
-              maxAllocatedBytes(0),
-              maxAllocationCount(0) {
+              resource(initialBuffer.data(), initialBuffer.size()) {
         }
 
         /**
@@ -131,13 +127,13 @@ struct ThreadLocalMonotonicResource {
         /// A bump allocator.
         detail::monotonic_buffer_resource resource;
         /// Current allocated memory.
-        size_t allocatedBytes;
+        size_t allocatedBytes = 0;
         /// Current number of allocations.
-        size_t allocationCount;
+        size_t allocationCount = 0;
         /// The maximum memory we ever allocated from this allocator.
-        size_t maxAllocatedBytes;
+        size_t maxAllocatedBytes = 0;
         /// The maximum number of allocations we ever made from this allocator.
-        size_t maxAllocationCount;
+        size_t maxAllocationCount = 0;
     };
 
     /**
