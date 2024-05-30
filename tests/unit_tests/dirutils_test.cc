@@ -201,11 +201,6 @@ TEST_F(IoTest, isFileAndIsDirectory) {
     EXPECT_NO_THROW(cb::io::rmrf(filename));
 }
 
-TEST_F(IoTest, removeNonExistentFile) {
-    EXPECT_THROW(cb::io::rmrf("foo"), std::system_error)
-                << "Expected system error for removing non-existent file";
-}
-
 #ifdef WIN32
 // Verify cb::io methods support long paths on Windows.
 TEST_F(IoTest, longpaths) {

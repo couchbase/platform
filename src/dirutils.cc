@@ -211,75 +211,7 @@ std::vector<std::string> cb::io::findFilesContaining(const std::string& dir,
 #endif
 
 void cb::io::rmrf(const std::string& path) {
-    auto longPath = makeExtendedLengthPath(path);
-    auto longPathStr = longPath.string();
-    struct stat st;
-    if (stat(longPathStr.c_str(), &st) == -1) {
-        throw std::system_error(errno, std::system_category(),
-                                "cb::io::rmrf: stat of " +
-                                path + " failed");
-    }
-
-    if ((st.st_mode & S_IFDIR) != S_IFDIR) {
-        if (remove(longPathStr.c_str()) != 0) {
-            throw std::system_error(errno, std::system_category(),
-                                    "cb::io::rmrf: remove of " +
-                                    path + " failed");
-        }
-        return;
-    }
-
-    if (rmdir(longPathStr.c_str()) == 0) {
-        return;
-    }
-
-    // Ok, this is a directory. Go ahead and delete it recursively
-    std::vector<std::string> directories;
-    std::vector<std::string> emptyDirectories;
-    directories.push_back(longPathStr);
-
-    // Iterate all the files/directories found in path, when we encounter
-    // a sub-directory, that is added to the directories vector so we move
-    // deeper into the path.
-    do {
-        std::vector<std::string> vec =
-                findFilesContaining(directories.back(), "");
-        emptyDirectories.push_back(directories.back());
-        directories.pop_back();
-        std::vector<std::string>::iterator ii;
-
-        for (ii = vec.begin(); ii != vec.end(); ++ii) {
-            *ii = makeExtendedLengthPath(*ii).string();
-            if (stat(ii->c_str(), &st) == -1) {
-                throw std::system_error(errno, std::system_category(),
-                                        "cb::io::rmrf: stat of file/directory " +
-                                        *ii + " under " + path + " failed");
-            }
-
-            if ((st.st_mode & S_IFDIR) == S_IFDIR) {
-                if (rmdir(ii->c_str()) != 0) {
-                    directories.push_back(*ii);
-                }
-            } else if (remove(ii->c_str()) != 0) {
-                throw std::system_error(errno,
-                                        std::system_category(),
-                                        "cb::io::rmrf: remove of file " + *ii +
-                                                " under " + path + " failed");
-            }
-        }
-    } while (!directories.empty());
-
-    // Finally iterate our list of now empty directories, we reverse iterate so
-    // that we remove the deepest first
-    for (auto itr = emptyDirectories.rbegin(); itr != emptyDirectories.rend();
-         ++itr) {
-        if (rmdir(itr->c_str()) != 0) {
-            throw std::system_error(
-                    errno,
-                    std::system_category(),
-                    "cb::io::rmrf: remove of directory " + *itr + " failed");
-        }
-    }
+    remove_all(makeExtendedLengthPath(path));
 }
 
 bool cb::io::isDirectory(const std::string& directory) {
