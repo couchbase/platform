@@ -35,54 +35,56 @@ const char DirectorySeparator{'/'};
 /// @return extended-length path.
 /// @see
 /// https://docs.microsoft.com/en-us/windows/win32/fileio/maximum-file-path-limitation
-std::filesystem::path makeExtendedLengthPath(const std::string& path);
+[[nodiscard]] std::filesystem::path makeExtendedLengthPath(
+        std::string_view path);
 
 /**
  * Return the directory part of an absolute path
  */
-std::string dirname(const std::string& dir);
+[[nodiscard]] std::string dirname(const std::string& dir);
 
 /**
  * Return the filename part of an absolute path
  */
-std::string basename(const std::string& name);
+[[nodiscard]] std::string basename(const std::string& name);
 
 /**
  * Return a vector containing all of the files starting with a given
  * name stored in a given directory
  */
-std::vector<std::string> findFilesWithPrefix(const std::string& dir,
-                                             const std::string& name);
+[[nodiscard]] std::vector<std::string> findFilesWithPrefix(
+        std::string_view dir, std::string_view name);
 
 /**
  * Return a vector containing all of the files starting with a given
  * name specified with this absolute path
  */
-std::vector<std::string> findFilesWithPrefix(const std::string& name);
+[[nodiscard]] std::vector<std::string> findFilesWithPrefix(
+        std::string_view name);
 
 /**
  * Return a vector containing all of the files containing a given
  * substring located in a given directory
  */
-std::vector<std::string> findFilesContaining(const std::string& dir,
-                                             const std::string& name);
+[[nodiscard]] std::vector<std::string> findFilesContaining(
+        std::string_view dir, std::string_view name);
 
 /**
  * Delete a file or directory (including subdirectories)
  * @param path path of the file or directory that is being removed
  * @throws system_error in case of any errors during deletion
  */
-void rmrf(const std::string& path);
+void rmrf(std::string_view path);
 
 /**
  * Check if a directory exists or not
  */
-bool isDirectory(const std::string& directory);
+[[nodiscard]] bool isDirectory(std::string_view directory);
 
 /**
  * Check if a path exists and is a file
  */
-bool isFile(const std::string& file);
+[[nodiscard]] bool isFile(std::string_view file);
 
 /**
  * Try to create directory including all of the parent directories.
@@ -93,7 +95,7 @@ bool isFile(const std::string& file);
  * @param directory the directory to create
  * @throws std::runtime_error if an error occurs
  */
-void mkdirp(std::string directory);
+void mkdirp(std::string_view directory);
 
 /**
  * Create a unique temporary file with the given prefix.
@@ -104,7 +106,7 @@ void mkdirp(std::string directory);
  * @param prefix The prefix to use in the filename.
  * @return The unique filename
  */
-std::string mktemp(const std::string& prefix);
+[[nodiscard]] std::string mktemp(std::string_view prefix);
 
 /**
  * Create a unique temporary directory with the given prefix.
@@ -114,7 +116,7 @@ std::string mktemp(const std::string& prefix);
  * @param prefix The prefix to use in the directory name.
  * @return The unique directory name
  */
-std::string mkdtemp(const std::string& prefix);
+[[nodiscard]] std::string mkdtemp(std::string_view prefix);
 
 /**
  * Try to set the maximum number of file descriptors to the requested
@@ -127,7 +129,7 @@ std::string mkdtemp(const std::string& prefix);
  * @throws std::system_error if we fail to determine the maximum number
  *         of file descriptor
  */
-uint64_t maximizeFileDescriptors(uint64_t limit);
+[[nodiscard]] uint64_t maximizeFileDescriptors(uint64_t limit);
 
 /**
  * Windows use '\' as the directory separator character (but internally it
@@ -137,7 +139,7 @@ uint64_t maximizeFileDescriptors(uint64_t limit);
  * @param path the path to sanitize
  * @return sanitized version of the path
  */
-std::string sanitizePath(std::string path);
+[[nodiscard]] std::string sanitizePath(std::string path);
 
 /**
  * Load the named file
@@ -150,9 +152,10 @@ std::string sanitizePath(std::string path);
  * @throws std::system_exception if an error occurs opening / reading the file
  *         std::bad_alloc for memory allocation errors
  */
-std::string loadFile(const std::string& name,
-                     std::chrono::microseconds waittime = {},
-                     size_t bytesToRead = std::numeric_limits<size_t>::max());
+[[nodiscard]] std::string loadFile(
+        const std::string& name,
+        std::chrono::microseconds waittime = {},
+        size_t bytesToRead = std::numeric_limits<size_t>::max());
 
 /**
  * Read a file line by line and tokenize the line with the provided tokens.

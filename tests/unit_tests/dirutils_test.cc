@@ -7,6 +7,7 @@
  *   software will be governed by the Apache License, Version 2.0, included in
  *   the file licenses/APL2.txt.
  */
+#include <fmt/format.h>
 #include <folly/portability/GTest.h>
 
 #include <platform/dirutils.h>
@@ -124,29 +125,30 @@ TEST_F(IoTest, basename) {
     EXPECT_EQ("6", cb::io::basename("1/2\\4/5\\6"));
 }
 
+static bool inList(const std::vector<std::string>& vec, std::string_view name) {
+    return std::find(vec.begin(),
+                     vec.end(),
+                     cb::io::makeExtendedLengthPath(name).generic_string()) !=
+           vec.end();
+}
+
 TEST_F(IoTest, findFilesWithPrefix) {
     auto vec = cb::io::findFilesWithPrefix("fs");
     EXPECT_EQ(1u, vec.size());
 
-    EXPECT_NE(vec.end(), std::find(vec.begin(), vec.end(),
-                                   "." PATH_SEPARATOR "fs"));
-
+    EXPECT_TRUE(inList(vec, "." PATH_SEPARATOR "fs"));
 
     vec = cb::io::findFilesWithPrefix("fs", "d");
     EXPECT_EQ(3u, vec.size());
 
     // We don't know the order of the files in the result..
-    EXPECT_NE(vec.end(), std::find(vec.begin(), vec.end(),
-                                   "fs" PATH_SEPARATOR "d1"));
-    EXPECT_NE(vec.end(), std::find(vec.begin(), vec.end(),
-                                   "fs" PATH_SEPARATOR "d2"));
-    EXPECT_NE(vec.end(), std::find(vec.begin(), vec.end(),
-                                   "fs" PATH_SEPARATOR "d3"));
+    EXPECT_TRUE(inList(vec, "fs" PATH_SEPARATOR "d1"));
+    EXPECT_TRUE(inList(vec, "fs" PATH_SEPARATOR "d2"));
+    EXPECT_TRUE(inList(vec, "fs" PATH_SEPARATOR "d3"));
 
     vec = cb::io::findFilesWithPrefix("fs", "1");
     EXPECT_EQ(1u, vec.size());
-    EXPECT_NE(vec.end(), std::find(vec.begin(), vec.end(),
-                                   "fs" PATH_SEPARATOR "1"));
+    EXPECT_TRUE(inList(vec, "fs" PATH_SEPARATOR "1"));
 
     vec = cb::io::findFilesWithPrefix("fs", "");
     EXPECT_EQ(vfs.size() - 2, vec.size());
@@ -158,34 +160,26 @@ TEST_F(IoTest, findFilesContaining) {
 
     vec = cb::io::findFilesContaining("fs", "2");
     EXPECT_EQ(7u, vec.size());
-    EXPECT_NE(vec.end(), std::find(vec.begin(), vec.end(),
-                                   "fs" PATH_SEPARATOR "d2"));
-    EXPECT_NE(vec.end(), std::find(vec.begin(), vec.end(),
-                                   "fs" PATH_SEPARATOR "e2"));
-    EXPECT_NE(vec.end(), std::find(vec.begin(), vec.end(),
-                                   "fs" PATH_SEPARATOR "f2c"));
-    EXPECT_NE(vec.end(), std::find(vec.begin(), vec.end(),
-                                   "fs" PATH_SEPARATOR "g2"));
-    EXPECT_NE(vec.end(), std::find(vec.begin(), vec.end(),
-                                   "fs" PATH_SEPARATOR "2"));
-    EXPECT_NE(vec.end(), std::find(vec.begin(), vec.end(),
-                                   "fs" PATH_SEPARATOR "2c"));
-    EXPECT_NE(vec.end(), std::find(vec.begin(), vec.end(),
-                                   "fs" PATH_SEPARATOR "2d"));
+    EXPECT_TRUE(inList(vec, "fs" PATH_SEPARATOR "d2"));
+    EXPECT_TRUE(inList(vec, "fs" PATH_SEPARATOR "e2"));
+    EXPECT_TRUE(inList(vec, "fs" PATH_SEPARATOR "f2c"));
+    EXPECT_TRUE(inList(vec, "fs" PATH_SEPARATOR "g2"));
+    EXPECT_TRUE(inList(vec, "fs" PATH_SEPARATOR "2"));
+    EXPECT_TRUE(inList(vec, "fs" PATH_SEPARATOR "2c"));
+    EXPECT_TRUE(inList(vec, "fs" PATH_SEPARATOR "2d"));
 }
 
 TEST_F(IoTest, mktemp) {
     auto filename = cb::io::mktemp("foo");
     EXPECT_FALSE(filename.empty())
-                << "FAIL: Expected to create tempfile without mask";
+            << "FAIL: Expected to create tempfile without mask";
     EXPECT_TRUE(cb::io::isFile(filename));
     cb::io::rmrf(filename);
     EXPECT_FALSE(cb::io::isFile(filename));
     EXPECT_FALSE(cb::io::isDirectory(filename));
 
     filename = cb::io::mktemp("barXXXXXX");
-    EXPECT_FALSE(filename.empty())
-                << "FAIL: Expected to create tempfile mask";
+    EXPECT_FALSE(filename.empty()) << "FAIL: Expected to create tempfile mask";
     EXPECT_TRUE(cb::io::isFile(filename));
     cb::io::rmrf(filename);
     EXPECT_FALSE(cb::io::isFile(filename));
@@ -237,16 +231,32 @@ TEST_F(IoTest, longpaths) {
     // findFilesWithPrefix
     auto files = cb::io::findFilesWithPrefix(dirPath, "file");
     EXPECT_EQ(2, files.size());
-    EXPECT_NE(files.end(), std::find(files.begin(), files.end(), filePath1));
-    EXPECT_NE(files.end(), std::find(files.begin(), files.end(), filePath2));
+    EXPECT_NE(files.end(),
+              std::find(files.begin(),
+                        files.end(),
+                        cb::io::makeExtendedLengthPath(filePath1)
+                                .generic_string()));
+    EXPECT_NE(files.end(),
+              std::find(files.begin(),
+                        files.end(),
+                        cb::io::makeExtendedLengthPath(filePath2)
+                                .generic_string()));
     files = cb::io::findFilesWithPrefix(dirPath, "foo");
     EXPECT_EQ(0, files.size());
 
     // findFilesContaining
     files = cb::io::findFilesContaining(dirPath, "file");
     EXPECT_EQ(2, files.size());
-    EXPECT_NE(files.end(), std::find(files.begin(), files.end(), filePath1));
-    EXPECT_NE(files.end(), std::find(files.begin(), files.end(), filePath2));
+    EXPECT_NE(files.end(),
+              std::find(files.begin(),
+                        files.end(),
+                        cb::io::makeExtendedLengthPath(filePath1)
+                                .generic_string()));
+    EXPECT_NE(files.end(),
+              std::find(files.begin(),
+                        files.end(),
+                        cb::io::makeExtendedLengthPath(filePath2)
+                                .generic_string()));
     files = cb::io::findFilesContaining(dirPath, "foo");
     EXPECT_EQ(0, files.size());
 
@@ -294,23 +304,23 @@ TEST_F(IoTest, maximizeFileDescriptors) {
     EXPECT_LE(32u, limit) << "FAIL: I should be able to set it to at least 32";
 
     limit = cb::io::maximizeFileDescriptors(
-        std::numeric_limits<uint32_t>::max());
+            std::numeric_limits<uint32_t>::max());
     if (limit != std::numeric_limits<uint32_t>::max()) {
         // windows don't have a max limit, and that could be for other platforms
         // as well..
         EXPECT_EQ(limit, cb::io::maximizeFileDescriptors(limit + 1))
-             << "FAIL: I expected maximizeFileDescriptors to return "
-                      << "the same max limit two times in a row";
+                << "FAIL: I expected maximizeFileDescriptors to return "
+                << "the same max limit two times in a row";
     }
 
     limit = cb::io::maximizeFileDescriptors(
-        std::numeric_limits<uint64_t>::max());
+            std::numeric_limits<uint64_t>::max());
     if (limit != std::numeric_limits<uint64_t>::max()) {
         // windows don't have a max limit, and that could be for other platforms
         // as well..
         EXPECT_EQ(limit, cb::io::maximizeFileDescriptors(limit + 1))
-                    << "FAIL: I expected maximizeFileDescriptors to return "
-                    << "the same max limit two times in a row";
+                << "FAIL: I expected maximizeFileDescriptors to return "
+                << "the same max limit two times in a row";
     }
 }
 

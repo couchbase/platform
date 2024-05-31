@@ -122,7 +122,9 @@ public:
 
 protected:
     bool inList(const std::vector<std::string>& list, const std::string& name) {
-        const auto n = cb::io::sanitizePath(name);
+        const auto n =
+                cb::io::makeExtendedLengthPath(cb::io::sanitizePath(name))
+                        .generic_string();
         return std::find(list.begin(), list.end(), n) != list.end();
     }
 
