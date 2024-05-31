@@ -179,7 +179,7 @@ TEST_F(IoTest, mktemp) {
     EXPECT_FALSE(filename.empty())
                 << "FAIL: Expected to create tempfile without mask";
     EXPECT_TRUE(cb::io::isFile(filename));
-    EXPECT_NO_THROW(cb::io::rmrf(filename));
+    cb::io::rmrf(filename);
     EXPECT_FALSE(cb::io::isFile(filename));
     EXPECT_FALSE(cb::io::isDirectory(filename));
 
@@ -187,7 +187,7 @@ TEST_F(IoTest, mktemp) {
     EXPECT_FALSE(filename.empty())
                 << "FAIL: Expected to create tempfile mask";
     EXPECT_TRUE(cb::io::isFile(filename));
-    EXPECT_NO_THROW(cb::io::rmrf(filename));
+    cb::io::rmrf(filename);
     EXPECT_FALSE(cb::io::isFile(filename));
     EXPECT_FALSE(cb::io::isDirectory(filename));
 }
@@ -198,7 +198,7 @@ TEST_F(IoTest, isFileAndIsDirectory) {
     auto filename = cb::io::mktemp("plainfile");
     EXPECT_TRUE(cb::io::isFile(filename));
     EXPECT_FALSE(cb::io::isDirectory(filename));
-    EXPECT_NO_THROW(cb::io::rmrf(filename));
+    cb::io::rmrf(filename);
 }
 
 #ifdef WIN32
@@ -217,7 +217,7 @@ TEST_F(IoTest, longpaths) {
     }
 
     // mkdirp
-    ASSERT_NO_THROW(cb::io::mkdirp(dirPath));
+    cb::io::mkdirp(dirPath);
 
     // mkdtemp
     auto tempDir = cb::io::mkdtemp(dirPath);
@@ -251,7 +251,7 @@ TEST_F(IoTest, longpaths) {
     EXPECT_EQ(0, files.size());
 
     // rmrf
-    ASSERT_NO_THROW(cb::io::rmrf(testRootDir));
+    cb::io::rmrf(testRootDir);
     EXPECT_FALSE(cb::io::isFile(filePath1));
     EXPECT_FALSE(cb::io::isFile(filePath2));
     EXPECT_FALSE(cb::io::isDirectory(testRootDir));
@@ -280,10 +280,10 @@ TEST_F(IoTest, mkdirp) {
 #endif
     EXPECT_THROW(cb::io::mkdirp(path), std::runtime_error);
 
-    EXPECT_NO_THROW(cb::io::mkdirp("."));
-    EXPECT_NO_THROW(cb::io::mkdirp("/"));
-    EXPECT_NO_THROW(cb::io::mkdirp("foo/bar"));
-    EXPECT_NO_THROW(cb::io::isDirectory("foo/bar"));
+    cb::io::mkdirp(".");
+    cb::io::mkdirp("/");
+    cb::io::mkdirp("foo/bar");
+    EXPECT_TRUE(cb::io::isDirectory("foo/bar"));
     cb::io::rmrf("foo");
     EXPECT_FALSE(cb::io::isDirectory("foo/bar"));
     EXPECT_FALSE(cb::io::isDirectory("foo"));
