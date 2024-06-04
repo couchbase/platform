@@ -25,6 +25,8 @@
 #undef __STDC__
 #endif
 
+#include <platform/strerror.h>
+
 #include <fcntl.h>
 #include <chrono>
 #include <cinttypes>
@@ -33,8 +35,7 @@
 #include <limits>
 #include <system_error>
 
-std::filesystem::path cb::io::makeExtendedLengthPath(
-        const std::string_view path) {
+std::filesystem::path cb::io::makeExtendedLengthPath(const std::string& path) {
     std::filesystem::path bPath = path;
 #ifdef _MSC_VER
     constexpr auto prefix = R"(\\?\)";
@@ -87,81 +88,179 @@ std::string cb::io::basename(const std::string& name) {
     return split(name, false);
 }
 
-std::vector<std::string> cb::io::findFilesWithPrefix(std::string_view dir,
-                                                     std::string_view name) {
-    if (dir.empty()) {
-        return {};
-    }
-    auto path = makeExtendedLengthPath(dir);
-    if (!exists(path)) {
-        return {};
-    }
-
+#ifdef _MSC_VER
+std::vector<std::string> cb::io::findFilesWithPrefix(const std::string& dir,
+                                                     const std::string& name) {
     std::vector<std::string> files;
-    for (const auto& p : std::filesystem::directory_iterator(path)) {
-        if (p.path().filename().generic_string().find(name) == 0) {
-            files.emplace_back(p.path().generic_string());
-        }
+    auto longDir = makeExtendedLengthPath(dir);
+    auto match = longDir / (name + "*");
+    WIN32_FIND_DATAW FindFileData;
+
+    HANDLE hFind = FindFirstFileExW(match.c_str(),
+                                    FindExInfoStandard,
+                                    &FindFileData,
+                                    FindExSearchNameMatch,
+                                    NULL,
+                                    0);
+
+    if (hFind != INVALID_HANDLE_VALUE) {
+        do {
+            std::wstring fn = FindFileData.cFileName;
+            std::string fnm(fn.begin(), fn.end());
+            if (fnm != "." && fnm != "..") {
+                std::string entry = dir;
+                entry.append("\\");
+                entry.append(fnm);
+                files.push_back(entry);
+            }
+        } while (FindNextFileW(hFind, &FindFileData));
+
+        FindClose(hFind);
     }
     return files;
 }
-
-std::vector<std::string> cb::io::findFilesWithPrefix(std::string_view name) {
-    std::filesystem::path path(name);
-    return findFilesWithPrefix(
-            path.has_parent_path() ? path.parent_path().generic_string() : ".",
-            path.filename().generic_string());
-}
-
-std::vector<std::string> cb::io::findFilesContaining(std::string_view dir,
-                                                     std::string_view name) {
-    if (dir.empty()) {
-        return {};
-    }
-
-    auto path = makeExtendedLengthPath(dir);
-    if (!exists(path)) {
-        return {};
-    }
-
+#else
+std::vector<std::string> cb::io::findFilesWithPrefix(const std::string& dir,
+                                                     const std::string& name) {
     std::vector<std::string> files;
-    for (const auto& p : std::filesystem::directory_iterator(path)) {
-        if (name.empty() || p.path().filename().generic_string().find(name) !=
-                                    std::string::npos) {
-            files.emplace_back(p.path().generic_string());
+    DIR* dp = opendir(dir.c_str());
+    if (dp != nullptr) {
+        struct dirent* de;
+        while ((de = readdir(dp)) != nullptr) {
+            std::string fnm(de->d_name);
+            if (fnm == "." || fnm == "..") {
+                continue;
+            }
+            if (strncmp(de->d_name, name.c_str(), name.length()) == 0) {
+                std::string entry = dir;
+                entry.append("/");
+                entry.append(de->d_name);
+                files.push_back(entry);
+            }
         }
+
+        closedir(dp);
     }
     return files;
 }
+#endif
 
-void cb::io::rmrf(const std::string_view path) {
+std::vector<std::string> cb::io::findFilesWithPrefix(const std::string& name) {
+    return findFilesWithPrefix(dirname(name), basename(name));
+}
+
+#ifdef _MSC_VER
+std::vector<std::string> cb::io::findFilesContaining(const std::string &dir,
+                                                            const std::string &name)
+{
+    if (dir.empty()) {
+        return {};
+    }
+    std::vector<std::string> files;
+    auto longDir = makeExtendedLengthPath(dir);
+    auto match = longDir / ("*" + name + "*");
+    WIN32_FIND_DATAW FindFileData;
+
+    HANDLE hFind = FindFirstFileExW(match.c_str(),
+                                    FindExInfoStandard,
+                                    &FindFileData,
+                                    FindExSearchNameMatch,
+                                    NULL,
+                                    0);
+
+    if (hFind != INVALID_HANDLE_VALUE) {
+        do {
+            std::wstring fn(FindFileData.cFileName);
+            std::string fnm(fn.begin(), fn.end());
+            if (fnm != "." && fnm != "..") {
+                std::string entry = dir;
+                entry.append("\\");
+                entry.append(fnm);
+                files.push_back(entry);
+            }
+        } while (FindNextFileW(hFind, &FindFileData));
+
+        FindClose(hFind);
+    }
+    return files;
+}
+#else
+std::vector<std::string> cb::io::findFilesContaining(const std::string& dir,
+                                                            const std::string& name) {
+    std::vector<std::string> files;
+    DIR* dp = opendir(dir.c_str());
+    if (dp != nullptr) {
+        struct dirent* de;
+        while ((de = readdir(dp)) != nullptr) {
+            if (name.empty() || strstr(de->d_name, name.c_str()) != nullptr) {
+                std::string fnm(de->d_name);
+                if (fnm != "." && fnm != "..") {
+                    std::string entry = dir;
+                    entry.append("/");
+                    entry.append(de->d_name);
+                    files.push_back(entry);
+                }
+            }
+        }
+
+        closedir(dp);
+    }
+
+    return files;
+}
+#endif
+
+void cb::io::rmrf(const std::string& path) {
     remove_all(makeExtendedLengthPath(path));
 }
 
-bool cb::io::isDirectory(const std::string_view directory) {
-    std::error_code ec;
-    return is_directory(makeExtendedLengthPath(directory), ec);
+bool cb::io::isDirectory(const std::string& directory) {
+#ifdef WIN32
+    auto longDir = makeExtendedLengthPath(directory);
+    DWORD dwAttrib = GetFileAttributesW(longDir.c_str());
+    if (dwAttrib == INVALID_FILE_ATTRIBUTES) {
+        return false;
+    }
+    return (dwAttrib & FILE_ATTRIBUTE_DIRECTORY) == FILE_ATTRIBUTE_DIRECTORY;
+#else
+    struct stat st;
+    if (stat(directory.c_str(), &st) == -1) {
+        return false;
+    }
+    return (S_ISDIR(st.st_mode));
+#endif
 }
 
-bool cb::io::isFile(const std::string_view file) {
-    std::error_code ec;
-    const auto path = makeExtendedLengthPath(file);
-    return is_regular_file(path, ec) || is_symlink(path, ec);
+bool cb::io::isFile(const std::string& file) {
+#ifdef WIN32
+    auto lfile = makeExtendedLengthPath(file);
+    DWORD dwAttrib = GetFileAttributesW(lfile.c_str());
+    if (dwAttrib == INVALID_FILE_ATTRIBUTES) {
+        return false;
+    }
+    return (dwAttrib & FILE_ATTRIBUTE_DIRECTORY) == 0;
+#else
+    struct stat st;
+    if (stat(file.c_str(), &st) == -1) {
+        return false;
+    }
+    return (S_ISREG(st.st_mode) || S_ISLNK(st.st_mode));
+#endif
 }
 
-void cb::io::mkdirp(const std::string_view directory) {
-    auto dir = makeExtendedLengthPath(directory);
-    if (!exists(dir)) {
-        create_directories(dir);
+void cb::io::mkdirp(std::string directory) {
+    if (!std::filesystem::is_directory(directory)) {
+        auto longDir = makeExtendedLengthPath(directory);
+        std::filesystem::create_directories(longDir.c_str());
     }
 }
 
-std::string cb::io::mktemp(const std::string_view prefix) {
-    constexpr std::string_view patternmask{"XXXXXX"};
-    std::string pattern{prefix};
+std::string cb::io::mktemp(const std::string& prefix) {
+    static const std::string patternmask{"XXXXXX"};
+    std::string pattern = prefix;
 
     auto index = pattern.find(patternmask);
-    if (index == std::string::npos) {
+    if (index == pattern.npos) {
         index = pattern.size();
         pattern.append(patternmask);
     }
@@ -199,13 +298,13 @@ std::string cb::io::mktemp(const std::string_view prefix) {
     } while (true);
 }
 
-std::string cb::io::mkdtemp(const std::string_view prefix) {
-    constexpr std::string_view patternmask{"XXXXXX"};
-    std::string pattern{prefix};
+std::string cb::io::mkdtemp(const std::string& prefix) {
+    static const std::string patternmask{"XXXXXX"};
+    std::string pattern = prefix;
 
     auto index = pattern.find(patternmask);
     char* ptr;
-    if (index == std::string::npos) {
+    if (index == pattern.npos) {
         index = pattern.size();
         pattern.append(patternmask);
     }
@@ -238,11 +337,10 @@ uint64_t cb::io::maximizeFileDescriptors(uint64_t limit) {
 #ifdef WIN32
     return limit;
 #else
-    rlimit rlim;
+    struct rlimit rlim;
 
     if (getrlimit(RLIMIT_NOFILE, &rlim) != 0) {
-        throw std::system_error(errno,
-                                std::system_category(),
+        throw std::system_error(errno, std::system_category(),
                                 "getrlimit(RLIMIT_NOFILE, &rlim) failed");
     } else if (limit <= rlim.rlim_cur) {
         return uint64_t(rlim.rlim_cur);
@@ -266,6 +364,7 @@ uint64_t cb::io::maximizeFileDescriptors(uint64_t limit) {
         auto max = limit;
         rlim_t last_good = 0;
 
+
         while (min <= max) {
             // Equivalent to std::midpoint from C++20.
             rlim_t avg = min + ((max - min) / 2);
@@ -282,10 +381,8 @@ uint64_t cb::io::maximizeFileDescriptors(uint64_t limit) {
         if (last_good == 0) {
             // all setrlimit's failed... lets go fetch it again
             if (getrlimit(RLIMIT_NOFILE, &rlim) != 0) {
-                throw std::system_error(
-                        errno,
-                        std::system_category(),
-                        "getrlimit(RLIMIT_NOFILE, &rlim) failed");
+                throw std::system_error(errno, std::system_category(),
+                                        "getrlimit(RLIMIT_NOFILE, &rlim) failed");
             }
             return uint64_t(rlim.rlim_cur);
         }
