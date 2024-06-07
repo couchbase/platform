@@ -1,6 +1,10 @@
 add_library(cbcrypto STATIC
-            digest.cc
-            ${Platform_SOURCE_DIR}/include/cbcrypto/digest.h)
+        common.cc
+        digest.cc
+        symmetric.cc
+        ${Platform_SOURCE_DIR}/include/cbcrypto/common.h
+        ${Platform_SOURCE_DIR}/include/cbcrypto/digest.h
+        ${Platform_SOURCE_DIR}/include/cbcrypto/symmetric.h)
 set_property(TARGET cbcrypto PROPERTY POSITION_INDEPENDENT_CODE 1)
 platform_enable_pch(cbcrypto)
 target_link_libraries(cbcrypto PRIVATE

@@ -15,6 +15,8 @@
  */
 
 #include <cbcrypto/digest.h>
+#include <cbcrypto/symmetric.h>
+
 #include <folly/portability/GTest.h>
 #include <nlohmann/json.hpp>
 #include <platform/base64.h>
@@ -291,4 +293,86 @@ TEST(Crypt, ns_server_password_encoding) {
     EXPECT_EQ("AAECAwQFBgcICQoLDA0ODx9wH2MSI+M0YPwUNbdBjIm+C13q",
               cb::base64::encode(std::string_view{(const char*)pwent.data(),
                                                   pwent.size()}));
+}
+
+// https://csrc.nist.gov/projects/cryptographic-algorithm-validation-program/
+// cavp-testing-block-cipher-modes
+static void testAes256Gcm(std::string_view key64,
+                          std::string_view nonce64,
+                          std::string_view ct64,
+                          std::string_view mac64,
+                          std::string_view msg64,
+                          std::string_view ad64) {
+    const auto key = cb::base64::decode(key64);
+    const auto nonce = cb::base64::decode(nonce64);
+    const auto ct = cb::base64::decode(ct64);
+    const auto mac = cb::base64::decode(mac64);
+    const auto msg = cb::base64::decode(msg64);
+    const auto ad = cb::base64::decode(ad64);
+
+    auto cipher = cb::crypto::SymmetricCipher::create("AES-256-GCM", key);
+
+    std::string buf = ct;
+    cipher->decrypt(nonce, buf, mac, buf, ad);
+    EXPECT_EQ(msg64, cb::base64::encode(buf));
+
+    std::string macBuf;
+    macBuf.resize(mac.size());
+    buf = msg;
+    cipher->encrypt(nonce, buf, macBuf, buf, ad);
+    EXPECT_EQ(ct64, cb::base64::encode(buf));
+    EXPECT_EQ(mac64, cb::base64::encode(macBuf));
+
+    EXPECT_EQ(msg64, cb::base64::encode(cipher->decrypt(nonce + ct + mac, ad)));
+    EXPECT_EQ(
+            msg64,
+            cb::base64::encode(cipher->decrypt(cipher->encrypt(msg, ad), ad)));
+}
+
+TEST(Aes256Gcm, Empty) {
+    testAes256Gcm("9aKyfHQ1WHLrPvbF/q+qdA5q6ZDZ1Iw72buCNeWJ8BA=",
+                  "WNIkD1gKMcHSSUjp",
+                  "",
+                  "FeBRpeSl9dps6pLi6+5brA==",
+                  "",
+                  "");
+    EXPECT_THROW(testAes256Gcm("5agSPy4uAH1ON5uhFKL7ZuZhP1fHLU5PAklkBTAoqDE=",
+                               "UeQzhb9TPhaEJ+Gt",
+                               "",
+                               "OP6EXGbma92ITCrsr9KA5g==",
+                               "",
+                               ""),
+                 cb::crypto::MacVerificationError);
+}
+
+TEST(Aes256Gcm, JustPlaintext) {
+    testAes256Gcm("TI6/4UROwbLVA8aYZlmvLJT6/pRfcsHoSGpaz+24oPg=",
+                  "RzNg4K0kiJlZhYmV",
+                  "0seBEKx+jxB8DfBXC9fJDA==",
+                  "wmo3m22Y7yhS6tjOg6gzpw==",
+                  "d4m0HLPuVIgUygs4jBCzQw==",
+                  "");
+    EXPECT_THROW(testAes256Gcm("yZd2ji0U49OCWWZ6ZkkHned760VDWJdx5QaObNfNCxQ=",
+                               "g1CQrtlVLb3UUnfi",
+                               "n2YH1o4izPIZKNsJhr4Sbg==",
+                               "8yYX9nxXT9n0Tvdv+ICrnw==",
+                               "",
+                               ""),
+                 cb::crypto::MacVerificationError);
+}
+
+TEST(Aes256Gcm, PlaintextWithAD) {
+    testAes256Gcm("VONS6h2Ev+ZKEBEJYRH752aK0iA9kCoBRYw7vYW/zhQ=",
+                  "33w7ygA5bQwBhJXZ",
+                  "Qm4O/Gk7e+HzAY233bt+TQ==",
+                  "7oJXeVvmoRZNfh0tbKx3pw==",
+                  "hfw9+tm1qNMljk/ERXG9Ow==",
+                  "fpaNcbUMHxH9AB8/70nQRQ==");
+    EXPECT_THROW(testAes256Gcm("mgND+FCmQnEg92R4n/7G0jdEe4mPv1HSGC8GXThhSX0=",
+                               "Pe729FPdcNkhQ63N",
+                               "6TFlk1rBjjooRdFf4xqShg==",
+                               "9fxQ0YdmvD2eFt0TbUWBaw==",
+                               "",
+                               "27giamJFIIY9tolwF7Kk+A=="),
+                 cb::crypto::MacVerificationError);
 }
