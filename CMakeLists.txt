@@ -484,6 +484,7 @@ INSTALL(TARGETS breakpad_wrapper
 ADD_SUBDIRECTORY(cbcompress)
 ADD_SUBDIRECTORY(hdrhistogram)
 ADD_SUBDIRECTORY(cbsocket)
+add_subdirectory(cbcrypto)
 add_subdirectory(tests)
 
 add_subdirectory(tools)
