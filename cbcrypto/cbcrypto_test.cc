@@ -15,6 +15,7 @@
  */
 
 #include <cbcrypto/digest.h>
+#include <cbcrypto/random_gen.h>
 #include <cbcrypto/symmetric.h>
 
 #include <folly/portability/GTest.h>
@@ -375,4 +376,16 @@ TEST(Aes256Gcm, PlaintextWithAD) {
                                "",
                                "27giamJFIIY9tolwF7Kk+A=="),
                  cb::crypto::MacVerificationError);
+}
+
+TEST(RandomBitGenerator, Generate) {
+    auto drbg = cb::crypto::RandomBitGenerator::create();
+    std::string initial(40, 'x');
+    auto buffer1 = initial;
+    drbg->generate(buffer1);
+    EXPECT_NE(initial, buffer1);
+    auto buffer2 = initial;
+    drbg->generate(buffer2);
+    EXPECT_NE(initial, buffer2);
+    EXPECT_NE(buffer1, buffer2);
 }
