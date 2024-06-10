@@ -11,6 +11,7 @@
 #include "cbcrypto/symmetric.h"
 
 #include <fmt/format.h>
+#include <openssl/core_names.h>
 #include <openssl/evp.h>
 
 #include <memory>
@@ -73,7 +74,7 @@ Aes256Gcm::Aes256Gcm(std::string key, const char* properties)
     : cipher(EVP_CIPHER_fetch(nullptr, "AES-256-GCM", properties)),
       key(std::move(key)) {
     Expects(this->key.size() == KeySize);
-    if (cipher == nullptr) {
+    if (!cipher) {
         throw OpenSslError::get("cb::crypto::Aes256Gcm::Aes256Gcm",
                                 "EVP_CIPHER_fetch");
     }
@@ -89,13 +90,19 @@ void Aes256Gcm::encrypt(std::string_view nonce,
     Expects(ct.size() == msg.size());
     int outlen = 0;
     EvpCipherCtxUniquePtr ctx(EVP_CIPHER_CTX_new());
-    if (EVP_EncryptInit(ctx.get(),
-                        cipher.get(),
-                        reinterpret_cast<const unsigned char*>(key.data()),
-                        reinterpret_cast<const unsigned char*>(nonce.data())) !=
-        1) {
+    if (!ctx) {
         throw OpenSslError::get("cb::crypto::Aes256Gcm::encrypt",
-                                "EVP_EncryptInit");
+                                "EVP_CIPHER_CTX_new");
+    }
+    std::array<OSSL_PARAM, 2> params{{OSSL_PARAM_END, OSSL_PARAM_END}};
+    if (EVP_EncryptInit_ex2(
+                ctx.get(),
+                cipher.get(),
+                reinterpret_cast<const unsigned char*>(key.data()),
+                reinterpret_cast<const unsigned char*>(nonce.data()),
+                params.data()) != 1) {
+        throw OpenSslError::get("cb::crypto::Aes256Gcm::encrypt",
+                                "EVP_EncryptInit_ex2");
     }
     if (!ad.empty()) {
         if (EVP_EncryptUpdate(ctx.get(),
@@ -117,17 +124,16 @@ void Aes256Gcm::encrypt(std::string_view nonce,
                                 "EVP_EncryptUpdate(msg)");
     }
     unsigned char dummyBuffer; // No output expected
-    if (EVP_EncryptFinal(ctx.get(), &dummyBuffer, &outlen) != 1) {
+    if (EVP_EncryptFinal_ex(ctx.get(), &dummyBuffer, &outlen) != 1) {
         throw OpenSslError::get("cb::crypto::Aes256Gcm::encrypt",
-                                "EVP_EncryptFinal");
+                                "EVP_EncryptFinal_ex");
     }
-    if (EVP_CIPHER_CTX_ctrl(ctx.get(),
-                            EVP_CTRL_GCM_GET_TAG,
-                            mac.size(),
-                            reinterpret_cast<unsigned char*>(mac.data())) !=
-        1) {
+    params[0] = OSSL_PARAM_construct_octet_string(OSSL_CIPHER_PARAM_AEAD_TAG,
+                                                  const_cast<char*>(mac.data()),
+                                                  mac.size());
+    if (EVP_CIPHER_CTX_get_params(ctx.get(), params.data()) != 1) {
         throw OpenSslError::get("cb::crypto::Aes256Gcm::encrypt",
-                                "EVP_CIPHER_CTX_ctrl");
+                                "EVP_CIPHER_CTX_get_params");
     }
 }
 
@@ -141,21 +147,23 @@ void Aes256Gcm::decrypt(std::string_view nonce,
     Expects(ct.size() == msg.size());
     int outlen = 0;
     EvpCipherCtxUniquePtr ctx(EVP_CIPHER_CTX_new());
-    if (EVP_DecryptInit(ctx.get(),
-                        cipher.get(),
-                        reinterpret_cast<const unsigned char*>(key.data()),
-                        reinterpret_cast<const unsigned char*>(nonce.data())) !=
-        1) {
+    if (!ctx) {
         throw OpenSslError::get("cb::crypto::Aes256Gcm::decrypt",
-                                "EVP_DecryptInit");
+                                "EVP_CIPHER_CTX_new");
     }
-    if (EVP_CIPHER_CTX_ctrl(ctx.get(),
-                            EVP_CTRL_GCM_SET_TAG,
-                            mac.size(),
-                            reinterpret_cast<unsigned char*>(
-                                    const_cast<char*>(mac.data()))) != 1) {
+    std::array<OSSL_PARAM, 2> params{
+            {OSSL_PARAM_construct_octet_string(OSSL_CIPHER_PARAM_AEAD_TAG,
+                                               const_cast<char*>(mac.data()),
+                                               mac.size()),
+             OSSL_PARAM_END}};
+    if (EVP_DecryptInit_ex2(
+                ctx.get(),
+                cipher.get(),
+                reinterpret_cast<const unsigned char*>(key.data()),
+                reinterpret_cast<const unsigned char*>(nonce.data()),
+                params.data()) != 1) {
         throw OpenSslError::get("cb::crypto::Aes256Gcm::decrypt",
-                                "EVP_CIPHER_CTX_ctrl");
+                                "EVP_DecryptInit_ex2");
     }
     if (!ad.empty()) {
         if (EVP_DecryptUpdate(ctx.get(),
@@ -177,7 +185,7 @@ void Aes256Gcm::decrypt(std::string_view nonce,
                                 "EVP_DecryptUpdate(msg)");
     }
     unsigned char dummyBuffer; // No output expected
-    if (EVP_DecryptFinal(ctx.get(), &dummyBuffer, &outlen) != 1) {
+    if (EVP_DecryptFinal_ex(ctx.get(), &dummyBuffer, &outlen) != 1) {
         throw MacVerificationError(
                 "cb::crypto::Aes256Gcm::decrypt: "
                 "MAC verification failed");
