@@ -9,7 +9,7 @@
  */
 #pragma once
 
-#include <gsl/gsl-lite.h>
+#include <gsl/gsl-lite.hpp>
 
 #include <stdexcept>
 #include <string>
