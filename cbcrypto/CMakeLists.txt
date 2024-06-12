@@ -9,8 +9,16 @@ add_library(cbcrypto STATIC
         ${Platform_SOURCE_DIR}/include/cbcrypto/symmetric.h)
 set_property(TARGET cbcrypto PROPERTY POSITION_INDEPENDENT_CODE 1)
 platform_enable_pch(cbcrypto)
-target_link_libraries(cbcrypto PRIVATE
-                      OpenSSL::SSL nlohmann_json::nlohmann_json platform phosphor libsodium::libsodium fmt::fmt)
+target_link_libraries(cbcrypto
+        PUBLIC
+        gsl::gsl-lite
+        nlohmann_json::nlohmann_json
+        PRIVATE
+        fmt::fmt
+        libsodium::libsodium
+        OpenSSL::SSL
+        phosphor
+        platform)
 
 cb_add_test_executable(cbcrypto_unit_test cbcrypto_test.cc)
 platform_enable_pch(cbcrypto_unit_test)
