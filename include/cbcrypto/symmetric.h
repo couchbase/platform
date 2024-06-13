@@ -28,6 +28,9 @@ public:
  */
 class SymmetricCipher {
 public:
+    /// Generate a new key to use together with the named cipher
+    [[nodiscard]] static std::string generateKey(std::string_view cipher);
+
     /**
      * Instantiates a SymmetricCipher with the given name and key.
      *

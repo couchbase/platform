@@ -10,11 +10,29 @@
 #pragma once
 
 #include <gsl/gsl-lite.hpp>
-
+#include <nlohmann/json_fwd.hpp>
 #include <stdexcept>
 #include <string>
 
 namespace cb::crypto {
+
+/// A structure to hold the information needed by a single key
+struct DataEncryptionKey {
+    /// generate a key with the provided cipher type
+    static std::shared_ptr<DataEncryptionKey> generate(
+            std::string_view cipher_string = "AES-256-GCM");
+
+    /// The identification for the current key
+    std::string id;
+    /// The cipher used for the key
+    std::string cipher;
+    /// The actual key
+    std::string key;
+};
+
+[[nodiscard]] std::string format_as(const DataEncryptionKey& dek);
+void to_json(nlohmann::json& json, const DataEncryptionKey& dek);
+void from_json(const nlohmann::json& json, DataEncryptionKey& dek);
 
 class NotSupportedException : public std::logic_error {
 public:

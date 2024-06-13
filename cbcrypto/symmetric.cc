@@ -26,6 +26,7 @@ struct EvpCipherDeleter {
         EVP_CIPHER_free(ptr);
     }
 };
+using EvpCipherUniquePtr = std::unique_ptr<EVP_CIPHER, EvpCipherDeleter>;
 
 struct EvpCipherCtxDeleter {
     void operator()(EVP_CIPHER_CTX* ptr) {
@@ -234,6 +235,28 @@ std::string SymmetricCipher::decrypt(std::string_view ct, std::string_view ad) {
             ad);
 
     return ret;
+}
+
+std::string SymmetricCipher::generateKey(std::string_view cipher) {
+    if (cipher == "AES-256-GCM"sv) {
+        using namespace cb::crypto::internal;
+        EvpCipherUniquePtr evp_cipher(
+                EVP_CIPHER_fetch(nullptr, "AES-256-GCM", ""));
+        if (!evp_cipher) {
+            throw OpenSslError::get("cb::crypto::SymmetricCipher::generateKey",
+                                    "EVP_CIPHER_fetch");
+        }
+
+        std::string ret;
+        ret.resize(EVP_CIPHER_get_key_length(evp_cipher.get()));
+        randomBytes(ret);
+        return ret;
+    }
+
+    throw NotSupportedException(
+            fmt::format("cb::crypto::SymmetricCipher::generateKey: "
+                        "Cipher {} not supported",
+                        cipher));
 }
 
 std::unique_ptr<SymmetricCipher> SymmetricCipher::create(
