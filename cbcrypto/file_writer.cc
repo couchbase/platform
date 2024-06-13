@@ -7,6 +7,8 @@
  *   software will be governed by the Apache License, Version 2.0, included in
  *   the file licenses/APL2.txt.
  */
+#include "encrypted_file_header.h"
+
 #include <cbcrypto/common.h>
 #include <cbcrypto/file_writer.h>
 #include <cbcrypto/symmetric.h>
@@ -97,17 +99,8 @@ public:
             buffer.reserve(buffer_size);
         }
 
-        // write the file header
-        std::array<char, 7> header{0,
-                                   'C',
-                                   'E',
-                                   'F',
-                                   0,
-                                   0, // Version
-                                   0}; // Id size
-        header.back() = gsl::narrow<char>(dek->id.size());
-        this->underlying->write(std::string_view{header.data(), header.size()});
-        this->underlying->write(dek->id);
+        EncryptedFileHeader header(dek->id);
+        this->underlying->write(header);
     }
 
     [[nodiscard]] bool is_encrypted() const override {

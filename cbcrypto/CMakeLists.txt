@@ -1,6 +1,8 @@
 add_library(cbcrypto STATIC
         common.cc
         digest.cc
+        encrypted_file_header.cc
+        encrypted_file_header.h
         file_reader.cc
         file_writer.cc
         random_gen.cc
