@@ -11,16 +11,18 @@
 #include <folly/portability/GTest.h>
 
 #include <platform/json_log.h>
+#include <platform/json_log_conversions.h>
+#include <stdexcept>
 
 TEST(JsonLog, Basic) {
     using cb::logger::Json;
 
-    cb::logger::Json x{{"foo", "bar"}};
+    Json x{{"foo", "bar"}};
     EXPECT_EQ(R"({"foo":"bar"})", x.dump());
 
-    cb::logger::Json xCopyConstructor(x);
-    cb::logger::Json xMoveConstructor(std::move(x));
-    cb::logger::Json xAssignment;
+    Json xCopyConstructor(x);
+    Json xMoveConstructor(std::move(x));
+    Json xAssignment;
 
     EXPECT_EQ(R"({"foo":"bar"})", xCopyConstructor.dump());
     EXPECT_EQ(R"({"foo":"bar"})", xMoveConstructor.dump());
@@ -30,4 +32,24 @@ TEST(JsonLog, Basic) {
 
     xAssignment = std::move(xCopyConstructor);
     EXPECT_EQ(R"({"foo":"bar"})", xMoveConstructor.dump());
+}
+
+enum class Color { Red, Green, Blue };
+
+std::string_view format_as(Color c) {
+    switch (c) {
+    case Color::Red:
+        return "Red";
+    case Color::Green:
+        return "Green";
+    case Color::Blue:
+        return "Blue";
+    }
+    throw std::invalid_argument("c");
+}
+
+TEST(JsonLog, Enums) {
+    using cb::logger::Json;
+
+    EXPECT_EQ("\"Red\"", Json(Color::Red).dump());
 }

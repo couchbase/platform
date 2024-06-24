@@ -52,6 +52,9 @@ using Map = cb::OrderedMap<
 
 } // namespace detail
 
+template <typename T, typename SFINAE = void>
+struct JsonSerializer : nlohmann::adl_serializer<T, SFINAE> {};
+
 /**
  * The nlohmann::basic_json<> template used by cb::logger::Json.
  * Can be used in the signature of:
@@ -67,7 +70,7 @@ using BasicJsonType = nlohmann::basic_json<
         std::uint64_t,
         double,
         detail::Allocator,
-        nlohmann::adl_serializer,
+        JsonSerializer,
         std::vector<std::uint8_t, detail::Allocator<std::uint8_t>>>;
 
 /**
