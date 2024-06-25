@@ -95,7 +95,7 @@ void rmrf(const std::string& path);
  * @param directory the directory to create
  * @throws std::runtime_error if an error occurs
  */
-void mkdirp(std::string directory);
+void mkdirp(std::string_view directory);
 
 /**
  * Create a unique temporary file with the given prefix.

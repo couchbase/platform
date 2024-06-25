@@ -225,7 +225,7 @@ bool cb::io::isFile(const std::string_view file) {
     return is_regular_file(path, ec) || is_symlink(path, ec);
 }
 
-void cb::io::mkdirp(std::string directory) {
+void cb::io::mkdirp(std::string_view directory) {
     if (!std::filesystem::is_directory(directory)) {
         auto longDir = makeExtendedLengthPath(directory);
         std::filesystem::create_directories(longDir.c_str());
