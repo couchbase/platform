@@ -242,7 +242,7 @@ std::string cb::io::mktemp(const std::string_view prefix) {
         pattern.append(patternmask);
     }
 
-    auto* ptr = const_cast<char*>(pattern.data()) + index;
+    auto* ptr = pattern.data() + index;
     auto counter = std::chrono::steady_clock::now().time_since_epoch().count();
 
     do {
@@ -280,34 +280,23 @@ std::string cb::io::mkdtemp(const std::string_view prefix) {
     std::string pattern {prefix};
 
     auto index = pattern.find(patternmask);
-    char* ptr;
     if (index == std::string::npos) {
         index = pattern.size();
         pattern.append(patternmask);
     }
 
-    ptr = const_cast<char*>(pattern.data()) + index;
-    int searching = 1;
+    auto* ptr = pattern.data() + index;
     auto counter = std::chrono::steady_clock::now().time_since_epoch().count();
 
     do {
         ++counter;
         fmt::format_to(ptr, "{:06}", counter % 1000000);
-
-#ifdef WIN32
-        auto longPattern = makeExtendedLengthPath(pattern);
-        if (CreateDirectoryW(longPattern.c_str(), nullptr)) {
-            searching = 0;
+        std::error_code ec;
+        if (create_directory(makeExtendedLengthPath(pattern), ec)) {
+            return pattern;
         }
-#else
-        if (mkdir(pattern.c_str(), S_IREAD | S_IWRITE | S_IEXEC) == 0) {
-            searching = 0;
-        }
-#endif
 
-    } while (searching);
-
-    return pattern;
+    } while (true);
 }
 
 uint64_t cb::io::maximizeFileDescriptors(uint64_t limit) {
