@@ -214,38 +214,15 @@ void cb::io::rmrf(const std::string& path) {
     remove_all(makeExtendedLengthPath(path));
 }
 
-bool cb::io::isDirectory(const std::string& directory) {
-#ifdef WIN32
-    auto longDir = makeExtendedLengthPath(directory);
-    DWORD dwAttrib = GetFileAttributesW(longDir.c_str());
-    if (dwAttrib == INVALID_FILE_ATTRIBUTES) {
-        return false;
-    }
-    return (dwAttrib & FILE_ATTRIBUTE_DIRECTORY) == FILE_ATTRIBUTE_DIRECTORY;
-#else
-    struct stat st;
-    if (stat(directory.c_str(), &st) == -1) {
-        return false;
-    }
-    return (S_ISDIR(st.st_mode));
-#endif
+bool cb::io::isDirectory(const std::string_view directory) {
+    std::error_code ec;
+    return is_directory(makeExtendedLengthPath(directory), ec);
 }
 
-bool cb::io::isFile(const std::string& file) {
-#ifdef WIN32
-    auto lfile = makeExtendedLengthPath(file);
-    DWORD dwAttrib = GetFileAttributesW(lfile.c_str());
-    if (dwAttrib == INVALID_FILE_ATTRIBUTES) {
-        return false;
-    }
-    return (dwAttrib & FILE_ATTRIBUTE_DIRECTORY) == 0;
-#else
-    struct stat st;
-    if (stat(file.c_str(), &st) == -1) {
-        return false;
-    }
-    return (S_ISREG(st.st_mode) || S_ISLNK(st.st_mode));
-#endif
+bool cb::io::isFile(const std::string_view file) {
+    std::error_code ec;
+    const auto path = makeExtendedLengthPath(file);
+    return is_regular_file(path, ec) || is_symlink(path, ec);
 }
 
 void cb::io::mkdirp(std::string directory) {

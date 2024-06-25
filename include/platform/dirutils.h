@@ -79,12 +79,12 @@ void rmrf(const std::string& path);
 /**
  * Check if a directory exists or not
  */
-[[nodiscard]] bool isDirectory(const std::string& directory);
+[[nodiscard]] bool isDirectory(std::string_view directory);
 
 /**
  * Check if a path exists and is a file
  */
-[[nodiscard]] bool isFile(const std::string& file);
+[[nodiscard]] bool isFile(std::string_view file);
 
 /**
  * Try to create directory including all the parent directories.
