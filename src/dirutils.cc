@@ -210,7 +210,7 @@ std::vector<std::string> cb::io::findFilesContaining(const std::string& dir,
 }
 #endif
 
-void cb::io::rmrf(const std::string& path) {
+void cb::io::rmrf(const std::string_view path) {
     remove_all(makeExtendedLengthPath(path));
 }
 

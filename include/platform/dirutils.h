@@ -74,7 +74,7 @@ const char DirectorySeparator{'/'};
  * @param path path of the file or directory that is being removed
  * @throws system_error in case of any errors during deletion
  */
-void rmrf(const std::string& path);
+void rmrf(std::string_view path);
 
 /**
  * Check if a directory exists or not
