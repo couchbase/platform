@@ -232,12 +232,12 @@ void cb::io::mkdirp(std::string_view directory) {
     }
 }
 
-std::string cb::io::mktemp(const std::string& prefix) {
+std::string cb::io::mktemp(const std::string_view prefix) {
     static const std::string patternmask{"XXXXXX"};
-    std::string pattern = prefix;
+    std::string pattern{prefix};
 
     auto index = pattern.find(patternmask);
-    if (index == pattern.npos) {
+    if (index == std::string::npos) {
         index = pattern.size();
         pattern.append(patternmask);
     }
@@ -275,13 +275,13 @@ std::string cb::io::mktemp(const std::string& prefix) {
     } while (true);
 }
 
-std::string cb::io::mkdtemp(const std::string& prefix) {
+std::string cb::io::mkdtemp(const std::string_view prefix) {
     static const std::string patternmask{"XXXXXX"};
-    std::string pattern = prefix;
+    std::string pattern {prefix};
 
     auto index = pattern.find(patternmask);
     char* ptr;
-    if (index == pattern.npos) {
+    if (index == std::string::npos) {
         index = pattern.size();
         pattern.append(patternmask);
     }

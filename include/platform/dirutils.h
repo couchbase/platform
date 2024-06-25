@@ -106,7 +106,7 @@ void mkdirp(std::string_view directory);
  * @param prefix The prefix to use in the filename.
  * @return The unique filename
  */
-[[nodiscard]] std::string mktemp(const std::string& prefix);
+[[nodiscard]] std::string mktemp(std::string_view prefix);
 
 /**
  * Create a unique temporary directory with the given prefix.
@@ -116,7 +116,7 @@ void mkdirp(std::string_view directory);
  * @param prefix The prefix to use in the directory name.
  * @return The unique directory name
  */
-[[nodiscard]] std::string mkdtemp(const std::string& prefix);
+[[nodiscard]] std::string mkdtemp(std::string_view prefix);
 
 /**
  * Try to set the maximum number of file descriptors to the requested
