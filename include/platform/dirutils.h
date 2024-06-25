@@ -36,7 +36,7 @@ const char DirectorySeparator{'/'};
 /// @see
 /// https://docs.microsoft.com/en-us/windows/win32/fileio/maximum-file-path-limitation
 [[nodiscard]] std::filesystem::path makeExtendedLengthPath(
-        const std::string& path);
+        std::string_view path);
 
 /**
  * Return the directory part of an absolute path

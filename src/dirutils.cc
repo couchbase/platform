@@ -35,12 +35,12 @@
 #include <limits>
 #include <system_error>
 
-std::filesystem::path cb::io::makeExtendedLengthPath(const std::string& path) {
+std::filesystem::path cb::io::makeExtendedLengthPath(const std::string_view path) {
     std::filesystem::path bPath = path;
 #ifdef _MSC_VER
     constexpr auto prefix = R"(\\?\)";
     // Prefix exists, return.
-    if (path.rfind(prefix, 0) != std::string::npos) {
+    if (path.rfind(prefix, 0) != std::string_view::npos) {
         return bPath;
     }
     bPath = std::filesystem::absolute(bPath);
