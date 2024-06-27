@@ -29,10 +29,21 @@ public:
 class SymmetricCipher {
 public:
     /// Generate a new key to use together with the named cipher
-    [[nodiscard]] static std::string generateKey(std::string_view cipher);
+    [[nodiscard]] static std::string generateKey(Cipher cipher);
 
     /**
      * Instantiates a SymmetricCipher with the given name and key.
+     *
+     * @param cipher The cipher to use
+     * @param key Key to use
+     * @param properties Properties to pass to OpenSSL (e.g. provider)
+     */
+    static std::unique_ptr<SymmetricCipher> create(
+            Cipher cipher, std::string key, const char* properties = nullptr);
+
+    /**
+     * Instantiates a SymmetricCipher with the given name and key.
+     * This method is deprecated and one should use the enum instead
      *
      * @param cipherName OpenSSL name for the cipher
      * @param key Key to use
@@ -41,7 +52,9 @@ public:
     static std::unique_ptr<SymmetricCipher> create(
             std::string_view cipherName,
             std::string key,
-            const char* properties = nullptr);
+            const char* properties = nullptr) {
+        return create(to_cipher(cipherName), std::move(key), properties);
+    }
 
     /**
      * Encrypt `msg` by generating a random nonce.
@@ -104,6 +117,9 @@ public:
     virtual std::size_t getMacSize() const = 0;
 
     virtual ~SymmetricCipher() = default;
+
+    /// Request the key size for the provided cipher
+    static std::size_t getKeySize(Cipher cipher);
 
 protected:
     SymmetricCipher() = default;

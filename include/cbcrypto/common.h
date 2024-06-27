@@ -16,16 +16,27 @@
 
 namespace cb::crypto {
 
+enum class Cipher {
+    /// Special value indicating no cipher
+    None,
+    AES_256_GCM
+};
+
+[[nodiscard]] std::string format_as(const Cipher& cipher);
+[[nodiscard]] Cipher to_cipher(std::string_view name);
+void to_json(nlohmann::json& json, const Cipher& cipher);
+void from_json(const nlohmann::json& json, Cipher& cipher);
+
 /// A structure to hold the information needed by a single key
 struct DataEncryptionKey {
     /// generate a key with the provided cipher type
-    static std::shared_ptr<DataEncryptionKey> generate(
-            std::string_view cipher_string = "AES-256-GCM");
+    static std::unique_ptr<DataEncryptionKey> generate(
+            Cipher cipher_type = Cipher::AES_256_GCM);
 
     /// The identification for the current key
     std::string id;
     /// The cipher used for the key
-    std::string cipher;
+    Cipher cipher;
     /// The actual key
     std::string key;
 };

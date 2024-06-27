@@ -21,18 +21,52 @@
 
 namespace cb::crypto {
 
+[[nodiscard]] std::string format_as(const Cipher& cipher) {
+    switch (cipher) {
+    case Cipher::None:
+        return "None";
+    case Cipher::AES_256_GCM:
+        return "AES-256-GCM";
+    }
+    throw std::invalid_argument(
+            fmt::format("format_as(const Cipher& cipher): unknown cipher: {}",
+                        static_cast<int>(cipher)));
+}
+
+[[nodiscard]] Cipher to_cipher(std::string_view name) {
+    if (name == "AES-256-GCM") {
+        return Cipher::AES_256_GCM;
+    }
+    if (name == "None") {
+        return Cipher::None;
+    }
+
+    throw std::invalid_argument(fmt::format(
+            "to_cipher(std::string_view name): unknown cipher: {}", name));
+}
+
+void to_json(nlohmann::json& json, const Cipher& cipher) {
+    json = format_as(cipher);
+}
+
+void from_json(const nlohmann::json& json, Cipher& cipher) {
+    cipher = to_cipher(json.get<std::string>());
+}
+
 std::string format_as(const DataEncryptionKey& dek) {
     nlohmann::json json = dek;
     json.erase("key");
     return json.dump();
 }
 
-std::shared_ptr<DataEncryptionKey> DataEncryptionKey::generate(
-        std::string_view cipher_string) {
-    auto ret = std::make_shared<DataEncryptionKey>();
+std::unique_ptr<DataEncryptionKey> DataEncryptionKey::generate(
+        Cipher cipher_type) {
+    Expects(cipher_type != Cipher::None);
+    auto ret = std::make_unique<DataEncryptionKey>();
     ret->id = to_string(uuid::random());
-    ret->cipher = cipher_string;
-    ret->key = SymmetricCipher::generateKey(cipher_string);
+    ret->cipher = cipher_type;
+    ret->key = SymmetricCipher::generateKey(ret->cipher);
+    Expects(ret->key.size() == SymmetricCipher::getKeySize(ret->cipher));
     return ret;
 }
 
@@ -44,8 +78,9 @@ void to_json(nlohmann::json& json, const DataEncryptionKey& dek) {
 
 void from_json(const nlohmann::json& json, DataEncryptionKey& dek) {
     dek.id = json["id"].get<std::string>();
-    dek.cipher = json["cipher"].get<std::string>();
+    dek.cipher = json["cipher"];
     dek.key = base64::decode(json["key"].get<std::string>());
+    Expects(dek.key.size() == SymmetricCipher::getKeySize(dek.cipher));
 }
 
 OpenSslError OpenSslError::get(const char* callingFunction,

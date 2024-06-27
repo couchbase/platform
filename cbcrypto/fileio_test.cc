@@ -70,7 +70,7 @@ TEST_F(FileIoTest, ReadFile) {
 
 TEST_F(FileIoTest, ReadFileEncrypted) {
     const std::string_view content = "This is the content"sv;
-    auto key = DataEncryptionKey::generate();
+    std::shared_ptr key = DataEncryptionKey::generate();
     EXPECT_TRUE(key);
     auto writer = FileWriter::create(key, file);
     EXPECT_TRUE(writer->is_encrypted());
@@ -100,7 +100,7 @@ TEST_F(FileIoTest, ReadFileEncrypted) {
 }
 
 TEST_F(FileIoTest, BufferedFileWriterTestEncrypted) {
-    auto key = DataEncryptionKey::generate();
+    std::shared_ptr key = DataEncryptionKey::generate();
     auto lookup = [&key](auto k) -> std::shared_ptr<DataEncryptionKey> {
         if (key && key->id == k) {
             return key;

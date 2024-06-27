@@ -237,8 +237,8 @@ std::string SymmetricCipher::decrypt(std::string_view ct, std::string_view ad) {
     return ret;
 }
 
-std::string SymmetricCipher::generateKey(std::string_view cipher) {
-    if (cipher == "AES-256-GCM"sv) {
+std::string SymmetricCipher::generateKey(Cipher cipher) {
+    if (cipher == Cipher::AES_256_GCM) {
         using namespace cb::crypto::internal;
         EvpCipherUniquePtr evp_cipher(
                 EVP_CIPHER_fetch(nullptr, "AES-256-GCM", ""));
@@ -249,6 +249,7 @@ std::string SymmetricCipher::generateKey(std::string_view cipher) {
 
         std::string ret;
         ret.resize(EVP_CIPHER_get_key_length(evp_cipher.get()));
+        Expects(ret.size() == internal::Aes256Gcm::KeySize);
         randomBytes(ret);
         return ret;
     }
@@ -260,16 +261,30 @@ std::string SymmetricCipher::generateKey(std::string_view cipher) {
 }
 
 std::unique_ptr<SymmetricCipher> SymmetricCipher::create(
-        std::string_view cipherName, std::string key, const char* properties) {
-    if (cipherName == "AES-256-GCM"sv) {
+        Cipher cipher, std::string key, const char* properties) {
+    switch (cipher) {
+    case Cipher::None:
+        break;
+    case Cipher::AES_256_GCM:
+        Expects(key.size() == internal::Aes256Gcm::KeySize);
         return std::make_unique<internal::Aes256Gcm>(std::move(key),
                                                      properties);
     }
+    throw NotSupportedException(fmt::format(
+            "cb::crypto::SymmetricCipher::create: Cipher {} not supported",
+            cipher));
+}
 
-    throw NotSupportedException(
-            fmt::format("cb::crypto::SymmetricCipher::create: "
-                        "Cipher {} not supported",
-                        cipherName));
+std::size_t SymmetricCipher::getKeySize(Cipher cipher) {
+    switch (cipher) {
+    case Cipher::None:
+        return 0;
+    case Cipher::AES_256_GCM:
+        return internal::Aes256Gcm::KeySize;
+    }
+    throw std::invalid_argument(fmt::format(
+            "SymmetricCipher::getKeySize(Cipher cipher): Unknown cipher: {}",
+            static_cast<int>(cipher)));
 }
 
 } // namespace cb::crypto

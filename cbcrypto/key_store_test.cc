@@ -56,7 +56,8 @@ TEST_F(KeyStoreTest, GetActiveKey) {
     auto active = ks.getActiveKey();
     ASSERT_TRUE(active);
     EXPECT_EQ("489cf03d-07f1-4e4c-be6f-01f227757937"sv, active->id);
-    EXPECT_EQ("AES-256-GCM"sv, active->cipher);
+    EXPECT_EQ(Cipher::AES_256_GCM, active->cipher);
+    EXPECT_EQ("AES-256-GCM"sv, format_as(active->cipher));
     EXPECT_EQ("cXOdH9oGE834Y2rWA+FSdXXi5CN3mLJ+Z+C0VpWbOdA="sv,
               encode(active->key));
 }
@@ -66,7 +67,7 @@ TEST_F(KeyStoreTest, SetActiveKey) {
     ks.setActiveKey({});
     EXPECT_FALSE(ks.getActiveKey());
     EXPECT_EQ(2, countKeys());
-    auto next = DataEncryptionKey::generate();
+    std::shared_ptr next = DataEncryptionKey::generate();
     ks.setActiveKey(next);
     EXPECT_EQ(3, countKeys());
 
@@ -86,7 +87,7 @@ TEST_F(KeyStoreTest, LookupKey) {
     auto second = ks.lookup("c7e26d06-88ed-43bc-9f66-87b60c037211");
     ASSERT_TRUE(second);
     EXPECT_EQ("c7e26d06-88ed-43bc-9f66-87b60c037211"sv, second->id);
-    EXPECT_EQ("AES-256-GCM"sv, second->cipher);
+    EXPECT_EQ(Cipher::AES_256_GCM, second->cipher);
     EXPECT_EQ("ZdA1gPe3Z4RRfC+r4xjBBCKYtYJ9dNOOLxNEC0zjKVY="sv,
               encode(second->key));
 }
@@ -100,13 +101,13 @@ TEST_F(KeyStoreTest, iterateKeys) {
         if (key->id == "489cf03d-07f1-4e4c-be6f-01f227757937") {
             EXPECT_FALSE(foundActive) << "Active key already be reported";
             foundActive = true;
-            EXPECT_EQ("AES-256-GCM"sv, key->cipher);
+            EXPECT_EQ(Cipher::AES_256_GCM, key->cipher);
             EXPECT_EQ("cXOdH9oGE834Y2rWA+FSdXXi5CN3mLJ+Z+C0VpWbOdA="sv,
                       encode(key->key));
         } else if (key->id == "c7e26d06-88ed-43bc-9f66-87b60c037211") {
             EXPECT_FALSE(foundSecond) << "Second key already reported";
             foundSecond = true;
-            EXPECT_EQ("AES-256-GCM"sv, key->cipher);
+            EXPECT_EQ(Cipher::AES_256_GCM, key->cipher);
             EXPECT_EQ("ZdA1gPe3Z4RRfC+r4xjBBCKYtYJ9dNOOLxNEC0zjKVY="sv,
                       encode(key->key));
         } else {
@@ -126,7 +127,7 @@ TEST_F(KeyStoreTest, Add) {
     EXPECT_EQ(2, countKeys());
 
     auto active = ks.getActiveKey();
-    auto next = DataEncryptionKey::generate();
+    std::shared_ptr next = DataEncryptionKey::generate();
     ks.add(next);
     EXPECT_EQ(3, countKeys());
     bool found = false;
