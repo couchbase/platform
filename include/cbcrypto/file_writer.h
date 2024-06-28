@@ -8,11 +8,11 @@
  *   the file licenses/APL2.txt.
  */
 #pragma once
+#include <cbcrypto/common.h>
 #include <filesystem>
 #include <string_view>
 
 namespace cb::crypto {
-struct DataEncryptionKey;
 
 /**
  * The FileWriter class allows for writing to a file with or without
@@ -35,10 +35,9 @@ public:
      *                    small chunks
      * @return A new FileWriter instance
      */
-    static std::unique_ptr<FileWriter> create(
-            const std::shared_ptr<DataEncryptionKey>& dek,
-            std::filesystem::path path,
-            size_t buffer_size = 0);
+    static std::unique_ptr<FileWriter> create(const SharedEncryptionKey& dek,
+                                              std::filesystem::path path,
+                                              size_t buffer_size = 0);
 
     /// Is the file being read encrypted or not
     [[nodiscard]] virtual bool is_encrypted() const = 0;

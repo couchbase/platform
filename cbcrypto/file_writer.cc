@@ -89,7 +89,7 @@ protected:
 
 class EncryptedFileWriterImpl : public FileWriter {
 public:
-    EncryptedFileWriterImpl(const std::shared_ptr<DataEncryptionKey>& dek,
+    EncryptedFileWriterImpl(const SharedEncryptionKey& dek,
                             std::unique_ptr<FileWriter> underlying,
                             size_t buffer_size)
         : buffer_size(buffer_size),
@@ -161,15 +161,14 @@ protected:
     }
 
     const size_t buffer_size;
-    std::unique_ptr<crypto::SymmetricCipher> cipher;
+    std::unique_ptr<SymmetricCipher> cipher;
     std::unique_ptr<FileWriter> underlying;
     std::string buffer;
 };
 
-std::unique_ptr<FileWriter> FileWriter::create(
-        const std::shared_ptr<DataEncryptionKey>& dek,
-        std::filesystem::path path,
-        size_t buffer_size) {
+std::unique_ptr<FileWriter> FileWriter::create(const SharedEncryptionKey& dek,
+                                               std::filesystem::path path,
+                                               size_t buffer_size) {
     if (dek) {
         return std::make_unique<EncryptedFileWriterImpl>(
                 dek,

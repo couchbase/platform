@@ -10,12 +10,12 @@
 
 #pragma once
 
+#include <cbcrypto/common.h>
 #include <filesystem>
 #include <functional>
 #include <string>
 
 namespace cb::crypto {
-struct DataEncryptionKey;
 
 /**
  * The FileWriter class allows for reading to a file with or without
@@ -37,8 +37,8 @@ public:
      */
     static std::unique_ptr<FileReader> create(
             const std::filesystem::path& path,
-            const std::function<std::shared_ptr<DataEncryptionKey>(
-                    std::string_view)>& key_lookup_function,
+            const std::function<SharedEncryptionKey(std::string_view)>&
+                    key_lookup_function,
             std::chrono::microseconds waittime = {});
 
     /// Is the file being read encrypted or not

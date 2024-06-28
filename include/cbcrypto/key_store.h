@@ -10,16 +10,13 @@
 
 #pragma once
 
+#include "common.h"
 #include <nlohmann/json_fwd.hpp>
 #include <functional>
 #include <memory>
 #include <vector>
 
 namespace cb ::crypto {
-struct DataEncryptionKey;
-
-using SharedEncryptionKey = std::shared_ptr<DataEncryptionKey>;
-
 /**
  * The KeyStore is a class which holds multiple keys and allow for
  * looking up keys with an ID. The keystore includes an active key
@@ -45,8 +42,8 @@ public:
             const std::function<void(SharedEncryptionKey)>& callback) const;
 
 protected:
-    std::vector<std::shared_ptr<DataEncryptionKey>> keys;
-    std::shared_ptr<DataEncryptionKey> active;
+    std::vector<SharedEncryptionKey> keys;
+    SharedEncryptionKey active;
 };
 
 [[nodiscard]] std::string format_as(const KeyStore& ks);

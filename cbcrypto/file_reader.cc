@@ -95,8 +95,8 @@ protected:
 
 std::unique_ptr<FileReader> FileReader::create(
         const std::filesystem::path& path,
-        const std::function<std::shared_ptr<DataEncryptionKey>(
-                std::string_view)>& key_lookup_function,
+        const std::function<SharedEncryptionKey(std::string_view)>&
+                key_lookup_function,
         std::chrono::microseconds waittime) {
     // The current implementation reads the entire file into memory, but
     // later on we might want to read the file as a stream (and possibly

@@ -44,6 +44,7 @@ struct DataEncryptionKey {
 [[nodiscard]] std::string format_as(const DataEncryptionKey& dek);
 void to_json(nlohmann::json& json, const DataEncryptionKey& dek);
 void from_json(const nlohmann::json& json, DataEncryptionKey& dek);
+using SharedEncryptionKey = std::shared_ptr<const DataEncryptionKey>;
 
 class NotSupportedException : public std::logic_error {
 public:
