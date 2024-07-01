@@ -33,14 +33,20 @@ struct DataEncryptionKey {
     static std::unique_ptr<DataEncryptionKey> generate(
             Cipher cipher_type = Cipher::AES_256_GCM);
 
+    DataEncryptionKey() = default;
+
+    DataEncryptionKey(std::string id, Cipher cipher, std::string key);
+
     virtual ~DataEncryptionKey() = default;
 
     /// The identification for the current key
     std::string id;
     /// The cipher used for the key
-    Cipher cipher;
+    Cipher cipher{Cipher::None};
     /// The actual key
     std::string key;
+
+    bool operator==(const DataEncryptionKey&) const;
 };
 
 [[nodiscard]] std::string format_as(const DataEncryptionKey& dek);

@@ -70,6 +70,16 @@ std::unique_ptr<DataEncryptionKey> DataEncryptionKey::generate(
     return ret;
 }
 
+DataEncryptionKey::DataEncryptionKey(std::string id,
+                                     cb::crypto::Cipher cipher,
+                                     std::string key)
+    : id(std::move(id)), cipher(cipher), key(std::move(key)) {
+}
+
+bool DataEncryptionKey::operator==(const DataEncryptionKey& other) const {
+    return cipher == other.cipher && id == other.id && key == other.key;
+}
+
 void to_json(nlohmann::json& json, const DataEncryptionKey& dek) {
     json = {{"id", dek.id},
             {"cipher", dek.cipher},
