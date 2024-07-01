@@ -80,6 +80,18 @@ bool DataEncryptionKey::operator==(const DataEncryptionKey& other) const {
     return cipher == other.cipher && id == other.id && key == other.key;
 }
 
+std::string_view DataEncryptionKey::getId() const {
+    return id;
+}
+
+Cipher DataEncryptionKey::getCipher() const {
+    return cipher;
+}
+
+std::string_view DataEncryptionKey::getKey() const {
+    return key;
+}
+
 void to_json(nlohmann::json& json, const DataEncryptionKey& dek) {
     json = {{"id", dek.id},
             {"cipher", dek.cipher},

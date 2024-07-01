@@ -27,8 +27,23 @@ enum class Cipher {
 void to_json(nlohmann::json& json, const Cipher& cipher);
 void from_json(const nlohmann::json& json, Cipher& cipher);
 
+/// EncryptionKeyIface defines an interface for the encryption key.
+class EncryptionKeyIface {
+public:
+    virtual ~EncryptionKeyIface() = default;
+
+    /// The identifier for the encryption key.
+    virtual std::string_view getId() const = 0;
+
+    /// The cipher used for the key
+    virtual Cipher getCipher() const = 0;
+
+    /// The actual key
+    virtual std::string_view getKey() const = 0;
+};
+
 /// A structure to hold the information needed by a single key
-struct DataEncryptionKey {
+struct DataEncryptionKey final : public EncryptionKeyIface {
     /// generate a key with the provided cipher type
     static std::unique_ptr<DataEncryptionKey> generate(
             Cipher cipher_type = Cipher::AES_256_GCM);
@@ -37,7 +52,13 @@ struct DataEncryptionKey {
 
     DataEncryptionKey(std::string id, Cipher cipher, std::string key);
 
-    virtual ~DataEncryptionKey() = default;
+    ~DataEncryptionKey() override = default;
+
+    std::string_view getId() const override;
+
+    Cipher getCipher() const override;
+
+    std::string_view getKey() const override;
 
     /// The identification for the current key
     std::string id;
