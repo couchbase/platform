@@ -30,7 +30,6 @@ std::vector<uint8_t> string2vector(const std::string& str) {
     return ret;
 }
 
-using namespace Couchbase;
 using namespace cb;
 
 /*
@@ -196,20 +195,20 @@ TEST(PBKDF2_HMAC, SHA1) {
     const std::string hash("ujVC+2T7EKQbOJopX5IzPgSx3m0=");
     const std::string salt("ZWglX9gQEpMZqYXlzzlGjs2dqMo=");
 
-    EXPECT_EQ(Base64::decode(hash),
+    EXPECT_EQ(base64::decode(hash),
               crypto::PBKDF2_HMAC(crypto::Algorithm::SHA1,
                                   "password",
-                                  Base64::decode(salt),
+                                  base64::decode(salt),
                                   4096));
 }
 
 TEST(PBKDF2_HMAC, SHA256) {
     const std::string hash("Gg48JSpr1ACwm2sNNfFqlCII7LzkvFaehBDX920nGvE=");
     const std::string salt("K3WUInsELbeaNOpy9jp8nKE907tshZmZq71uw8ExaDs=");
-    EXPECT_EQ(Base64::decode(hash),
+    EXPECT_EQ(base64::decode(hash),
               crypto::PBKDF2_HMAC(crypto::Algorithm::SHA256,
                                   "password",
-                                  Base64::decode(salt),
+                                  base64::decode(salt),
                                   4096));
 }
 
@@ -221,10 +220,10 @@ TEST(PBKDF2_HMAC, SHA512) {
             "rOa3n53kC5VnpxvrUBgHUlRQ3BG1YYkXaL1S31OBv7oUj66jTR"
             "cBU9FerGh+SlbS0kjyBes2eOMe8+2Oi3/BMQ==");
 
-    EXPECT_EQ(Base64::decode(hash),
+    EXPECT_EQ(base64::decode(hash),
               crypto::PBKDF2_HMAC(crypto::Algorithm::SHA512,
                                   "password",
-                                  Base64::decode(salt),
+                                  base64::decode(salt),
                                   4096));
 }
 
@@ -238,7 +237,7 @@ TEST(Digest, SHA1) {
     data.resize(50);
     std::fill(data.begin(), data.end(), 0xdd);
     EXPECT_EQ("a/eYGUZs797W4yYH3kxoypn+dnQ=",
-              Base64::encode(crypto::digest(crypto::Algorithm::SHA1, data)));
+              base64::encode(crypto::digest(crypto::Algorithm::SHA1, data)));
 }
 
 TEST(Digest, SHA256) {
@@ -247,7 +246,7 @@ TEST(Digest, SHA256) {
     std::fill(data.begin(), data.end(), 0xdd);
     auto digest = crypto::digest(crypto::Algorithm::SHA256, data);
     EXPECT_EQ("XPYYtbbTi9FsLlWO701LbVKChFR/1KCdoqu28JjsYZM=",
-              Base64::encode(digest));
+              base64::encode(digest));
 }
 
 TEST(Digest, SHA512) {
@@ -258,7 +257,7 @@ TEST(Digest, SHA512) {
     EXPECT_EQ(
             "ocK90Gck7GOlN3GIBrL76aaf6yUuLl3/HXcSB93FlouYyPN+Dgi+NKIg"
             "Lvr+LtJgKvVDrw2aQ4EXTgOFEvt4MA==",
-            Base64::encode(digest));
+            base64::encode(digest));
 }
 
 /**

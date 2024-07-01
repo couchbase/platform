@@ -41,14 +41,3 @@ namespace cb::base64url {
 std::string encode(std::string_view source);
 std::string decode(std::string_view source);
 } // namespace cb::base64url
-
-// For backwards source compatibility, wrap into the new
-// API
-namespace Couchbase::Base64 {
-inline std::string encode(const std::string& source) {
-    return cb::base64::encode(source, false);
-}
-inline std::string decode(const std::string& source) {
-    return cb::base64::decode(source);
-}
-} // namespace Couchbase::Base64
