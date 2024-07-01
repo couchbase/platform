@@ -26,12 +26,21 @@ std::string encode(std::string_view source, bool prettyprint = false);
  * Decode a base64 encoded blob (which may be pretty-printed to avoid
  * super-long lines)
  *
- * @param source string to decode
+ * @param blob string to decode
  * @return the decoded data
  */
 std::string decode(std::string_view blob);
 
 } // namespace cb::base64
+
+/**
+ * An alternative encoding using '-' and '_' for the 62 and 63rd character
+ * in the alphabet.
+ */
+namespace cb::base64url {
+std::string encode(std::string_view source);
+std::string decode(std::string_view source);
+} // namespace cb::base64url
 
 // For backwards source compatibility, wrap into the new
 // API

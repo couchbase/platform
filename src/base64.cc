@@ -10,8 +10,6 @@
 
 /*
  * Function to base64 encode and decode text as described in RFC 4648
- *
- * @author Trond Norbye
  */
 
 #include <platform/base64.h>
@@ -22,11 +20,9 @@
 #include <stdexcept>
 #include <string>
 
-/**
- * An array of the legal characters used for direct lookup
- */
+/// An array of the legal characters used for direct lookup
 static const uint8_t code[] =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 /**
  * A method to map the code back to the value
@@ -50,8 +46,7 @@ static uint32_t code2val(const uint8_t code) {
     if (code == '/') {
         return uint8_t(63);
     }
-    throw std::invalid_argument("Couchbase::base64::code2val Invalid "
-                                    "input character");
+    throw std::invalid_argument("cb::base64::code2val Invalid input character");
 }
 
 /**
@@ -213,3 +208,43 @@ std::string decode(std::string_view blob) {
 }
 
 } // namespace cb::base64
+
+namespace cb::base64url {
+std::string encode(std::string_view source) {
+    auto encoded = base64::encode(source, false);
+    // Replace the all use of '+' with '-' and '/' with '_'
+    for (auto& c: encoded) {
+        if (c == '+') {
+            c = '-';
+        } else if (c == '/') {
+            c = '_';
+        }
+    }
+
+    // The padding bytes should be stripped off as '=' would be encoded with
+    // % in a URL
+    while (!encoded.empty() && encoded.back() == '=') {
+        encoded.pop_back();
+    }
+
+    return encoded;
+}
+std::string decode(std::string_view source) {
+    // convert back to a base64 encoded string and decode that
+    std::string string{source};
+    for (auto& c : string) {
+        if (c == '-') {
+            c = '+';
+        } else if (c == '_') {
+            c = '/';
+        }
+    }
+
+    // decode expects the input string to contain padding bytes
+    while (string.size() % 4) {
+        string.push_back('=');
+    }
+
+    return base64::decode(string);
+}
+}
