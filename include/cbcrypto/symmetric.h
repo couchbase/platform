@@ -11,6 +11,7 @@
 
 #include "common.h"
 
+#include <cstdint>
 #include <memory>
 
 namespace cb::crypto {
@@ -68,15 +69,21 @@ public:
     std::string encrypt(std::string_view msg, std::string_view ad = {});
 
     /**
-     * Decrypt a message in the format nonce+encrypted+mac.
+     * Encrypt a message with explicit nonce.
      *
-     * @param ct Message to decrypt
+     * @param nonce Nonce/IV to use
+     * @param[out] ct Ciphertext
+     * @param[out] mac MAC tag
+     * @param msg Message to encrypt
      * @param ad Associated Data to authenticate
-     * @return Decrypted message
      * @throws OpenSslError
      * @throws MacVerificationError
      */
-    std::string decrypt(std::string_view ct, std::string_view ad = {});
+    void encrypt(std::uint64_t nonce,
+                 gsl::span<char> ct,
+                 gsl::span<char> mac,
+                 std::string_view msg,
+                 std::string_view ad = {});
 
     /**
      * Encrypt a message with explicit nonce.
@@ -94,6 +101,34 @@ public:
                          gsl::span<char> mac,
                          std::string_view msg,
                          std::string_view ad = {}) = 0;
+
+    /**
+     * Decrypt a message in the format nonce+encrypted+mac.
+     *
+     * @param ct Message to decrypt
+     * @param ad Associated Data to authenticate
+     * @return Decrypted message
+     * @throws OpenSslError
+     * @throws MacVerificationError
+     */
+    std::string decrypt(std::string_view ct, std::string_view ad = {});
+
+    /**
+     * Decrypt a message with explicit nonce.
+     *
+     * @param nonce Nonce/IV to use
+     * @param ct Ciphertext
+     * @param mac MAC tag
+     * @param[out] msg Decrypted message
+     * @param ad Associated Data to authenticate
+     * @throws OpenSslError
+     * @throws MacVerificationError
+     */
+    void decrypt(std::uint64_t nonce,
+                 std::string_view ct,
+                 std::string_view mac,
+                 gsl::span<char> msg,
+                 std::string_view ad = {});
 
     /**
      * Decrypt a message with explicit nonce.

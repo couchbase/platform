@@ -310,7 +310,8 @@ static void testAes256Gcm(std::string_view key64,
     const auto msg = cb::base64::decode(msg64);
     const auto ad = cb::base64::decode(ad64);
 
-    auto cipher = cb::crypto::SymmetricCipher::create("AES-256-GCM", key);
+    auto cipher = cb::crypto::SymmetricCipher::create(
+            cb::crypto::Cipher::AES_256_GCM, key);
 
     std::string buf = ct;
     cipher->decrypt(nonce, buf, mac, buf, ad);
@@ -375,6 +376,38 @@ TEST(Aes256Gcm, PlaintextWithAD) {
                                "",
                                "27giamJFIIY9tolwF7Kk+A=="),
                  cb::crypto::MacVerificationError);
+}
+
+TEST(Aes256Gcm, IntegerNonce) {
+    auto cipher = cb::crypto::SymmetricCipher::create(
+            cb::crypto::Cipher::AES_256_GCM, std::string(32, 'k'));
+    const std::string_view msg = "lorem ipsum";
+    std::string ct;
+    std::string mac;
+    std::string decrypted;
+    ct.resize(msg.size());
+    mac.resize(cipher->getMacSize());
+    decrypted.resize(msg.size());
+
+    std::array<char, 12> nonce{};
+    nonce[10] = 1;
+    nonce[11] = 2;
+
+    cipher->encrypt(0x0102, ct, mac, msg);
+
+    cipher->decrypt(0x0102, ct, mac, decrypted);
+    EXPECT_EQ(msg, decrypted);
+
+    cipher->decrypt({nonce.data(), nonce.size()}, ct, mac, decrypted);
+    EXPECT_EQ(msg, decrypted);
+
+    cipher->encrypt({nonce.data(), nonce.size()}, ct, mac, msg);
+
+    cipher->decrypt(0x0102, ct, mac, decrypted);
+    EXPECT_EQ(msg, decrypted);
+
+    cipher->decrypt({nonce.data(), nonce.size()}, ct, mac, decrypted);
+    EXPECT_EQ(msg, decrypted);
 }
 
 TEST(RandomBitGenerator, Generate) {

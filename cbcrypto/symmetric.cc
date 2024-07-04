@@ -193,7 +193,69 @@ void Aes256Gcm::decrypt(std::string_view nonce,
     }
 }
 
+/**
+ * Converts an unsigned integer (64-bit) to a big-endian value of the specified
+ * size.
+ *
+ * The representation is stored in a fixed-size buffer, which limits the maximum
+ * size.
+ */
+class SerializedUInt {
+public:
+    SerializedUInt(uint64_t value, size_t size) : len(size) {
+        if (size > buffer.size()) {
+            throw NotSupportedException(fmt::format(
+                    "cb::crypto::SerializedUInt: Unsupported size:{}", size));
+        }
+        // Fill the buffer with the big-endian representation,
+        // padding with zeros at the front if needed.
+        for (auto ii = size; ii--;) {
+            buffer[ii] = static_cast<unsigned char>(value);
+            value >>= CHAR_BIT;
+        }
+        // The size should be large enough to contain the value
+        Expects(value == 0);
+    }
+
+    const char* data() const {
+        return reinterpret_cast<const char*>(buffer.data());
+    }
+
+    size_t size() const {
+        return len;
+    }
+
+    operator std::string_view() const {
+        return {data(), size()};
+    }
+
+protected:
+    /// Buffer to store the serialized representation.
+    /// May be larger than the specified size.
+    std::array<unsigned char, 12> buffer;
+    /// Size of the big-endian value.
+    unsigned char len;
+};
+
 } // namespace internal
+
+void SymmetricCipher::encrypt(std::uint64_t nonce,
+                              gsl::span<char> ct,
+                              gsl::span<char> mac,
+                              std::string_view msg,
+                              std::string_view ad) {
+    internal::SerializedUInt serializedNonce{nonce, getNonceSize()};
+    return encrypt(serializedNonce, ct, mac, msg, ad);
+}
+
+void SymmetricCipher::decrypt(std::uint64_t nonce,
+                              std::string_view ct,
+                              std::string_view mac,
+                              gsl::span<char> msg,
+                              std::string_view ad) {
+    internal::SerializedUInt serializedNonce{nonce, getNonceSize()};
+    return decrypt(serializedNonce, ct, mac, msg, ad);
+}
 
 std::string SymmetricCipher::encrypt(std::string_view msg,
                                      std::string_view ad) {
