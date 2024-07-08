@@ -39,7 +39,7 @@ using EvpCipherCtxUniquePtr =
 
 class Aes256Gcm final : public SymmetricCipher {
 public:
-    Aes256Gcm(std::string key, const char* properties);
+    Aes256Gcm(std::string_view key, const char* properties);
 
     void encrypt(std::string_view nonce,
                  gsl::span<char> ct,
@@ -68,17 +68,17 @@ public:
 protected:
     const std::unique_ptr<EVP_CIPHER, EvpCipherDeleter> cipher;
 
-    const std::string key;
+    std::array<char, KeySize> key;
 };
 
-Aes256Gcm::Aes256Gcm(std::string key, const char* properties)
-    : cipher(EVP_CIPHER_fetch(nullptr, "AES-256-GCM", properties)),
-      key(std::move(key)) {
-    Expects(this->key.size() == KeySize);
+Aes256Gcm::Aes256Gcm(std::string_view key, const char* properties)
+    : cipher(EVP_CIPHER_fetch(nullptr, "AES-256-GCM", properties)) {
+    Expects(key.size() == KeySize);
     if (!cipher) {
         throw OpenSslError::get("cb::crypto::Aes256Gcm::Aes256Gcm",
                                 "EVP_CIPHER_fetch");
     }
+    std::copy(key.begin(), key.end(), this->key.begin());
 }
 
 void Aes256Gcm::encrypt(std::string_view nonce,
@@ -323,14 +323,13 @@ std::string SymmetricCipher::generateKey(Cipher cipher) {
 }
 
 std::unique_ptr<SymmetricCipher> SymmetricCipher::create(
-        Cipher cipher, std::string key, const char* properties) {
+        Cipher cipher, std::string_view key, const char* properties) {
     switch (cipher) {
     case Cipher::None:
         break;
     case Cipher::AES_256_GCM:
         Expects(key.size() == internal::Aes256Gcm::KeySize);
-        return std::make_unique<internal::Aes256Gcm>(std::move(key),
-                                                     properties);
+        return std::make_unique<internal::Aes256Gcm>(key, properties);
     }
     throw NotSupportedException(fmt::format(
             "cb::crypto::SymmetricCipher::create: Cipher {} not supported",

@@ -40,7 +40,9 @@ public:
      * @param properties Properties to pass to OpenSSL (e.g. provider)
      */
     static std::unique_ptr<SymmetricCipher> create(
-            Cipher cipher, std::string key, const char* properties = nullptr);
+            Cipher cipher,
+            std::string_view key,
+            const char* properties = nullptr);
 
     /**
      * Instantiates a SymmetricCipher with the given name and key.
@@ -52,9 +54,9 @@ public:
      */
     static std::unique_ptr<SymmetricCipher> create(
             std::string_view cipherName,
-            std::string key,
+            std::string_view key,
             const char* properties = nullptr) {
-        return create(to_cipher(cipherName), std::move(key), properties);
+        return create(to_cipher(cipherName), key, properties);
     }
 
     /**
