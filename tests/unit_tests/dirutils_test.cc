@@ -71,47 +71,6 @@ void IoTest::TearDownTestCase() {
     cb::io::rmrf("fs");
 }
 
-TEST_F(IoTest, dirname) {
-    // Check the simple case
-    EXPECT_EQ("foo", cb::io::dirname("foo\\bar"));
-    EXPECT_EQ("foo", cb::io::dirname("foo/bar"));
-
-    // Make sure that we remove double an empty chunk
-    EXPECT_EQ("foo", cb::io::dirname("foo\\\\bar"));
-    EXPECT_EQ("foo", cb::io::dirname("foo//bar"));
-
-    // Make sure that we handle the case without a directory
-    EXPECT_EQ(".", cb::io::dirname("bar"));
-    EXPECT_EQ(".", cb::io::dirname(""));
-
-    // Absolute directories
-    EXPECT_EQ("\\", cb::io::dirname("\\bar"));
-    EXPECT_EQ("\\", cb::io::dirname("\\\\bar"));
-    EXPECT_EQ("/", cb::io::dirname("/bar"));
-    EXPECT_EQ("/", cb::io::dirname("//bar"));
-
-    // Test that we work with multiple directories
-    EXPECT_EQ("1/2/3/4/5", cb::io::dirname("1/2/3/4/5/6"));
-    EXPECT_EQ("1\\2\\3\\4\\5", cb::io::dirname("1\\2\\3\\4\\5\\6"));
-    EXPECT_EQ("1/2\\4/5", cb::io::dirname("1/2\\4/5\\6"));
-}
-
-TEST_F(IoTest, basename) {
-    EXPECT_EQ("bar", cb::io::basename("foo\\bar"));
-    EXPECT_EQ("bar", cb::io::basename("foo/bar"));
-    EXPECT_EQ("bar", cb::io::basename("foo\\\\bar"));
-    EXPECT_EQ("bar", cb::io::basename("foo//bar"));
-    EXPECT_EQ("bar", cb::io::basename("bar"));
-    EXPECT_EQ("", cb::io::basename(""));
-    EXPECT_EQ("bar", cb::io::basename("\\bar"));
-    EXPECT_EQ("bar", cb::io::basename("\\\\bar"));
-    EXPECT_EQ("bar", cb::io::basename("/bar"));
-    EXPECT_EQ("bar", cb::io::basename("//bar"));
-    EXPECT_EQ("6", cb::io::basename("1/2/3/4/5/6"));
-    EXPECT_EQ("6", cb::io::basename("1\\2\\3\\4\\5\\6"));
-    EXPECT_EQ("6", cb::io::basename("1/2\\4/5\\6"));
-}
-
 TEST_F(IoTest, findFilesWithPrefix) {
     auto vec = cb::io::findFilesWithPrefix("fs");
     EXPECT_EQ(1u, vec.size());

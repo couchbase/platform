@@ -41,12 +41,12 @@ const char DirectorySeparator{'/'};
 /**
  * Return the directory part of an absolute path
  */
-[[nodiscard]] std::string dirname(const std::string& dir);
+[[nodiscard]] std::string dirname(const std::filesystem::path& dir);
 
 /**
  * Return the filename part of an absolute path
  */
-[[nodiscard]] std::string basename(const std::string& name);
+[[nodiscard]] std::string basename(const std::filesystem::path& name);
 
 /**
  * Return a vector containing all the files starting with a given

@@ -49,43 +49,15 @@ std::filesystem::path cb::io::makeExtendedLengthPath(const std::string_view path
     return bPath;
 }
 
-static std::string split(const std::string& input, bool directory) {
-    std::string::size_type path = input.find_last_of("\\/");
-    std::string file;
-    std::string dir;
-
-    if (path == std::string::npos) {
-        dir = ".";
-        file = input;
-    } else {
-        dir = input.substr(0, path);
-        if (dir.length() == 0) {
-            dir = input.substr(0, 1);
-        }
-
-        while (dir.length() > 1 &&
-               dir.find_last_of("\\/") == (dir.length() - 1)) {
-            if (dir.length() > 1) {
-                dir.resize(dir.length() - 1);
-            }
-        }
-
-        file = input.substr(path + 1);
+std::string cb::io::dirname(const std::filesystem::path& dir) {
+    if (dir.has_parent_path()) {
+        return dir.parent_path().make_preferred().string();
     }
-
-    if (directory) {
-        return dir;
-    } else {
-        return file;
-    }
+    return ".";
 }
 
-std::string cb::io::dirname(const std::string& dir) {
-    return split(dir, true);
-}
-
-std::string cb::io::basename(const std::string& name) {
-    return split(name, false);
+std::string cb::io::basename(const std::filesystem::path& name) {
+    return name.filename().string();
 }
 
 std::vector<std::string> cb::io::findFilesWithPrefix(
