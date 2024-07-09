@@ -140,10 +140,7 @@ TEST_F(IoTest, findFilesWithPrefix) {
 }
 
 TEST_F(IoTest, findFilesContaining) {
-    auto vec = cb::io::findFilesContaining("fs", "");
-    EXPECT_EQ(vfs.size() - 2, vec.size());
-
-    vec = cb::io::findFilesContaining("fs", "2");
+    auto vec = cb::io::findFilesContaining("fs", "2");
     EXPECT_EQ(7u, vec.size());
     EXPECT_NE(vec.end(),
               std::find(vec.begin(), vec.end(), cb::io::sanitizePath("fs/d2")));
@@ -189,34 +186,34 @@ TEST_F(IoTest, isFileAndIsDirectory) {
     cb::io::rmrf(filename);
 }
 
-#ifdef WIN32
 // Verify cb::io methods support long paths on Windows.
 TEST_F(IoTest, longpaths) {
-    constexpr auto testRootDir = "longpaths";
-    std::string dirPath = testRootDir;
+    std::filesystem::path testRootDir("longpaths");
+    std::filesystem::path dirPath = testRootDir;
     for (int i = 0; i < 4; i++) {
-        dirPath += "\\" + std::string(100, 'a');
+        dirPath = dirPath / std::string(100, 'a');
     }
-    constexpr auto prefix = R"(\\?\)";
 
     // Clean up any previous test runs.
-    if (cb::io::isDirectory(testRootDir)) {
-        cb::io::rmrf(testRootDir);
+    if (cb::io::isDirectory(testRootDir.string())) {
+        cb::io::rmrf(testRootDir.string());
     }
 
     // mkdirp
-    cb::io::mkdirp(dirPath);
+    cb::io::mkdirp(dirPath.string());
 
     // mkdtemp
-    auto tempDir = cb::io::mkdtemp(dirPath);
+    auto tempDir = cb::io::mkdtemp(dirPath.string());
 
     // isDirectory
-    EXPECT_TRUE(cb::io::isDirectory(dirPath));
+    EXPECT_TRUE(cb::io::isDirectory(dirPath.string()));
     EXPECT_TRUE(cb::io::isDirectory(tempDir));
 
     // Create two files for testing purposes.
-    auto const filePath1 = cb::io::mktemp(dirPath + "\\file1");
-    auto const filePath2 = cb::io::mktemp(dirPath + "\\file2");
+    auto const filePath1 =
+            cb::io::mktemp((dirPath / "file1").make_preferred().string());
+    auto const filePath2 =
+            cb::io::mktemp((dirPath / "file2").make_preferred().string());
 
     // isFile
     EXPECT_TRUE(cb::io::isFile(filePath1));
@@ -239,12 +236,11 @@ TEST_F(IoTest, longpaths) {
     EXPECT_EQ(0, files.size());
 
     // rmrf
-    cb::io::rmrf(testRootDir);
+    cb::io::rmrf(testRootDir.string());
     EXPECT_FALSE(cb::io::isFile(filePath1));
     EXPECT_FALSE(cb::io::isFile(filePath2));
-    EXPECT_FALSE(cb::io::isDirectory(testRootDir));
+    EXPECT_FALSE(cb::io::isDirectory(testRootDir.string()));
 }
-#endif
 
 TEST_F(IoTest, mkdirp) {
     std::string path{"/it/would/suck/if/I/could/create/this"};

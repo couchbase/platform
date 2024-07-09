@@ -53,21 +53,24 @@ const char DirectorySeparator{'/'};
  * name stored in a given directory
  */
 [[nodiscard]] std::vector<std::string> findFilesWithPrefix(
-        const std::string& dir, const std::string& name);
+        const std::filesystem::path& dir, std::string_view name);
 
 /**
  * Return a vector containing all the files starting with a given
  * name specified with this absolute path
  */
 [[nodiscard]] std::vector<std::string> findFilesWithPrefix(
-        const std::string& name);
+        const std::filesystem::path& name);
 
 /**
  * Return a vector containing all the files containing a given
  * substring located in a given directory
+ *
+ * @param dir the directory to search
+ * @param pattern the pattern to search for (can't be empty)
  */
 [[nodiscard]] std::vector<std::string> findFilesContaining(
-        const std::string& dir, const std::string& name);
+        const std::filesystem::path& dir, std::string_view pattern);
 
 /**
  * Delete a file or directory (including subdirectories)

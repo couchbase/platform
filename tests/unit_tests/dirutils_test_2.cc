@@ -184,16 +184,6 @@ TEST_F(DiskMatchingTest, findAllA) {
     EXPECT_TRUE(inList(f2, "my-dirutil-test/a.3"));
 }
 
-TEST_F(DiskMatchingTest, matchNoDirSubString) {
-    auto f1 = cb::io::findFilesContaining("", "");
-    EXPECT_EQ(0, f1.size());
-}
-
-TEST_F(DiskMatchingTest, matchEmptySubString) {
-    auto f1 = cb::io::findFilesContaining("my-dirutil-test", "");
-    EXPECT_LE(files.size(), f1.size());
-}
-
 TEST_F(DiskMatchingTest, matchSingleCharSubString) {
     auto f1 = cb::io::findFilesContaining("my-dirutil-test", "w");
     EXPECT_EQ(2, f1.size());

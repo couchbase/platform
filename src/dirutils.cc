@@ -88,127 +88,51 @@ std::string cb::io::basename(const std::string& name) {
     return split(name, false);
 }
 
-#ifdef _MSC_VER
-std::vector<std::string> cb::io::findFilesWithPrefix(const std::string& dir,
-                                                     const std::string& name) {
+std::vector<std::string> cb::io::findFilesWithPrefix(
+        const std::filesystem::path& dir, const std::string_view name) {
+    auto path = dir;
+    path = makeExtendedLengthPath(path.make_preferred().string());
+
     std::vector<std::string> files;
-    auto longDir = makeExtendedLengthPath(dir);
-    auto match = longDir / (name + "*");
-    WIN32_FIND_DATAW FindFileData;
-
-    HANDLE hFind = FindFirstFileExW(match.c_str(),
-                                    FindExInfoStandard,
-                                    &FindFileData,
-                                    FindExSearchNameMatch,
-                                    NULL,
-                                    0);
-
-    if (hFind != INVALID_HANDLE_VALUE) {
-        do {
-            std::wstring fn = FindFileData.cFileName;
-            std::string fnm(fn.begin(), fn.end());
-            if (fnm != "." && fnm != "..") {
-                std::string entry = dir;
-                entry.append("\\");
-                entry.append(fnm);
-                files.push_back(entry);
-            }
-        } while (FindNextFileW(hFind, &FindFileData));
-
-        FindClose(hFind);
-    }
-    return files;
-}
-#else
-std::vector<std::string> cb::io::findFilesWithPrefix(const std::string& dir,
-                                                     const std::string& name) {
-    std::vector<std::string> files;
-    DIR* dp = opendir(dir.c_str());
-    if (dp != nullptr) {
-        struct dirent* de;
-        while ((de = readdir(dp)) != nullptr) {
-            std::string fnm(de->d_name);
-            if (fnm == "." || fnm == "..") {
-                continue;
-            }
-            if (strncmp(de->d_name, name.c_str(), name.length()) == 0) {
-                std::string entry = dir;
-                entry.append("/");
-                entry.append(de->d_name);
-                files.push_back(entry);
-            }
+    std::error_code ec;
+    for (const auto& p : std::filesystem::directory_iterator(path, ec)) {
+        auto filename = p.path().filename().string();
+        if (name.empty() || filename.rfind(name, 0) == 0) {
+            files.emplace_back((dir / filename).make_preferred().string());
         }
-
-        closedir(dp);
     }
     return files;
 }
-#endif
 
-std::vector<std::string> cb::io::findFilesWithPrefix(const std::string& name) {
-    return findFilesWithPrefix(dirname(name), basename(name));
+std::vector<std::string> cb::io::findFilesWithPrefix(
+        const std::filesystem::path& name) {
+    if (name.has_parent_path()) {
+        return findFilesWithPrefix(name.parent_path(),
+                                   name.filename().string());
+    }
+    return findFilesWithPrefix(".", name.string());
 }
 
-#ifdef _MSC_VER
-std::vector<std::string> cb::io::findFilesContaining(const std::string &dir,
-                                                            const std::string &name)
-{
-    if (dir.empty()) {
-        return {};
+std::vector<std::string> cb::io::findFilesContaining(
+        const std::filesystem::path& dir, const std::string_view pattern) {
+    if (pattern.empty()) {
+        throw std::invalid_argument(
+                "cb::io::findFilesContaining: pattern can't be empty");
     }
+
+    auto path = dir;
+    path = makeExtendedLengthPath(path.make_preferred().string());
+
     std::vector<std::string> files;
-    auto longDir = makeExtendedLengthPath(dir);
-    auto match = longDir / ("*" + name + "*");
-    WIN32_FIND_DATAW FindFileData;
-
-    HANDLE hFind = FindFirstFileExW(match.c_str(),
-                                    FindExInfoStandard,
-                                    &FindFileData,
-                                    FindExSearchNameMatch,
-                                    NULL,
-                                    0);
-
-    if (hFind != INVALID_HANDLE_VALUE) {
-        do {
-            std::wstring fn(FindFileData.cFileName);
-            std::string fnm(fn.begin(), fn.end());
-            if (fnm != "." && fnm != "..") {
-                std::string entry = dir;
-                entry.append("\\");
-                entry.append(fnm);
-                files.push_back(entry);
-            }
-        } while (FindNextFileW(hFind, &FindFileData));
-
-        FindClose(hFind);
-    }
-    return files;
-}
-#else
-std::vector<std::string> cb::io::findFilesContaining(const std::string& dir,
-                                                            const std::string& name) {
-    std::vector<std::string> files;
-    DIR* dp = opendir(dir.c_str());
-    if (dp != nullptr) {
-        struct dirent* de;
-        while ((de = readdir(dp)) != nullptr) {
-            if (name.empty() || strstr(de->d_name, name.c_str()) != nullptr) {
-                std::string fnm(de->d_name);
-                if (fnm != "." && fnm != "..") {
-                    std::string entry = dir;
-                    entry.append("/");
-                    entry.append(de->d_name);
-                    files.push_back(entry);
-                }
-            }
+    std::error_code ec;
+    for (const auto& p : std::filesystem::directory_iterator(path, ec)) {
+        auto filename = p.path().filename().string();
+        if (filename.find(pattern) != std::string::npos) {
+            files.emplace_back((dir / filename).make_preferred().string());
         }
-
-        closedir(dp);
     }
-
     return files;
 }
-#endif
 
 void cb::io::rmrf(const std::string_view path) {
     remove_all(makeExtendedLengthPath(path));
