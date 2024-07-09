@@ -139,7 +139,7 @@ void mkdirp(std::string_view directory);
  * @param path the path to sanitize
  * @return sanitized version of the path
  */
-[[nodiscard]] std::string sanitizePath(std::string path);
+[[nodiscard]] std::string sanitizePath(std::filesystem::path path);
 
 /**
  * Load the named file

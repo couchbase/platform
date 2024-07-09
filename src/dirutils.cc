@@ -371,9 +371,6 @@ void cb::io::setBinaryMode(FILE* fp) {
 #endif
 }
 
-std::string cb::io::sanitizePath(std::string path) {
-#ifdef WIN32
-    std::replace(path.begin(), path.end(), '/', '\\');
-#endif
-    return path;
+std::string cb::io::sanitizePath(std::filesystem::path path) {
+    return path.make_preferred().string();
 }

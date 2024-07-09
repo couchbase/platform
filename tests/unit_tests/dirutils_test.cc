@@ -377,3 +377,11 @@ TEST_F(IoTest, tokenizeFileLineByLine) {
 
     cb::io::rmrf(filename);
 }
+
+#ifdef WIN32
+TEST_F(IoTest, sanitizePath) {
+    const std::string content{"/hello/world\\foo"};
+    std::filesystem::path path(content);
+    EXPECT_EQ("\\hello\\world\\foo", path.make_preferred().string());
+}
+#endif
