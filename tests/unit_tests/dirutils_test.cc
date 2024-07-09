@@ -21,26 +21,16 @@
 #ifdef WIN32
 #include <windows.h>
 #include <direct.h>
-#define mkdir(a, b) _mkdir(a)
-#define PATH_SEPARATOR "\\"
-#else
-#define PATH_SEPARATOR "/"
 #endif
 
-static bool CreateDirectory(const std::string& dir) {
-    if (mkdir(dir.c_str(), S_IXUSR | S_IWUSR | S_IRUSR) != 0) {
-        if (errno != EEXIST) {
-            return false;
-        }
+static bool CreateDirectory(const std::filesystem::path& dir) {
+    try {
+        create_directories(dir);
+    } catch (const std::exception&) {
+        return false;
     }
     return true;
 }
-
-static bool exists(const std::string& path) {
-    struct stat st;
-    return stat(path.c_str(), &st) == 0;
-}
-
 
 class IoTest : public ::testing::Test {
 public:
@@ -52,29 +42,27 @@ public:
 protected:
 
     // A small filesystem we can play around with
-    static const std::vector<std::string> vfs;
+    static std::vector<std::string> vfs;
 };
 
-const std::vector<std::string> IoTest::vfs = {
-    {"fs"},
-    {"fs/d1"},
-    {"fs/d2"},
-    {"fs/e2"},
-    {"fs/f2c"},
-    {"fs/g2"},
-    {"fs/d3"},
-    {"fs/1"},
-    {"fs/2"},
-    {"fs/2c"},
-    {"fs/2d"},
-    {"fs/3"},
-    {"fs/d1/d1"}
-};
+std::vector<std::string> IoTest::vfs;
 
 void IoTest::SetUpTestCase() {
-    for (const auto& file : vfs) {
+    for (const auto& file : std::vector<std::string>{{"fs"},
+                                                     {"fs/d1"},
+                                                     {"fs/d2"},
+                                                     {"fs/e2"},
+                                                     {"fs/f2c"},
+                                                     {"fs/g2"},
+                                                     {"fs/d3"},
+                                                     {"fs/1"},
+                                                     {"fs/2"},
+                                                     {"fs/2c"},
+                                                     {"fs/2d"},
+                                                     {"fs/3"},
+                                                     {"fs/d1/d1"}}) {
         ASSERT_TRUE(CreateDirectory(file)) << "failed to create directory";
-        ASSERT_TRUE(exists(file)) << "directory " << file << " does not exists";
+        vfs.emplace_back(cb::io::sanitizePath(file));
     }
 }
 
@@ -128,25 +116,24 @@ TEST_F(IoTest, findFilesWithPrefix) {
     auto vec = cb::io::findFilesWithPrefix("fs");
     EXPECT_EQ(1u, vec.size());
 
-    EXPECT_NE(vec.end(), std::find(vec.begin(), vec.end(),
-                                   "." PATH_SEPARATOR "fs"));
-
+    EXPECT_NE(vec.end(),
+              std::find(vec.begin(), vec.end(), cb::io::sanitizePath("./fs")));
 
     vec = cb::io::findFilesWithPrefix("fs", "d");
     EXPECT_EQ(3u, vec.size());
 
     // We don't know the order of the files in the result..
-    EXPECT_NE(vec.end(), std::find(vec.begin(), vec.end(),
-                                   "fs" PATH_SEPARATOR "d1"));
-    EXPECT_NE(vec.end(), std::find(vec.begin(), vec.end(),
-                                   "fs" PATH_SEPARATOR "d2"));
-    EXPECT_NE(vec.end(), std::find(vec.begin(), vec.end(),
-                                   "fs" PATH_SEPARATOR "d3"));
+    EXPECT_NE(vec.end(),
+              std::find(vec.begin(), vec.end(), cb::io::sanitizePath("fs/d1")));
+    EXPECT_NE(vec.end(),
+              std::find(vec.begin(), vec.end(), cb::io::sanitizePath("fs/d2")));
+    EXPECT_NE(vec.end(),
+              std::find(vec.begin(), vec.end(), cb::io::sanitizePath("fs/d3")));
 
     vec = cb::io::findFilesWithPrefix("fs", "1");
     EXPECT_EQ(1u, vec.size());
-    EXPECT_NE(vec.end(), std::find(vec.begin(), vec.end(),
-                                   "fs" PATH_SEPARATOR "1"));
+    EXPECT_NE(vec.end(),
+              std::find(vec.begin(), vec.end(), cb::io::sanitizePath("fs/1")));
 
     vec = cb::io::findFilesWithPrefix("fs", "");
     EXPECT_EQ(vfs.size() - 2, vec.size());
@@ -158,20 +145,21 @@ TEST_F(IoTest, findFilesContaining) {
 
     vec = cb::io::findFilesContaining("fs", "2");
     EXPECT_EQ(7u, vec.size());
-    EXPECT_NE(vec.end(), std::find(vec.begin(), vec.end(),
-                                   "fs" PATH_SEPARATOR "d2"));
-    EXPECT_NE(vec.end(), std::find(vec.begin(), vec.end(),
-                                   "fs" PATH_SEPARATOR "e2"));
-    EXPECT_NE(vec.end(), std::find(vec.begin(), vec.end(),
-                                   "fs" PATH_SEPARATOR "f2c"));
-    EXPECT_NE(vec.end(), std::find(vec.begin(), vec.end(),
-                                   "fs" PATH_SEPARATOR "g2"));
-    EXPECT_NE(vec.end(), std::find(vec.begin(), vec.end(),
-                                   "fs" PATH_SEPARATOR "2"));
-    EXPECT_NE(vec.end(), std::find(vec.begin(), vec.end(),
-                                   "fs" PATH_SEPARATOR "2c"));
-    EXPECT_NE(vec.end(), std::find(vec.begin(), vec.end(),
-                                   "fs" PATH_SEPARATOR "2d"));
+    EXPECT_NE(vec.end(),
+              std::find(vec.begin(), vec.end(), cb::io::sanitizePath("fs/d2")));
+    EXPECT_NE(vec.end(),
+              std::find(vec.begin(), vec.end(), cb::io::sanitizePath("fs/e2")));
+    EXPECT_NE(
+            vec.end(),
+            std::find(vec.begin(), vec.end(), cb::io::sanitizePath("fs/f2c")));
+    EXPECT_NE(vec.end(),
+              std::find(vec.begin(), vec.end(), cb::io::sanitizePath("fs/g2")));
+    EXPECT_NE(vec.end(),
+              std::find(vec.begin(), vec.end(), cb::io::sanitizePath("fs/2")));
+    EXPECT_NE(vec.end(),
+              std::find(vec.begin(), vec.end(), cb::io::sanitizePath("fs/2c")));
+    EXPECT_NE(vec.end(),
+              std::find(vec.begin(), vec.end(), cb::io::sanitizePath("fs/2d")));
 }
 
 TEST_F(IoTest, mktemp) {
@@ -207,7 +195,7 @@ TEST_F(IoTest, longpaths) {
     constexpr auto testRootDir = "longpaths";
     std::string dirPath = testRootDir;
     for (int i = 0; i < 4; i++) {
-        dirPath += PATH_SEPARATOR + std::string(100, 'a');
+        dirPath += "\\" + std::string(100, 'a');
     }
     constexpr auto prefix = R"(\\?\)";
 
@@ -227,8 +215,8 @@ TEST_F(IoTest, longpaths) {
     EXPECT_TRUE(cb::io::isDirectory(tempDir));
 
     // Create two files for testing purposes.
-    auto const filePath1 = cb::io::mktemp(dirPath + PATH_SEPARATOR + "file1");
-    auto const filePath2 = cb::io::mktemp(dirPath + PATH_SEPARATOR + "file2");
+    auto const filePath1 = cb::io::mktemp(dirPath + "\\file1");
+    auto const filePath2 = cb::io::mktemp(dirPath + "\\file2");
 
     // isFile
     EXPECT_TRUE(cb::io::isFile(filePath1));
