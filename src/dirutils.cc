@@ -35,7 +35,8 @@
 #include <limits>
 #include <system_error>
 
-std::filesystem::path cb::io::makeExtendedLengthPath(const std::string_view path) {
+namespace cb::io {
+std::filesystem::path makeExtendedLengthPath(const std::string_view path) {
     std::filesystem::path bPath = path;
 #ifdef _MSC_VER
     constexpr auto prefix = R"(\\?\)";
@@ -49,19 +50,19 @@ std::filesystem::path cb::io::makeExtendedLengthPath(const std::string_view path
     return bPath;
 }
 
-std::string cb::io::dirname(const std::filesystem::path& dir) {
+std::string dirname(const std::filesystem::path& dir) {
     if (dir.has_parent_path()) {
         return dir.parent_path().make_preferred().string();
     }
     return ".";
 }
 
-std::string cb::io::basename(const std::filesystem::path& name) {
+std::string basename(const std::filesystem::path& name) {
     return name.filename().string();
 }
 
-std::vector<std::string> cb::io::findFilesWithPrefix(
-        const std::filesystem::path& dir, const std::string_view name) {
+std::vector<std::string> findFilesWithPrefix(const std::filesystem::path& dir,
+                                             const std::string_view name) {
     auto path = dir;
     path = makeExtendedLengthPath(path.make_preferred().string());
 
@@ -76,7 +77,7 @@ std::vector<std::string> cb::io::findFilesWithPrefix(
     return files;
 }
 
-std::vector<std::string> cb::io::findFilesWithPrefix(
+std::vector<std::string> findFilesWithPrefix(
         const std::filesystem::path& name) {
     if (name.has_parent_path()) {
         return findFilesWithPrefix(name.parent_path(),
@@ -85,11 +86,11 @@ std::vector<std::string> cb::io::findFilesWithPrefix(
     return findFilesWithPrefix(".", name.string());
 }
 
-std::vector<std::string> cb::io::findFilesContaining(
-        const std::filesystem::path& dir, const std::string_view pattern) {
+std::vector<std::string> findFilesContaining(const std::filesystem::path& dir,
+                                             const std::string_view pattern) {
     if (pattern.empty()) {
         throw std::invalid_argument(
-                "cb::io::findFilesContaining: pattern can't be empty");
+                "findFilesContaining: pattern can't be empty");
     }
 
     auto path = dir;
@@ -106,29 +107,29 @@ std::vector<std::string> cb::io::findFilesContaining(
     return files;
 }
 
-void cb::io::rmrf(const std::string_view path) {
+void rmrf(const std::string_view path) {
     remove_all(makeExtendedLengthPath(path));
 }
 
-bool cb::io::isDirectory(const std::string_view directory) {
+bool isDirectory(const std::string_view directory) {
     std::error_code ec;
     return is_directory(makeExtendedLengthPath(directory), ec);
 }
 
-bool cb::io::isFile(const std::string_view file) {
+bool isFile(const std::string_view file) {
     std::error_code ec;
     const auto path = makeExtendedLengthPath(file);
     return is_regular_file(path, ec) || is_symlink(path, ec);
 }
 
-void cb::io::mkdirp(std::string_view directory) {
+void mkdirp(std::string_view directory) {
     if (!std::filesystem::is_directory(directory)) {
         auto longDir = makeExtendedLengthPath(directory);
         std::filesystem::create_directories(longDir.c_str());
     }
 }
 
-std::string cb::io::mktemp(const std::string_view prefix) {
+std::string mktemp(const std::string_view prefix) {
     static const std::string patternmask{"XXXXXX"};
     std::string pattern{prefix};
 
@@ -171,7 +172,7 @@ std::string cb::io::mktemp(const std::string_view prefix) {
     } while (true);
 }
 
-std::string cb::io::mkdtemp(const std::string_view prefix) {
+std::string mkdtemp(const std::string_view prefix) {
     static const std::string patternmask{"XXXXXX"};
     std::string pattern {prefix};
 
@@ -195,7 +196,7 @@ std::string cb::io::mkdtemp(const std::string_view prefix) {
     } while (true);
 }
 
-uint64_t cb::io::maximizeFileDescriptors(uint64_t limit) {
+uint64_t maximizeFileDescriptors(uint64_t limit) {
 #ifdef WIN32
     return limit;
 #else
@@ -256,17 +257,17 @@ uint64_t cb::io::maximizeFileDescriptors(uint64_t limit) {
 #endif
 }
 
-void cb::io::setBinaryMode(FILE* fp) {
+void setBinaryMode(FILE* fp) {
 #ifdef WIN32
     if (_setmode(_fileno(fp), _O_BINARY) == -1) {
-        throw std::system_error(
-                errno, std::system_category(), "cb::io::setBinaryMode");
+        throw std::system_error(errno, std::system_category(), "setBinaryMode");
     }
 #else
     (void)fp;
 #endif
 }
 
-std::string cb::io::sanitizePath(std::filesystem::path path) {
+std::string sanitizePath(std::filesystem::path path) {
     return path.make_preferred().string();
 }
+} // namespace cb::io
