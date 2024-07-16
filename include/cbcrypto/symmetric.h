@@ -158,6 +158,12 @@ public:
     /// Request the key size for the provided cipher
     static std::size_t getKeySize(Cipher cipher);
 
+    /// Request the nonce size for the provided cipher
+    static std::size_t getNonceSize(Cipher cipher);
+
+    /// Request the mac size for the provided cipher
+    static std::size_t getMacSize(Cipher cipher);
+
 protected:
     SymmetricCipher() = default;
 };

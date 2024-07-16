@@ -348,4 +348,28 @@ std::size_t SymmetricCipher::getKeySize(Cipher cipher) {
             static_cast<int>(cipher)));
 }
 
+std::size_t SymmetricCipher::getNonceSize(Cipher cipher) {
+    switch (cipher) {
+    case Cipher::None:
+        return 0;
+    case Cipher::AES_256_GCM:
+        return internal::Aes256Gcm::NonceSize;
+    }
+    throw std::invalid_argument(fmt::format(
+            "SymmetricCipher::getNonceSize(Cipher cipher): Unknown cipher: {}",
+            static_cast<int>(cipher)));
+}
+
+std::size_t SymmetricCipher::getMacSize(Cipher cipher) {
+    switch (cipher) {
+    case Cipher::None:
+        return 0;
+    case Cipher::AES_256_GCM:
+        return internal::Aes256Gcm::MacSize;
+    }
+    throw std::invalid_argument(fmt::format(
+            "SymmetricCipher::getMacSize(Cipher cipher): Unknown cipher: {}",
+            static_cast<int>(cipher)));
+}
+
 } // namespace cb::crypto
