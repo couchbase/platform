@@ -147,7 +147,7 @@ void mkdirp(std::string_view directory);
 /**
  * Load the named file
  *
- * @param name the name of the file to load
+ * @param path the name of the file to load
  * @return The content of the file
  * @param waittime The number of microseconds to wait for the file to appear
  *                 if it's not there (yet)
@@ -156,7 +156,7 @@ void mkdirp(std::string_view directory);
  *         std::bad_alloc for memory allocation errors
  */
 [[nodiscard]] std::string loadFile(
-        const std::string& name,
+        const std::filesystem::path& path,
         std::chrono::microseconds waittime = {},
         size_t bytesToRead = std::numeric_limits<size_t>::max());
 

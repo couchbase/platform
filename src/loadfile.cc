@@ -96,9 +96,10 @@ static std::string loadFileImpl(const std::string& name, size_t bytesToRead) {
 }
 #endif
 
-std::string cb::io::loadFile(const std::string& name,
+std::string cb::io::loadFile(const std::filesystem::path& path,
                              std::chrono::microseconds waittime,
                              size_t bytesToRead) {
+    const auto name = path.string();
 #ifdef WIN32
     // We've seen sporadic unit test failures on Windows due to sharing
     // errors (most likely caused by the other process is _creating_ the file
