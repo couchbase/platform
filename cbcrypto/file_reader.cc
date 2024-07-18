@@ -42,9 +42,12 @@ protected:
 class EncryptedStringReader : public FileReader {
 public:
     EncryptedStringReader(const DataEncryptionKey& dek,
+                          std::string filename,
                           std::string_view view,
                           std::string content)
-        : cipher(crypto::SymmetricCipher::create(dek.cipher, dek.key)),
+        : filename(std::move(filename)),
+          offset(sizeof(EncryptedFileHeader)),
+          cipher(SymmetricCipher::create(dek.cipher, dek.key)),
           view(view),
           content(std::move(content)) {
     }
@@ -81,13 +84,16 @@ public:
             throw std::underflow_error(
                     "EncryptedStringReader: Missing Chunk data");
         }
-
-        auto ret = cipher->decrypt(view.substr(0, len));
+        auto ad = fmt::format("{}:{}", filename, offset);
+        auto ret = cipher->decrypt(view.substr(0, len), ad);
         view.remove_prefix(len);
+        offset += len + sizeof(uint32_t);
         return ret;
     }
 
 protected:
+    const std::string filename;
+    std::size_t offset;
     std::unique_ptr<crypto::SymmetricCipher> cipher;
     std::string_view view;
     std::string content;
@@ -101,7 +107,7 @@ std::unique_ptr<FileReader> FileReader::create(
     // The current implementation reads the entire file into memory, but
     // later on we might want to read the file as a stream (and possibly
     // allow to wait for more data to appear if we hit a partial block)
-    auto content = cb::io::loadFile(path.string(), waittime);
+    auto content = cb::io::loadFile(path, waittime);
     if (content.size() >= sizeof(EncryptedFileHeader)) {
         const auto* header =
                 reinterpret_cast<EncryptedFileHeader*>(content.data());
@@ -120,7 +126,7 @@ std::unique_ptr<FileReader> FileReader::create(
             std::string_view view(content);
             view.remove_prefix(sizeof(EncryptedFileHeader));
             return std::make_unique<EncryptedStringReader>(
-                    *dek, view, std::move(content));
+                    *dek, path.filename().string(), view, std::move(content));
         }
     }
 

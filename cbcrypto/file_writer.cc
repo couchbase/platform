@@ -81,6 +81,10 @@ public:
         return current_size;
     }
 
+    std::filesystem::path getFilename() const {
+        return filename;
+    }
+
 protected:
     const std::filesystem::path filename;
     unique_file_ptr file;
@@ -90,9 +94,10 @@ protected:
 class EncryptedFileWriterImpl : public FileWriter {
 public:
     EncryptedFileWriterImpl(const SharedEncryptionKey& dek,
-                            std::unique_ptr<FileWriter> underlying,
+                            std::unique_ptr<FileWriterImpl> underlying,
                             size_t buffer_size)
-        : buffer_size(buffer_size),
+        : filename(underlying->getFilename().filename().string()),
+          buffer_size(buffer_size),
           cipher(crypto::SymmetricCipher::create(dek->cipher, dek->key)),
           underlying(std::move(underlying)) {
         if (buffer_size) {
@@ -128,7 +133,8 @@ public:
 
 protected:
     void do_encrypt_and_write(std::string_view data) {
-        const auto encrypted = cipher->encrypt(data);
+        auto ad = fmt::format("{}:{}", filename, underlying->size());
+        const auto encrypted = cipher->encrypt(data, ad);
         uint32_t size = htonl(gsl::narrow<uint32_t>(encrypted.size()));
         this->underlying->write(std::string_view{
                 reinterpret_cast<const char*>(&size), sizeof(size)});
@@ -160,9 +166,10 @@ protected:
         buffer.append(view);
     }
 
+    const std::string filename;
     const size_t buffer_size;
     std::unique_ptr<SymmetricCipher> cipher;
-    std::unique_ptr<FileWriter> underlying;
+    std::unique_ptr<FileWriterImpl> underlying;
     std::string buffer;
 };
 

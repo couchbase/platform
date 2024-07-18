@@ -50,3 +50,12 @@ bytes.
 Even if 32 bit length field allows for really large chunks (4GB) one
 should choose a reasonable chunk size keeping in mind that the process
 decrypting the chunk should keep the entire chunk in memory.
+
+Each chunk use the filename (without path) and file offset as associated
+data (AD) generated on the following format:
+
+    filename:offset
+
+Example:
+
+    myfile.cef:123456
