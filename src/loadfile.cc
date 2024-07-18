@@ -185,7 +185,7 @@ void cb::io::tokenizeFileLineByLine(
         std::function<bool(const std::vector<std::string_view>&)> callback,
         char delim,
         bool allowEmpty) {
-    auto content = loadFile(name.generic_string(), std::chrono::microseconds{});
+    auto content = loadFile(name, std::chrono::microseconds{});
     auto lines = cb::string::split(content, '\n');
     for (auto line : lines) {
         while (line.back() == '\r') {

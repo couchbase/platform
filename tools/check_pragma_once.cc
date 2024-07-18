@@ -36,7 +36,7 @@ static bool inspect_file(const std::filesystem::path& path) {
     }
 
     try {
-        const auto content = loadFile(path.generic_string());
+        const auto content = loadFile(path);
         if (content.find("#pragma once") == std::string::npos) {
             std::cerr << TerminalColor::Red << "FAIL: \""
                       << path.generic_string() << TerminalColor::Reset

@@ -38,7 +38,7 @@ TEST_F(FileIoTest, FileWriterTestPlain) {
     writer->write(content);
     writer->flush();
     writer.reset();
-    EXPECT_EQ(content, cb::io::loadFile(file.generic_string()));
+    EXPECT_EQ(content, cb::io::loadFile(file));
 }
 
 TEST_F(FileIoTest, FileWriterTestEncrypted) {
@@ -48,7 +48,7 @@ TEST_F(FileIoTest, FileWriterTestEncrypted) {
     writer->write(content);
     writer->flush();
     writer.reset();
-    auto data = cb::io::loadFile(file.generic_string());
+    auto data = cb::io::loadFile(file);
     EXPECT_EQ(0, data.find("\0CEF\0"));
 }
 
@@ -59,7 +59,7 @@ TEST_F(FileIoTest, ReadFile) {
     writer->write(content);
     writer->flush();
     writer.reset();
-    EXPECT_EQ(content, cb::io::loadFile(file.generic_string()));
+    EXPECT_EQ(content, cb::io::loadFile(file));
 
     auto reader = FileReader::create(
             file,
