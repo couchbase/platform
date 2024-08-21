@@ -10,15 +10,15 @@
 
 #include <folly/portability/GTest.h>
 #include <platform/checked_snprintf.h>
+#include <array>
 
 TEST(checked_snprintf, DestinationNullptr) {
     EXPECT_THROW(checked_snprintf(nullptr, 10, "xyz"), std::invalid_argument);
 }
 
 TEST(checked_snprintf, DestinationSize0) {
-    char* buf = nullptr;
-    buf++;
-    EXPECT_THROW(checked_snprintf(buf, 0, "xyz"), std::invalid_argument);
+    std::array<char,20> buf{};
+    EXPECT_THROW(checked_snprintf(buf.data(), 0, "xyz"), std::invalid_argument);
 }
 
 TEST(checked_snprintf, FitInBuffer) {
