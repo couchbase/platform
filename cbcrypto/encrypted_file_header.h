@@ -10,6 +10,7 @@
 
 #pragma once
 #include <array>
+#include <cstdint> // uint8_t
 #include <string_view>
 
 /// Class representing the fixed size Encrypted Files
