@@ -82,6 +82,15 @@ public:
             return key_compare()(pair.first, key);
         });
     }
+
+    template <typename KeyType, typename = ComparableToKey<KeyType>>
+    mapped_type& operator[](KeyType&& key) {
+        auto it = find(key);
+        if (it != this->end()) {
+            return it->second;
+        }
+        return emplace(key, T{}).first->second;
+    }
 };
 
 } // namespace cb

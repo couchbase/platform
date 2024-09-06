@@ -53,3 +53,10 @@ TEST(JsonLog, Enums) {
 
     EXPECT_EQ("\"Red\"", Json(Color::Red).dump());
 }
+
+TEST(JsonLog, Parse) {
+    using cb::logger::Json;
+    Json j = Json::parse("123");
+    EXPECT_TRUE(j.is_number());
+    EXPECT_EQ(123, j.template get<int>());
+}
