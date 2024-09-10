@@ -60,3 +60,20 @@ TEST(JsonLog, Parse) {
     EXPECT_TRUE(j.is_number());
     EXPECT_EQ(123, j.template get<int>());
 }
+
+TEST(JsonLog, Compose) {
+    using cb::logger::Json;
+
+    Json array = Json::array();
+    Json string = Json("");
+
+    Json initWithCopy{
+            {"array", array},
+            {"string", string},
+    };
+
+    Json initWithMove{
+            {"array", std::move(array)},
+            {"string", std::move(string)},
+    };
+}

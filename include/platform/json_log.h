@@ -158,6 +158,26 @@ private:
     }
 };
 
+/**
+ * Due to how C++ templates work, sometimes, nlohmann::json might decide to
+ * "convert" from logger::Json to logger::BasicJsonType the specialised
+ * basic_json<> and base of logger::Json. To avoid it getting into incorrect or
+ * inefficient conversion logic, we can explicitly define the efficient
+ * conversion here.
+ */
+template <>
+struct JsonSerializer<Json> {
+    template <typename BasicJsonType>
+    static void to_json(BasicJsonType& j, const Json& val) {
+        j = static_cast<const logger::BasicJsonType&>(val);
+    }
+
+    template <typename BasicJsonType>
+    static void to_json(BasicJsonType& j, Json&& val) {
+        j = static_cast<logger::BasicJsonType&&>(val);
+    }
+};
+
 } // namespace cb::logger
 
 template <>
