@@ -1,6 +1,7 @@
 add_library(cbcrypto STATIC
         common.cc
         digest.cc
+        dump_keys_runner.cc
         encrypted_file_header.cc
         encrypted_file_header.h
         file_reader.cc
@@ -10,6 +11,7 @@ add_library(cbcrypto STATIC
         symmetric.cc
         ${Platform_SOURCE_DIR}/include/cbcrypto/common.h
         ${Platform_SOURCE_DIR}/include/cbcrypto/digest.h
+        ${Platform_SOURCE_DIR}/include/cbcrypto/dump_keys_runner.h
         ${Platform_SOURCE_DIR}/include/cbcrypto/file_reader.h
         ${Platform_SOURCE_DIR}/include/cbcrypto/file_writer.h
         ${Platform_SOURCE_DIR}/include/cbcrypto/key_store.h
@@ -37,3 +39,14 @@ target_link_libraries(cbcrypto_unit_test
                      GTest::gtest_main
                      platform)
 add_test(cbcrypto_unit_test cbcrypto_unit_test)
+
+add_executable(cbcat cbcat.cc)
+target_compile_definitions(cbcat
+        PRIVATE DESTINATION_ROOT="${CMAKE_INSTALL_PREFIX}"
+        PRODUCT_VERSION="${PRODUCT_VERSION}")
+target_link_libraries(cbcat
+        PRIVATE
+        cbcrypto
+        platform
+        ${Boost_LIBRARIES})
+install(TARGETS cbcat RUNTIME DESTINATION bin)
