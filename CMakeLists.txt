@@ -196,6 +196,7 @@ LIST(APPEND PLATFORM_FILES
   src/crc32c_private.h
   src/exceptions.cc
   src/getopt.cc
+  src/getpass.cc
   src/histogram.cc
   src/interrupt.cc
   src/murmurhash3.cc
