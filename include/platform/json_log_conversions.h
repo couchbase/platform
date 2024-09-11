@@ -14,6 +14,7 @@
 #include <platform/timeutils.h>
 #include <atomic>
 #include <chrono>
+#include <optional>
 #include <ratio>
 #include <type_traits>
 
@@ -45,6 +46,22 @@ struct JsonSerializer<std::atomic<T>> {
     template <typename BasicJsonType>
     static void to_json(BasicJsonType& j, const std::atomic<T>& val) {
         j = val.load(std::memory_order_relaxed);
+    }
+};
+
+/**
+ * Implicit conversions for std::optional.
+ * std::nullopt becomes null.
+ */
+template <typename T>
+struct JsonSerializer<std::optional<T>> {
+    template <typename BasicJsonType>
+    static void to_json(BasicJsonType& j, const std::optional<T>& val) {
+        if (val) {
+            j = *val;
+        } else {
+            j = nullptr;
+        }
     }
 };
 

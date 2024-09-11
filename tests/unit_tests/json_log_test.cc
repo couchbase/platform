@@ -12,6 +12,7 @@
 
 #include <platform/json_log.h>
 #include <platform/json_log_conversions.h>
+#include <optional>
 #include <stdexcept>
 
 TEST(JsonLog, Basic) {
@@ -76,4 +77,14 @@ TEST(JsonLog, Compose) {
             {"array", std::move(array)},
             {"string", std::move(string)},
     };
+}
+
+TEST(JsonLog, Optional) {
+    using cb::logger::Json;
+
+    Json one(std::optional<int>{1});
+    Json empty(std::optional<int>{});
+
+    EXPECT_EQ("1", one.dump());
+    EXPECT_EQ("null", empty.dump());
 }
