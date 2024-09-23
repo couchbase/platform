@@ -48,7 +48,8 @@ struct DataEncryptionKey final : public EncryptionKeyIface {
     static std::unique_ptr<DataEncryptionKey> generate(
             Cipher cipher_type = Cipher::AES_256_GCM);
 
-    DataEncryptionKey() = default;
+    DataEncryptionKey() : DataEncryptionKey("unencrypted", Cipher::None, {}) {
+    }
 
     DataEncryptionKey(std::string id, Cipher cipher, std::string key);
 
@@ -63,7 +64,7 @@ struct DataEncryptionKey final : public EncryptionKeyIface {
     /// The identification for the current key
     std::string id;
     /// The cipher used for the key
-    Cipher cipher{Cipher::None};
+    Cipher cipher;
     /// The actual key
     std::string key;
 
