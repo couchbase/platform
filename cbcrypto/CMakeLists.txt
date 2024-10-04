@@ -3,7 +3,6 @@ add_library(cbcrypto STATIC
         digest.cc
         dump_keys_runner.cc
         encrypted_file_header.cc
-        encrypted_file_header.h
         file_reader.cc
         file_writer.cc
         key_store.cc
@@ -12,6 +11,7 @@ add_library(cbcrypto STATIC
         ${Platform_SOURCE_DIR}/include/cbcrypto/common.h
         ${Platform_SOURCE_DIR}/include/cbcrypto/digest.h
         ${Platform_SOURCE_DIR}/include/cbcrypto/dump_keys_runner.h
+        ${Platform_SOURCE_DIR}/include/cbcrypto/encrypted_file_header.h
         ${Platform_SOURCE_DIR}/include/cbcrypto/file_reader.h
         ${Platform_SOURCE_DIR}/include/cbcrypto/file_writer.h
         ${Platform_SOURCE_DIR}/include/cbcrypto/key_store.h
@@ -24,6 +24,7 @@ target_link_libraries(cbcrypto
         gsl::gsl-lite
         nlohmann_json::nlohmann_json
         PRIVATE
+        cbcompress
         fmt::fmt
         libsodium::libsodium
         OpenSSL::SSL

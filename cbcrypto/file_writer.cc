@@ -7,13 +7,15 @@
  *   software will be governed by the Apache License, Version 2.0, included in
  *   the file licenses/APL2.txt.
  */
-#include "encrypted_file_header.h"
-
 #include <cbcrypto/common.h>
+#include <cbcrypto/encrypted_file_header.h>
 #include <cbcrypto/file_writer.h>
 #include <cbcrypto/symmetric.h>
 #include <fmt/format.h>
+#include <folly/compression/Compression.h>
+#include <folly/io/IOBuf.h>
 #include <gsl/gsl-lite.hpp>
+#include <platform/compress.h>
 #include <platform/dirutils.h>
 #include <platform/socket.h>
 #include <cstdio>
@@ -95,16 +97,18 @@ class EncryptedFileWriterImpl : public FileWriter {
 public:
     EncryptedFileWriterImpl(const SharedEncryptionKey& dek,
                             std::unique_ptr<FileWriterImpl> underlying,
-                            size_t buffer_size)
+                            size_t buffer_size,
+                            Compression compression)
         : filename(underlying->getFilename().filename().string()),
           buffer_size(buffer_size),
+          compression(compression),
           cipher(crypto::SymmetricCipher::create(dek->cipher, dek->key)),
           underlying(std::move(underlying)) {
         if (buffer_size) {
             buffer.reserve(buffer_size);
         }
 
-        EncryptedFileHeader header(dek->id);
+        EncryptedFileHeader header(dek->id, compression);
         this->underlying->write(header);
     }
 
@@ -134,6 +138,13 @@ public:
 protected:
     void do_encrypt_and_write(std::string_view data) {
         auto ad = fmt::format("{}:{}", filename, underlying->size());
+
+        std::unique_ptr<folly::IOBuf> iobuf;
+        if (compression != Compression::None) {
+            iobuf = deflate(data);
+            data = folly::StringPiece{iobuf->coalesce()};
+        }
+
         const auto encrypted = cipher->encrypt(data, ad);
         uint32_t size = htonl(gsl::narrow<uint32_t>(encrypted.size()));
         this->underlying->write(std::string_view{
@@ -166,8 +177,40 @@ protected:
         buffer.append(view);
     }
 
+    std::unique_ptr<folly::IOBuf> deflate(std::string_view chunk) {
+        if (chunk.empty()) {
+            return {};
+        }
+
+        folly::io::CodecType codec;
+
+        switch (compression) {
+        case Compression::Snappy:
+            codec = folly::io::CodecType::SNAPPY;
+            break;
+        case Compression::ZLIB:
+            codec = folly::io::CodecType::ZLIB;
+            break;
+        case Compression::GZIP:
+            codec = folly::io::CodecType::GZIP;
+            break;
+        case Compression::ZSTD:
+            codec = folly::io::CodecType::ZSTD;
+            break;
+        case Compression::BZIP2:
+            codec = folly::io::CodecType::BZIP2;
+            break;
+        default:
+            throw std::runtime_error(fmt::format(
+                    "InflateReader: Unsupported compression: {}", compression));
+        }
+
+        return cb::compression::deflate(codec, chunk);
+    }
+
     const std::string filename;
     const size_t buffer_size;
+    const Compression compression;
     std::unique_ptr<SymmetricCipher> cipher;
     std::unique_ptr<FileWriterImpl> underlying;
     std::string buffer;
@@ -175,14 +218,14 @@ protected:
 
 std::unique_ptr<FileWriter> FileWriter::create(const SharedEncryptionKey& dek,
                                                std::filesystem::path path,
-                                               size_t buffer_size) {
+                                               size_t buffer_size,
+                                               Compression compression) {
+    auto underlying = std::make_unique<FileWriterImpl>(std::move(path));
     if (dek) {
         return std::make_unique<EncryptedFileWriterImpl>(
-                dek,
-                std::make_unique<FileWriterImpl>(std::move(path)),
-                buffer_size);
+                dek, std::move(underlying), buffer_size, compression);
     }
-    return std::make_unique<FileWriterImpl>(std::move(path));
+    return underlying;
 }
 
 } // namespace cb::crypto

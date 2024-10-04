@@ -17,6 +17,7 @@
 
 using namespace cb::crypto;
 using namespace std::string_view_literals;
+using namespace std::string_literals;
 
 class FileIoTest : public ::testing::Test {
 protected:
@@ -43,13 +44,65 @@ TEST_F(FileIoTest, FileWriterTestPlain) {
 
 TEST_F(FileIoTest, FileWriterTestEncrypted) {
     const std::string_view content = "This is the content"sv;
-    auto writer = FileWriter::create(DataEncryptionKey::generate(), file);
+    std::shared_ptr<DataEncryptionKey> key = DataEncryptionKey::generate();
+    auto writer = FileWriter::create(key, file);
     EXPECT_TRUE(writer->is_encrypted());
     writer->write(content);
     writer->flush();
     writer.reset();
     auto data = cb::io::loadFile(file);
-    EXPECT_EQ(0, data.find("\0CEF\0"));
+    ASSERT_GE(data.size(), sizeof(EncryptedFileHeader));
+    auto header = reinterpret_cast<const EncryptedFileHeader*>(data.data());
+    EXPECT_TRUE(header->is_supported());
+    EXPECT_TRUE(header->is_encrypted());
+    EXPECT_EQ(Compression::None, header->get_compression());
+    EXPECT_EQ(key->getId(), header->get_id());
+}
+
+/**
+ * Try to write a text which compress very well in multiple chunks to
+ * the file and read the entire file back as one chunk (which internally
+ * would need to inflate and concatenate each chunk)
+ *
+ * @param file the file to operate on
+ * @param compression the compression to use
+ */
+static void testEnctyptedAndCompressed(const std::filesystem::path& file,
+                                       Compression compression) {
+    std::string content(8192, 'a');
+    std::shared_ptr<DataEncryptionKey> key = DataEncryptionKey::generate();
+    auto writer = FileWriter::create(key, file, 8192, compression);
+    EXPECT_TRUE(writer->is_encrypted());
+    writer->write(content);
+    writer->flush();
+    writer->write(content);
+    writer->flush();
+    writer.reset();
+    // we wrote the content twice, so append the content to itself
+    content.append(content);
+    auto data = cb::io::loadFile(file);
+    ASSERT_GE(data.size(), sizeof(EncryptedFileHeader));
+    auto header = reinterpret_cast<const EncryptedFileHeader*>(data.data());
+    EXPECT_TRUE(header->is_supported());
+    EXPECT_TRUE(header->is_encrypted());
+    EXPECT_EQ(compression, header->get_compression());
+    EXPECT_EQ(key->getId(), header->get_id());
+    EXPECT_LT(data.size(), content.size())
+            << "Expected the content to be compressed";
+
+    auto reader = FileReader::create(
+            file,
+            [&key](auto) -> std::shared_ptr<DataEncryptionKey> { return key; });
+    EXPECT_TRUE(reader->is_encrypted());
+    EXPECT_EQ(content, reader->read());
+}
+
+TEST_F(FileIoTest, FileWriterTestEncryptedCompressedSnappy) {
+    testEnctyptedAndCompressed(file, Compression::Snappy);
+}
+
+TEST_F(FileIoTest, FileWriterTestEncryptedCompressedZlib) {
+    testEnctyptedAndCompressed(file, Compression::ZLIB);
 }
 
 TEST_F(FileIoTest, ReadFile) {

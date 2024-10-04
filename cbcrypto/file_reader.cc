@@ -7,13 +7,13 @@
  *   software will be governed by the Apache License, Version 2.0, included in
  *   the file licenses/APL2.txt.
  */
-#include "encrypted_file_header.h"
-
 #include <cbcrypto/common.h>
+#include <cbcrypto/encrypted_file_header.h>
 #include <cbcrypto/file_reader.h>
 #include <cbcrypto/symmetric.h>
 #include <fmt/format.h>
-#include <gsl/gsl-lite.hpp>
+#include <folly/compression/Compression.h>
+#include <platform/compress.h>
 #include <platform/dirutils.h>
 #include <platform/socket.h>
 
@@ -99,6 +99,80 @@ protected:
     std::string content;
 };
 
+class InflateReader : public FileReader {
+public:
+    InflateReader(Compression compression,
+                  std::unique_ptr<FileReader> underlying)
+        : compression(compression), underlying(std::move(underlying)) {
+        switch (compression) {
+        case Compression::Snappy:
+        case Compression::ZLIB:
+            break;
+
+        case Compression::None:
+        case Compression::GZIP:
+        case Compression::ZSTD:
+        case Compression::BZIP2:
+        default:
+            throw std::runtime_error(fmt::format(
+                    "InflateReader: Unsupported compression: {}", compression));
+        }
+    }
+    [[nodiscard]] bool is_encrypted() const override {
+        return underlying->is_encrypted();
+    }
+
+    std::string read() override {
+        std::string ret;
+        std::string next;
+        while (!(next = nextChunk()).empty()) {
+            ret.append(next);
+        }
+        return ret;
+    }
+
+    std::string nextChunk() override {
+        return inflate(underlying->nextChunk());
+    }
+
+protected:
+    std::string inflate(std::string_view chunk) {
+        if (chunk.empty()) {
+            return {};
+        }
+
+        folly::io::CodecType codec;
+
+        switch (compression) {
+        case Compression::Snappy:
+            codec = folly::io::CodecType::SNAPPY;
+            break;
+        case Compression::ZLIB:
+            codec = folly::io::CodecType::ZLIB;
+            break;
+        case Compression::GZIP:
+            codec = folly::io::CodecType::GZIP;
+            break;
+        case Compression::ZSTD:
+            codec = folly::io::CodecType::ZSTD;
+            break;
+        case Compression::BZIP2:
+            codec = folly::io::CodecType::BZIP2;
+            break;
+        default:
+            throw std::runtime_error(fmt::format(
+                    "InflateReader: Unsupported compression: {}", compression));
+        }
+
+        auto inflated = cb::compression::inflate(
+                codec, chunk, std::numeric_limits<std::size_t>::max());
+        return std::string(folly::StringPiece{inflated->coalesce()});
+    }
+
+    const Compression compression;
+    std::unique_ptr<FileReader> underlying;
+};
+
 std::unique_ptr<FileReader> FileReader::create(
         const std::filesystem::path& path,
         const std::function<SharedEncryptionKey(std::string_view)>&
@@ -123,10 +197,16 @@ std::unique_ptr<FileReader> FileReader::create(
                                     path.string(),
                                     header->get_id()));
             }
+
+            auto compression = header->get_compression();
             std::string_view view(content);
             view.remove_prefix(sizeof(EncryptedFileHeader));
-            return std::make_unique<EncryptedStringReader>(
+            auto ret = std::make_unique<EncryptedStringReader>(
                     *dek, path.filename().string(), view, std::move(content));
+            if (compression == Compression::None) {
+                return ret;
+            }
+            return std::make_unique<InflateReader>(compression, std::move(ret));
         }
     }
 

@@ -6,14 +6,25 @@ Each file is built up starting with a file header followed by multiple chunks.
 
 The file header consist of a 64 bytes header with the following layout
 
-    | offset | length | description                        |
-    +--------+--------+------------------------------------+
-    | 0      | 26     | magic: \0Couchbase Encypted File\0 |
-    | 26     | 1      | version                            |
-    | 27     | 1      | id len                             |
-    | 28     | 36     | id bytes                           |
+    | offset | length | description                    |
+    +--------+--------+--------------------------------+
+    | 0      | 21     | magic: \0Couchbase Encrypted\0 |
+    | 21     | 1      | version                        |
+    | 22     | 1      | compression                    |
+    | 24     | 4      | unused (should be set to 0)    |
+    | 27     | 1      | id len                         |
+    | 28     | 36     | id bytes                       |
 
     Total of 64 bytes
+
+compression may be one of the following
+
+    | 0 | No compression     |
+    | 1 | Snappy             |
+    | 2 | ZLIB               |
+    | 3 | GZip               |
+    | 4 | ZSTD               |
+    | 5 | bzip2              |
 
 The identifier may be up to 36 bytes, and should be written in printable
 characters which may be used directly in logging or as an argument to
