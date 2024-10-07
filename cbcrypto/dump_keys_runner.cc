@@ -29,6 +29,10 @@ ExecuteError::ExecuteError(int ec, std::string out, std::string err)
       err(std::move(err)) {
 }
 
+IncorrectPasswordError::IncorrectPasswordError()
+    : DumpKeysError("Incorrect password") {
+}
+
 InvalidOutputError::InvalidOutputError(std::string msg, std::string out)
     : DumpKeysError(msg), msg(std::move(msg)), out(std::move(out)) {
 }
@@ -124,6 +128,10 @@ SharedEncryptionKey DumpKeysRunnerImpl::lookup(
 
     c.wait();
     if (c.exit_code() != EXIT_SUCCESS) {
+        if (c.exit_code() == 2) {
+            throw dump_keys::IncorrectPasswordError();
+        }
+
         throw dump_keys::ExecuteError(c.exit_code(), out.get(), err.get());
     }
 

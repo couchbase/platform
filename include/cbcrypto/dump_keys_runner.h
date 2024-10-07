@@ -33,6 +33,11 @@ public:
     const std::string err;
 };
 
+class IncorrectPasswordError : public DumpKeysError {
+public:
+    IncorrectPasswordError();
+};
+
 class InvalidOutputError : public DumpKeysError {
 public:
     InvalidOutputError(std::string msg, std::string out);
