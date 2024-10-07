@@ -124,7 +124,11 @@ int main(int argc, char** argv) {
         }
         try {
             auto reader = FileReader::create(file, key_lookup_callback);
-            std::cout << reader->read() << std::endl;
+            std::string message;
+            while (!(message = reader->nextChunk()).empty()) {
+                std::cout << message;
+                std::cout.flush();
+            }
         } catch (const std::exception& e) {
             std::cerr << "Fatal error: " << e.what() << std::endl;
             return EXIT_FAILURE;
