@@ -100,61 +100,43 @@ std::unique_ptr<folly::IOBuf> deflate(folly::io::CodecType type,
                                       std::string_view input);
 
 /**
- * Validate whether the data is compressed correctly by the given
- * algorithm
- *
- * @param type The codec type to use
- * @param input_buffer buffer pointing to the input data
- * @param max_inflated_size The maximum size for the inflated object (if the
- *                          library needs to allocate buffers exceeding this
- *                          size in order to validate the input, we'll abort
- *                          and return false)
- * @return true if success, false otherwise
- * @throws std::invalid_argument if the algorithm provided is an
- *                               an unknown algorithm
- */
-bool validate(folly::io::CodecType type,
-              std::string_view input_buffer,
-              size_t max_inflated_size = DEFAULT_MAX_INFLATED_SIZE);
-
-/**
  * Get the uncompressed length from the given compressed input buffer
  *
  * @param type The codec type to use
- * @param input_buffer buffer pointing to the input buffer
+ * @param input buffer pointing to the input buffer
  * @return the uncompressed length if success, false otherwise
  * @throws std::invalid_argument if the algorithm provided is an
  *                               unknown algorithm
  */
 size_t get_uncompressed_length(folly::io::CodecType type,
-                               std::string_view input_buffer);
+                               std::string_view input);
 
 /**
  * All data inside kv-engine (and on the wire) use Snappy compression.
  * This is a wrapper method used to save some typing ;)
  */
-bool inflateSnappy(std::string_view input_buffer,
+bool inflateSnappy(std::string_view input,
                    Buffer& output,
                    size_t max_inflated_size = DEFAULT_MAX_INFLATED_SIZE);
 
 std::unique_ptr<folly::IOBuf> inflateSnappy(
-        std::string_view input_buffer,
+        std::string_view input,
         size_t max_inflated_size = DEFAULT_MAX_INFLATED_SIZE);
 
 /**
  * All data inside kv-engine (and on the wire) use Snappy compression.
  * This is a wrapper method used to save some typing ;)
  */
-bool deflateSnappy(std::string_view input_buffer, Buffer& output);
+bool deflateSnappy(std::string_view input, Buffer& output);
 
-std::unique_ptr<folly::IOBuf> deflateSnappy(std::string_view input_buffer);
+std::unique_ptr<folly::IOBuf> deflateSnappy(std::string_view input);
 
 /**
  * Get the uncompressed length from the given Snappy compressed input buffer
  *
- * @param input_buffer buffer pointing to the input buffer
+ * @param input buffer pointing to the input buffer
  * @return the uncompressed length if success, false otherwise
  */
-size_t getUncompressedLengthSnappy(std::string_view input_buffer);
+size_t getUncompressedLengthSnappy(std::string_view input);
 
 } // namespace cb::compression
