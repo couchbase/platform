@@ -33,7 +33,7 @@ static const size_t DEFAULT_MAX_INFLATED_SIZE = 30 * 1024 * 1024;
  * Inflate the data in the buffer into the output buffer
  *
  * @param type The codec to use (currently ignored)
- * @param input_buffer buffer pointing to the input data
+ * @param input buffer pointing to the input data
  * @param output Where to store the result
  * @param max_inflated_size The maximum size for the inflated object (the
  *                          library needs to allocate buffers this big, which
@@ -44,10 +44,11 @@ static const size_t DEFAULT_MAX_INFLATED_SIZE = 30 * 1024 * 1024;
  * @throws std::bad_alloc if we fail to allocate memory for the
  *                        destination buffer
  */
-bool inflate(folly::io::CodecType type,
-             std::string_view input_buffer,
-             Buffer& output,
-             size_t max_inflated_size = DEFAULT_MAX_INFLATED_SIZE);
+[[nodiscard]] bool inflate(
+        folly::io::CodecType type,
+        std::string_view input,
+        Buffer& output,
+        size_t max_inflated_size = DEFAULT_MAX_INFLATED_SIZE);
 
 /**
  * Inflate the data and return a std::unique_ptr to a folly IOBuf
@@ -66,9 +67,9 @@ bool inflate(folly::io::CodecType type,
  * @throws std::range_error if the inflated data would exceed max_inflated_size
  * @throws std::runtime_error if there is an error related to inflating data
  */
-std::unique_ptr<folly::IOBuf> inflate(
+[[nodiscard]] std::unique_ptr<folly::IOBuf> inflate(
         folly::io::CodecType type,
-        std::string_view input_buffer,
+        std::string_view input,
         size_t max_inflated_size = DEFAULT_MAX_INFLATED_SIZE);
 
 /**
@@ -81,9 +82,9 @@ std::unique_ptr<folly::IOBuf> inflate(
  * @throws std::bad_alloc if we fail to allocate memory for the
  *                        destination buffer
  */
-bool deflate(folly::io::CodecType type,
-             std::string_view input_buffer,
-             Buffer& output);
+[[nodiscard]] bool deflate(folly::io::CodecType type,
+                           std::string_view input_buffer,
+                           Buffer& output);
 
 /**
  * Deflate the data and return a std::unique_ptr to a folly IOBuf
@@ -96,8 +97,8 @@ bool deflate(folly::io::CodecType type,
  * @throws std::bad_alloc if allocation fails for the destination buffer
  * @throws std::runtime_error if there is an error related to deflating data
  */
-std::unique_ptr<folly::IOBuf> deflate(folly::io::CodecType type,
-                                      std::string_view input);
+[[nodiscard]] std::unique_ptr<folly::IOBuf> deflate(folly::io::CodecType type,
+                                                    std::string_view input);
 
 /**
  * Get the uncompressed length from the given compressed input buffer
@@ -108,18 +109,19 @@ std::unique_ptr<folly::IOBuf> deflate(folly::io::CodecType type,
  * @throws std::invalid_argument if the algorithm provided is an
  *                               unknown algorithm
  */
-size_t get_uncompressed_length(folly::io::CodecType type,
-                               std::string_view input);
+[[nodiscard]] size_t get_uncompressed_length(folly::io::CodecType type,
+                                             std::string_view input);
 
 /**
  * All data inside kv-engine (and on the wire) use Snappy compression.
  * This is a wrapper method used to save some typing ;)
  */
-bool inflateSnappy(std::string_view input,
-                   Buffer& output,
-                   size_t max_inflated_size = DEFAULT_MAX_INFLATED_SIZE);
+[[nodiscard]] bool inflateSnappy(
+        std::string_view input,
+        Buffer& output,
+        size_t max_inflated_size = DEFAULT_MAX_INFLATED_SIZE);
 
-std::unique_ptr<folly::IOBuf> inflateSnappy(
+[[nodiscard]] std::unique_ptr<folly::IOBuf> inflateSnappy(
         std::string_view input,
         size_t max_inflated_size = DEFAULT_MAX_INFLATED_SIZE);
 
@@ -127,9 +129,10 @@ std::unique_ptr<folly::IOBuf> inflateSnappy(
  * All data inside kv-engine (and on the wire) use Snappy compression.
  * This is a wrapper method used to save some typing ;)
  */
-bool deflateSnappy(std::string_view input, Buffer& output);
+[[nodiscard]] bool deflateSnappy(std::string_view input, Buffer& output);
 
-std::unique_ptr<folly::IOBuf> deflateSnappy(std::string_view input);
+[[nodiscard]] std::unique_ptr<folly::IOBuf> deflateSnappy(
+        std::string_view input);
 
 /**
  * Get the uncompressed length from the given Snappy compressed input buffer
@@ -137,6 +140,6 @@ std::unique_ptr<folly::IOBuf> deflateSnappy(std::string_view input);
  * @param input buffer pointing to the input buffer
  * @return the uncompressed length if success, false otherwise
  */
-size_t getUncompressedLengthSnappy(std::string_view input);
+[[nodiscard]] size_t getUncompressedLengthSnappy(std::string_view input);
 
 } // namespace cb::compression
