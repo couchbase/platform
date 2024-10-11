@@ -9,7 +9,7 @@ target_include_directories(cbcompress INTERFACE ${Platform_SOURCE_DIR}/include)
 platform_enable_pch(cbcompress)
 target_link_libraries(cbcompress
         PUBLIC Folly::headers fmt::fmt
-        PRIVATE platform ${SNAPPY_LIBRARIES})
+        PRIVATE platform ${SNAPPY_LIBRARIES} ZLIB::ZLIB)
 
 cb_add_test_executable(platform-compression-test
                ${Platform_SOURCE_DIR}/include/platform/compress.h

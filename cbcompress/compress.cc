@@ -7,66 +7,175 @@
  *   software will be governed by the Apache License, Version 2.0, included in
  *   the file licenses/APL2.txt.
  */
-#include <platform/compress.h>
-
 #include <folly/compression/Compression.h>
+#include <folly/io/IOBuf.h>
+#include <gsl/gsl-lite.hpp>
+#include <platform/compress.h>
 #include <snappy.h>
+#include <zlib.h>
+
 #include <stdexcept>
 
-bool cb::compression::inflate(folly::io::CodecType type,
-                              std::string_view input_buffer,
-                              Buffer& output,
-                              size_t max_inflated_size) {
-    if (type == folly::io::CodecType::SNAPPY) {
-        return inflateSnappy(input_buffer, output, max_inflated_size);
+namespace cb::compression {
+static std::unique_ptr<folly::IOBuf> deflateZlib(std::string_view input) {
+    auto ret = folly::IOBuf::createCombined(compressBound(input.size()));
+    uLong destlen = input.size() + 128;
+    const auto rv = compress(ret->writableTail(),
+                             &destlen,
+                             reinterpret_cast<const uint8_t*>(input.data()),
+                             input.size());
+    if (rv != Z_OK) {
+        throw std::runtime_error(fmt::format(
+                "deflateZlib(): compress() failed with error code: {}", rv));
     }
+    ret->append(destlen);
 
-    throw std::invalid_argument(
-            "cb::compression::inflate(): type must be Snappy");
+    return ret;
 }
 
-std::unique_ptr<folly::IOBuf> cb::compression::inflate(
-        folly::io::CodecType type,
-        std::string_view input,
-        size_t max_inflated_size) {
+static std::unique_ptr<folly::IOBuf> inflateZlib(
+        std::string_view input, std::size_t max_inflated_size) {
+    static constexpr size_t chunk_size = 256 * 1024;
+    std::unique_ptr<folly::IOBuf> ret = folly::IOBuf::create(chunk_size);
+
+    Expects(!input.empty());
+
+    z_stream stream;
+    std::memset(&stream, 0, sizeof(stream));
+
+    auto status = inflateInit(&stream);
+    if (status != Z_OK) {
+        throw std::runtime_error(fmt::format(
+                "inflateZlib(): inflateInit() failed with error code: {}",
+                status));
+    }
+
+    stream.avail_in = input.size();
+    stream.next_in = const_cast<uint8_t*>(
+            reinterpret_cast<const uint8_t*>(input.data()));
+
+    do {
+        if (stream.total_out > max_inflated_size) {
+            throw std::range_error(
+                    fmt::format("inflate(): Inflated length {} "
+                                " exceeds max: {}",
+                                stream.total_out,
+                                max_inflated_size));
+        }
+        auto iobuf = folly::IOBuf::create(chunk_size);
+        stream.avail_out = iobuf->tailroom();
+        stream.next_out = iobuf->writableTail();
+        status = inflate(&stream, Z_NO_FLUSH);
+        if (status != Z_OK && status != Z_STREAM_END && status != Z_BUF_ERROR) {
+            (void)inflateEnd(&stream);
+            throw std::runtime_error(fmt::format(
+                    "inflateZlib(): inflate() failed with error code: {}",
+                    status));
+        }
+        iobuf->append(ret->tailroom() - stream.avail_out);
+        if (!ret) {
+            ret = std::move(iobuf);
+        } else {
+            ret->insertAfterThisOne(std::move(iobuf));
+        }
+    } while (status != Z_STREAM_END);
+    (void)inflateEnd(&stream);
+    return ret;
+}
+
+static bool inflateZlib(std::string_view input,
+                        Buffer& output,
+                        std::size_t max_inflated_size) {
+    try {
+        auto inflated = inflateZlib(input, max_inflated_size);
+        output.resize(inflated->length());
+        std::copy(inflated->data(),
+                  inflated->data() + inflated->length(),
+                  output.data());
+        return true;
+    } catch (const std::exception&) {
+        return false;
+    }
+}
+
+static bool deflateZlib(std::string_view input, Buffer& output) {
+    output.resize(compressBound(input.size()));
+    uLong destlen = input.size() + 128;
+    if (compress(reinterpret_cast<uint8_t*>(output.data()),
+                 &destlen,
+                 reinterpret_cast<const uint8_t*>(input.data()),
+                 input.size()) != Z_OK) {
+        return false;
+    }
+    output.resize(destlen);
+
+    return true;
+}
+
+bool inflate(folly::io::CodecType type,
+             std::string_view input,
+             Buffer& output,
+             size_t max_inflated_size) {
+    if (type == folly::io::CodecType::SNAPPY) {
+        return inflateSnappy(input, output, max_inflated_size);
+    }
+    if (type == folly::io::CodecType::ZLIB) {
+        return inflateZlib(input, output, max_inflated_size);
+    }
+    throw std::invalid_argument(
+            "cb::compression::inflate(): type must be SNAPPY or ZLIB");
+}
+
+std::unique_ptr<folly::IOBuf> inflate(folly::io::CodecType type,
+                                      std::string_view input,
+                                      size_t max_inflated_size) {
     if (type == folly::io::CodecType::SNAPPY) {
         return inflateSnappy(input, max_inflated_size);
     }
+    if (type == folly::io::CodecType::ZLIB) {
+        return inflateZlib(input, max_inflated_size);
+    }
     throw std::invalid_argument(
-            "cb::compression::inflate(): type must be Snappy");
+            "cb::compression::inflate(): type must be SNAPPY or ZLIB");
 }
 
-bool cb::compression::deflate(folly::io::CodecType type,
-                              std::string_view input_buffer,
-                              Buffer& output) {
+bool deflate(folly::io::CodecType type,
+             std::string_view input_buffer,
+             Buffer& output) {
     if (type == folly::io::CodecType::SNAPPY) {
         return deflateSnappy(input_buffer, output);
     }
+    if (type == folly::io::CodecType::ZLIB) {
+        return deflateZlib(input_buffer, output);
+    }
     throw std::invalid_argument(
-            "cb::compression::deflate(): type must be Snappy");
+            "cb::compression::deflate(): type must be SNAPPY or ZLIB");
 }
 
-std::unique_ptr<folly::IOBuf> cb::compression::deflate(
-        folly::io::CodecType type, std::string_view input) {
+std::unique_ptr<folly::IOBuf> deflate(folly::io::CodecType type,
+                                      std::string_view input) {
     if (type == folly::io::CodecType::SNAPPY) {
         return deflateSnappy(input);
     }
+    if (type == folly::io::CodecType::ZLIB) {
+        return deflateZlib(input);
+    }
     throw std::invalid_argument(
-            "cb::compression::deflate(): type must be Snappy");
+            "cb::compression::deflate(): type must be SNAPPY or ZLIB");
 }
 
-size_t cb::compression::get_uncompressed_length(folly::io::CodecType type,
-                                                std::string_view input) {
+size_t get_uncompressed_length(folly::io::CodecType type,
+                               std::string_view input) {
     if (type == folly::io::CodecType::SNAPPY) {
         return getUncompressedLengthSnappy(input);
     }
     throw std::invalid_argument(
-            "cb::compression::get_uncompressed_length(): type must be Snappy");
+            "cb::compression::get_uncompressed_length(): type must be SNAPPY");
 }
 
-bool cb::compression::inflateSnappy(std::string_view input,
-                                    Buffer& output,
-                                    size_t max_inflated_size) {
+bool inflateSnappy(std::string_view input,
+                   Buffer& output,
+                   size_t max_inflated_size) {
     size_t inflated_length;
 
     if (!snappy::GetUncompressedLength(
@@ -85,13 +194,13 @@ bool cb::compression::inflateSnappy(std::string_view input,
     return true;
 }
 
-std::unique_ptr<folly::IOBuf> cb::compression::inflateSnappy(
-        std::string_view input, size_t max_inflated_size) {
+std::unique_ptr<folly::IOBuf> inflateSnappy(std::string_view input,
+                                            size_t max_inflated_size) {
     size_t inflated_length;
     if (!snappy::GetUncompressedLength(
                 input.data(), input.size(), &inflated_length)) {
         throw std::runtime_error(
-                "cb::compression::inflate(Snappy): Failed to get uncompressed "
+                "cb::compression::inflateSnappy(): Failed to get uncompressed "
                 "length");
     }
 
@@ -108,13 +217,13 @@ std::unique_ptr<folly::IOBuf> cb::compression::inflateSnappy(
                                input.size(),
                                reinterpret_cast<char*>(ret->writableData()))) {
         throw std::runtime_error(
-                "cb::compression::inflate(Snappy): Failed to inflate data");
+                "cb::compression::inflateSnappy: Failed to inflate data");
     }
     ret->append(inflated_length);
     return ret;
 }
 
-bool cb::compression::deflateSnappy(std::string_view input, Buffer& output) {
+bool deflateSnappy(std::string_view input, Buffer& output) {
     size_t compressed_length = snappy::MaxCompressedLength(input.size());
     output.resize(compressed_length);
     snappy::RawCompress(
@@ -123,8 +232,7 @@ bool cb::compression::deflateSnappy(std::string_view input, Buffer& output) {
     return true;
 }
 
-std::unique_ptr<folly::IOBuf> cb::compression::deflateSnappy(
-        std::string_view input) {
+std::unique_ptr<folly::IOBuf> deflateSnappy(std::string_view input) {
     size_t max_compressed_length = snappy::MaxCompressedLength(input.size());
     auto ret = folly::IOBuf::createCombined(max_compressed_length);
     size_t compressed_length = max_compressed_length;
@@ -136,9 +244,10 @@ std::unique_ptr<folly::IOBuf> cb::compression::deflateSnappy(
     return ret;
 }
 
-size_t cb::compression::getUncompressedLengthSnappy(std::string_view input) {
+size_t getUncompressedLengthSnappy(std::string_view input) {
     size_t uncompressed_length = 0;
     snappy::GetUncompressedLength(
             input.data(), input.size(), &uncompressed_length);
     return uncompressed_length;
 }
+} // namespace cb::compression
