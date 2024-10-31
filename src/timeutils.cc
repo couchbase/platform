@@ -67,7 +67,7 @@ std::string timestamp(std::chrono::nanoseconds time_since_epoc) {
 std::string cb::time2text(std::chrono::nanoseconds time2convert) {
     const char* const extensions[] = {" ns", " us", " ms", " s", nullptr};
     int id = 0;
-    double time = time2convert.count();
+    double time = abs(time2convert.count());
 
     while (time > 9999) {
         ++id;
@@ -94,6 +94,9 @@ std::string cb::time2text(std::chrono::nanoseconds time2convert) {
         ret = std::to_string(int(round(time))) + extensions[id];
     }
 
+    if (time2convert.count() < 0) {
+        ret.insert(ret.begin(), '-');
+    }
     return ret;
 }
 

@@ -29,6 +29,8 @@ TEST(Time2TextTest, Nano9999) {
 TEST(Time2TextTest, NanoUsecWrap) {
     EXPECT_EQ(std::string("10 us"),
               time2text(std::chrono::microseconds(10)));
+    EXPECT_EQ(std::string("-10 us"),
+              time2text(std::chrono::microseconds(-10)));
 }
 
 TEST(Time2TextTest, NanoUsecRound) {
@@ -48,6 +50,8 @@ TEST(Time2TextTest, Usec9999) {
 TEST(Time2TextTest, UsecMsecWrap) {
     EXPECT_EQ(std::string("10 ms"),
               time2text(std::chrono::milliseconds(10)));
+    EXPECT_EQ(std::string("-10 ms"),
+              time2text(std::chrono::milliseconds(-10)));
 }
 
 TEST(Time2TextTest, UsecMsecRound) {
@@ -67,6 +71,8 @@ TEST(Time2TextTest, Msec9999) {
 TEST(Time2TextTest, MsecSecWrap) {
     EXPECT_EQ(std::string("10 s"),
               time2text(std::chrono::seconds(10)));
+    EXPECT_EQ(std::string("-10 s"),
+              time2text(std::chrono::seconds(-10)));
 }
 
 TEST(Time2TextTest, MsecSecRound) {
@@ -95,6 +101,8 @@ TEST(Time2TextTest, NsecSecRound) {
 TEST(Time2TextTest, AlmostFullSpecTime) {
     EXPECT_EQ(std::string("10m:0s"),
               time2text(std::chrono::minutes(10)));
+    EXPECT_EQ(std::string("-10m:0s"),
+              time2text(std::chrono::minutes(-10)));
 }
 
 TEST(Time2TextTest, FullSpecTime) {
@@ -103,6 +111,7 @@ TEST(Time2TextTest, FullSpecTime) {
                                  + std::chrono::seconds(1));
 
     EXPECT_EQ(std::string("1h:1m:1s"), time2text(ns));
+    EXPECT_EQ(std::string("-1h:1m:1s"), time2text(-ns));
 }
 
 TEST(Text2timeTest, nanoseconds) {
