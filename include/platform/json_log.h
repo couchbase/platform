@@ -27,9 +27,10 @@ struct LogAllocatorTag {};
  * any case where we might end up leaking memory).
  */
 template <typename T>
-using Allocator = ThreadLocalMonotonicResource<detail::LogAllocatorTag,
-                                               8 * 1024,
-                                               20 * 1024 * 1024>::Allocator<T>;
+struct Allocator
+    : ThreadLocalMonotonicResource<detail::LogAllocatorTag,
+                                   8 * 1024,
+                                   20 * 1024 * 1024>::Allocator<T> {};
 
 /**
  * Like std::string, but using our allocator. Note that constructing from
