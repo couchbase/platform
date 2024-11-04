@@ -21,6 +21,9 @@
 
 using namespace cb::crypto;
 
+/// Exit code for incorrect password returned from dump-deks
+static constexpr int EXIT_INCORRECT_PASSWORD = 2;
+
 static std::unique_ptr<DumpKeysRunner> dump_keys_runner;
 
 /// The key lookup callback gets called from the FileReader whenever it
@@ -129,6 +132,10 @@ int main(int argc, char** argv) {
                 std::cout << message;
                 std::cout.flush();
             }
+        } catch (const cb::crypto::dump_keys::IncorrectPasswordError& e) {
+            std::cerr << e.what() << std::endl;
+            std::exit(EXIT_INCORRECT_PASSWORD);
+
         } catch (const std::exception& e) {
             std::cerr << "Fatal error: " << e.what() << std::endl;
             return EXIT_FAILURE;
