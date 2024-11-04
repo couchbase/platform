@@ -335,13 +335,6 @@ using AtomicWeaklyMonotonic = AtomicMonotonic<T,
                                               LabelFactory,
                                               cb::greater_equal>;
 
-/**
- * WARNING MB-51895: Using the macros bellow will will cause clang-tidy on our
- * CV to fail a check for modernize-avoid-c-arrays. This is an issue with
- * clang-tidy-9 not observing the NOLINTNEXTLINE declaration.
- * Upgrading to Clang-Tidy-14 will fix this issue and will be done as part of
- * CBD-4671.
- */
 #define BASE_MONOTONIC(NAME, TYPE, POLICY, LABELER, VARNAME) \
     /* NOLINTNEXTLINE(modernize-avoid-c-arrays) */           \
     constexpr static const char VARNAME##Label[] = #VARNAME; \
