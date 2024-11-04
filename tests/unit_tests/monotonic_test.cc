@@ -162,13 +162,7 @@ class MonotonicTestMacro : public ::testing::Test {};
 
 struct TestLabeller {
     std::string getLabel(const char* name) const {
-// MB-51912: Workaround msvc v19.16 compiler bug which means we can use the
-// 'Name' template arg, so name will be a nullptr so don't use it.
-#if defined(_MSC_VER) && (_MSC_VER <= 1916)
-        return "TestLabeller";
-#else
         return "TestLabeller:" + std::string(name);
-#endif
     };
 };
 
