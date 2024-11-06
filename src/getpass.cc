@@ -54,12 +54,12 @@ std::string cb::getpass(std::string_view prompt) {
     if (isatty(STDIN_FILENO)) {
         std::cerr << prompt << std::flush;
         setEcho(false);
-        std::cin >> password;
+        std::getline(std::cin, password);
         setEcho(true);
 
         std::cout << std::endl;
     } else {
-        std::cin >> password;
+        std::getline(std::cin, password);
     }
 
     return password;
