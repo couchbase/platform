@@ -75,6 +75,13 @@ struct JsonSerializer<
                          fmt::has_formatter<T, fmt::format_context>::value>> {
     template <typename BasicJsonType>
     static void to_json(BasicJsonType& j, const T& val) {
+        // Prefer the double conversion to the standard nlohmann::json, then to
+        // BasicJsonType, if that is possible. We have lots of types which have
+        // to_json() which is not templated for different nlohmann::basic_json.
+        if constexpr (std::is_constructible_v<nlohmann::json, const T&>) {
+            j = nlohmann::json(val);
+            return;
+        }
         j = fmt::to_string(val);
     }
 };

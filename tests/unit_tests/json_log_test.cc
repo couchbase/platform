@@ -55,6 +55,22 @@ TEST(JsonLog, Enums) {
     EXPECT_EQ("\"Red\"", Json(Color::Red).dump());
 }
 
+enum class Flags { A, B, C };
+
+std::string_view format_as(Flags flags) {
+    return "format_as";
+}
+
+void to_json(nlohmann::json& j, Flags flags) {
+    j = "to_json";
+}
+
+TEST(JsonLog, EnumsWithToJson) {
+    using cb::logger::Json;
+
+    EXPECT_EQ("\"to_json\"", Json(Flags::A).dump());
+}
+
 TEST(JsonLog, Parse) {
     using cb::logger::Json;
     Json j = Json::parse("123");
