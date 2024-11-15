@@ -7,13 +7,19 @@
  *   software will be governed by the Apache License, Version 2.0, included in
  *   the file licenses/APL2.txt.
  */
+#include "platform/string_hex.h"
+
 #include <cbcrypto/digest.h>
+#include <fmt/format.h>
+#include <folly/portability/Fcntl.h>
+#include <folly/portability/Unistd.h>
 #include <nlohmann/json.hpp>
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
 #include <openssl/sha.h>
 #include <phosphor/phosphor.h>
 #include <sodium.h>
+
 #include <memory>
 #include <stdexcept>
 
@@ -290,6 +296,102 @@ std::string digest(const Algorithm algorithm, std::string_view data) {
 
     throw std::invalid_argument("cb::crypto::digest: Unknown Algorithm" +
                                 std::to_string((int)algorithm));
+}
+
+std::string sha512sum(const std::filesystem::path& path,
+                      std::size_t size,
+                      const std::size_t chunksize) {
+    // Create some custom deleters to allow for using std::unique_ptr
+    // to clean up resource usage in error paths
+    struct EVP_MD_Deleter {
+        void operator()(EVP_MD* md) {
+            EVP_MD_free(md);
+        }
+    };
+
+    struct EVP_MD_CTX_Deleter {
+        void operator()(EVP_MD_CTX* ctx) {
+            EVP_MD_CTX_free(ctx);
+        }
+    };
+
+    struct FILE_Deleter {
+        void operator()(FILE* fp) {
+            fclose(fp);
+        }
+    };
+
+    std::unique_ptr<EVP_MD, EVP_MD_Deleter> md(
+            EVP_MD_fetch(nullptr, "SHA512", nullptr));
+    std::unique_ptr<EVP_MD_CTX, EVP_MD_CTX_Deleter> ctx(EVP_MD_CTX_create());
+
+    if (!md) {
+        throw std::runtime_error(
+                "cb::crypto::digest_sha512: EVP_MD_fetch() failed");
+    }
+    if (!ctx) {
+        throw std::runtime_error(
+                "cb::crypto::digest_sha512: EVP_MD_CTX_create() failed");
+    }
+
+    if (EVP_DigestInit_ex(ctx.get(), md.get(), nullptr) == 0) {
+        throw std::runtime_error(
+                "cb::crypto::digest_sha512: EVP_DigestInit_ex() failed");
+    }
+
+    std::vector<unsigned char> buffer(chunksize);
+    std::size_t offset = 0;
+    if (size == 0) {
+        size = file_size(path);
+    }
+
+    std::unique_ptr<FILE, FILE_Deleter> fp(fopen(path.string().c_str(), "rb"));
+    if (!fp) {
+        throw std::system_error(
+                errno, std::system_category(), "Failed to open file");
+    }
+
+#ifdef __linux__
+    // Give the kernel a hint that we'll read the data
+    // sequentially and won't need it more than once
+    (void)posix_fadvise(
+            fileno(fp.get()), 0, 0, POSIX_FADV_SEQUENTIAL | POSIX_FADV_NOREUSE);
+#endif
+
+    while (offset < size) {
+        auto chunk = std::min(size - offset, buffer.size());
+        auto nr = fread(buffer.data(), chunk, 1, fp.get());
+        if (nr != 1) {
+            if (feof(fp.get())) {
+                throw std::runtime_error(fmt::format(
+                        "Read error: End of file (still {} bytes left to read)",
+                        size - offset));
+            }
+            if (ferror(fp.get())) {
+                throw std::system_error(
+                        errno,
+                        std::system_category(),
+                        fmt::format("Read error at offset:{}", offset));
+            }
+            throw std::runtime_error(
+                    "Read error: Not EOF and ferror did not indicate an error");
+        }
+        offset += chunk;
+        if (EVP_DigestUpdate(ctx.get(), buffer.data(), chunk) == 0) {
+            throw std::runtime_error(
+                    "cb::crypto::digest_sha512: EVP_DigestUpdate() failed");
+        }
+    }
+    fp.reset();
+
+    std::array<unsigned char, EVP_MAX_MD_SIZE> digest;
+    unsigned int nbytes = 0;
+    if (EVP_DigestFinal_ex(ctx.get(), digest.data(), &nbytes) == 0) {
+        throw std::runtime_error(
+                "cb::crypto::digest_sha512: EVP_DigestFinal_ex() failed");
+    }
+
+    return hex_encode({digest.data(), nbytes});
 }
 
 } // namespace cb::crypto

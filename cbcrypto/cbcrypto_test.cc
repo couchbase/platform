@@ -14,6 +14,9 @@
  *   http://tools.ietf.org/html/draft-cheng-hmac-test-cases-00
  */
 
+#include "platform/dirutils.h"
+#include "platform/string_hex.h"
+
 #include <cbcrypto/digest.h>
 #include <cbcrypto/random_gen.h>
 #include <cbcrypto/symmetric.h>
@@ -420,4 +423,19 @@ TEST(RandomBitGenerator, Generate) {
     drbg->generate(buffer2);
     EXPECT_NE(initial, buffer2);
     EXPECT_NE(buffer1, buffer2);
+}
+
+TEST(Digest, sha512sum) {
+    std::filesystem::path fname =
+            cb::io::mktemp("cbcrypto-digest-sha512-test.txt");
+    FILE* fp = fopen(fname.string().c_str(), "wb");
+    ASSERT_NE(nullptr, fp);
+    fprintf(fp, "This is the text to generate the sha of");
+    fclose(fp);
+    auto sum = crypto::sha512sum(fname);
+    remove(fname);
+    EXPECT_EQ(
+            "546c3a5cd044130f18ad1db51f48817d1aaca480f9b1fb6d546066538aa967cac3"
+            "b0d5107bdb52d72c7b8cc321af48a6da8717fec5b9ded4125b95ce64df0b73",
+            sum);
 }

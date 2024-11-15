@@ -64,4 +64,28 @@ std::string pwhash(Algorithm algorithm,
                    std::string_view salt,
                    const nlohmann::json& properties = {});
 
+/**
+ * Create a SHA512 sum for a file and return the sum as a printable hex string
+ * which may be compared with the hex string printed with the command line
+ * utility sha512sum.
+ *
+ * Note: The output from this function only contains the sum!
+ * Note: The method may throw additional exceptions from the ones listed
+ *       below. These are the ones explicitly thrown from the method
+ *
+ * @param path The file to calculate the hash for
+ * @param size The number of bytes in the file to include in the sum. If
+ *             set to 0 it'll read the entire file
+ * @param chunksize The number of bytes to try to read from the file in each
+ *               chunk
+ * @return The textual SHA512 sum
+ * @throws std::bad_alloc for memory allocation failures
+ * @throws std::runtime_error for errors related to OpenSSL (or if
+ *                            EOF is reached before size bytes is read)
+ * @throws std::system_error for errors related to file IO
+ */
+std::string sha512sum(const std::filesystem::path& path,
+                      std::size_t size = 0,
+                      std::size_t chunksize = 1024 * 1024);
+
 } // namespace cb::crypto
