@@ -4,6 +4,7 @@ add_library(cbcrypto STATIC
         dump_keys_runner.cc
         encrypted_file_header.cc
         file_reader.cc
+        file_utilities.cc
         file_writer.cc
         key_store.cc
         random_gen.cc
@@ -13,10 +14,12 @@ add_library(cbcrypto STATIC
         ${Platform_SOURCE_DIR}/include/cbcrypto/dump_keys_runner.h
         ${Platform_SOURCE_DIR}/include/cbcrypto/encrypted_file_header.h
         ${Platform_SOURCE_DIR}/include/cbcrypto/file_reader.h
+        ${Platform_SOURCE_DIR}/include/cbcrypto/file_utilities.h
         ${Platform_SOURCE_DIR}/include/cbcrypto/file_writer.h
         ${Platform_SOURCE_DIR}/include/cbcrypto/key_store.h
         ${Platform_SOURCE_DIR}/include/cbcrypto/random_gen.h
-        ${Platform_SOURCE_DIR}/include/cbcrypto/symmetric.h)
+        ${Platform_SOURCE_DIR}/include/cbcrypto/symmetric.h
+)
 set_property(TARGET cbcrypto PROPERTY POSITION_INDEPENDENT_CODE 1)
 platform_enable_pch(cbcrypto)
 target_link_libraries(cbcrypto
@@ -31,7 +34,13 @@ target_link_libraries(cbcrypto
         phosphor
         platform)
 
-cb_add_test_executable(cbcrypto_unit_test cbcrypto_test.cc fileio_test.cc key_store_test.cc)
+cb_add_test_executable(cbcrypto_unit_test
+        cbcrypto_test.cc
+        file_utilities_test.cc
+        fileio_test.cc
+        key_store_test.cc
+)
+cb_enable_unity_build(cbcrypto_unit_test)
 platform_enable_pch(cbcrypto_unit_test)
 target_link_libraries(cbcrypto_unit_test
                      PRIVATE
