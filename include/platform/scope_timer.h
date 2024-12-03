@@ -56,16 +56,16 @@
  * ScopeTimer taking one listener objects. Somewhat unnecessary, but provided
  * for consistency / ease of moving between an N arg variant.
  */
-template <class Listener1>
+template <class Listener1, class Clock = std::chrono::steady_clock>
 class ScopeTimer1 {
 public:
     template <typename... Args>
     ScopeTimer1(Args&&... args) : listener1(std::forward<Args>(args)...) {
-        listener1.start(std::chrono::steady_clock::now());
+        listener1.start(Clock::now());
     }
 
     ~ScopeTimer1() {
-        const auto endTime = std::chrono::steady_clock::now();
+        const auto endTime = Clock::now();
         listener1.stop(endTime);
     }
 
@@ -74,7 +74,9 @@ private:
 };
 
 /// ScopeTimer taking two listener objects.
-template <class Listener1, class Listener2>
+template <class Listener1,
+          class Listener2,
+          class Clock = std::chrono::steady_clock>
 class ScopeTimer2 {
 public:
     /**
@@ -97,13 +99,13 @@ public:
                   std::make_from_tuple<Listener1>(std::forward<Args1>(args1))),
           listener2(
                   std::make_from_tuple<Listener2>(std::forward<Args2>(args2))) {
-        auto startTime = std::chrono::steady_clock::now();
+        auto startTime = Clock::now();
         listener1.start(startTime);
         listener2.start(startTime);
     }
 
     ~ScopeTimer2() {
-        const auto endTime = std::chrono::steady_clock::now();
+        const auto endTime = Clock::now();
         listener1.stop(endTime);
         listener2.stop(endTime);
     }
