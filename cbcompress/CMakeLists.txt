@@ -31,4 +31,3 @@ target_link_libraries(platform-compression-bench
                       ${SNAPPY_LIBRARIES}
                       benchmark::benchmark
                       GTest::gtest)
-platform_enable_pch(platform-compression-bench)
