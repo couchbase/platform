@@ -161,6 +161,38 @@ void mkdirp(std::string_view directory);
         size_t bytesToRead = std::numeric_limits<size_t>::max());
 
 /**
+ * Save the content to the named file. It might throw other exceptions than
+ * the ones listed below, but it use std::ofstream with exceptions enabled
+ * which should throw an exception if something goes wrong.
+ *
+ * @param path the name of the file to save
+ * @param content the content to save
+ * @param mode the mode to use when opening the file
+ * @throws std::system_exception if an error occurs opening / writing the file
+ */
+void saveFile(const std::filesystem::path& path,
+              std::string_view content,
+              std::ios_base::openmode mode = std::ios_base::trunc |
+                                             std::ios_base::binary);
+
+/**
+ * Save the content to the named file.
+ *
+ * @param path the name of the file to save
+ * @param content the content to save
+ * @param ec Where to store the error code if an error occurs
+ * @param mode the mode to use when opening the file
+ * @returns true for success, false otherwise and ec contains the error code
+ * @throws std::system_exception if an error occurs opening / writing the file
+ */
+[[nodiscard]] bool saveFile(
+        const std::filesystem::path& path,
+        std::string_view content,
+        std::error_code& ec,
+        std::ios_base::openmode mode = std::ios_base::trunc |
+                                       std::ios_base::binary) noexcept;
+
+/**
  * Read a file line by line and tokenize the line with the provided tokens.
  * If the callback returns false parsing of the file will stop.
  *

@@ -202,6 +202,7 @@ LIST(APPEND PLATFORM_FILES
   src/murmurhash3.cc
   src/processclock.cc
   src/process_monitor.cc
+  src/save_file.cc
   src/semaphore.cc
   src/semaphore_guard.cc
   src/sized_buffer.cc

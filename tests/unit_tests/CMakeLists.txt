@@ -29,6 +29,7 @@ cb_add_test_executable(platform_unit_tests
                        processclock_test.cc
                        random_test.cc
                        relaxed_atomic_test.cc
+                       save_file_test.cc
                        scope_timer_test.cc
                        semaphore_test.cc
                        simd_scan_test.cc
