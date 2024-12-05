@@ -23,9 +23,64 @@ namespace cb::detail {
 using monotonic_buffer_resource = std::pmr::monotonic_buffer_resource;
 }
 #endif
+#include <memory>
 #include <vector>
 
 namespace cb {
+
+struct MonotonicBufferResource {
+public:
+    MonotonicBufferResource(size_t initialSize, size_t maxSize);
+
+    ~MonotonicBufferResource();
+
+    /**
+     * Allocate memory.
+     * @throw std::bad_alloc on failure
+     */
+    void* allocate(size_t bytes);
+
+    /**
+     * Deallocate memory.
+     */
+    void deallocate(void* ptr, size_t size);
+
+    /**
+     * @return the current allocated memory
+     */
+    size_t getAllocatedBytes() const;
+
+    /**
+     * @return the current number of allocations
+     */
+    size_t getAllocationCount() const;
+
+    /**
+     * The maximum memory we ever allocated from this allocator.
+     */
+    size_t getMaxAllocatedBytes() const;
+
+    /**
+     * The maximum number of allocations we ever made from this allocator.
+     */
+    size_t getMaxAllocationCount() const;
+
+private:
+    // Maximum size of the buffer.
+    const size_t maxSize;
+    /// The initial buffer allocated. Gets deallocated on thread exit.
+    std::vector<char> initialBuffer;
+    /// A bump allocator.
+    std::unique_ptr<detail::monotonic_buffer_resource> resource;
+    /// Current allocated memory.
+    size_t allocatedBytes = 0;
+    /// Current number of allocations.
+    size_t allocationCount = 0;
+    /// The maximum memory we ever allocated from this allocator.
+    size_t maxAllocatedBytes = 0;
+    /// The maximum number of allocations we ever made from this allocator.
+    size_t maxAllocationCount = 0;
+};
 
 /**
  * A thread-local memory resource.
@@ -51,96 +106,11 @@ namespace cb {
  */
 template <typename Tag, size_t InitialSize, size_t MaxSize>
 struct ThreadLocalMonotonicResource {
-    struct Buffer {
-    public:
-        Buffer()
-            : initialBuffer(InitialSize),
-              resource(initialBuffer.data(), initialBuffer.size()) {
-        }
-
-        /**
-         * Allocate memory.
-         * @throw std::bad_alloc on failure
-         */
-        void* allocate(size_t bytes) {
-            if (allocatedBytes + bytes > MaxSize) {
-                throw std::bad_alloc();
-            }
-
-            void* ptr = resource.allocate(bytes);
-            if (!ptr) {
-                throw std::bad_alloc();
-            }
-
-            allocatedBytes += bytes;
-            ++allocationCount;
-
-            maxAllocatedBytes = std::max(maxAllocatedBytes, allocatedBytes);
-            maxAllocationCount = std::max(maxAllocationCount, allocationCount);
-
-            return ptr;
-        }
-
-        /**
-         * Deallocate memory.
-         */
-        void deallocate(void* ptr, size_t size) {
-            allocatedBytes -= size;
-            --allocationCount;
-            if (!allocatedBytes) {
-                // Time to reset the memory resource.
-                resource.release();
-            }
-        }
-
-        /**
-         * @return the current allocated memory
-         */
-        size_t getAllocatedBytes() const {
-            return allocatedBytes;
-        }
-
-        /**
-         * @return the current number of allocations
-         */
-        size_t getAllocationCount() const {
-            return allocationCount;
-        }
-
-        /**
-         * The maximum memory we ever allocated from this allocator.
-         */
-        size_t getMaxAllocatedBytes() const {
-            return maxAllocatedBytes;
-        }
-
-        /**
-         * The maximum number of allocations we ever made from this allocator.
-         */
-        size_t getMaxAllocationCount() const {
-            return maxAllocationCount;
-        }
-
-    private:
-        /// The initial buffer allocated. Gets deallocated on thread exit.
-        std::vector<char> initialBuffer;
-        /// A bump allocator.
-        detail::monotonic_buffer_resource resource;
-        /// Current allocated memory.
-        size_t allocatedBytes = 0;
-        /// Current number of allocations.
-        size_t allocationCount = 0;
-        /// The maximum memory we ever allocated from this allocator.
-        size_t maxAllocatedBytes = 0;
-        /// The maximum number of allocations we ever made from this allocator.
-        size_t maxAllocationCount = 0;
-    };
-
     /**
      * Provides a lazily-initialised thread-local Buffer.
      */
-    static Buffer& getThreadBuffer() {
-        thread_local Buffer buffer;
+    static MonotonicBufferResource& getThreadBuffer() {
+        thread_local MonotonicBufferResource buffer(InitialSize, MaxSize);
         return buffer;
     }
 
@@ -164,7 +134,7 @@ struct ThreadLocalMonotonicResource {
         /**
          * Access the internal buffer (for debugging).
          */
-        Buffer& getUnderlyingBuffer() const {
+        MonotonicBufferResource& getUnderlyingBuffer() const {
             return getThreadBuffer();
         }
 

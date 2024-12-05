@@ -10,6 +10,8 @@
 #include <folly/portability/GTest.h>
 
 #include <gtest/gtest.h>
+#include <platform/cb_arena_malloc.h>
+#include <platform/cb_malloc.h>
 #include <platform/thread_local_monotonic_resource.h>
 #include <new>
 #include <thread>
@@ -92,4 +94,43 @@ TEST(ThreadLocalMonotonicResource, ThreadLocal) {
     std::thread t(
             [&a, &buffer]() { EXPECT_NE(&buffer, &a.getUnderlyingBuffer()); });
     t.join();
+}
+
+/// Check that the allocations are not made under any arena.
+TEST(ThreadLocalMonotonicResource, NoArenaGuard) {
+    struct Tag {};
+    using Resource = cb::ThreadLocalMonotonicResource<Tag, 100, 200>;
+
+    ASSERT_TRUE(cb_malloc_is_using_arenas());
+
+    auto client = cb::ArenaMalloc::registerClient(false);
+
+    std::thread t([&client]() {
+        cb::ArenaMalloc::switchToClient(client);
+        auto& buffer = Resource::getThreadBuffer();
+        const size_t initialAllocated =
+                cb::ArenaMalloc::getPreciseAllocated(client);
+        {
+            // GTest lazily initialises heap structures.
+            cb::NoArenaGuard gtest;
+            EXPECT_EQ(initialAllocated,
+                      cb::ArenaMalloc::getPreciseAllocated(client));
+        }
+        buffer.allocate(100);
+        {
+            cb::NoArenaGuard gtest;
+            EXPECT_EQ(initialAllocated,
+                      cb::ArenaMalloc::getPreciseAllocated(client));
+        }
+        buffer.allocate(100);
+        {
+            cb::NoArenaGuard gtest;
+            EXPECT_EQ(initialAllocated,
+                      cb::ArenaMalloc::getPreciseAllocated(client));
+        }
+        cb::ArenaMalloc::switchFromClient();
+    });
+
+    t.join();
+    cb::ArenaMalloc::unregisterClient(client);
 }

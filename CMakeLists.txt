@@ -214,6 +214,7 @@ LIST(APPEND PLATFORM_FILES
   src/terminal_color.cc
   src/terminal_size.cc
   src/thread.cc
+  src/thread_local_monotonic_resource.cc
   src/timeutils.cc
   src/unique_waiter_queue.cc
   src/uuid.cc

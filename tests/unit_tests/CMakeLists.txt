@@ -49,7 +49,7 @@ cb_add_test_executable(platform_unit_tests
 set_source_files_properties(cb_getopt_test.cc
         PROPERTIES SKIP_UNITY_BUILD_INCLUSION 1)
 target_link_libraries(platform_unit_tests
-        PRIVATE fmt::fmt GTest::gtest GTest::gtest_main platform JSON_checker)
+        PRIVATE fmt::fmt GTest::gtest GTest::gtest_main platform platform_cb_malloc_arena JSON_checker)
 platform_enable_pch(platform_unit_tests)
 cb_enable_unity_build(platform_unit_tests)
 add_test(platform_unit_tests platform_unit_tests)
