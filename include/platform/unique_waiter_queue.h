@@ -44,6 +44,10 @@ public:
     UniqueWaiterQueue(const UniqueWaiterQueue&) = delete;
     UniqueWaiterQueue& operator=(const UniqueWaiterQueue&) = delete;
 
+    // Allow move
+    UniqueWaiterQueue(UniqueWaiterQueue&& other) = default;
+    UniqueWaiterQueue& operator=(UniqueWaiterQueue&& other) = default;
+
     /**
      * Try to add a waiter to the queue.
      *
