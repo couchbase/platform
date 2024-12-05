@@ -10,14 +10,12 @@
 
 #pragma once
 
+#include <folly/compression/Compression.h>
 #include <platform/compression/buffer.h>
 #include <memory>
 
 namespace folly {
 class IOBuf;
-}
-namespace folly::io {
-enum class CodecType;
 }
 
 namespace cb::compression {
