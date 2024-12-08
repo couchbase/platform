@@ -229,7 +229,7 @@ std::pair<std::string, std::filesystem::path> DumpKeysRunnerImpl::lookupKeyKind(
              std::filesystem::recursive_directory_iterator{
                      entry["path"].get<std::string>(), ec}) {
             if (dir_entry.is_regular_file() &&
-                dir_entry.path().filename() == id) {
+                dir_entry.path().filename().string().rfind(id, 0) == 0) {
                 return {entry["kind"].get<std::string>(), dir_entry.path()};
             }
         }
