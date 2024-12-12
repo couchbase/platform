@@ -9,6 +9,8 @@
  */
 
 #pragma once
+
+#include <platform/uuid.h>
 #include <array>
 #include <cstdint> // uint8_t
 #include <string_view>
@@ -32,6 +34,7 @@ public:
     /// Initialize a new instance of the FileHeader and set the key id to
     /// use
     explicit EncryptedFileHeader(std::string_view key_id,
+                                 cb::uuid::uuid_t salt = cb::uuid::random(),
                                  Compression compression = Compression::None);
 
     /// Is "this" an encrypted header (contains the correct magic)
@@ -42,7 +45,8 @@ public:
     [[nodiscard]] Compression get_compression() const;
     /// Get the key identifier in the header
     [[nodiscard]] std::string_view get_id() const;
-
+    /// Get the salt used in the encryption
+    [[nodiscard]] cb::uuid::uuid_t get_salt() const;
     /// Convenience function to convert to string_view
     [[nodiscard]] operator std::string_view() const {
         return {reinterpret_cast<const char*>(this), sizeof(*this)};
@@ -55,7 +59,8 @@ protected:
     std::array<uint8_t, 4> unused{};
     uint8_t id_size = 0;
     std::array<char, 36> id{};
+    std::array<uint8_t, 16> salt{};
 };
 
-static_assert(sizeof(EncryptedFileHeader) == 64);
+static_assert(sizeof(EncryptedFileHeader) == 80);
 } // namespace cb::crypto

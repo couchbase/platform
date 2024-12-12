@@ -7,6 +7,9 @@
  *   software will be governed by the Apache License, Version 2.0, included in
  *   the file licenses/APL2.txt.
  */
+
+#include "encrypted_file_associated_data.h"
+
 #include <cbcrypto/common.h>
 #include <cbcrypto/encrypted_file_header.h>
 #include <cbcrypto/file_reader.h>
@@ -42,10 +45,10 @@ protected:
 class EncryptedStringReader : public FileReader {
 public:
     EncryptedStringReader(const DataEncryptionKey& dek,
-                          std::string filename,
+                          EncryptedFileAssociatedData associatedData,
                           std::string_view view,
                           std::string content)
-        : filename(std::move(filename)),
+        : associatedData(associatedData),
           offset(sizeof(EncryptedFileHeader)),
           cipher(SymmetricCipher::create(dek.cipher, dek.key)),
           view(view),
@@ -84,15 +87,15 @@ public:
             throw std::underflow_error(
                     "EncryptedStringReader: Missing Chunk data");
         }
-        auto ad = fmt::format("{}:{}", filename, offset);
-        auto ret = cipher->decrypt(view.substr(0, len), ad);
+        associatedData.set_offset(offset);
+        auto ret = cipher->decrypt(view.substr(0, len), associatedData);
         view.remove_prefix(len);
         offset += len + sizeof(uint32_t);
         return ret;
     }
 
 protected:
-    const std::string filename;
+    EncryptedFileAssociatedData associatedData;
     std::size_t offset;
     std::unique_ptr<crypto::SymmetricCipher> cipher;
     std::string_view view;
@@ -202,7 +205,7 @@ std::unique_ptr<FileReader> FileReader::create(
             std::string_view view(content);
             view.remove_prefix(sizeof(EncryptedFileHeader));
             auto ret = std::make_unique<EncryptedStringReader>(
-                    *dek, path.filename().string(), view, std::move(content));
+                    *dek, *header, view, std::move(content));
             if (compression == Compression::None) {
                 return ret;
             }

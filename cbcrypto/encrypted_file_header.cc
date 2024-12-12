@@ -32,6 +32,7 @@ std::string format_as(Compression compression) {
 }
 
 EncryptedFileHeader::EncryptedFileHeader(std::string_view key_id,
+                                         cb::uuid::uuid_t salt_,
                                          Compression compression)
     : compression(static_cast<uint8_t>(compression)),
       id_size(gsl::narrow_cast<uint8_t>(key_id.size())) {
@@ -41,6 +42,7 @@ EncryptedFileHeader::EncryptedFileHeader(std::string_view key_id,
 
     std::copy(Magic.begin(), Magic.end(), magic.begin());
     std::copy(key_id.begin(), key_id.end(), id.begin());
+    std::copy(salt_.data, salt_.data + salt_.size(), salt.begin());
 }
 
 bool EncryptedFileHeader::is_encrypted() const {
@@ -59,4 +61,11 @@ Compression EncryptedFileHeader::get_compression() const {
 std::string_view EncryptedFileHeader::get_id() const {
     return std::string_view{id.data(), id_size};
 }
+
+cb::uuid::uuid_t EncryptedFileHeader::get_salt() const {
+    cb::uuid::uuid_t ret;
+    std::copy(salt.begin(), salt.end(), ret.data);
+    return ret;
+}
+
 } // namespace cb::crypto

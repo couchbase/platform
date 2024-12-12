@@ -2,6 +2,7 @@ add_library(cbcrypto STATIC
         common.cc
         digest.cc
         dump_keys_runner.cc
+        encrypted_file_associated_data.h
         encrypted_file_header.cc
         file_reader.cc
         file_utilities.cc

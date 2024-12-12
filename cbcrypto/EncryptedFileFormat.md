@@ -14,8 +14,9 @@ The file header consist of a 64 bytes header with the following layout
     | 24     | 4      | unused (should be set to 0)    |
     | 27     | 1      | id len                         |
     | 28     | 36     | id bytes                       |
+    | 64     | 16     | salt (uuid)                    |
 
-    Total of 64 bytes
+    Total of 80 bytes
 
 compression may be one of the following
 
@@ -36,16 +37,13 @@ to terminate the id.
 ### Example
 
 Below is an example for a file header with containing the key
-`50143181-2803-40df-af7e-510f01ae6f7f`
+`75c10c81-c8de-4c49-901a-7dd79562b3f6` using Snappy compression
 
-    0x00000000	0x00 0x43 0x6f 0x75 0x63 0x68 0x62 0x61     .Couchba
-    0x00000008	0x73 0x65 0x20 0x45 0x6e 0x63 0x72 0x79     se Encry
-    0x00000010	0x70 0x74 0x65 0x64 0x20 0x46 0x69 0x6c     pted Fil
-    0x00000018	0x65 0x00 0x00 0x24 0x35 0x30 0x31 0x34     e..$5014
-    0x00000020	0x33 0x31 0x38 0x31 0x2d 0x32 0x38 0x30     3181-280
-    0x00000028	0x33 0x2d 0x34 0x30 0x64 0x66 0x2d 0x61     3-40df-a
-    0x00000030	0x66 0x37 0x65 0x2d 0x35 0x31 0x30 0x66     f7e-510f
-    0x00000038	0x30 0x31 0x61 0x65 0x36 0x66 0x37 0x66     01ae6f7f
+    00000000: 0043 6f75 6368 6261 7365 2045 6e63 7279  .Couchbase Encry
+    00000010: 7074 6564 0000 0100 0000 0024 3735 6331  pted.......$75c1
+    00000020: 3063 3831 2d63 3864 652d 3463 3439 2d39  0c81-c8de-4c49-9
+    00000030: 3031 612d 3764 6437 3935 3632 6233 6636  01a-7dd79562b3f6
+    00000040: 3f12 8796 3b63 420a 9f2a d865 ec86 322f  ?...;cB..*.e..2/
 
 ## Chunk
 
@@ -62,11 +60,9 @@ Even if 32 bit length field allows for really large chunks (4GB) one
 should choose a reasonable chunk size keeping in mind that the process
 decrypting the chunk should keep the entire chunk in memory.
 
-Each chunk use the filename (without path) and file offset as associated
+Each chunk use the content of the header and file offset as associated
 data (AD) generated on the following format:
 
-    filename:offset
+    <header>offset
 
-Example:
-
-    myfile.cef:123456
+The offset is added as a 64 bit integer in network byte order.

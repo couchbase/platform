@@ -7,6 +7,8 @@
  *   software will be governed by the Apache License, Version 2.0, included in
  *   the file licenses/APL2.txt.
  */
+#include "encrypted_file_associated_data.h"
+
 #include <cbcrypto/common.h>
 #include <cbcrypto/encrypted_file_header.h>
 #include <cbcrypto/file_writer.h>
@@ -99,8 +101,7 @@ public:
                             std::unique_ptr<FileWriterImpl> underlying,
                             size_t buffer_size,
                             Compression compression)
-        : filename(underlying->getFilename().filename().string()),
-          buffer_size(buffer_size),
+        : buffer_size(buffer_size),
           compression(compression),
           cipher(crypto::SymmetricCipher::create(dek->cipher, dek->key)),
           underlying(std::move(underlying)) {
@@ -108,7 +109,8 @@ public:
             buffer.reserve(buffer_size);
         }
 
-        EncryptedFileHeader header(dek->id, compression);
+        EncryptedFileHeader header(dek->id, cb::uuid::random(), compression);
+        associatedData = std::make_unique<EncryptedFileAssociatedData>(header);
         this->underlying->write(header);
     }
 
@@ -137,15 +139,14 @@ public:
 
 protected:
     void do_encrypt_and_write(std::string_view data) {
-        auto ad = fmt::format("{}:{}", filename, underlying->size());
-
+        associatedData->set_offset(underlying->size());
         std::unique_ptr<folly::IOBuf> iobuf;
         if (compression != Compression::None) {
             iobuf = deflate(data);
             data = folly::StringPiece{iobuf->coalesce()};
         }
 
-        const auto encrypted = cipher->encrypt(data, ad);
+        const auto encrypted = cipher->encrypt(data, *associatedData);
         uint32_t size = htonl(gsl::narrow<uint32_t>(encrypted.size()));
         this->underlying->write(std::string_view{
                 reinterpret_cast<const char*>(&size), sizeof(size)});
@@ -208,9 +209,9 @@ protected:
         return cb::compression::deflate(codec, chunk);
     }
 
-    const std::string filename;
     const size_t buffer_size;
     const Compression compression;
+    std::unique_ptr<EncryptedFileAssociatedData> associatedData;
     std::unique_ptr<SymmetricCipher> cipher;
     std::unique_ptr<FileWriterImpl> underlying;
     std::string buffer;
