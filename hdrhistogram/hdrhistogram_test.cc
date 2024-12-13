@@ -8,13 +8,14 @@
  *   software will be governed by the Apache License, Version 2.0, included in
  *   the file licenses/APL2.txt.
  */
+#include <folly/portability/GTest.h>
+
 #include <hdrhistogram/hdrhistogram.h>
 
 #include <boost/thread/barrier.hpp>
 #include <fmt/format.h>
 #include <fmt/ostream.h>
 #include <folly/lang/Assume.h>
-#include <folly/portability/GTest.h>
 #include <folly/synchronization/Baton.h>
 #include <gmock/gmock-matchers.h>
 
