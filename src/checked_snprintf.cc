@@ -36,7 +36,9 @@ int checked_snprintf(char* str, const size_t size, const char* format, ...) {
         // overflow error...
         throw std::overflow_error(
             "checked_snprintf: Destination buffer too small.");
-    } else if (size_t(ret) >= size) {
+    }
+
+    if (size_t(ret) >= size) {
         std::string msg("checked_snprintf: Destination buffer too small. (");
         msg += std::to_string(ret);
         msg += " >= ";
