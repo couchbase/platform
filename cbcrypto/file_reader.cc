@@ -186,8 +186,9 @@ std::unique_ptr<FileReader> FileReader::create(
     // allow to wait for more data to appear if we hit a partial block)
     auto content = cb::io::loadFile(path, waittime);
     if (content.size() >= sizeof(EncryptedFileHeader)) {
+        std::string headerCopy = content.substr(0, sizeof(EncryptedFileHeader));
         const auto* header =
-                reinterpret_cast<EncryptedFileHeader*>(content.data());
+                reinterpret_cast<EncryptedFileHeader*>(headerCopy.data());
         if (header->is_encrypted()) {
             if (!header->is_supported()) {
                 throw std::runtime_error(
