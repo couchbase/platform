@@ -25,6 +25,7 @@ using namespace cb::crypto;
 static constexpr int EXIT_INCORRECT_PASSWORD = 2;
 
 static std::unique_ptr<DumpKeysRunner> dump_keys_runner;
+static KeyStore keyStore;
 
 /// The key lookup callback gets called from the FileReader whenever it
 /// encounters an encrypted file. It'll keep the keys around in a key store
@@ -32,18 +33,20 @@ static std::unique_ptr<DumpKeysRunner> dump_keys_runner;
 /// dump multiple files (in the case the same key is used for multiple
 /// files)
 static SharedEncryptionKey key_lookup_callback(std::string_view id) {
-    static KeyStore keyStore;
     auto ret = keyStore.lookup(id);
     if (ret) {
         return ret;
     }
 
-    auto key = dump_keys_runner->lookup(id);
-    if (key) {
-        // add for later requests
-        keyStore.add(key);
+    if (dump_keys_runner) {
+        auto key = dump_keys_runner->lookup(id);
+        if (key) {
+            // add for later requests
+            keyStore.add(key);
+        }
+        return key;
     }
-    return key;
+    return {};
 }
 
 static void usage(cb::getopt::CommandLineOptionsParser& instance,
@@ -57,6 +60,48 @@ Options:
     std::exit(exitcode);
 }
 
+void populateKeyStore(std::string_view data) {
+    try {
+        const auto json = nlohmann::json::parse(data);
+        if (json.is_array()) {
+            for (const auto& entry : json) {
+                auto key = std::make_shared<DataEncryptionKey>();
+                *key = entry;
+                keyStore.add(key);
+            }
+        } else if (json.is_object()) {
+            auto key = std::make_shared<DataEncryptionKey>();
+            *key = json;
+            keyStore.add(key);
+        }
+    } catch (const std::exception& e) {
+        std::cerr << "Failed to parse key store: " << e.what() << std::endl;
+        std::exit(EXIT_FAILURE);
+    }
+}
+
+void readKeyStoreFromStdin() {
+    std::string input;
+
+    while (true) {
+        std::array<char, 4096> buffer;
+        auto nr = fread(buffer.data(), 1, buffer.size(), stdin);
+        if (nr > 0) {
+            input.append(buffer.data(), nr);
+        } else if (feof(stdin)) {
+            populateKeyStore(input);
+            return;
+        }
+
+        if (ferror(stdin)) {
+            std::system_error error(
+                    errno, std::system_category(), "Failed to read from stdin");
+            std::cerr << error.what() << std::endl;
+            std::exit(EXIT_FAILURE);
+        }
+    }
+}
+
 int main(int argc, char** argv) {
     using cb::getopt::Argument;
     cb::getopt::CommandLineOptionsParser parser;
@@ -66,6 +111,8 @@ int main(int argc, char** argv) {
             DESTINATION_ROOT "/var/lib/couchbase/config/gosecrets.cfg";
     std::string password;
     bool printHeader = false;
+    bool withKeyStore = false;
+    bool stdinUsed = false;
 
     parser.addOption({
             [&dumpKeysExecutable](auto value) {
@@ -85,9 +132,16 @@ int main(int argc, char** argv) {
              fmt::format("The location of gosecrets.cfg (by default {})",
                          gosecrets)});
     parser.addOption(
-            {[&password](auto value) {
+            {[&password, &stdinUsed](auto value) {
                  if (value == "-") {
+                     if (stdinUsed) {
+                         std::cerr << "stdin may only be used one (password or "
+                                      "key store)"
+                                   << std::endl;
+                         exit(EXIT_FAILURE);
+                     }
                      password = cb::getpass();
+                     stdinUsed = true;
                  } else {
                      password = std::string{value};
                  }
@@ -97,6 +151,30 @@ int main(int argc, char** argv) {
              "password",
              "The password to use for authentication (use '-' to read from "
              "standard input)"});
+
+    parser.addOption(
+            {[&withKeyStore, &stdinUsed](auto value) {
+                 withKeyStore = true;
+
+                 if (value == "-") {
+                     if (stdinUsed) {
+                         std::cerr << "stdin may only be used one (password or "
+                                      "key store)"
+                                   << std::endl;
+                         exit(EXIT_FAILURE);
+                     }
+                     stdinUsed = true;
+                     readKeyStoreFromStdin();
+                 } else {
+                     populateKeyStore(value);
+                 }
+             },
+             "with-keystore",
+             Argument::Required,
+             "json or -",
+             "The JSON containing the keystore to use (use '-' to read from "
+             "standard input)"});
+
     parser.addOption({[&printHeader](auto value) { printHeader = true; },
                       "print-header",
                       "Print a header with the file name before the content of "
@@ -115,8 +193,10 @@ int main(int argc, char** argv) {
     auto arguments = parser.parse(
             argc, argv, [&parser]() { usage(parser, EXIT_FAILURE); });
 
-    dump_keys_runner =
-            DumpKeysRunner::create(password, dumpKeysExecutable, gosecrets);
+    if (!withKeyStore) {
+        dump_keys_runner =
+                DumpKeysRunner::create(password, dumpKeysExecutable, gosecrets);
+    }
 
     for (const auto& file : arguments) {
         if (printHeader) {
