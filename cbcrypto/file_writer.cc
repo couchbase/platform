@@ -20,6 +20,7 @@
 #include <platform/compress.h>
 #include <platform/dirutils.h>
 #include <platform/socket.h>
+#include <zlib.h>
 #include <fstream>
 
 namespace cb::crypto {
@@ -207,6 +208,105 @@ protected:
     const Compression compression;
 };
 
+class ZLibStreamingWriter : public StackedWriter {
+public:
+    ZLibStreamingWriter(std::unique_ptr<FileWriter> underlying,
+                        Compression compression)
+        : StackedWriter(std::move(underlying)), compression(compression) {
+        std::memset(&zstream, 0, sizeof(zstream));
+        if (deflateInit(&zstream, Z_DEFAULT_COMPRESSION) != Z_OK) {
+            throw std::runtime_error("Failed to initialize zlib");
+        }
+    }
+
+    void flush() override {
+        Expects(!closed);
+        zstream.avail_in = 0;
+        zstream.next_in = nullptr;
+
+        std::vector<uint8_t> buffer(1024);
+        zstream.avail_out = buffer.size();
+        zstream.next_out = buffer.data();
+
+        // (given that the output size is the same as the input size I expect
+        // that we should be able to compress the data in one go)
+        if (deflate(&zstream, Z_FULL_FLUSH) != Z_OK) {
+            throw std::runtime_error("Failed to deflate data");
+        }
+        auto nbytes = buffer.size() - zstream.avail_out;
+        this->underlying->write(std::string_view{
+                reinterpret_cast<const char*>(buffer.data()), nbytes});
+        this->underlying->flush();
+    }
+
+    void close() override {
+        do_close();
+    }
+
+    ~ZLibStreamingWriter() override {
+        if (!closed) {
+            try {
+                do_close();
+            } catch (const std::exception&) {
+            }
+        }
+        deflateEnd(&zstream);
+    }
+
+protected:
+    void do_close() {
+        Expects(!closed);
+        zstream.avail_in = 0;
+        zstream.next_in = nullptr;
+
+        std::vector<uint8_t> buffer(1024);
+        zstream.avail_out = buffer.size();
+        zstream.next_out = buffer.data();
+
+        auto rc = deflate(&zstream, Z_FINISH);
+        if (rc == Z_STREAM_END) {
+            // No need to write more data
+            closed = true;
+            return;
+        }
+
+        if (rc != Z_OK) {
+            throw std::runtime_error("Failed to deflate data with Z_FINISH");
+        }
+        auto nbytes = buffer.size() - zstream.avail_out;
+        this->underlying->write(std::string_view{
+                reinterpret_cast<const char*>(buffer.data()), nbytes});
+        this->underlying->flush();
+        closed = true;
+    }
+
+    void do_write(std::string_view data) override {
+        Expects(!closed);
+        zstream.avail_in = data.size();
+        zstream.next_in =
+                reinterpret_cast<Bytef*>(const_cast<char*>(data.data()));
+
+        std::vector<uint8_t> buffer(data.size());
+        do {
+            zstream.avail_out = buffer.size();
+            zstream.next_out = buffer.data();
+
+            auto status = deflate(&zstream, Z_NO_FLUSH);
+            if (status == Z_STREAM_ERROR) {
+                throw std::runtime_error("Failed to deflate data (Z_NO_FLUSH)");
+            }
+            const auto nbytes = buffer.size() - zstream.avail_out;
+            this->underlying->write(std::string_view{
+                    reinterpret_cast<const char*>(buffer.data()), nbytes});
+        } while (zstream.avail_out == 0);
+        Expects(zstream.avail_in == 0);
+    }
+
+    const Compression compression;
+    bool closed = false;
+    z_stream zstream;
+};
+
 class EncryptedWriter : public StackedWriter {
 public:
     EncryptedWriter(const SharedEncryptionKey& dek,
@@ -257,10 +357,26 @@ std::unique_ptr<FileWriter> FileWriter::create(const SharedEncryptionKey& dek,
 
         ret = std::move(next);
 
-        if (compression != Compression::None) {
-            next = std::make_unique<CompressionWriter>(std::move(ret),
-                                                       compression);
-            ret = std::move(next);
+        decltype(ret) compressor;
+        switch (compression) {
+        case Compression::None:
+            break;
+        case Compression::ZLIB:
+            compressor = std::make_unique<ZLibStreamingWriter>(std::move(ret),
+                                                               compression);
+            break;
+
+        case Compression::Snappy:
+        case Compression::GZIP:
+        case Compression::ZSTD:
+        case Compression::BZIP2:
+            compressor = std::make_unique<CompressionWriter>(std::move(ret),
+                                                             compression);
+            break;
+        }
+
+        if (compressor) {
+            ret = std::move(compressor);
         }
 
         if (buffer_size != 0) {

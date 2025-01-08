@@ -19,6 +19,7 @@
 #include <platform/compress.h>
 #include <platform/dirutils.h>
 #include <platform/socket.h>
+#include <zlib.h>
 
 namespace cb::crypto {
 class StringReader : public FileReader {
@@ -102,24 +103,10 @@ protected:
     std::string content;
 };
 
-class InflateReader : public FileReader {
+class SnappyInflateReader : public FileReader {
 public:
-    InflateReader(Compression compression,
-                  std::unique_ptr<FileReader> underlying)
-        : compression(compression), underlying(std::move(underlying)) {
-        switch (compression) {
-        case Compression::Snappy:
-        case Compression::ZLIB:
-            break;
-
-        case Compression::None:
-        case Compression::GZIP:
-        case Compression::ZSTD:
-        case Compression::BZIP2:
-        default:
-            throw std::runtime_error(fmt::format(
-                    "InflateReader: Unsupported compression: {}", compression));
-        }
+    SnappyInflateReader(std::unique_ptr<FileReader> underlying)
+        : underlying(std::move(underlying)) {
     }
     [[nodiscard]] bool is_encrypted() const override {
         return underlying->is_encrypted();
@@ -143,37 +130,71 @@ protected:
         if (chunk.empty()) {
             return {};
         }
-
-        folly::io::CodecType codec;
-
-        switch (compression) {
-        case Compression::Snappy:
-            codec = folly::io::CodecType::SNAPPY;
-            break;
-        case Compression::ZLIB:
-            codec = folly::io::CodecType::ZLIB;
-            break;
-        case Compression::GZIP:
-            codec = folly::io::CodecType::GZIP;
-            break;
-        case Compression::ZSTD:
-            codec = folly::io::CodecType::ZSTD;
-            break;
-        case Compression::BZIP2:
-            codec = folly::io::CodecType::BZIP2;
-            break;
-        default:
-            throw std::runtime_error(fmt::format(
-                    "InflateReader: Unsupported compression: {}", compression));
-        }
-
-        auto inflated = cb::compression::inflate(
-                codec, chunk, std::numeric_limits<std::size_t>::max());
+        auto inflated = cb::compression::inflateSnappy(
+                chunk, std::numeric_limits<std::size_t>::max());
         return std::string(folly::StringPiece{inflated->coalesce()});
     }
 
-    const Compression compression;
     std::unique_ptr<FileReader> underlying;
+};
+
+class ZlibInflateReader : public FileReader {
+public:
+    ZlibInflateReader(std::unique_ptr<FileReader> underlying)
+        : underlying(std::move(underlying)) {
+        std::memset(&zstream, 0, sizeof(zstream));
+        if (inflateInit(&zstream) != Z_OK) {
+            throw std::runtime_error("Failed to initialize zlib");
+        }
+        buffer.resize(1024 * 1024);
+    }
+
+    [[nodiscard]] bool is_encrypted() const override {
+        return underlying->is_encrypted();
+    }
+
+    std::string read() override {
+        std::string ret;
+        std::string next;
+        while (!(next = nextChunk()).empty()) {
+            ret.append(next);
+        }
+        return ret;
+    }
+
+    std::string nextChunk() override {
+        std::string ret;
+        do {
+            auto chunk = underlying->nextChunk();
+            if (chunk.empty()) {
+                return {};
+            }
+
+            zstream.avail_in = chunk.size();
+            zstream.next_in =
+                    reinterpret_cast<Bytef*>(const_cast<char*>(chunk.data()));
+
+            do {
+                zstream.avail_out = buffer.size();
+                zstream.next_out = buffer.data();
+                auto rc = inflate(&zstream, Z_NO_FLUSH);
+                Expects(rc == Z_OK || rc == Z_STREAM_END);
+                auto nbytes = buffer.size() - zstream.avail_out;
+                ret.append(reinterpret_cast<const char*>(buffer.data()),
+                           nbytes);
+            } while (zstream.avail_out == 0);
+        } while (ret.empty());
+        return ret;
+    }
+
+    ~ZlibInflateReader() override {
+        inflateEnd(&zstream);
+    }
+
+protected:
+    std::unique_ptr<FileReader> underlying;
+    z_stream zstream;
+    std::vector<uint8_t> buffer;
 };
 
 std::unique_ptr<FileReader> FileReader::create(
@@ -207,10 +228,23 @@ std::unique_ptr<FileReader> FileReader::create(
             view.remove_prefix(sizeof(EncryptedFileHeader));
             auto ret = std::make_unique<EncryptedStringReader>(
                     *dek, *header, view, std::move(content));
-            if (compression == Compression::None) {
+
+            switch (compression) {
+            case Compression::None:
                 return ret;
+
+            case Compression::Snappy:
+                return std::make_unique<SnappyInflateReader>(std::move(ret));
+            case Compression::ZLIB:
+                return std::make_unique<ZlibInflateReader>(std::move(ret));
+            case Compression::GZIP:
+            case Compression::ZSTD:
+            case Compression::BZIP2:
+                break;
             }
-            return std::make_unique<InflateReader>(compression, std::move(ret));
+
+            throw std::runtime_error(fmt::format(
+                    "InflateReader: Unsupported compression: {}", compression));
         }
     }
 

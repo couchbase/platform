@@ -33,7 +33,8 @@ target_link_libraries(cbcrypto
         libsodium::libsodium
         OpenSSL::SSL
         phosphor
-        platform)
+        platform
+        ZLIB::ZLIB)
 
 cb_add_test_executable(cbcrypto_unit_test
         cbcrypto_test.cc

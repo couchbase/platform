@@ -76,7 +76,7 @@ static void testEnctyptedAndCompressed(const std::filesystem::path& file,
     writer->write(content);
     writer->flush();
     writer->write(content);
-    writer->flush();
+    writer->close();
     writer.reset();
     // we wrote the content twice, so append the content to itself
     content.append(content);
