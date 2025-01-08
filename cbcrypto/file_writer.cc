@@ -20,29 +20,19 @@
 #include <platform/compress.h>
 #include <platform/dirutils.h>
 #include <platform/socket.h>
-#include <cstdio>
+#include <fstream>
 
 namespace cb::crypto {
 
-struct FileDeleter {
-    void operator()(FILE* fp) {
-        fclose(fp);
-    }
-};
-
-using unique_file_ptr = std::unique_ptr<FILE, FileDeleter>;
-
+/**
+ * The FileWriterImpl is the actual implementation of the FileWriter
+ * interface. It is used to write data to a file on disk.
+ */
 class FileWriterImpl : public FileWriter {
 public:
-    explicit FileWriterImpl(std::filesystem::path path)
-        : filename(std::move(path)),
-          file(fopen(filename.string().c_str(), "wb")) {
-        if (!file) {
-            throw std::system_error(errno,
-                                    std::system_category(),
-                                    fmt::format("cb::dek::FileWriterImpl(): "
-                                                "fopen(\"{}\")",
-                                                filename.string()));
+    FileWriterImpl(std::ofstream fstream) : file(std::move(fstream)) {
+        if (!file.is_open()) {
+            throw std::invalid_argument("file should be open");
         }
     }
 
@@ -50,75 +40,50 @@ public:
         return false;
     }
 
-    void write(const std::string_view chunk) override {
-        if (fwrite(chunk.data(), chunk.size(), 1, file.get()) != 1) {
-            throw std::system_error(
-                    errno,
-                    std::system_category(),
-                    fmt::format("cb::dek::FileWriterImpl::write(): "
-                                "fwrite(\"{}\")",
-                                filename.string()));
-        }
-        if (ferror(file.get())) {
-            throw std::system_error(
-                    errno,
-                    std::system_category(),
-                    fmt::format("cb::dek::FileWriterImpl::write(): "
-                                "ferror(\"{}\")",
-                                filename.string()));
-        }
-        current_size += chunk.size();
-    }
-
-    void flush() override {
-        if (fflush(file.get()) != 0) {
-            throw std::system_error(
-                    errno,
-                    std::system_category(),
-                    fmt::format("cb::dek::FileWriterImpl::fflush(): "
-                                "fflush(\"{}\") failed",
-                                filename.string()));
-        }
-    }
-
     [[nodiscard]] size_t size() const override {
         return current_size;
     }
 
-    std::filesystem::path getFilename() const {
-        return filename;
+    void write(std::string_view chunk) override {
+        Expects(file.is_open());
+        file.write(chunk.data(), chunk.size());
+        current_size += chunk.size();
     }
+
+    void flush() override {
+        Expects(file.is_open());
+        file.flush();
+    }
+
+    void close() override {
+        Expects(file.is_open());
+        file.close();
+    }
+
+    ~FileWriterImpl() override = default;
 
 protected:
     const std::filesystem::path filename;
-    unique_file_ptr file;
+    std::ofstream file;
     std::size_t current_size = 0;
 };
 
-class EncryptedFileWriterImpl : public FileWriter {
+class StackedWriter : public FileWriter {
 public:
-    EncryptedFileWriterImpl(const SharedEncryptionKey& dek,
-                            std::unique_ptr<FileWriterImpl> underlying,
-                            size_t buffer_size,
-                            Compression compression)
-        : buffer_size(buffer_size),
-          compression(compression),
-          cipher(crypto::SymmetricCipher::create(dek->cipher, dek->key)),
-          underlying(std::move(underlying)) {
-        if (buffer_size) {
-            buffer.reserve(buffer_size);
-        }
-
-        EncryptedFileHeader header(dek->id, cb::uuid::random(), compression);
-        associatedData = std::make_unique<EncryptedFileAssociatedData>(header);
-        this->underlying->write(header);
+    StackedWriter(std::unique_ptr<FileWriter> underlying)
+        : underlying(std::move(underlying)) {
     }
 
     [[nodiscard]] bool is_encrypted() const override {
-        return true;
+        return underlying->is_encrypted();
     }
 
     void write(std::string_view chunk) override {
+        if (chunk.empty()) {
+            // ignore empty chunks
+            return;
+        }
+
         constexpr std::string_view::size_type max_chunk_size =
                 std::numeric_limits<uint32_t>::max();
         do {
@@ -126,6 +91,31 @@ public:
             do_write(chunk.substr(0, current_size));
             chunk.remove_prefix(current_size);
         } while (!chunk.empty());
+    }
+
+    void flush() override {
+        underlying->flush();
+    }
+
+    void close() override {
+        flush();
+        underlying->close();
+    }
+
+    [[nodiscard]] size_t size() const override {
+        return underlying->size();
+    }
+
+protected:
+    virtual void do_write(std::string_view view) = 0;
+    std::unique_ptr<FileWriter> underlying;
+};
+
+class BufferedWriter : public StackedWriter {
+public:
+    BufferedWriter(std::unique_ptr<FileWriter> underlying, size_t buffer_size)
+        : StackedWriter(std::move(underlying)), buffer_size(buffer_size) {
+        buffer.reserve(buffer_size);
     }
 
     void flush() override {
@@ -138,29 +128,14 @@ public:
     }
 
 protected:
-    void do_encrypt_and_write(std::string_view data) {
-        associatedData->set_offset(underlying->size());
-        std::unique_ptr<folly::IOBuf> iobuf;
-        if (compression != Compression::None) {
-            iobuf = deflate(data);
-            data = folly::StringPiece{iobuf->coalesce()};
-        }
-
-        const auto encrypted = cipher->encrypt(data, *associatedData);
-        uint32_t size = htonl(gsl::narrow<uint32_t>(encrypted.size()));
-        this->underlying->write(std::string_view{
-                reinterpret_cast<const char*>(&size), sizeof(size)});
-        this->underlying->write(encrypted);
-    }
-
     void flush_pending_data() {
         if (!buffer.empty()) {
-            do_encrypt_and_write(buffer);
+            underlying->write(buffer);
             buffer.resize(0);
         }
     }
 
-    void do_write(std::string_view view) {
+    void do_write(std::string_view view) override {
         if ((buffer.size() + view.size()) < buffer_size) {
             // this fits into the buffer
             buffer.append(view);
@@ -171,11 +146,30 @@ protected:
 
         if (view.size() >= buffer_size) {
             // The provided data is bigger than our buffer
-            do_encrypt_and_write(view);
+            underlying->write(view);
             return;
         }
 
         buffer.append(view);
+    }
+
+    const size_t buffer_size;
+    std::string buffer;
+};
+
+class CompressionWriter : public StackedWriter {
+public:
+    CompressionWriter(std::unique_ptr<FileWriter> underlying,
+                      Compression compression)
+        : StackedWriter(std::move(underlying)), compression(compression) {
+    }
+
+protected:
+    void do_write(std::string_view data) override {
+        std::unique_ptr<folly::IOBuf> iobuf;
+        iobuf = deflate(data);
+        data = folly::StringPiece{iobuf->coalesce()};
+        this->underlying->write(data);
     }
 
     std::unique_ptr<folly::IOBuf> deflate(std::string_view chunk) {
@@ -203,30 +197,79 @@ protected:
             break;
         default:
             throw std::runtime_error(fmt::format(
-                    "InflateReader: Unsupported compression: {}", compression));
+                    "CompressionWriter: Unsupported compression: {}",
+                    compression));
         }
 
         return cb::compression::deflate(codec, chunk);
     }
 
-    const size_t buffer_size;
     const Compression compression;
+};
+
+class EncryptedWriter : public StackedWriter {
+public:
+    EncryptedWriter(const SharedEncryptionKey& dek,
+                    const EncryptedFileHeader& header,
+                    std::unique_ptr<FileWriter> underlying)
+        : StackedWriter(std::move(underlying)),
+          associatedData(std::make_unique<EncryptedFileAssociatedData>(header)),
+          cipher(SymmetricCipher::create(dek->cipher, dek->key)) {
+    }
+
+    bool is_encrypted() const override {
+        return true;
+    }
+
+protected:
+    void do_write(std::string_view data) override {
+        associatedData->set_offset(underlying->size());
+        const auto encrypted = cipher->encrypt(data, *associatedData);
+        uint32_t size = htonl(gsl::narrow<uint32_t>(encrypted.size()));
+        this->underlying->write(std::string_view{
+                reinterpret_cast<const char*>(&size), sizeof(size)});
+        this->underlying->write(encrypted);
+    }
+
     std::unique_ptr<EncryptedFileAssociatedData> associatedData;
     std::unique_ptr<SymmetricCipher> cipher;
-    std::unique_ptr<FileWriterImpl> underlying;
-    std::string buffer;
 };
 
 std::unique_ptr<FileWriter> FileWriter::create(const SharedEncryptionKey& dek,
                                                std::filesystem::path path,
                                                size_t buffer_size,
                                                Compression compression) {
-    auto underlying = std::make_unique<FileWriterImpl>(std::move(path));
+    std::ofstream file;
+    file.exceptions(std::ofstream::failbit | std::ofstream::badbit);
+    file.open(path.string().c_str(),
+              std::ios_base::trunc | std::ios_base::binary);
+
+    std::unique_ptr<FileWriter> ret;
+
+    ret = std::make_unique<FileWriterImpl>(std::move(file));
     if (dek) {
-        return std::make_unique<EncryptedFileWriterImpl>(
-                dek, std::move(underlying), buffer_size, compression);
+        EncryptedFileHeader header(dek->id, cb::uuid::random(), compression);
+        ret->write(header);
+
+        // time to build up the stack of writers
+        std::unique_ptr<FileWriter> next =
+                std::make_unique<EncryptedWriter>(dek, header, std::move(ret));
+
+        ret = std::move(next);
+
+        if (compression != Compression::None) {
+            next = std::make_unique<CompressionWriter>(std::move(ret),
+                                                       compression);
+            ret = std::move(next);
+        }
+
+        if (buffer_size != 0) {
+            next = std::make_unique<BufferedWriter>(std::move(ret),
+                                                    buffer_size);
+            ret = std::move(next);
+        }
     }
-    return underlying;
+    return ret;
 }
 
 } // namespace cb::crypto

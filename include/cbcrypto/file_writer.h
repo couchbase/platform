@@ -58,6 +58,9 @@ public:
     /// Flush data to the file, and throw an exception if an error occurs
     virtual void flush() = 0;
 
+    /// Close the stream. No more data can be written after this call
+    virtual void close() = 0;
+
     virtual ~FileWriter() = default;
 
 protected:
