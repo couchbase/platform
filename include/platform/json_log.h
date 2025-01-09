@@ -187,3 +187,6 @@ struct fmt::formatter<cb::logger::Json> : formatter<string_view> {
         return fmt::format_to(ctx.out(), "{}", json.dump());
     }
 };
+
+// Automatic conversions do not need to be included separately.
+#include <platform/json_log_conversions.h>
