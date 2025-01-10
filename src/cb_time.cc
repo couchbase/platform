@@ -7,7 +7,9 @@
  *   software will be governed by the Apache License, Version 2.0, included in
  *   the file licenses/APL2.txt.
  */
+#include <platform/cb_time.h>
 #include <platform/platform_time.h>
+#include <relaxed_atomic.h>
 #include <atomic>
 #include <cerrno>
 #include <cstdio>
@@ -105,3 +107,21 @@ int cb_localtime_r(const time_t *clock, struct tm *result)
     return localtime_r(clock, result) == nullptr ? -1 : 0;
 #endif
 }
+
+namespace cb::time {
+
+static cb::RelaxedAtomic<steady_clock::rep> static_clock_time =
+        std::chrono::steady_clock::now().time_since_epoch().count();
+
+steady_clock::time_point steady_clock::static_now() {
+    return time_point{duration{static_clock_time.load()}};
+}
+
+void steady_clock::advance(std::chrono::nanoseconds duration) {
+    static_clock_time += duration.count();
+}
+
+// Default to using std::chrono for our steady_clock wrapper
+std::atomic<bool> steady_clock::use_chrono{true};
+
+} // namespace cb::time
