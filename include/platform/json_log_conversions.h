@@ -67,14 +67,25 @@ struct JsonSerializer<std::optional<T>> {
     }
 };
 
+namespace detail {
+template <typename T, bool IsEnum>
+struct use_fmt_to_string {
+    static constexpr bool value = false;
+};
+
+template <typename T>
+struct use_fmt_to_string<T, true> : fmt::has_formatter<T, fmt::format_context> {
+};
+} // namespace detail
+
 /**
  * Conversions for enums which can be formatted using fmt::format.
  */
 template <typename T>
 struct JsonSerializer<
         T,
-        std::enable_if_t<std::is_enum_v<T> &&
-                         fmt::has_formatter<T, fmt::format_context>::value>> {
+        std::enable_if_t<
+                detail::use_fmt_to_string<T, std::is_enum_v<T>>::value>> {
     template <typename BasicJsonType>
     static void to_json(BasicJsonType& j, const T& val) {
         // Prefer the double conversion to the standard nlohmann::json, then to
