@@ -321,6 +321,85 @@ TEST_F(IoTest, tokenizeFileLineByLine) {
     cb::io::rmrf(filename);
 }
 
+TEST_F(IoTest, DirectoryIteratorPermissionsViolation) {
+    std::filesystem::path testRootDir("directoryPermissionsTest");
+    std::filesystem::path dirPath = testRootDir;
+
+    // Clean up any previous test runs
+    if (cb::io::isDirectory(testRootDir.string())) {
+        cb::io::rmrf(testRootDir.string());
+    }
+
+    // Create the test directory and ensure that it exists
+    cb::io::mkdirp(dirPath.string());
+    ASSERT_TRUE(cb::io::isDirectory(dirPath.string()));
+
+    // Create two files
+    auto const filePath1 =
+            cb::io::mktemp((dirPath / "file1").make_preferred().string());
+    auto const filePath2 =
+            cb::io::mktemp((dirPath / "file2").make_preferred().string());
+
+    // Ensure that the files have been created
+    ASSERT_TRUE(cb::io::isFile(filePath1));
+    ASSERT_TRUE(cb::io::isFile(filePath2));
+
+    std::error_code ec;
+    // Remove read permissions on the temporary directory
+    auto targetPermissions = std::filesystem::perms::owner_read |
+                             std::filesystem::perms::group_read |
+                             std::filesystem::perms::others_read;
+
+    std::filesystem::permissions(dirPath,
+                                 targetPermissions,
+                                 std::filesystem::perm_options::remove,
+                                 ec);
+    ASSERT_FALSE(ec) << "Unable to remove read permissions on test directory";
+    ec.clear();
+
+    std::vector<std::string> files;
+
+    // Prevent these testcases from running on windows as windows doesn't have
+    // POSIX-style permissions for directories.
+#ifndef WIN32
+    // Ensure that findFilesWithPrefix fails
+    files = cb::io::findFilesWithPrefix(dirPath, "file", ec);
+    ASSERT_TRUE(ec) << "Expected findFilesWithPrefix to fail when I don't have "
+                       "read permissions on the directory";
+    ASSERT_EQ(0, files.size());
+    ec.clear();
+
+    // Ensure that findFilesContaining fails
+    files = cb::io::findFilesContaining(dirPath, "file", ec);
+    ASSERT_TRUE(ec) << "Expected findFilesContaining to fail when I don't have "
+                       "read permissions on the directory";
+    ASSERT_EQ(0, files.size());
+    ec.clear();
+#endif
+
+    // Ensure that both fail on a non-existent directory
+    files = cb::io::findFilesContaining("does_not_exist", "file", ec);
+    ASSERT_TRUE(ec) << "Expected findFilesContaining to fail when I attempt to "
+                       "read a non-existent directory";
+    ec.clear();
+    files = cb::io::findFilesWithPrefix("does_not_exist", "file", ec);
+    ASSERT_TRUE(ec) << "Expected findFilesWithPrefix to fail when I attempt to "
+                       "read a non-existent directory";
+    ASSERT_EQ(0, files.size());
+    ec.clear();
+
+    // restore read permissions on the temporary directory
+    std::filesystem::permissions(
+            dirPath, targetPermissions, std::filesystem::perm_options::add, ec);
+    ASSERT_FALSE(ec) << "Unable to add read permissions on test directory";
+
+    // Clean up all the directories we created for the tests.
+    cb::io::rmrf(testRootDir.string());
+    ASSERT_FALSE(cb::io::isFile(filePath1));
+    ASSERT_FALSE(cb::io::isFile(filePath2));
+    ASSERT_FALSE(cb::io::isDirectory(testRootDir.string()));
+}
+
 #ifdef WIN32
 TEST_F(IoTest, sanitizePath) {
     const std::string content{"/hello/world\\foo"};

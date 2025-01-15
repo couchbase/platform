@@ -62,19 +62,65 @@ std::string basename(const std::filesystem::path& name) {
 }
 
 std::vector<std::string> findFilesWithPrefix(const std::filesystem::path& dir,
-                                             const std::string_view name) {
+                                             const std::string_view name,
+                                             std::error_code& ec) {
     auto path = dir;
     path = makeExtendedLengthPath(path.make_preferred().string());
 
     std::vector<std::string> files;
-    std::error_code ec;
-    for (const auto& p : std::filesystem::directory_iterator(path, ec)) {
+    auto directoryIterator = std::filesystem::directory_iterator(path, ec);
+    if (ec) {
+        return files;
+    }
+
+    for (const auto& p : directoryIterator) {
         auto filename = p.path().filename().string();
         if (name.empty() || filename.rfind(name, 0) == 0) {
             files.emplace_back((dir / filename).make_preferred().string());
         }
     }
     return files;
+}
+
+std::vector<std::string> findFilesWithPrefix(const std::filesystem::path& name,
+                                             std::error_code& ec) {
+    if (name.has_parent_path()) {
+        return findFilesWithPrefix(
+                name.parent_path(), name.filename().string(), ec);
+    }
+    return findFilesWithPrefix(".", name.string(), ec);
+}
+
+std::vector<std::string> findFilesContaining(const std::filesystem::path& dir,
+                                             const std::string_view pattern,
+                                             std::error_code& ec) {
+    if (pattern.empty()) {
+        throw std::invalid_argument(
+                "findFilesContaining: pattern can't be empty");
+    }
+
+    auto path = dir;
+    path = makeExtendedLengthPath(path.make_preferred().string());
+
+    std::vector<std::string> files;
+    auto directoryIterator = std::filesystem::directory_iterator(path, ec);
+    if (ec) {
+        return files;
+    }
+
+    for (const auto& p : directoryIterator) {
+        auto filename = p.path().filename().string();
+        if (filename.find(pattern) != std::string::npos) {
+            files.emplace_back((dir / filename).make_preferred().string());
+        }
+    }
+    return files;
+}
+
+std::vector<std::string> findFilesWithPrefix(const std::filesystem::path& dir,
+                                             const std::string_view name) {
+    std::error_code ec;
+    return findFilesWithPrefix(dir, name, ec);
 }
 
 std::vector<std::string> findFilesWithPrefix(
@@ -88,23 +134,8 @@ std::vector<std::string> findFilesWithPrefix(
 
 std::vector<std::string> findFilesContaining(const std::filesystem::path& dir,
                                              const std::string_view pattern) {
-    if (pattern.empty()) {
-        throw std::invalid_argument(
-                "findFilesContaining: pattern can't be empty");
-    }
-
-    auto path = dir;
-    path = makeExtendedLengthPath(path.make_preferred().string());
-
-    std::vector<std::string> files;
     std::error_code ec;
-    for (const auto& p : std::filesystem::directory_iterator(path, ec)) {
-        auto filename = p.path().filename().string();
-        if (filename.find(pattern) != std::string::npos) {
-            files.emplace_back((dir / filename).make_preferred().string());
-        }
-    }
-    return files;
+    return findFilesContaining(dir, pattern, ec);
 }
 
 void rmrf(const std::string_view path) {
