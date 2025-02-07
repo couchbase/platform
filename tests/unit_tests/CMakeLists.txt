@@ -15,6 +15,7 @@ cb_add_test_executable(platform_unit_tests
                        dirutils_test.cc
                        dirutils_test_2.cc
                        enum_class_bitmask_functions_test.cc
+                       file_sink_tests.cc
                        getopt_test.cc
                        hex_test.cc
                        json_checker_test.cc

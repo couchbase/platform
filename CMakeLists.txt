@@ -195,6 +195,7 @@ LIST(APPEND PLATFORM_FILES
   src/crc32c.cc
   src/crc32c_private.h
   src/exceptions.cc
+  src/file_sink.cc
   src/getopt.cc
   src/getpass.cc
   src/histogram.cc
