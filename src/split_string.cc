@@ -20,7 +20,7 @@ std::vector<std::string_view> cb::string::split(std::string_view s,
             break;
         }
 
-        result.emplace_back(std::string_view{s.data(), m});
+        result.emplace_back(s.data(), m);
         s.remove_prefix(m + 1);
         if (!allowEmpty) {
             while (s.front() == delim) {

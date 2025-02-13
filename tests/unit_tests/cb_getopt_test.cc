@@ -50,9 +50,9 @@ protected:
 
 TEST_F(GetoptTest, NormalWithOneUnknownProvided) {
     getoptvec vec;
-    vec.push_back("program");
-    vec.push_back("-a");
-    vec.push_back("-b");
+    vec.emplace_back("program");
+    vec.emplace_back("-a");
+    vec.emplace_back("-b");
     auto argc = (int)vec.size();
     auto** argv = vec2array(vec);
     ASSERT_EQ(1, cb::getopt::optind);
@@ -66,10 +66,10 @@ TEST_F(GetoptTest, NormalWithOneUnknownProvided) {
 
 TEST_F(GetoptTest, NormalWithTermination) {
     getoptvec vec;
-    vec.push_back("program");
-    vec.push_back("-a");
-    vec.push_back("--");
-    vec.push_back("-b");
+    vec.emplace_back("program");
+    vec.emplace_back("-a");
+    vec.emplace_back("--");
+    vec.emplace_back("-b");
     auto argc = (int)vec.size();
     auto** argv = vec2array(vec);
     ASSERT_EQ('a', cb::getopt::getopt(argc, argv, "a"));
@@ -81,18 +81,18 @@ TEST_F(GetoptTest, NormalWithTermination) {
 
 TEST_F(GetoptTest, RegressionTestFromEpEngine) {
     getoptvec vec;
-    vec.push_back("..\\memcached\\engine_testapp");
-    vec.push_back("-E");
-    vec.push_back("ep.dll");
-    vec.push_back("-T");
-    vec.push_back("ep_testsuite.dll");
-    vec.push_back("-e");
-    vec.push_back("flushall_enabled=true;ht_size=13;ht_locks=7");
-    vec.push_back("-v");
-    vec.push_back("-C");
-    vec.push_back("7");
-    vec.push_back("-s");
-    vec.push_back("foo");
+    vec.emplace_back("..\\memcached\\engine_testapp");
+    vec.emplace_back("-E");
+    vec.emplace_back("ep.dll");
+    vec.emplace_back("-T");
+    vec.emplace_back("ep_testsuite.dll");
+    vec.emplace_back("-e");
+    vec.emplace_back("flushall_enabled=true;ht_size=13;ht_locks=7");
+    vec.emplace_back("-v");
+    vec.emplace_back("-C");
+    vec.emplace_back("7");
+    vec.emplace_back("-s");
+    vec.emplace_back("foo");
 
     auto argc = (int)vec.size();
     auto** argv = vec2array(vec);
@@ -122,11 +122,11 @@ TEST_F(GetoptTest, TestLongOptions) {
 
     getoptvec vec;
 
-    vec.push_back("getopt_long_test");
-    vec.push_back("--first");
-    vec.push_back("--wrong");
-    vec.push_back("--second");
-    vec.push_back("--third");
+    vec.emplace_back("getopt_long_test");
+    vec.emplace_back("--first");
+    vec.emplace_back("--wrong");
+    vec.emplace_back("--second");
+    vec.emplace_back("--third");
 
     auto argc = (int)vec.size();
     auto** argv = vec2array(vec);
@@ -166,10 +166,10 @@ TEST_F(GetoptTest, TestLongOptionsWithArguments) {
 
     getoptvec vec;
 
-    vec.push_back("TestLongOptionsWithArguments");
-    vec.push_back("--host=localhost");
-    vec.push_back("--port");
-    vec.push_back("11210");
+    vec.emplace_back("TestLongOptionsWithArguments");
+    vec.emplace_back("--host=localhost");
+    vec.emplace_back("--port");
+    vec.emplace_back("11210");
 
     auto argc = (int)vec.size();
     auto** argv = vec2array(vec);
@@ -211,8 +211,8 @@ TEST_F(GetoptTest, TestLongOptionsWithMissingLastArguments) {
 
     getoptvec vec;
 
-    vec.push_back("TestLongOptionsWithMissingLastArguments");
-    vec.push_back("--port");
+    vec.emplace_back("TestLongOptionsWithMissingLastArguments");
+    vec.emplace_back("--port");
 
     auto argc = (int)vec.size();
     auto** argv = vec2array(vec);
@@ -233,9 +233,9 @@ TEST_F(GetoptTest, TestLongOptionsWithOptionalArguments) {
 
     getoptvec vec;
 
-    vec.push_back("TestLongOptionsWithOptionalArguments");
-    vec.push_back("--none");
-    vec.push_back("--with=true");
+    vec.emplace_back("TestLongOptionsWithOptionalArguments");
+    vec.emplace_back("--none");
+    vec.emplace_back("--with=true");
 
     auto argc = (int)vec.size();
     auto** argv = vec2array(vec);

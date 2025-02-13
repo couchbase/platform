@@ -72,9 +72,9 @@ static std::vector<MountEntry> parse_proc_mounts(const std::string root) {
                                                   parts[1],
                                                   parts[3]));
                     }
-                    ret.emplace_back(MountEntry{std::string(parts[2]),
-                                                root + std::string(parts[1]),
-                                                std::string(parts[3])});
+                    ret.emplace_back(std::string(parts[2]),
+                                     root + std::string(parts[1]),
+                                     std::string(parts[3]));
                 }
                 return true;
             });
