@@ -165,11 +165,10 @@ std::string cb::io::loadFile(const std::filesystem::path& path,
                 int(std::errc::no_such_file_or_directory),
                 std::system_category(),
                 "cb::io::loadFile(" + name + ") failed (with retry)");
-    } else {
-        throw std::system_error(int(std::errc::no_such_file_or_directory),
-                                std::system_category(),
-                                "cb::io::loadFile(" + name + ") failed");
     }
+    throw std::system_error(int(std::errc::no_such_file_or_directory),
+                            std::system_category(),
+                            "cb::io::loadFile(" + name + ") failed");
 }
 
 /**

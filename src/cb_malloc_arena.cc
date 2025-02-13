@@ -108,34 +108,30 @@ bool cb_add_new_hook(cb_malloc_new_hook_t f) {
     if (cb_new_hook == nullptr) {
         cb_new_hook = f;
         return true;
-    } else {
-        return false;
     }
+    return false;
 }
 
 bool cb_remove_new_hook(cb_malloc_new_hook_t f) {
     if (cb_new_hook == f) {
         cb_new_hook = nullptr;
         return true;
-    } else {
-        return false;
     }
+    return false;
 }
 
 bool cb_add_delete_hook(cb_malloc_delete_hook_t f) {
     if (cb_delete_hook == nullptr) {
         cb_delete_hook = f;
         return true;
-    } else {
-        return false;
     }
+    return false;
 }
 
 bool cb_remove_delete_hook(cb_malloc_delete_hook_t f) {
     if (cb_delete_hook == f) {
         cb_delete_hook = nullptr;
         return true;
-    } else {
-        return false;
     }
+    return false;
 }

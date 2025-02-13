@@ -280,9 +280,8 @@ std::string to_string(const struct sockaddr_storage* addr, socklen_t addr_len) {
 
     if (addr->ss_family == AF_INET6) {
         return "[" + std::string(host) + "]:" + std::string(port);
-    } else {
-        return std::string(host) + ":" + std::string(port);
     }
+    return std::string(host) + ":" + std::string(port);
 }
 
 nlohmann::json to_json(const struct sockaddr_storage* addr,

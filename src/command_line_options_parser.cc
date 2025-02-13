@@ -101,12 +101,11 @@ std::vector<std::string_view> CommandLineOptionsParser::parse(
         if (iter == callbacks.end()) {
             error();
             return {};
+        }
+        if (optarg) {
+            iter->second(optarg);
         } else {
-            if (optarg) {
-                iter->second(optarg);
-            } else {
-                iter->second({});
-            }
+            iter->second({});
         }
     }
 

@@ -58,19 +58,18 @@ typename Histogram<T, Limits>::iterator Histogram<T, Limits>::findBin(
         T amount) {
     if (amount == Limits<T>::max()) {
         return bins.end() - 1;
-    } else {
-        iterator it;
-        it = std::upper_bound(bins.begin(),
-                              bins.end(),
-                              amount,
-                              [](T t, Histogram<T, Limits>::value_type& b) {
-                                  return t < b->end();
-                              });
-        if (!(*it)->accepts(amount)) {
-            return bins.end();
-        }
-        return it;
     }
+    iterator it;
+    it = std::upper_bound(bins.begin(),
+                          bins.end(),
+                          amount,
+                          [](T t, Histogram<T, Limits>::value_type& b) {
+                              return t < b->end();
+                          });
+    if (!(*it)->accepts(amount)) {
+        return bins.end();
+    }
+    return it;
 }
 
 // Explicit template instantiations for all classes which we specialise

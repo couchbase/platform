@@ -40,10 +40,9 @@ std::pair<size_t, size_t> cb::terminal::getTerminalSize() {
                                     "getTerminalSize(): ioctl failed");
         }
         return {winsize.ws_col, winsize.ws_row};
-    } else {
-        // Not a tty
-        return {std::numeric_limits<size_t>::max(),
-                std::numeric_limits<size_t>::max()};
     }
+    // Not a tty
+    return {std::numeric_limits<size_t>::max(),
+            std::numeric_limits<size_t>::max()};
 }
 #endif

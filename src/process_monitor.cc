@@ -51,9 +51,8 @@ public:
             }
 
             return "Failure: " + cb::to_hex(uint8_t(WEXITSTATUS(code)));
-        } else {
-            return "Crashed: " + cb::to_hex(uint8_t(WTERMSIG(code)));
         }
+        return "Crashed: " + cb::to_hex(uint8_t(WTERMSIG(code)));
 #endif
     }
 

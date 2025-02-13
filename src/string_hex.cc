@@ -16,12 +16,14 @@
 #include <stdexcept>
 #include <string>
 
-static inline uint8_t from_hex_digit(char c) {
+static uint8_t from_hex_digit(char c) {
     if ('0' <= c && c <= '9') {
         return c - '0';
-    } else if ('A' <= c && c <= 'F') {
+    }
+    if ('A' <= c && c <= 'F') {
         return c + 10 - 'A';
-    } else if ('a' <= c && c <= 'f') {
+    }
+    if ('a' <= c && c <= 'f') {
         return c + 10 - 'a';
     }
     throw std::invalid_argument(

@@ -93,40 +93,42 @@ int cb::getopt::getopt_long(int argc,
     if (argv[cb::getopt::optind][1] == '-') {
         // this is a long option
         return parse_longopt(argc, argv, longopts, longindex);
-    } else if (argv[cb::getopt::optind][2] != '\0') {
+    }
+
+    if (argv[cb::getopt::optind][2] != '\0') {
         if (!silent) {
             fprintf(stderr,
                     "You can't specify multiple options with this "
                     "implementation\n");
         }
         return '?';
-    } else {
-        // this is a short option
-        const char* p = strchr(optstring, argv[cb::getopt::optind][1]);
-        int idx = cb::getopt::optind;
-        cb::getopt::optind++;
+    }
 
-        if (p == nullptr) {
+    // this is a short option
+    const char* p = strchr(optstring, argv[cb::getopt::optind][1]);
+    int idx = cb::getopt::optind;
+    cb::getopt::optind++;
+
+    if (p == nullptr) {
+        return '?';
+    }
+
+    if (*(p + 1) == ':') {
+        cb::getopt::optarg = argv[cb::getopt::optind];
+        cb::getopt::optind++;
+        if (cb::getopt::optarg == nullptr || cb::getopt::optind > argc) {
+            if (!silent) {
+                fprintf(stderr,
+                        "%s: option requires an argument -- %s\n",
+                        argv[0],
+                        argv[idx] + 1);
+            }
             return '?';
         }
-
-        if (*(p + 1) == ':') {
-            cb::getopt::optarg = argv[cb::getopt::optind];
-            cb::getopt::optind++;
-            if (cb::getopt::optarg == nullptr || cb::getopt::optind > argc) {
-                if (!silent) {
-                    fprintf(stderr,
-                            "%s: option requires an argument -- %s\n",
-                            argv[0],
-                            argv[idx] + 1);
-                }
-                return '?';
-            }
-        } else {
-            cb::getopt::optarg = nullptr;
-        }
-        return argv[idx][1];
+    } else {
+        cb::getopt::optarg = nullptr;
     }
+    return argv[idx][1];
 }
 
 int cb::getopt::getopt(int argc, char* const* argv, const char* optstring) {
