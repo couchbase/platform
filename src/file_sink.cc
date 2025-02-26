@@ -9,6 +9,7 @@
  */
 
 #include <fmt/format.h>
+#include <folly/portability/Unistd.h>
 #include <gsl/gsl-lite.hpp>
 #include <platform/file_sink.h>
 
