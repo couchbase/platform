@@ -190,6 +190,14 @@ std::string mktemp(const std::string_view prefix) {
             CloseHandle(handle);
             return pattern;
         }
+
+        const auto error = GetLastError();
+        if (error != ERROR_FILE_EXISTS) {
+            throw std::system_error(error,
+                                    std::system_category(),
+                                    "Failed to create temporary file");
+        }
+
 #else
         int fd = open(pattern.c_str(),
                       O_WRONLY | O_EXCL | O_CREAT,
@@ -197,6 +205,11 @@ std::string mktemp(const std::string_view prefix) {
         if (fd != -1) {
             close(fd);
             return pattern;
+        }
+        if (errno != EEXIST) {
+            throw std::system_error(errno,
+                                    std::system_category(),
+                                    "Failed to create temporary file");
         }
 #endif
 
