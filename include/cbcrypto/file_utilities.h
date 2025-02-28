@@ -16,6 +16,8 @@
 #include <unordered_set>
 
 namespace cb::crypto {
+struct DataEncryptionKey;
+using SharedEncryptionKey = std::shared_ptr<const DataEncryptionKey>;
 
 /**
  * Find all the DEKs in use in the specified directory
@@ -30,5 +32,30 @@ std::unordered_set<std::string> findDeksInUse(
         const std::function<bool(const std::filesystem::path&)>& filefilter,
         const std::function<void(std::string_view, const nlohmann::json&)>&
                 error);
+
+/**
+ * Iterate over all files in the specified directory and potentially
+ * rewrite all files.
+ *
+ * @param directory The directory to scan
+ * @param filefilter a function to filter out files we're not interested in
+ *                   (return true to inspect the file, false to skip it)
+ * @param encryption_key The key to use when rewriting the files (if empty the
+ * file will be written unencrypted)
+ * @param key_lookup_function A function used to look up encryption keys from
+ *            the id
+ * @param error a callback to add log messages when errors occurs
+ * @param unencrypted_extension The extension to use for unencrypted files
+ */
+void maybeRewriteFiles(
+        const std::filesystem::path& directory,
+        const std::function<bool(const std::filesystem::path&,
+                                 std::string_view)>& filefilter,
+        SharedEncryptionKey encryption_key,
+        const std::function<SharedEncryptionKey(std::string_view)>&
+                key_lookup_function,
+        const std::function<void(std::string_view, const nlohmann::json&)>&
+                error,
+        std::string_view unencrypted_extension = ".txt");
 
 } // namespace cb::crypto
