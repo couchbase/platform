@@ -19,6 +19,19 @@ if (MEMORY_ALLOCATOR STREQUAL "jemalloc")
                         platform
                         platform_cb_malloc_arena)
   platform_enable_pch(platform-arena_tracking_bench)
+
+  cb_add_test_executable(platform-jemalloc_thread_shutdown_test
+                         jemalloc_thread_shutdown_test.cc)
+  target_link_libraries(platform-jemalloc_thread_shutdown_test PRIVATE
+                        ${MALLOC_LIBRARIES})
+  ADD_TEST(platform-jemalloc_thread_shutdown_test
+           platform-jemalloc_thread_shutdown_test)
+  SET_TESTS_PROPERTIES(platform-jemalloc_thread_shutdown_test PROPERTIES
+    # Print some stats and config details. Also disable the built-in
+    # junk-filling since we do that ourselves.
+    ENVIRONMENT "JE_MALLOC_CONF=confirm_conf:true,abort_conf:true,stats_print:true,junk:false"
+    # Lower the timeout since the test hangs on failure on Windows
+    TIMEOUT 30)
 endif()
 
 if (UNIX)

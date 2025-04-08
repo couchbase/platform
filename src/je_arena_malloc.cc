@@ -122,6 +122,18 @@ public:
         return tld;
     }
 
+    ~ThreadLocalData() {
+        // Clean up the thread local state in jemalloc.
+        // This is a no-op if the thread state is not initialized or if
+        // it is already cleaned up.
+        // The call ensures that a resurrected state is not leaked. A
+        // resurrected state occurs when the jemalloc TLS callback is called,
+        // but then the thread does additional allocations/frees. This happens
+        // deterministically on Windows, where the thread callback is always
+        // called before the C++ thread_local destructors run.
+        je_thread_cleanup();
+    }
+
 private:
     JEArenaMallocBase::CurrentClient currentClient;
 
