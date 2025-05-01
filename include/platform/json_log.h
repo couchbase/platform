@@ -13,31 +13,9 @@
 #include <gsl/gsl-lite.hpp>
 #include <nlohmann/json.hpp>
 #include <platform/ordered_map.h>
-#include <platform/thread_local_monotonic_resource.h>
 
 namespace cb::logger {
 namespace detail {
-
-struct LogAllocatorTag {};
-
-/**
- * We use the ThreadLocalMonotonicResource allocator, to make sure we rarely
- * have to call new/delete for during log formatting. We've configured a 8 KiB
- * preallocated thread-local buffer and an allocation limit of 20 MiB (to catch
- * any case where we might end up leaking memory).
- */
-template <typename T>
-struct Allocator
-    : ThreadLocalMonotonicResource<detail::LogAllocatorTag,
-                                   8 * 1024,
-                                   20 * 1024 * 1024>::Allocator<T> {};
-
-/**
- * Like std::string, but using our allocator. Note that constructing from
- * std::string always requires a copy (even from std::string&&).
- */
-using String = std::
-        basic_string<char, std::char_traits<char>, detail::Allocator<char>>;
 
 /**
  * Map type used for objects stored in a LogJson object.
@@ -62,32 +40,26 @@ struct JsonSerializer : nlohmann::adl_serializer<T, SFINAE> {};
  *   void to_json(BasicJsonType j, T value);
  * To customize how objects are represented in log messages.
  */
-using BasicJsonType = nlohmann::basic_json<
-        detail::Map,
-        std::vector,
-        detail::String,
-        bool,
-        std::int64_t,
-        std::uint64_t,
-        double,
-        detail::Allocator,
-        JsonSerializer,
-        std::vector<std::uint8_t, detail::Allocator<std::uint8_t>>>;
+using BasicJsonType = nlohmann::basic_json<detail::Map,
+                                           std::vector,
+                                           std::string,
+                                           bool,
+                                           std::int64_t,
+                                           std::uint64_t,
+                                           double,
+                                           std::allocator,
+                                           JsonSerializer,
+                                           std::vector<std::uint8_t>>;
 
 /**
  * Custom JSON type used for logging with the following properties:
  * - uses cb::OrderedMap to preserve ordering of JSON keys
- * - uses LogAllocator, which is a thread-local bump-allocator
  *
  * Inheriting from nlohmann::basic_json<> allows us to:
  * - forward-declare class Json
  * - have a non-allocating destructor
  * - simplify the usage of initializer lists in macros, by preferring moving the
  *   someValue in `Json{someValue}` versus creating a 1-element array.
- *
- * NOTE: Since we use a bump allocator, instances of this type should not be
- * stored in any persistent data structures. This type is intended to be used
- * only as argument to a logging or formatting function.
  */
 class Json : public BasicJsonType {
 public:
