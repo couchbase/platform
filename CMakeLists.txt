@@ -215,7 +215,6 @@ LIST(APPEND PLATFORM_FILES
   src/terminal_color.cc
   src/terminal_size.cc
   src/thread.cc
-  src/thread_local_monotonic_resource.cc
   src/timeutils.cc
   src/unique_waiter_queue.cc
   src/uuid.cc
@@ -225,6 +224,7 @@ LIST(APPEND PLATFORM_FILES
   include/platform/bitset.h
   include/platform/byte_buffer_dump.h
   include/platform/byte_literals.h
+  include/platform/cb_allocator.h
   include/platform/cb_malloc.h
   include/platform/checked_snprintf.h
   include/platform/command_line_options_parser.h
@@ -252,7 +252,6 @@ LIST(APPEND PLATFORM_FILES
   include/platform/terminal_color.h
   include/platform/terminal_size.h
   include/platform/thread.h
-  include/platform/thread_local_monotonic_resource.h
   include/platform/timeutils.h
   include/platform/uuid.h
 )

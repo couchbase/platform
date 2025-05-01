@@ -12,25 +12,19 @@
 #include <fmt/core.h>
 #include <gsl/gsl-lite.hpp>
 #include <nlohmann/json.hpp>
+#include <platform/cb_allocator.h>
 #include <platform/ordered_map.h>
-#include <platform/thread_local_monotonic_resource.h>
 
 namespace cb::logger {
 namespace detail {
 
-struct LogAllocatorTag {};
-
 /**
- * We use the ThreadLocalMonotonicResource allocator, to make sure we rarely
- * have to call new/delete for during log formatting. We've configured a 8 KiB
- * preallocated thread-local buffer and an allocation limit of 20 MiB (to catch
- * any case where we might end up leaking memory).
+ * The allocator used for JSON log object. They are always allocated from the
+ * global arena. This makes it easier to reason about the memory usage of the
+ * JSON log messages while avoiding the need for defensive copying.
  */
 template <typename T>
-struct Allocator
-    : ThreadLocalMonotonicResource<detail::LogAllocatorTag,
-                                   8 * 1024,
-                                   20 * 1024 * 1024>::Allocator<T> {};
+struct Allocator : cb::NoArenaAllocator<T> {};
 
 /**
  * Like std::string, but using our allocator. Note that constructing from
@@ -77,17 +71,13 @@ using BasicJsonType = nlohmann::basic_json<
 /**
  * Custom JSON type used for logging with the following properties:
  * - uses cb::OrderedMap to preserve ordering of JSON keys
- * - uses LogAllocator, which is a thread-local bump-allocator
+ * - uses cb::NoArenaAllocator for all internal allocations
  *
  * Inheriting from nlohmann::basic_json<> allows us to:
  * - forward-declare class Json
  * - have a non-allocating destructor
  * - simplify the usage of initializer lists in macros, by preferring moving the
  *   someValue in `Json{someValue}` versus creating a 1-element array.
- *
- * NOTE: Since we use a bump allocator, instances of this type should not be
- * stored in any persistent data structures. This type is intended to be used
- * only as argument to a logging or formatting function.
  */
 class Json : public BasicJsonType {
 public:
