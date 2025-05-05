@@ -17,10 +17,9 @@ namespace cb::base64 {
  * Base64 encode data
  *
  * @param source the string to encode
- * @param prettyprint if set to true insert a newline after 16 chunks (4 chars)
  * @return the base64 encoded value
  */
-std::string encode(std::string_view source, bool prettyprint = false);
+std::string encode(std::string_view source);
 
 /**
  * Decode a base64 encoded blob (which may be pretty-printed to avoid

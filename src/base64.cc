@@ -43,7 +43,7 @@ static std::string decode_impl(std::string_view blob, bool uri) {
 }
 
 namespace cb::base64 {
-std::string encode(std::string_view view, bool) {
+std::string encode(std::string_view view) {
     return encode_impl(view, false);
 }
 
