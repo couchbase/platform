@@ -35,17 +35,6 @@ static void BM_EncodeBlob(benchmark::State& state) {
 
 BENCHMARK(BM_EncodeBlob)->RangeMultiplier(100)->Range(1, 100000);
 
-static void BM_EncodeFormattedBlob(benchmark::State& state) {
-    std::string buffer;
-    buffer.resize(state.range(0));
-    while (state.KeepRunning()) {
-        cb::base64::encode(buffer, true);
-    }
-}
-
-BENCHMARK(BM_EncodeFormattedBlob)->RangeMultiplier(100)->Range(1, 100000);
-
-
 static void BM_DecodeBlob(benchmark::State& state) {
     std::string buffer;
     buffer.resize(state.range(0));
@@ -57,20 +46,3 @@ static void BM_DecodeBlob(benchmark::State& state) {
 }
 
 BENCHMARK(BM_DecodeBlob)->RangeMultiplier(100)->Range(1, 100000);
-
-static void BM_DecodeFormattedBlob(benchmark::State& state) {
-    std::string buffer;
-    buffer.resize(state.range(0));
-    auto input = cb::base64::encode(buffer, true);
-
-    auto idx = input.find('\n', state.range(0));
-    if (idx != input.npos) {
-        input.resize(idx);
-    }
-
-    while (state.KeepRunning()) {
-        cb::base64::decode(input);
-    }
-}
-
-BENCHMARK(BM_DecodeFormattedBlob)->RangeMultiplier(100)->Range(1, 100000);
