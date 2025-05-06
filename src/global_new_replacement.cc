@@ -40,8 +40,8 @@
 #include <cstdlib>
 #include <new>
 
-#if __cplusplus > 202002L
-#warning Only operator new/delete up to C++20 overridden. If later standards add additional overrides they should be added here.
+#if __cplusplus > 202302L
+#warning Only operator new/delete up to C++23 overridden. If later standards add additional overrides they should be added here.
 #endif
 
 // New operators numbered from:
