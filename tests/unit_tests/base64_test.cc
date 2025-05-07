@@ -78,3 +78,14 @@ TEST_F(Base64Test, TestDecode) {
     validate(std::string(reinterpret_cast<char*>(salt.data()), salt.size()),
              "QSXCR+Q6sek8bf92");
 }
+
+TEST_F(Base64Test, DecodeRequirePadding) {
+    EXPECT_EQ("@", cb::base64::decode("QA=="));
+    EXPECT_THROW(cb::base64::decode("QA="), std::invalid_argument);
+    EXPECT_THROW(cb::base64::decode("QA"), std::invalid_argument);
+    EXPECT_THROW(cb::base64::decode("Q"), std::invalid_argument);
+}
+
+TEST_F(Base64Test, DecodeUrlDontRequirePadding) {
+    EXPECT_EQ("@", cb::base64url::decode("QA"));
+}

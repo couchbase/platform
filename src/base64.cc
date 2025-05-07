@@ -32,7 +32,8 @@ static std::string decode_impl(std::string_view blob, bool uri) {
             blob.data(),
             blob.size(),
             buffer.data(),
-            uri ? simdutf::base64_url : simdutf::base64_default);
+            uri ? simdutf::base64_url : simdutf::base64_default,
+            uri ? simdutf::loose : simdutf::strict);
     if (r.error) {
         throw std::invalid_argument("cb::base64::decode invalid input");
     }
