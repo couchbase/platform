@@ -239,8 +239,7 @@ static void verifyMemDeallocatedByCorrectClient(
     }
 
     unsigned currentClientArena = client.arena;
-    if (client.index != NoClientIndex &&
-        allocatedFromArena != currentClientArena) {
+    if (allocatedFromArena != currentClientArena) {
         fmt::print(stderr,
                    "{}===ERROR===: JeArenaMalloc deallocation mismatch{}\n"
                    "\tMemory freed by client:{} domain:{} which is assigned "
