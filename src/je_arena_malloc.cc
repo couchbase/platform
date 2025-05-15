@@ -300,6 +300,11 @@ uint8_t JEArenaMalloc::getCurrentClientIndex() {
 }
 
 template <>
+uint16_t JEArenaMalloc::getCurrentClientArena() {
+    return ThreadLocalData::get().getCurrentClient().arena;
+}
+
+template <>
 JEArenaMalloc::ClientHandle JEArenaMalloc::switchToClient(
         const ArenaMallocClient& client, MemoryDomain domain, bool tcache) {
     if (client.index == NoClientIndex) {

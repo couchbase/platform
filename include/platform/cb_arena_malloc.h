@@ -113,6 +113,14 @@ public:
     }
 
     /**
+     * Returns the arena of the current client. Primarily for diagnostics
+     * and tests.
+     */
+    static uint16_t getCurrentClientArena() {
+        return Impl::getCurrentClientArena();
+    }
+
+    /**
      * Switch to the given client, all subsequent memory allocations made by
      * the current thread will be accounted to the client.
      *

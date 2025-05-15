@@ -69,6 +69,11 @@ uint8_t SystemArenaMalloc::getCurrentClientIndex() {
     return currentClient.client.index;
 }
 
+uint16_t SystemArenaMalloc::getCurrentClientArena() {
+    // Arenas unused in SystemArenaMalloc
+    return 0;
+}
+
 SystemArenaMalloc::ClientHandle SystemArenaMalloc::switchToClient(
         const ArenaMallocClient& client, MemoryDomain domain, bool tcache) {
     (void)tcache; // no use in system allocator
