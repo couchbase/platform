@@ -79,6 +79,7 @@ public:
     static ArenaMallocClient registerClient(bool threadCache);
     static void unregisterClient(const ArenaMallocClient& client);
     static uint8_t getCurrentClientIndex();
+    static uint16_t getCurrentClientArena();
     static ClientHandle switchToClient(const ArenaMallocClient& client,
                                        MemoryDomain domain,
                                        bool tcache);
