@@ -74,6 +74,14 @@ MemoryDomain JEArenaMallocBase::CurrentClient::setDomain(MemoryDomain domain,
     return currentDomain;
 }
 
+/**
+ * Allocate a new arena which will have the allocator hooks replaced with our
+ * own alloc/dalloc hooks (which just call the original hooks).
+ *
+ * @return the ID of the new arena
+ */
+static int makeArena();
+
 int JEArenaMallocBase::CurrentClient::getMallocFlags() const {
     return MALLOCX_ARENA(arena) | tcacheFlags;
 }
@@ -149,20 +157,6 @@ private:
 
 /// How should arenas be assigned to domains?
 enum class ArenaMode { SingleArena, OnePerDomain };
-
-/// @return a jemalloc arena
-static int makeArena() {
-    unsigned arena = 0;
-    size_t sz = sizeof(unsigned);
-    int rv = je_mallctl("arenas.create", (void*)&arena, &sz, nullptr, 0);
-
-    if (rv != 0) {
-        throw std::runtime_error(
-                "JEArenaMalloc::makeArena not create arena. rv:" +
-                std::to_string(rv));
-    }
-    return arena;
-}
 
 /**
  * Assign arena(s) to the specified domain to arena map, if not already
@@ -561,6 +555,239 @@ void Clients::ClientArrayDestroy::operator()(Clients::ClientArray* ptr) {
     ptr->~ClientArray();
     // de-allocate from the default arena
     je_dallocx((void*)ptr, 0);
+}
+
+// Define our hooks. These are the jemalloc signatures.
+static void* cb_alloc(extent_hooks_t* extent_hooks,
+                      void* newAddr,
+                      size_t size,
+                      size_t alignment,
+                      bool* zero,
+                      bool* commit,
+                      unsigned arena);
+
+static bool cb_dalloc(extent_hooks_t* extent_hooks,
+                      void* addr,
+                      size_t size,
+                      bool committed,
+                      unsigned arena_ind);
+
+static void cb_destroy(extent_hooks_t* extent_hooks,
+                       void* addr,
+                       size_t size,
+                       bool committed,
+                       unsigned arena_ind);
+
+static bool cb_commit(extent_hooks_t* extent_hooks,
+                      void* addr,
+                      size_t size,
+                      size_t offset,
+                      size_t length,
+                      unsigned arena_ind);
+
+static bool cb_decommit(extent_hooks_t* extent_hooks,
+                        void* addr,
+                        size_t size,
+                        size_t offset,
+                        size_t length,
+                        unsigned arena_ind);
+
+static bool cb_purge_forced(extent_hooks_t* extent_hooks,
+                            void* addr,
+                            size_t size,
+                            size_t offset,
+                            size_t length,
+                            unsigned arena_ind);
+
+static bool cb_purge_lazy(extent_hooks_t* extent_hooks,
+                          void* addr,
+                          size_t size,
+                          size_t offset,
+                          size_t length,
+                          unsigned arena_ind);
+
+static bool cb_split(extent_hooks_t* extent_hooks,
+                     void* addr,
+                     size_t size,
+                     size_t size_a,
+                     size_t size_b,
+                     bool committed,
+                     unsigned arena_ind);
+
+static bool cb_merge(extent_hooks_t* extent_hooks,
+                     void* addr_a,
+                     size_t size_a,
+                     void* addr_b,
+                     size_t size_b,
+                     bool committed,
+                     unsigned arena_ind);
+
+/**
+ * Structure hold the hooks which will be given to jemalloc and the orginal
+ * hooks from jemalloc.
+ *
+ * Our hooks are defined to call the jemalloc_hooks functions so must be
+ * initialised with the jemalloc hooks.
+ */
+struct AllocatorHooks {
+    AllocatorHooks() = default;
+
+    AllocatorHooks(extent_hooks_t jemalloc_hooks)
+        : jemalloc_hooks(jemalloc_hooks),
+          couchbase_hooks{cb_alloc,
+                          cb_dalloc,
+                          cb_destroy,
+                          cb_commit,
+                          cb_decommit,
+                          cb_purge_lazy,
+                          cb_purge_forced,
+                          cb_split,
+                          cb_merge} {
+    }
+
+    static AllocatorHooks initialise();
+
+    // Function pointers to the original jemalloc hooks
+    const extent_hooks_t jemalloc_hooks = {};
+    // Function pointers to our hooks
+    extent_hooks_t couchbase_hooks = {};
+};
+
+AllocatorHooks AllocatorHooks::initialise() {
+    // Read the jemalloc provided hooks using arena 0 (which always exists).
+    const std::string_view key = "arena.0.extent_hooks";
+    extent_hooks_t* currentHooks = nullptr;
+    size_t hooksSize = sizeof(extent_hooks_t*);
+
+    auto rv = je_mallctl(
+            key.data(), (void*)&currentHooks, &hooksSize, nullptr, 0);
+
+    if (rv != 0 || currentHooks == nullptr) {
+        throw std::runtime_error("AllocatorHooks::initialise failed reading " +
+                                 std::string{key} +
+                                 " rv:" + std::to_string(rv));
+    }
+    return {*currentHooks};
+}
+
+static AllocatorHooks allocatorHooks = AllocatorHooks::initialise();
+
+static void* cb_alloc(extent_hooks_t* extent_hooks,
+                      void* newAddr,
+                      size_t size,
+                      size_t alignment,
+                      bool* zero,
+                      bool* commit,
+                      unsigned arena_ind) {
+    return allocatorHooks.jemalloc_hooks.alloc(
+            extent_hooks, newAddr, size, alignment, zero, commit, arena_ind);
+}
+
+static bool cb_dalloc(extent_hooks_t* extent_hooks,
+                      void* addr,
+                      size_t size,
+                      bool committed,
+                      unsigned arena_ind) {
+    return allocatorHooks.jemalloc_hooks.dalloc(
+            extent_hooks, addr, size, committed, arena_ind);
+}
+
+static void cb_destroy(extent_hooks_t* extent_hooks,
+                       void* addr,
+                       size_t size,
+                       bool committed,
+                       unsigned arena_ind) {
+    allocatorHooks.jemalloc_hooks.destroy(
+            extent_hooks, addr, size, committed, arena_ind);
+}
+
+static bool cb_commit(extent_hooks_t* extent_hooks,
+                      void* addr,
+                      size_t size,
+                      size_t offset,
+                      size_t length,
+                      unsigned arena_ind) {
+    return allocatorHooks.jemalloc_hooks.commit(
+            extent_hooks, addr, size, offset, length, arena_ind);
+}
+
+static bool cb_decommit(extent_hooks_t* extent_hooks,
+                        void* addr,
+                        size_t size,
+                        size_t offset,
+                        size_t length,
+                        unsigned arena_ind) {
+    return allocatorHooks.jemalloc_hooks.decommit(
+            extent_hooks, addr, size, offset, length, arena_ind);
+}
+
+static bool cb_purge_forced(extent_hooks_t* extent_hooks,
+                            void* addr,
+                            size_t size,
+                            size_t offset,
+                            size_t length,
+                            unsigned arena_ind) {
+    return allocatorHooks.jemalloc_hooks.purge_forced(
+            extent_hooks, addr, size, offset, length, arena_ind);
+}
+
+static bool cb_purge_lazy(extent_hooks_t* extent_hooks,
+                          void* addr,
+                          size_t size,
+                          size_t offset,
+                          size_t length,
+                          unsigned arena_ind) {
+    return allocatorHooks.jemalloc_hooks.purge_lazy(
+            extent_hooks, addr, size, offset, length, arena_ind);
+}
+
+static bool cb_split(extent_hooks_t* extent_hooks,
+                     void* addr,
+                     size_t size,
+                     size_t size_a,
+                     size_t size_b,
+                     bool committed,
+                     unsigned arena_ind) {
+    return allocatorHooks.jemalloc_hooks.split(
+            extent_hooks, addr, size, size_a, size_b, committed, arena_ind);
+}
+
+static bool cb_merge(extent_hooks_t* extent_hooks,
+                     void* addr_a,
+                     size_t size_a,
+                     void* addr_b,
+                     size_t size_b,
+                     bool committed,
+                     unsigned arena_ind) {
+    return allocatorHooks.jemalloc_hooks.merge(
+            extent_hooks, addr_a, size_a, addr_b, size_b, committed, arena_ind);
+}
+
+int makeArena() {
+    unsigned arena = 0;
+    size_t sz = sizeof(unsigned);
+    int rv = je_mallctl("arenas.create", (void*)&arena, &sz, nullptr, 0);
+
+    if (rv != 0) {
+        throw std::runtime_error(
+                "JEArenaMalloc::makeArena not create arena. rv:" +
+                std::to_string(rv));
+    }
+
+    std::string key = "arena." + std::to_string(arena) + ".extent_hooks";
+    // Give jemalloc our hooks
+    extent_hooks_t* hooksp = &allocatorHooks.couchbase_hooks;
+    rv = je_mallctl(key.c_str(),
+                    nullptr,
+                    nullptr,
+                    (void*)&hooksp,
+                    sizeof(extent_hooks_t*));
+
+    if (rv != 0) {
+        throw std::runtime_error("JEArenaMalloc::makeArena failed " + key +
+                                 " rv:" + std::to_string(rv));
+    }
+    return arena;
 }
 
 } // namespace cb
