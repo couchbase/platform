@@ -258,26 +258,25 @@ protected:
         Expects(!closed);
         zstream.avail_in = 0;
         zstream.next_in = nullptr;
-
         std::vector<uint8_t> buffer(1024);
-        zstream.avail_out = buffer.size();
-        zstream.next_out = buffer.data();
-
-        auto rc = deflate(&zstream, Z_FINISH);
+        int rc = Z_OK;
+        do {
+            zstream.avail_out = buffer.size();
+            zstream.next_out = buffer.data();
+            rc = deflate(&zstream, Z_FINISH);
+            auto nbytes = buffer.size() - zstream.avail_out;
+            if (nbytes) {
+                this->underlying->write(std::string_view{
+                        reinterpret_cast<const char*>(buffer.data()), nbytes});
+                this->underlying->flush();
+            }
+        } while (rc == Z_OK);
+        closed = true;
         if (rc == Z_STREAM_END) {
-            // No need to write more data
-            closed = true;
             return;
         }
-
-        if (rc != Z_OK) {
-            throw std::runtime_error("Failed to deflate data with Z_FINISH");
-        }
-        auto nbytes = buffer.size() - zstream.avail_out;
-        this->underlying->write(std::string_view{
-                reinterpret_cast<const char*>(buffer.data()), nbytes});
-        this->underlying->flush();
-        closed = true;
+        throw std::runtime_error(
+                fmt::format("Failed to deflate data with Z_FINISH: {}", rc));
     }
 
     void do_write(std::string_view data) override {
