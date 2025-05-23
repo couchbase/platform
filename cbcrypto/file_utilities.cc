@@ -109,23 +109,19 @@ void maybeRewriteFiles(
         auto reader = FileReader::create(path, key_lookup_function);
         std::filesystem::path tmpfile = cb::io::mktemp(path.string());
         auto writer = FileWriter::create(encryption_key, tmpfile, 64 * 1024);
+        std::vector<uint8_t> data(8 * 1024);
 
-        bool eof = false;
-        do {
+        while (!reader->eof()) {
             try {
-                auto message = reader->nextChunk();
-                if (message.empty()) {
-                    eof = true;
-                } else {
-                    writer->write(message);
-                }
+                auto nr = reader->read(data);
+                writer->write({reinterpret_cast<const char*>(data.data()), nr});
             } catch (const std::underflow_error&) {
                 error("Partial chunk detected", {{"path", path.string()}});
-                eof = true;
             }
-        } while (!eof);
+        }
         writer->flush();
         writer->close();
+        reader.reset();
         if (encryption_key && path.extension() != ".cef") {
             auto next = path;
             next.replace_extension(".cef");

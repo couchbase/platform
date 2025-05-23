@@ -13,6 +13,7 @@
 #include <cbcrypto/common.h>
 #include <filesystem>
 #include <functional>
+#include <span>
 #include <string>
 
 namespace cb::crypto {
@@ -26,6 +27,9 @@ namespace cb::crypto {
  */
 class FileReader {
 public:
+    /// The default maximum allowed chunk size
+    static constexpr std::size_t default_max_allowed_chunk_size =
+            10 * 1024 * 1024;
     /**
      * Create a new instance of the FileReader
      *
@@ -45,6 +49,15 @@ public:
     [[nodiscard]] virtual bool is_encrypted() const = 0;
 
     /**
+     * The file reader tries to read various length fields off the encrypted
+     * file and allocate buffers of that size. To avoid trying to allocate
+     * insane amounts of memory it is possible to specify a maximum limit
+     *
+     * @param limit the maximum limit in bytes
+     */
+    virtual void set_max_allowed_chunk_size(std::size_t limit) = 0;
+
+    /**
      * Try to read the entire file in one big chunk. Note that this will
      * most likely *not* work if one tries to read an encrypted file which
      * is currently being written to due to the fact that the encrypted files
@@ -53,7 +66,7 @@ public:
      * @return The entire file content
      * @throws std::runtime_error if an error occurs
      */
-    virtual std::string read() = 0;
+    std::string read();
 
     /**
      * Try to read the next chunk from the file
@@ -65,6 +78,19 @@ public:
     virtual std::string nextChunk() = 0;
 
     virtual ~FileReader() = default;
+
+    /**
+     * Try to fill the provided buffer with data from the stream and
+     * return the number of bytes read.
+     *
+     * @param buffer The buffer to fill with data
+     * @return The number of bytes read or -1 with EOF
+     * @throws std::runtime_error if an error occurs
+     */
+    virtual std::size_t read(std::span<uint8_t> buffer) = 0;
+
+    /// Return true when we've hit the end of the stream
+    virtual bool eof() = 0;
 
 protected:
     FileReader() = default;

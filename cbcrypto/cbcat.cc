@@ -207,9 +207,12 @@ int main(int argc, char** argv) {
         }
         try {
             auto reader = FileReader::create(file, key_lookup_callback);
-            std::string message;
-            while (!(message = reader->nextChunk()).empty()) {
-                std::cout << message;
+            reader->set_max_allowed_chunk_size(
+                    std::numeric_limits<uint32_t>::max());
+            std::vector<uint8_t> blob(8192);
+            while (!reader->eof()) {
+                auto nr = reader->read(blob);
+                std::cout.write(reinterpret_cast<const char*>(blob.data()), nr);
                 std::cout.flush();
             }
         } catch (const cb::crypto::dump_keys::IncorrectPasswordError& e) {
