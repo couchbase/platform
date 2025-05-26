@@ -282,6 +282,13 @@ public:
         }
     };
 
+#ifndef WIN32
+    ~ChildProcessMonitor() override {
+        int exitcode;
+        waitpid(pid, &exitcode, 0);
+    }
+#endif
+
 protected:
 #ifdef WIN32
     static HANDLE createProcess(const std::vector<std::string>& argv) {
