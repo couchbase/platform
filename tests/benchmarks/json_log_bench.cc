@@ -78,7 +78,7 @@ static void BM_Logger_Merge_LogJson(benchmark::State& state) {
     while (state.KeepRunning()) {
         dumpWithPrefix(
                 prefix,
-                cb::logger::BasicJsonType{
+                cb::logger::Json{
                         {"nothing", nullptr},
                         {"answer", {{"everything", 42}}},
                         {"list", {1, 0, 2}},
