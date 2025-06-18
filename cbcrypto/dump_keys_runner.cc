@@ -73,12 +73,6 @@ protected:
     static SharedEncryptionKey decodeJsonResponse(std::string_view id,
                                                   nlohmann::json json);
 
-    /// MB-63548 requests dump-keys to do this internally
-    /// MB-63598 requests dump-keys to also be able to look up bucket keys
-    ///          (instead of having to use dump-bucket-deks)
-    [[nodiscard]] std::pair<std::string, std::filesystem::path> lookupKeyKind(
-            std::string_view id) const;
-
     const std::string password;
     const std::filesystem::path executable;
     const std::filesystem::path gosecrets;
@@ -91,22 +85,10 @@ SharedEncryptionKey DumpKeysRunnerImpl::lookup(
     std::future<std::string> err;
     boost::process::opstream in;
 
-    const auto [kind, path] = lookupKeyKind(id);
-
     std::vector<std::string> arguments = {
             {"--config", gosecrets.string(), "--key-ids", std::string(id)}};
 
     auto exec = executable;
-
-    if (kind == "bucketDek") {
-        arguments.emplace_back("--bucket");
-        arguments.emplace_back(
-                path.parent_path().parent_path().filename().string());
-        exec = executable.parent_path() / "dump-bucket-deks";
-    } else {
-        arguments.emplace_back("--key-kind");
-        arguments.emplace_back(kind);
-    }
 
     if (!password.empty()) {
         arguments.emplace_back("--stdin-password");
@@ -211,36 +193,6 @@ SharedEncryptionKey DumpKeysRunnerImpl::decodeJsonResponse(
             std::string{id},
             Cipher::AES_256_GCM,
             base64::decode(response["key"].get<std::string>()));
-}
-
-std::pair<std::string, std::filesystem::path> DumpKeysRunnerImpl::lookupKeyKind(
-        std::string_view id) const {
-    nlohmann::json configuration;
-    try {
-        configuration = nlohmann::json::parse(cb::io::loadFile(gosecrets));
-    } catch (const std::exception& e) {
-        throw std::runtime_error(fmt::format("Failed to read and parse {}: {}",
-                                             gosecrets.string(),
-                                             e.what()));
-    }
-    for (const auto& entry : configuration["storedKeys"]) {
-        std::error_code ec;
-        for (auto const& dir_entry :
-             std::filesystem::recursive_directory_iterator{
-                     entry["path"].get<std::string>(), ec}) {
-            if (dir_entry.is_regular_file() &&
-                dir_entry.path().filename().string().rfind(id, 0) == 0) {
-                return {entry["kind"].get<std::string>(), dir_entry.path()};
-            }
-        }
-    }
-
-    throw std::system_error(
-            std::make_error_code(std::errc::no_such_file_or_directory),
-            fmt::format("Failed to detect the key kind for {} from the "
-                        "configuration data in {}",
-                        id,
-                        gosecrets.string()));
 }
 
 std::unique_ptr<DumpKeysRunner> DumpKeysRunner::create(
