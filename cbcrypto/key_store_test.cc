@@ -141,3 +141,17 @@ TEST_F(KeyStoreTest, Add) {
     // ensure it didn't change the active key
     EXPECT_EQ(active, ks.getActiveKey());
 }
+
+TEST_F(KeyStoreTest, toLoggableJson) {
+    nlohmann::json loggable = toLoggableJson(ks);
+    ASSERT_TRUE(loggable.contains("active"));
+    EXPECT_TRUE(loggable["active"].is_string());
+    EXPECT_EQ(ks.getActiveKey()->getId(),
+              loggable["active"].get<std::string>());
+    ASSERT_TRUE(loggable.contains("keys"));
+    EXPECT_TRUE(loggable["keys"].is_array());
+    for (const auto& key : loggable["keys"]) {
+        ASSERT_TRUE(key.is_string());
+        ASSERT_TRUE(ks.lookup(key.get<std::string>()));
+    }
+}

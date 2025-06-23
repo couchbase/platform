@@ -50,4 +50,8 @@ protected:
 void to_json(nlohmann::json& json, const KeyStore& ks);
 void from_json(const nlohmann::json& json, KeyStore& ks);
 
+/// Convert a keystore to a JSON object we may put in our logs
+/// (strip off the actual keys etc)
+nlohmann::json toLoggableJson(const KeyStore& keystore);
+
 } // namespace cb::crypto

@@ -106,4 +106,15 @@ void from_json(const nlohmann::json& json, KeyStore& ks) {
     }
 }
 
+nlohmann::json toLoggableJson(const cb::crypto::KeyStore& keystore) {
+    nlohmann::json ids = nlohmann::json::array();
+    keystore.iterateKeys([&ids](auto key) { ids.emplace_back(key->getId()); });
+    nlohmann::json entry;
+    entry["keys"] = std::move(ids);
+    if (keystore.getActiveKey()) {
+        entry["active"] = keystore.getActiveKey()->getId();
+    }
+    return entry;
+}
+
 } // namespace cb::crypto
