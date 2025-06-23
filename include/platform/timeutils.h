@@ -236,6 +236,14 @@ std::chrono::microseconds decayingSleep(std::chrono::microseconds uSeconds);
 bool waitForPredicateUntil(const std::function<bool()>& pred,
                            std::chrono::microseconds maxWaitTime);
 
+/// Special version which allows the caller to specify a wait time and don't
+/// do any exponential backoff. This is useful for cases where the caller
+/// don't want to wait for a long time, but still want to wait to avoid
+/// busy waiting.
+bool waitForPredicateUntil(const std::function<bool()>& pred,
+                           std::chrono::microseconds maxWaitTime,
+                           std::chrono::microseconds waitTime);
+
 /**
  * Waits for the specified predicate to return true. Between attempts sleeps
  * the calling thread for an exponentially increasing amount of time.

@@ -222,6 +222,20 @@ bool cb::waitForPredicateUntil(const std::function<bool()>& pred,
     return false;
 }
 
+bool cb::waitForPredicateUntil(const std::function<bool()>& pred,
+                               std::chrono::microseconds maxWaitTime,
+                               std::chrono::microseconds waitTime) {
+    using namespace std::chrono;
+    auto deadline = steady_clock::now() + maxWaitTime;
+    do {
+        if (pred()) {
+            return true;
+        }
+        std::this_thread::sleep_for(waitTime);
+    } while (steady_clock::now() < deadline);
+    return false;
+}
+
 void cb::waitForPredicate(const std::function<bool()>& pred) {
     std::chrono::microseconds sleepTime(128);
     while (true) {
