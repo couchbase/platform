@@ -224,6 +224,7 @@ LIST(APPEND PLATFORM_FILES
   include/platform/base64.h
   include/platform/bitset.h
   include/platform/byte_buffer_dump.h
+  include/platform/byte_literals.h
   include/platform/cb_malloc.h
   include/platform/checked_snprintf.h
   include/platform/command_line_options_parser.h

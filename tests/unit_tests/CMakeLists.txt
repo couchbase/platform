@@ -7,6 +7,7 @@ cb_add_test_executable(platform_unit_tests
                        base64_test.cc
                        bifurcated_counter_test.cc
                        bitset_test.cc
+                       byte_literals_test.cc
                        cb_getopt_test.cc
                        checked_snprintf_test.cc
                        command_line_options_parser_test.cc
