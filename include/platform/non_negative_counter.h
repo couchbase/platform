@@ -389,25 +389,13 @@ private:
     std::atomic<T> value{0};
 };
 
-template <typename T>
-T format_as(const NonNegativeCounter<T>& nnc) {
+template <typename T, template <class> class P>
+static inline T format_as(const NonNegativeCounter<T, P>& nnc) {
     return nnc.load();
 }
 
-#if CB_DEVELOPMENT_ASSERTS
-template <typename T>
-T format_as(const NonNegativeCounter<T, ClampAtZeroUnderflowPolicy>& nnc) {
-    return nnc.load();
-}
-#endif
-
-template <typename T>
-T format_as(const AtomicNonNegativeCounter<T>& annc) {
-    return annc.load();
-}
-template <typename T>
-T format_as(
-        const AtomicNonNegativeCounter<T, ClampAtZeroUnderflowPolicy>& annc) {
+template <typename T, template <class> class P>
+static inline T format_as(const AtomicNonNegativeCounter<T, P>& annc) {
     return annc.load();
 }
 
