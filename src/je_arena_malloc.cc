@@ -122,6 +122,10 @@ public:
         return tld;
     }
 
+// This non-trivial destructor is required only on Windows. It is ifdef'd out
+// on other platforms. Clang on Linux in particular, has an issue with it,
+// which causes a crash (see MB-67417).
+#ifdef _WIN32
     ~ThreadLocalData() {
         // Clean up the thread local state in jemalloc.
         // This is a no-op if the thread state is not initialized or if
@@ -133,6 +137,7 @@ public:
         // called before the C++ thread_local destructors run.
         je_thread_cleanup();
     }
+#endif // _WIN32
 
 private:
     JEArenaMallocBase::CurrentClient currentClient;
