@@ -50,7 +50,7 @@ static std::unique_ptr<folly::IOBuf> inflateZlib(
                 status));
     }
 
-    stream.avail_in = input.size();
+    stream.avail_in = gsl::narrow_cast<uInt>(input.size());
     stream.next_in = const_cast<uint8_t*>(
             reinterpret_cast<const uint8_t*>(input.data()));
 
@@ -63,7 +63,7 @@ static std::unique_ptr<folly::IOBuf> inflateZlib(
                                 max_inflated_size));
         }
         auto iobuf = folly::IOBuf::create(chunk_size);
-        stream.avail_out = iobuf->tailroom();
+        stream.avail_out = gsl::narrow_cast<uInt>(iobuf->tailroom());
         stream.next_out = iobuf->writableTail();
         status = inflate(&stream, Z_NO_FLUSH);
         if (status != Z_OK && status != Z_STREAM_END && status != Z_BUF_ERROR) {

@@ -7,6 +7,7 @@
  *   software will be governed by the Apache License, Version 2.0, included in
  *   the file licenses/APL2.txt.
  */
+#include <gsl/gsl-lite.hpp>
 #include <platform/cb_time.h>
 #include <platform/platform_time.h>
 #include <relaxed_atomic.h>
@@ -79,7 +80,8 @@ int cb_get_timeofday_offset(void) {
 }
 
 void cb_set_uptime_offset(uint64_t offset) {
-    uptime_offset.store(offset, std::memory_order_relaxed);
+    uptime_offset.store(gsl::narrow_cast<unsigned int>(offset),
+                        std::memory_order_relaxed);
 }
 
 uint64_t cb_get_uptime_offset(void) {

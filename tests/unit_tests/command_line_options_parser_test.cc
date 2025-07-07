@@ -10,6 +10,7 @@
 
 #include <folly/portability/GTest.h>
 #include <getopt.h>
+#include <gsl/gsl-lite.hpp>
 #include <platform/command_line_options_parser.h>
 #include <platform/terminal_color.h>
 
@@ -94,7 +95,7 @@ TEST(CommandLineOptionsParserTest, TestParse) {
                       "value",
                       "the first argument"});
     ::optind = 1;
-    auto arguments = parser.parse(options.size(),
+    auto arguments = parser.parse(gsl::narrow_cast<int>(options.size()),
                                   const_cast<char* const*>(options.data()),
                                   []() { FAIL() << "An error occurred"; });
     EXPECT_TRUE(found);
@@ -104,7 +105,7 @@ TEST(CommandLineOptionsParserTest, TestParse) {
     found = false;
     options = {"argv0", "--second", "secondarg", "third"};
     ::optind = 1;
-    arguments = parser.parse(options.size(),
+    arguments = parser.parse(gsl::narrow_cast<int>(options.size()),
                              const_cast<char* const*>(options.data()),
                              []() { FAIL() << "An error occurred"; });
     EXPECT_TRUE(found);
@@ -130,7 +131,7 @@ TEST(CommandLineOptionsParserTest, TestParseError) {
 
     bool error = false;
     ::optind = 1;
-    auto arguments = parser.parse(options.size(),
+    auto arguments = parser.parse(gsl::narrow_cast<int>(options.size()),
                                   const_cast<char* const*>(options.data()),
                                   [&error]() { error = true; });
     ::optind = 1;

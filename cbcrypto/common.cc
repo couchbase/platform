@@ -128,8 +128,8 @@ OpenSslError::OpenSslError(const char* callingFunction,
 }
 
 void randomBytes(gsl::span<char> buf) {
-    if (RAND_bytes(reinterpret_cast<unsigned char*>(buf.data()), buf.size()) !=
-        1) {
+    if (RAND_bytes(reinterpret_cast<unsigned char*>(buf.data()),
+                   gsl::narrow_cast<int>(buf.size())) != 1) {
         throw OpenSslError::get("cb::crypto::randomBytes", "RAND_bytes");
     }
 }

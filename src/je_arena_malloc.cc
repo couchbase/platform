@@ -16,6 +16,7 @@
 #include <fmt/format.h>
 #include <fmt/ostream.h>
 #include <folly/Synchronized.h>
+#include <gsl/gsl-lite.hpp>
 #include <jemalloc/jemalloc.h>
 #include <platform/terminal_color.h>
 
@@ -80,7 +81,7 @@ MemoryDomain JEArenaMallocBase::CurrentClient::setDomain(MemoryDomain domain,
  *
  * @return the ID of the new arena
  */
-static int makeArena();
+static uint16_t makeArena();
 
 int JEArenaMallocBase::CurrentClient::getMallocFlags() const {
     return MALLOCX_ARENA(arena) | tcacheFlags;
@@ -187,7 +188,7 @@ void assignClientArenas(DomainToArena& arenas, ArenaMode arenaMode) {
         // Use a single arena for all domains.
         if (arenas.front() == 0) {
             // No arena yet assigned, create one.
-            int arena = makeArena();
+            auto arena = makeArena();
             // We use arena 0 as no arena and don't expect it to be created
             if (arena == 0) {
                 throw std::runtime_error(
@@ -513,7 +514,13 @@ uint16_t ThreadLocalData::getTCacheID(const ArenaMallocClient& client) {
                     "ThreadLocalData::getTCacheID: tcache.create failed rv:" +
                     std::to_string(rv));
         }
-        tcacheIds[client.index] = tcache;
+        if (tcache > std::numeric_limits<uint16_t>::max()) {
+            throw std::runtime_error(
+                    fmt::format("ThreadLocalData::getTCacheID: tcache ID {} "
+                                "is too large for uint16_t",
+                                tcache));
+        }
+        tcacheIds[client.index] = static_cast<uint16_t>(tcache);
 
         // We need to be sure that all allocated tcaches are destroyed at thread
         // exit, do this by using a destruct function attached to a unique_ptr.
@@ -780,7 +787,8 @@ static bool cb_merge(extent_hooks_t* extent_hooks,
             extent_hooks, addr_a, size_a, addr_b, size_b, committed, arena_ind);
 }
 
-int makeArena() {
+uint16_t makeArena() {
+    // unsigned is the type jemalloc uses for arena IDs
     unsigned arena = 0;
     size_t sz = sizeof(unsigned);
     int rv = je_mallctl("arenas.create", (void*)&arena, &sz, nullptr, 0);
@@ -789,6 +797,13 @@ int makeArena() {
         throw std::runtime_error(
                 "JEArenaMalloc::makeArena not create arena. rv:" +
                 std::to_string(rv));
+    }
+
+    // The arena has to fit in uint16_t as that's the type we're using primarily
+    // to keep TLS structures compact. Rather than narrow cast later, produce
+    // a clearer error if the arena is out of range.
+    if (arena > std::numeric_limits<uint16_t>::max()) {
+        throw std::runtime_error("JEArenaMalloc::makeArena arena ID too large");
     }
 
     std::string key = "arena." + std::to_string(arena) + ".extent_hooks";
@@ -804,7 +819,8 @@ int makeArena() {
         throw std::runtime_error("JEArenaMalloc::makeArena failed " + key +
                                  " rv:" + std::to_string(rv));
     }
-    return arena;
+    // range checked earlier - safe to cast
+    return static_cast<uint16_t>(arena);
 }
 
 } // namespace cb

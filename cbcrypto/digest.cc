@@ -13,6 +13,7 @@
 #include <fmt/format.h>
 #include <folly/portability/Fcntl.h>
 #include <folly/portability/Unistd.h>
+#include <gsl/gsl-lite.hpp>
 #include <nlohmann/json.hpp>
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
@@ -31,7 +32,7 @@ static std::string HMAC_SHA1(std::string_view key, std::string_view data) {
     ret.resize(SHA1_DIGEST_SIZE);
     if (HMAC(EVP_sha1(),
              key.data(),
-             key.size(),
+             gsl::narrow_cast<int>(key.size()),
              reinterpret_cast<const uint8_t*>(data.data()),
              data.size(),
              reinterpret_cast<uint8_t*>(const_cast<char*>(ret.data())),
@@ -46,7 +47,7 @@ static std::string HMAC_SHA256(std::string_view key, std::string_view data) {
     ret.resize(SHA256_DIGEST_SIZE);
     if (HMAC(EVP_sha256(),
              key.data(),
-             key.size(),
+             gsl::narrow_cast<int>(key.size()),
              reinterpret_cast<const uint8_t*>(data.data()),
              data.size(),
              reinterpret_cast<uint8_t*>(const_cast<char*>(ret.data())),
@@ -61,7 +62,7 @@ static std::string HMAC_SHA512(std::string_view key, std::string_view data) {
     ret.resize(SHA512_DIGEST_SIZE);
     if (HMAC(EVP_sha512(),
              key.data(),
-             key.size(),
+             gsl::narrow_cast<int>(key.size()),
              reinterpret_cast<const uint8_t*>(data.data()),
              data.size(),
              reinterpret_cast<uint8_t*>(const_cast<char*>(ret.data())),

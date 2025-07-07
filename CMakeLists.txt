@@ -500,3 +500,13 @@ add_test(NAME platform-check-header-define-once-guard
         --exclude include/platform/simd/scan_neon.h
         --exclude external/valgrind/valgrind.h
         --exclude external/valgrind/memcheck.h)
+
+# MB-67520: Enable warnings for narrowing conversions and
+# implicit int conversions when building with Clang/AppleClang
+# PRIVATE is used to avoid leaking these warnings to other
+# targets which are yet to be fixed
+if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  target_compile_options(platform PRIVATE
+                                  -Werror=shorten-64-to-32
+                                  -Werror=implicit-int-conversion)
+endif()

@@ -744,7 +744,9 @@ public:
 
     static void finishPopulation(HdrHistogram& histogram) {
         auto maxRepresentable = histogram.getMaxTrackableValue();
-        for (int i = histogram.getMaxValue() + 1; i <= maxRepresentable; i++) {
+        for (uint64_t i = histogram.getMaxValue() + 1;
+             i <= static_cast<uint64_t>(maxRepresentable);
+             i++) {
             histogram.addValue(i);
         }
     }

@@ -110,7 +110,7 @@ void Aes256Gcm::encrypt(std::string_view nonce,
                               nullptr,
                               &outlen,
                               reinterpret_cast<const unsigned char*>(ad.data()),
-                              ad.size()) != 1) {
+                              gsl::narrow_cast<int>(ad.size())) != 1) {
             throw OpenSslError::get("cb::crypto::Aes256Gcm::encrypt",
                                     "EVP_EncryptUpdate(ad)");
         }
@@ -119,7 +119,7 @@ void Aes256Gcm::encrypt(std::string_view nonce,
                           reinterpret_cast<unsigned char*>(ct.data()),
                           &outlen,
                           reinterpret_cast<const unsigned char*>(msg.data()),
-                          msg.size()) != 1 ||
+                          gsl::narrow_cast<int>(msg.size())) != 1 ||
         static_cast<std::size_t>(outlen) != ct.size()) {
         throw OpenSslError::get("cb::crypto::Aes256Gcm::encrypt",
                                 "EVP_EncryptUpdate(msg)");
@@ -171,7 +171,7 @@ void Aes256Gcm::decrypt(std::string_view nonce,
                               nullptr,
                               &outlen,
                               reinterpret_cast<const unsigned char*>(ad.data()),
-                              ad.size()) != 1) {
+                              gsl::narrow_cast<int>(ad.size())) != 1) {
             throw OpenSslError::get("cb::crypto::Aes256Gcm::decrypt",
                                     "EVP_DecryptUpdate(ad)");
         }
@@ -180,7 +180,7 @@ void Aes256Gcm::decrypt(std::string_view nonce,
                           reinterpret_cast<unsigned char*>(msg.data()),
                           &outlen,
                           reinterpret_cast<const unsigned char*>(ct.data()),
-                          ct.size()) != 1 ||
+                          gsl::narrow_cast<int>(ct.size())) != 1 ||
         static_cast<std::size_t>(outlen) != msg.size()) {
         throw OpenSslError::get("cb::crypto::Aes256Gcm::decrypt",
                                 "EVP_DecryptUpdate(msg)");
@@ -202,7 +202,8 @@ void Aes256Gcm::decrypt(std::string_view nonce,
  */
 class SerializedUInt {
 public:
-    SerializedUInt(uint64_t value, size_t size) : len(size) {
+    SerializedUInt(uint64_t value, size_t size)
+        : len(gsl::narrow_cast<unsigned char>(size)) {
         if (size > buffer.size()) {
             throw NotSupportedException(fmt::format(
                     "cb::crypto::SerializedUInt: Unsupported size:{}", size));

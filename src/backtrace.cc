@@ -138,7 +138,8 @@ void print_backtrace_frames(const boost::stacktrace::stacktrace& frames,
     for (size_t ii = 0; ii < frames.size(); ii++) {
         // Fixed-sized buffer; possible that description will be cropped.
         char msg[300];
-        describe_address(msg, sizeof(msg), ii, frames[ii].address());
+        describe_address(
+                msg, sizeof(msg), static_cast<int>(ii), frames[ii].address());
         callback(msg);
     }
 }

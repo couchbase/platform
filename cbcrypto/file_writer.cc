@@ -225,7 +225,7 @@ public:
         zstream.next_in = nullptr;
 
         std::vector<uint8_t> buffer(1024);
-        zstream.avail_out = buffer.size();
+        zstream.avail_out = gsl::narrow_cast<uInt>(buffer.size());
         zstream.next_out = buffer.data();
 
         // (given that the output size is the same as the input size I expect
@@ -261,7 +261,7 @@ protected:
         std::vector<uint8_t> buffer(1024);
         int rc = Z_OK;
         do {
-            zstream.avail_out = buffer.size();
+            zstream.avail_out = gsl::narrow_cast<uInt>(buffer.size());
             zstream.next_out = buffer.data();
             rc = deflate(&zstream, Z_FINISH);
             auto nbytes = buffer.size() - zstream.avail_out;
@@ -281,13 +281,13 @@ protected:
 
     void do_write(std::string_view data) override {
         Expects(!closed);
-        zstream.avail_in = data.size();
+        zstream.avail_in = gsl::narrow_cast<uInt>(data.size());
         zstream.next_in =
                 reinterpret_cast<Bytef*>(const_cast<char*>(data.data()));
 
         std::vector<uint8_t> buffer(data.size());
         do {
-            zstream.avail_out = buffer.size();
+            zstream.avail_out = gsl::narrow_cast<uInt>(buffer.size());
             zstream.next_out = buffer.data();
 
             auto status = deflate(&zstream, Z_NO_FLUSH);

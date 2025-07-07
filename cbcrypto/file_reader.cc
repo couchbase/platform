@@ -312,12 +312,12 @@ public:
                 return {};
             }
 
-            zstream.avail_in = chunk.size();
+            zstream.avail_in = gsl::narrow_cast<uInt>(chunk.size());
             zstream.next_in =
                     reinterpret_cast<Bytef*>(const_cast<char*>(chunk.data()));
 
             do {
-                zstream.avail_out = buffer.size();
+                zstream.avail_out = gsl::narrow_cast<uInt>(buffer.size());
                 zstream.next_out = buffer.data();
                 auto rc = inflate(&zstream, Z_NO_FLUSH);
                 Expects(rc == Z_OK || rc == Z_STREAM_END);
@@ -396,7 +396,7 @@ std::unique_ptr<FileReader> FileReader::create(
     std::vector<uint8_t> buffer(sizeof(EncryptedFileHeader));
     const EncryptedFileHeader* header =
             reinterpret_cast<EncryptedFileHeader*>(buffer.data());
-    int nr = fread(buffer.data(), sizeof(EncryptedFileHeader), 1, fp);
+    auto nr = fread(buffer.data(), sizeof(EncryptedFileHeader), 1, fp);
 
     if (nr == 1) {
         if (header->is_encrypted()) {

@@ -60,6 +60,7 @@
 #endif
 
 #include "crc32c_private.h"
+#include <gsl/gsl-lite.hpp>
 #include <platform/crc32c.h>
 #include <limits>
 
@@ -76,7 +77,10 @@ inline uint32_t crc32c_u8(uint32_t crc, uint8_t data) {
 }
 
 inline uint32_t crc32c_u64(uint32_t crc, uint64_t data) {
-  return _mm_crc32_u64(crc, data);
+    // Narrow cast the intrinsic result type which is a uint64_t down to
+    // uint32_t. Note that the actual intrinisc here never generates more than
+    // 32-bits of output
+    return gsl::narrow_cast<uint32_t>(_mm_crc32_u64(crc, data));
 }
 #endif // FOLLY_X64
 
@@ -98,11 +102,10 @@ inline uint32_t crc32c_u64(uint32_t crc, uint64_t data) {
 // no pipeline optimisation.
 //
 uint32_t crc32c_hw_1way(const uint8_t* buf, size_t len, uint32_t crc_in) {
-    auto crc_flipped = ~crc_in;
-    auto crc = static_cast<uint64_t>(crc_flipped);
+    auto crc = ~crc_in;
     // use crc32-byte instruction until the buf pointer is 8-byte aligned
     while ((reinterpret_cast<uintptr_t>(buf) & ALIGN64_MASK) != 0 && len > 0) {
-        crc = crc32c_u8(static_cast<uint32_t>(crc), *buf);
+        crc = crc32c_u8(crc, *buf);
         buf += sizeof(uint8_t);
         len -= sizeof(uint8_t);
     }
@@ -116,7 +119,7 @@ uint32_t crc32c_hw_1way(const uint8_t* buf, size_t len, uint32_t crc_in) {
 
     // finish the rest using the byte instruction
     while (len > 0) {
-        crc = crc32c_u8(static_cast<uint32_t>(crc), *buf);
+        crc = crc32c_u8(crc, *buf);
         buf += sizeof(uint8_t);
         len -= sizeof(uint8_t);
     }
@@ -133,13 +136,11 @@ uint32_t crc32c_hw_short_block(const uint8_t* buf, size_t len, uint32_t crc_in) 
         return crc32c_hw_1way(buf, len, crc_in);
     }
 
-    auto crc_flipped = ~crc_in;
-    uint64_t crc0 = static_cast<uint64_t>(crc_flipped), crc1 = 0, crc2 = 0;
+    uint32_t crc0 = ~crc_in, crc1 = 0, crc2 = 0;
 
     // use crc32-byte instruction until the buf pointer is 8-byte aligned
     while ((reinterpret_cast<uintptr_t>(buf) & ALIGN64_MASK) != 0 && len > 0) {
-
-        crc0 = crc32c_u8(static_cast<uint32_t>(crc0), *buf);
+        crc0 = crc32c_u8(crc0, *buf);
         buf += sizeof(uint8_t);
         len -= sizeof(uint8_t);
     }
@@ -156,8 +157,8 @@ uint32_t crc32c_hw_short_block(const uint8_t* buf, size_t len, uint32_t crc_in) 
             crc2 = crc32c_u64(crc2, *reinterpret_cast<const uint64_t*>(buf + (2 * SHORT_BLOCK)));
             buf += sizeof(uint64_t);
         } while (buf < end);
-        crc0 = crc32c_shift(crc32c_short, static_cast<uint32_t>(crc0)) ^ crc1;
-        crc0 = crc32c_shift(crc32c_short, static_cast<uint32_t>(crc0)) ^ crc2;
+        crc0 = crc32c_shift(crc32c_short, crc0) ^ crc1;
+        crc0 = crc32c_shift(crc32c_short, crc0) ^ crc2;
         buf += 2 * SHORT_BLOCK;
         len -= 3 * SHORT_BLOCK;
     }
@@ -171,7 +172,7 @@ uint32_t crc32c_hw_short_block(const uint8_t* buf, size_t len, uint32_t crc_in) 
 
     // finish the rest using the byte instruction
     while (len > 0) {
-        crc0 = crc32c_u8(static_cast<uint32_t>(crc0), *buf);
+        crc0 = crc32c_u8(crc0, *buf);
         buf += sizeof(uint8_t);
         len -= sizeof(uint8_t);
     }
@@ -191,12 +192,11 @@ uint32_t crc32c_hw(const uint8_t* buf, size_t len, uint32_t crc_in) {
     }
 
     auto crc_flipped = ~crc_in;
-    uint64_t crc0 = static_cast<uint64_t>(crc_flipped), crc1 = 0, crc2 = 0;
+    uint32_t crc0 = crc_flipped, crc1 = 0, crc2 = 0;
 
     // use crc32-byte instruction until the buf pointer is 8-byte aligned
     while ((reinterpret_cast<uintptr_t>(buf) & ALIGN64_MASK) != 0 && len > 0) {
-
-        crc0 = crc32c_u8(static_cast<uint32_t>(crc0), *buf);
+        crc0 = crc32c_u8(crc0, *buf);
         buf += sizeof(uint8_t);
         len -= sizeof(uint8_t);
     }
@@ -216,8 +216,8 @@ uint32_t crc32c_hw(const uint8_t* buf, size_t len, uint32_t crc_in) {
             crc2 = crc32c_u64(crc2, *reinterpret_cast<const uint64_t*>(buf + (2 * LONG_BLOCK)));
             buf += sizeof(uint64_t);
         } while (buf < end);
-        crc0 = crc32c_shift(crc32c_long, static_cast<uint32_t>(crc0)) ^ crc1;
-        crc0 = crc32c_shift(crc32c_long, static_cast<uint32_t>(crc0)) ^ crc2;
+        crc0 = crc32c_shift(crc32c_long, crc0) ^ crc1;
+        crc0 = crc32c_shift(crc32c_long, crc0) ^ crc2;
         buf += 2 * LONG_BLOCK;
         len -= 3 * LONG_BLOCK;
     }
@@ -235,8 +235,8 @@ uint32_t crc32c_hw(const uint8_t* buf, size_t len, uint32_t crc_in) {
             crc2 = crc32c_u64(crc2, *reinterpret_cast<const uint64_t*>(buf + (2 * SHORT_BLOCK)));
             buf += sizeof(uint64_t);
         } while (buf < end);
-        crc0 = crc32c_shift(crc32c_short, static_cast<uint32_t>(crc0)) ^ crc1;
-        crc0 = crc32c_shift(crc32c_short, static_cast<uint32_t>(crc0)) ^ crc2;
+        crc0 = crc32c_shift(crc32c_short, crc0) ^ crc1;
+        crc0 = crc32c_shift(crc32c_short, crc0) ^ crc2;
         buf += 2 * SHORT_BLOCK;
         len -= 3 * SHORT_BLOCK;
     }
@@ -250,7 +250,7 @@ uint32_t crc32c_hw(const uint8_t* buf, size_t len, uint32_t crc_in) {
 
     // finish the rest using the byte instruction
     while (len > 0) {
-        crc0 = crc32c_u8(static_cast<uint32_t>(crc0), *buf);
+        crc0 = crc32c_u8(crc0, *buf);
         buf += sizeof(uint8_t);
         len -= sizeof(uint8_t);
     }

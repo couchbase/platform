@@ -118,13 +118,13 @@ BENCHMARK_DEFINE_F(MemoryAllocationStat, AllocNReadPreciseM)
 // API and can be used if this test is being used to perform deeper analysis of
 // this code.
 BENCHMARK_REGISTER_F(MemoryAllocationStat, AllocNRead1)
-        ->Threads(cb::get_cpu_count() * 4)
+        ->Threads(static_cast<int>(cb::get_cpu_count() * 4))
         ->Args({0})
         ->Args({200})
         ->Args({1000});
 
 BENCHMARK_REGISTER_F(MemoryAllocationStat, AllocNReadM)
-        ->Threads(cb::get_cpu_count() * 4)
+        ->Threads(static_cast<int>(cb::get_cpu_count() * 4))
         ->Args({0, 10})
         ->Args({200, 10})
         ->Args({1000, 10})
@@ -133,7 +133,7 @@ BENCHMARK_REGISTER_F(MemoryAllocationStat, AllocNReadM)
         ->Args({1000, 10});
 
 BENCHMARK_REGISTER_F(MemoryAllocationStat, AllocNReadPreciseM)
-        ->Threads(cb::get_cpu_count() * 4)
+        ->Threads(static_cast<int>(cb::get_cpu_count() * 4))
         // This benchmark is configured to run 'alloc heavy'. The getPrecise
         // function is only used by getStats, which is infrequent relative to
         // memory alloc/dealloc
