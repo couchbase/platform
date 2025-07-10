@@ -104,3 +104,20 @@ TEST(JsonLog, Optional) {
     EXPECT_EQ("1", one.dump());
     EXPECT_EQ("null", empty.dump());
 }
+
+TEST(JsonLog, FormatNonAscii) {
+    using cb::logger::Json;
+
+    // Non-ASCII characters are escaped.
+    Json j{{"foo", "ä"}};
+    EXPECT_EQ(R"({"foo":"\u00e4"})", fmt::to_string(j));
+}
+
+TEST(JsonLog, AllowInvalidUtf8) {
+    using cb::logger::Json;
+
+    Json j{{"foo", "\xff"}};
+    // Invalid UTF-8 is replaced with the Unicode replacement character and then
+    // escaped.
+    EXPECT_EQ(R"({"foo":"\ufffd"})", fmt::to_string(j));
+}

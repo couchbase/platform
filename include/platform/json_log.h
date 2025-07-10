@@ -76,7 +76,13 @@ using Json = nlohmann::basic_json<
 template <>
 struct fmt::formatter<cb::logger::Json> : formatter<string_view> {
     auto format(cb::logger::Json json, format_context& ctx) const {
-        return fmt::format_to(ctx.out(), "{}", json.dump());
+        // Non-ASCII characters are escaped as \uXXXX
+        const auto ensure_ascii = true;
+        // Replaces invalid sequences with \ufffd (U+FFFD)
+        const auto error_handler = nlohmann::json::error_handler_t::replace;
+        return fmt::format_to(ctx.out(),
+                              "{}",
+                              json.dump(-1, ' ', ensure_ascii, error_handler));
     }
 };
 
