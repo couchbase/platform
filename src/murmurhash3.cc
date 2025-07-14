@@ -49,11 +49,11 @@ inline uint64_t rotl64(uint64_t x, int8_t r) {
 // Block read - if your platform needs to do endian-swapping or can only
 // handle aligned reads, do the conversion here
 
-FORCE_INLINE uint32_t getblock32(const uint32_t* p, int i) {
+FORCE_INLINE uint32_t getblock32(const uint32_t* p, size_t i) {
     return p[i];
 }
 
-FORCE_INLINE uint64_t getblock64(const uint64_t* p, int i) {
+FORCE_INLINE uint64_t getblock64(const uint64_t* p, size_t i) {
     return p[i];
 }
 
@@ -146,11 +146,11 @@ void MurmurHash3_x86_32(const void* key,
 //-----------------------------------------------------------------------------
 
 void MurmurHash3_x86_128(const void* key,
-                         const int len,
+                         const size_t len,
                          uint32_t seed,
                          uint64_t* out) {
     const auto* data = (const uint8_t*)key;
-    const int nblocks = len / 16;
+    const auto nblocks = len / 16;
 
     uint32_t h1 = seed;
     uint32_t h2 = seed;
@@ -167,7 +167,7 @@ void MurmurHash3_x86_128(const void* key,
 
     const auto* blocks = (const uint32_t*)(data + nblocks * 16);
 
-    for (int i = -nblocks; i; i++) {
+    for (auto i = -nblocks; i; i++) {
         uint32_t k1 = getblock32(blocks, i * 4 + 0);
         uint32_t k2 = getblock32(blocks, i * 4 + 1);
         uint32_t k3 = getblock32(blocks, i * 4 + 2);
@@ -314,11 +314,11 @@ void MurmurHash3_x86_128(const void* key,
 //-----------------------------------------------------------------------------
 
 void MurmurHash3_x64_128(const void* key,
-                         const int len,
+                         const size_t len,
                          const uint32_t seed,
                          uint64_t* out) {
     const auto* data = (const uint8_t*)key;
-    const int nblocks = len / 16;
+    const auto nblocks = len / 16;
 
     uint64_t h1 = seed;
     uint64_t h2 = seed;
@@ -331,7 +331,7 @@ void MurmurHash3_x64_128(const void* key,
 
     const auto* blocks = (const uint64_t*)(data);
 
-    for (int i = 0; i < nblocks; i++) {
+    for (size_t i = 0; i < nblocks; i++) {
         uint64_t k1 = getblock64(blocks, i * 2 + 0);
         uint64_t k2 = getblock64(blocks, i * 2 + 1);
 

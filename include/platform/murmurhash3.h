@@ -7,6 +7,7 @@
 //-----------------------------------------------------------------------------
 // Platform-specific functions and macros
 
+#include <cstddef>
 #include <cstdint>
 
 //-----------------------------------------------------------------------------
@@ -18,12 +19,12 @@ void MurmurHash3_x86_32(const void* key, int len, uint32_t seed, uint32_t* out);
  * 64 most significant bits.
  */
 void MurmurHash3_x86_128(const void* key,
-                         int len,
+                         size_t len,
                          uint32_t seed,
                          uint64_t* out);
 
 void MurmurHash3_x64_128(const void* key,
-                         int len,
+                         size_t len,
                          uint32_t seed,
                          uint64_t* out);
 
