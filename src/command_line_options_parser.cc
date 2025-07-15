@@ -101,12 +101,11 @@ std::vector<std::string_view> CommandLineOptionsParser::parse(
         if (iter == callbacks.end()) {
             error();
             return {};
+        }
+        if (optarg) {
+            iter->second(optarg);
         } else {
-            if (optarg) {
-                iter->second(optarg);
-            } else {
-                iter->second({});
-            }
+            iter->second({});
         }
     }
 
@@ -174,8 +173,9 @@ void CommandLineOptionsParser::usage(std::ostream& out) const {
 
     for (std::size_t index = 0; index < options.size(); ++index) {
         using cb::terminal::TerminalColor;
-        auto format = fmt::format("  {{:<{}}}", widest + 2);
-        out << TerminalColor::Yellow << fmt::format(format, keys[index])
+        const auto format = fmt::format("  {{:<{}}}", widest + 2);
+        out << TerminalColor::Yellow
+            << fmt::vformat(format, fmt::make_format_args(keys[index]))
             << TerminalColor::Green;
 
         std::string_view descr = options[index].description;
@@ -194,7 +194,7 @@ void CommandLineOptionsParser::usage(std::ostream& out) const {
             out.write(descr.data(), idx);
             out << std::endl;
             descr.remove_prefix(idx + 1);
-            out << fmt::format(format, " ");
+            out << fmt::vformat(format, fmt::make_format_args(" "));
         }
         out << TerminalColor::Reset;
     }

@@ -40,15 +40,15 @@
 #include <cstdlib>
 #include <new>
 
-#if __cplusplus > 201703L
-#warning Only operator new/delete up to C++17 overridden. If later standards add additional overrides they should be added here.
+#if __cplusplus > 202302L
+#warning Only operator new/delete up to C++23 overridden. If later standards add additional overrides they should be added here.
 #endif
 
 // New operators numbered from:
 // https://en.cppreference.com/w/cpp/memory/new/operator_new
 
 // (new 1)
-void* operator new(std::size_t count) {
+[[nodiscard]] void* operator new(std::size_t count) {
     void* result = cb_malloc(count);
     if (result == nullptr) {
         throw std::bad_alloc();
@@ -57,7 +57,7 @@ void* operator new(std::size_t count) {
 }
 
 // (new 2)
-void* operator new[](std::size_t count) {
+[[nodiscard]] void* operator new[](std::size_t count) {
     void* result = cb_malloc(count);
     if (result == nullptr) {
         throw std::bad_alloc();
@@ -66,7 +66,7 @@ void* operator new[](std::size_t count) {
 }
 
 // (new 3)
-void* operator new(std::size_t count, std::align_val_t al) {
+[[nodiscard]] void* operator new(std::size_t count, std::align_val_t al) {
     void* result = cb_aligned_alloc(static_cast<size_t>(al), count);
     if (result == nullptr) {
         throw std::bad_alloc();
@@ -75,7 +75,7 @@ void* operator new(std::size_t count, std::align_val_t al) {
 }
 
 // (new 4)
-void* operator new[](std::size_t count, std::align_val_t al) {
+[[nodiscard]] void* operator new[](std::size_t count, std::align_val_t al) {
     void* result = cb_aligned_alloc(static_cast<size_t>(al), count);
     if (result == nullptr) {
         throw std::bad_alloc();
@@ -84,29 +84,31 @@ void* operator new[](std::size_t count, std::align_val_t al) {
 }
 
 // (new 5)
-void* operator new(std::size_t count, const std::nothrow_t& tag) noexcept {
+[[nodiscard]] void* operator new(std::size_t count,
+                                 const std::nothrow_t& tag) noexcept {
     void* result = cb_malloc(count);
     return result;
 }
 
 // (new 6)
-void* operator new[](std::size_t count, const std::nothrow_t& tag) noexcept {
+[[nodiscard]] void* operator new[](std::size_t count,
+                                   const std::nothrow_t& tag) noexcept {
     void* result = cb_malloc(count);
     return result;
 }
 
 // (new 7)
-void* operator new(std::size_t count,
-                   std::align_val_t al,
-                   const std::nothrow_t& tag) noexcept {
+[[nodiscard]] void* operator new(std::size_t count,
+                                 std::align_val_t al,
+                                 const std::nothrow_t& tag) noexcept {
     void* result = cb_aligned_alloc(static_cast<size_t>(al), count);
     return result;
 }
 
 // (new 8)
-void* operator new[](std::size_t count,
-                     std::align_val_t al,
-                     const std::nothrow_t& tag) noexcept {
+[[nodiscard]] void* operator new[](std::size_t count,
+                                   std::align_val_t al,
+                                   const std::nothrow_t& tag) noexcept {
     void* result = cb_aligned_alloc(static_cast<size_t>(al), count);
     return result;
 }
