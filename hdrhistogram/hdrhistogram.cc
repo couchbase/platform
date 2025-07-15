@@ -218,13 +218,13 @@ void HdrHistogram::printPercentiles() const {
 
 void HdrHistogram::dumpLinearValues(int64_t bucketWidth) const {
     HdrHistogram::Iterator itr = makeLinearIterator(bucketWidth);
-    fmt::print(stdout, itr.dumpValues());
+    fmt::print(stdout, "{}", itr.dumpValues());
 }
 
 void HdrHistogram::dumpLogValues(int64_t firstBucketWidth,
                                  double log_base) const {
     HdrHistogram::Iterator itr = makeLogIterator(firstBucketWidth, log_base);
-    fmt::print(stdout, itr.dumpValues());
+    fmt::print(stdout, "{}", itr.dumpValues());
 }
 
 bool HdrHistogram::Iterator::incrementUnderlyingIterator() {

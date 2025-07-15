@@ -329,7 +329,7 @@ namespace {
 template <typename CharT>
 size_t buffer_hash(sized_buffer<CharT> base) {
     // Probably only needs trivially copyable
-    static_assert(std::is_pod<CharT>::value,
+    static_assert(std::is_standard_layout<CharT>::value,
                   "cb::buffer_hash: Template param CharT must be a POD");
 
     // Perform the hash over the raw bytes of the CharT array
