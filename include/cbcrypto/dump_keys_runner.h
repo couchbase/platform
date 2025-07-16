@@ -74,7 +74,7 @@ public:
     static std::unique_ptr<DumpKeysRunner> create(
             std::string password,
             std::filesystem::path executable,
-            std::filesystem::path gosecrets);
+            std::filesystem::path gosecrets_cfg);
 
     [[nodiscard]] virtual SharedEncryptionKey lookup(
             std::string_view id) const = 0;

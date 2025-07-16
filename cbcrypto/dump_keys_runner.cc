@@ -14,6 +14,7 @@
 #include <fmt/format.h>
 #include <platform/base64.h>
 #include <platform/dirutils.h>
+#include <iostream>
 
 namespace cb::crypto {
 
@@ -56,14 +57,36 @@ UnsupportedCipherError::UnsupportedCipherError(std::string id,
 }
 } // namespace dump_keys
 
+static std::filesystem::path lookupExecutable(
+        const std::filesystem::path& path,
+        const std::filesystem::path& executable) {
+    std::filesystem::path file;
+    if (path.empty()) {
+        file = "." / executable;
+    } else {
+        file = path / executable;
+    }
+
+#ifdef WIN32
+    // On Windows, we need to check for the .exe extension
+    file.replace_extension(".exe");
+#endif
+
+    if (!exists(file)) {
+        throw dump_keys::DumpKeysError(
+                fmt::format("The executable {} does not exist", file.string()));
+    }
+    return file;
+}
+
 class [[nodiscard]] DumpKeysRunnerImpl final : public DumpKeysRunner {
 public:
     DumpKeysRunnerImpl(std::string password,
                        std::filesystem::path executable,
-                       std::filesystem::path gosecrets)
+                       std::filesystem::path gosecrets_cfg)
         : password(std::move(password)),
           executable(std::move(executable)),
-          gosecrets(std::move(gosecrets)) {
+          gosecrets_cfg(std::move(gosecrets_cfg)) {
     }
 
     [[nodiscard]] SharedEncryptionKey lookup(
@@ -75,7 +98,7 @@ protected:
 
     const std::string password;
     const std::filesystem::path executable;
-    const std::filesystem::path gosecrets;
+    const std::filesystem::path gosecrets_cfg;
 };
 
 SharedEncryptionKey DumpKeysRunnerImpl::lookup(
@@ -85,13 +108,28 @@ SharedEncryptionKey DumpKeysRunnerImpl::lookup(
     std::future<std::string> err;
     boost::process::opstream in;
 
-    std::vector<std::string> arguments = {
-            {"--config", gosecrets.string(), "--key-ids", std::string(id)}};
+    const auto exec =
+            lookupExecutable(executable.parent_path(), executable.filename());
+    const auto gosecrets =
+            lookupExecutable(executable.parent_path(), "gosecrets");
 
-    auto exec = executable;
+    std::vector<std::string> arguments = {{"--gosecrets",
+                                           gosecrets.string(),
+                                           "--config",
+                                           gosecrets_cfg.string(),
+                                           "--key-ids",
+                                           std::string(id)}};
 
     if (!password.empty()) {
         arguments.emplace_back("--stdin-password");
+    }
+
+    if (getenv("CB_DUMP_KEYS_DEBUG")) {
+        std::cout << exec.string();
+        for (const auto& a : arguments) {
+            std::cout << " [" << a << "]";
+        }
+        std::cout << std::endl;
     }
 
     boost::process::child c(

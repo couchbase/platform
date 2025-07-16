@@ -19,6 +19,12 @@
 #include <filesystem>
 #include <iostream>
 
+#ifdef WIN32
+#define INSTALL_ROOT "C:/Program Files/Couchbase/Server"
+#else
+#define INSTALL_ROOT DESTINATION_ROOT
+#endif
+
 using namespace cb::crypto;
 
 /// Exit code for incorrect password returned from dump-deks
@@ -55,8 +61,13 @@ static void usage(cb::getopt::CommandLineOptionsParser& instance,
 
 Options:
 
-)" << instance << std::endl
-              << std::endl;
+)" << instance << R"(
+
+You may set the environment variable CB_DUMP_KEYS_DEBUG to enable
+debug output to see the command line used to run the dump-keys
+program.
+
+)";
     std::exit(exitcode);
 }
 
@@ -106,9 +117,9 @@ int main(int argc, char** argv) {
     using cb::getopt::Argument;
     cb::getopt::CommandLineOptionsParser parser;
 
-    std::string dumpKeysExecutable = DESTINATION_ROOT "/bin/dump-keys";
+    std::string dumpKeysExecutable = INSTALL_ROOT "/bin/dump-keys";
     std::string gosecrets =
-            DESTINATION_ROOT "/var/lib/couchbase/config/gosecrets.cfg";
+            INSTALL_ROOT "/var/lib/couchbase/config/gosecrets.cfg";
     std::string password;
     bool printHeader = false;
     bool withKeyStore = false;
