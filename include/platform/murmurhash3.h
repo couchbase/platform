@@ -12,7 +12,10 @@
 
 //-----------------------------------------------------------------------------
 
-void MurmurHash3_x86_32(const void* key, int len, uint32_t seed, uint32_t* out);
+void MurmurHash3_x86_32(const void* key,
+                        size_t len,
+                        uint32_t seed,
+                        uint32_t* out);
 
 /**
  * The following 2 functions have been altered to just return the

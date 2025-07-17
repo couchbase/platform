@@ -6,8 +6,8 @@
 // algorithms are optimized for their respective platforms. You can still
 // compile and run any of them on any platform, but your performance with the
 // non-native version will be less than optimal.
+#include <gsl/gsl-lite.hpp>
 #include <platform/murmurhash3.h>
-
 //-----------------------------------------------------------------------------
 // Platform-specific functions and macros
 
@@ -49,11 +49,11 @@ inline uint64_t rotl64(uint64_t x, int8_t r) {
 // Block read - if your platform needs to do endian-swapping or can only
 // handle aligned reads, do the conversion here
 
-FORCE_INLINE uint32_t getblock32(const uint32_t* p, size_t i) {
+FORCE_INLINE uint32_t getblock32(const uint32_t* p, int i) {
     return p[i];
 }
 
-FORCE_INLINE uint64_t getblock64(const uint64_t* p, size_t i) {
+FORCE_INLINE uint64_t getblock64(const uint64_t* p, int i) {
     return p[i];
 }
 
@@ -85,11 +85,11 @@ FORCE_INLINE uint64_t fmix64(uint64_t k) {
 //-----------------------------------------------------------------------------
 
 void MurmurHash3_x86_32(const void* key,
-                        int len,
+                        size_t len,
                         uint32_t seed,
                         uint32_t* out) {
     const auto* data = (const uint8_t*)key;
-    const int nblocks = len / 4;
+    const auto nblocks = gsl::narrow_cast<int>(len / 4);
 
     uint32_t h1 = seed;
 
@@ -150,7 +150,7 @@ void MurmurHash3_x86_128(const void* key,
                          uint32_t seed,
                          uint64_t* out) {
     const auto* data = (const uint8_t*)key;
-    const auto nblocks = len / 16;
+    const auto nblocks = gsl::narrow_cast<int>(len / 16);
 
     uint32_t h1 = seed;
     uint32_t h2 = seed;
@@ -167,7 +167,7 @@ void MurmurHash3_x86_128(const void* key,
 
     const auto* blocks = (const uint32_t*)(data + nblocks * 16);
 
-    for (auto i = -nblocks; i; i++) {
+    for (int i = -nblocks; i; i++) {
         uint32_t k1 = getblock32(blocks, i * 4 + 0);
         uint32_t k2 = getblock32(blocks, i * 4 + 1);
         uint32_t k3 = getblock32(blocks, i * 4 + 2);
@@ -318,7 +318,7 @@ void MurmurHash3_x64_128(const void* key,
                          const uint32_t seed,
                          uint64_t* out) {
     const auto* data = (const uint8_t*)key;
-    const auto nblocks = len / 16;
+    const auto nblocks = gsl::narrow_cast<int>(len / 16);
 
     uint64_t h1 = seed;
     uint64_t h2 = seed;
@@ -331,7 +331,7 @@ void MurmurHash3_x64_128(const void* key,
 
     const auto* blocks = (const uint64_t*)(data);
 
-    for (size_t i = 0; i < nblocks; i++) {
+    for (int i = 0; i < nblocks; i++) {
         uint64_t k1 = getblock64(blocks, i * 2 + 0);
         uint64_t k2 = getblock64(blocks, i * 2 + 1);
 
