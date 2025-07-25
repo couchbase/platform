@@ -21,22 +21,16 @@
 namespace cb::logger {
 
 /**
- * Formats durations as {"ms": 3723000}.
- * Note nlohmann::json never uses scientific notation when using dump().
- * See https://github.com/nlohmann/json/discussions/3958
+ * Formats durations using cb::time2text.
  */
 template <typename Rep, typename Period>
 struct JsonSerializer<std::chrono::duration<Rep, Period>> {
     template <typename Json>
     static void to_json(Json& j,
                         const std::chrono::duration<Rep, Period>& val) {
-        using DoubleMilliseconds = std::chrono::duration<double, std::milli>;
         auto nanoseconds =
                 std::chrono::duration_cast<std::chrono::nanoseconds>(val);
-        double milliseconds =
-                std::chrono::duration_cast<DoubleMilliseconds>(nanoseconds)
-                        .count();
-        j = {{"ms", milliseconds}};
+        j = cb::time2text(nanoseconds);
     }
 };
 

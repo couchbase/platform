@@ -121,3 +121,16 @@ TEST(JsonLog, AllowInvalidUtf8) {
     // escaped.
     EXPECT_EQ(R"({"foo":"\ufffd"})", fmt::to_string(j));
 }
+
+TEST(JsonLog, FormatDurations) {
+    using namespace std::chrono_literals;
+    using cb::logger::Json;
+
+    EXPECT_EQ("\"1000 ms\"", Json(1000000000ns).dump());
+    EXPECT_EQ("\"1000 ms\"", Json(1000000us).dump());
+    EXPECT_EQ("\"1000 ms\"", Json(1000ms).dump());
+    EXPECT_EQ("\"1000 ms\"", Json(1s).dump());
+
+    EXPECT_EQ("\"13m:13s\"", Json(13min + 13s + 13ms).dump());
+    EXPECT_EQ("\"13m:13s\"", Json(13min + 13s + 13ms).dump());
+}
