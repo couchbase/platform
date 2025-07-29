@@ -19,6 +19,7 @@
 #include <memory>
 #include <numeric>
 #include <vector>
+#include <gsl/gsl-lite.hpp>
 
 // Custom microseconds duration used for measuring histogram stats.
 // Stats will never be negative, so an unsigned Rep is used.
@@ -154,7 +155,7 @@ public:
         : _growth(growth),
           _start(start) {
         // Dividing two durations returns a value of the underlying Rep.
-        _width = width / T(1);
+        _width = gsl::narrow_cast<double>(width / T(1));
     }
 
     /**
