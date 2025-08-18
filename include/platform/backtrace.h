@@ -12,6 +12,7 @@
 #include <platform/exceptions.h>
 #include <cstdio>
 #include <functional>
+#include <string>
 
 using write_cb_t = void (*)(void*, const char*);
 
@@ -48,4 +49,11 @@ namespace cb::backtrace {
  * handler).
  */
 void initialize();
+
+/**
+ * Get the current backtrace as a string.
+ *
+ * @return a string containing the backtrace
+ */
+[[nodiscard]] std::string current();
 }

@@ -21,6 +21,10 @@
 #include <execinfo.h> // for backtrace()
 #endif
 
+#if __cpp_lib_stacktrace
+#include <stacktrace>
+#endif
+
 // Maximum number of frames that will be printed.
 #define MAX_FRAMES 50
 
@@ -200,3 +204,24 @@ void cb::backtrace::initialize() {
     }
 #endif
 }
+
+namespace cb::backtrace {
+
+#if __cpp_lib_stacktrace
+[[nodiscard]] std::string current() {
+    return std::to_string(std::stacktrace::current());
+}
+#else
+static void callback(void* ctx, const char* frame) {
+    auto* result = reinterpret_cast<std::string*>(ctx);
+    result->append(frame);
+    result->append("\n");
+}
+
+[[nodiscard]] std::string current() {
+    std::string result;
+    print_backtrace(callback, &result);
+    return result;
+}
+#endif
+} // namespace cb::backtrace

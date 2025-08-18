@@ -104,3 +104,13 @@ TEST(BackTraceTest, PrintBacktraceToBufferMB19580) {
     EXPECT_TRUE(ArrayFilledWith(char(0xee), redzone_1, redzone_sz));
     EXPECT_TRUE(ArrayFilledWith(char(0xee), redzone_2, redzone_sz));
 }
+
+TEST(BackTraceTest, Current) {
+    auto backtrace = cb::backtrace::current();
+#if defined(WIN32) || defined(__APPLE__)
+    // Arg.. our cv don't give us full symbols on g++ builds...
+    EXPECT_TRUE(backtrace.contains("BackTraceTest")) << backtrace;
+#else
+    EXPECT_TRUE(backtrace.contains("platform_unit_test")) << backtrace;
+#endif
+}
