@@ -156,7 +156,7 @@ static std::optional<std::filesystem::path> find_cgroup_path(
 class ControlGroupV1 : public ControlGroup {
 public:
     ControlGroupV1(std::filesystem::path root) : ControlGroup(root) {
-        user_hz = static_cast<int>(sysconf(_SC_CLK_TCK));
+        user_hz = sysconf(_SC_CLK_TCK);
         if (user_hz == -1) {
             if (traceCallback) {
                 traceCallback(
@@ -461,7 +461,7 @@ protected:
     }
 
 public:
-    int user_hz;
+    long user_hz;
     /// The location of the cpu controller if available
     std::optional<std::filesystem::path> cpu;
     /// The location of the cpu accounting controller if available
