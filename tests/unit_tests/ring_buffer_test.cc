@@ -19,7 +19,7 @@ using cb::RingBufferVector;
 template <typename T>
 class TestRingBufferVector : public RingBufferVector<T> {
 public:
-    TestRingBufferVector<T>() : RingBufferVector<T>(10) {
+    TestRingBufferVector() : RingBufferVector<T>(10) {
     }
     void reset() {
         RingBufferVector<T>::reset(10);
