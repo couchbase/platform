@@ -42,7 +42,7 @@ EncryptedFileHeader::EncryptedFileHeader(std::string_view key_id,
 
     std::copy(Magic.begin(), Magic.end(), magic.begin());
     std::copy(key_id.begin(), key_id.end(), id.begin());
-    std::copy(salt_.data, salt_.data + salt_.size(), salt.begin());
+    std::copy(salt_.begin(), salt_.end(), salt.begin());
 }
 
 bool EncryptedFileHeader::is_encrypted() const {
@@ -64,7 +64,7 @@ std::string_view EncryptedFileHeader::get_id() const {
 
 cb::uuid::uuid_t EncryptedFileHeader::get_salt() const {
     cb::uuid::uuid_t ret;
-    std::copy(salt.begin(), salt.end(), ret.data);
+    std::copy(salt.begin(), salt.end(), ret.begin());
     return ret;
 }
 
