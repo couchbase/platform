@@ -34,8 +34,13 @@ namespace cb {
 static bool tcacheEnabled{true};
 
 /// Are additional checks on arena allocations enabled?
-static const bool arenaDebugChecksEnabled{
-        getenv("CB_ARENA_MALLOC_VERIFY_DEALLOC_CLIENT") != nullptr};
+static bool arenaDebugChecksEnabled() {
+#ifndef NDEBUG
+    return getenv("CB_ARENA_MALLOC_VERIFY_DEALLOC_CLIENT") != nullptr;
+#else
+    return false;
+#endif
+}
 
 /**
  * Should Tcache be used?
@@ -55,7 +60,7 @@ static const bool arenaDebugChecksEnabled{
  * we can get a false error.
  */
 static bool isTcacheEnabled(bool requested) {
-    return tcacheEnabled && requested && !arenaDebugChecksEnabled;
+    return tcacheEnabled && requested && !arenaDebugChecksEnabled();
 }
 
 JEArenaMallocBase::CurrentClient::CurrentClient(uint8_t index,
@@ -262,14 +267,14 @@ ArenaMallocClient JEArenaMalloc::registerClient(bool threadCache) {
         auto& client = lockedClients->at(index);
         if (!client.used) {
             assignClientArenas(client.arenas,
-                               arenaDebugChecksEnabled
+                               arenaDebugChecksEnabled()
                                        ? ArenaMode::OnePerDomain
                                        : ArenaMode::SingleArena);
             client.used = true;
 
             ArenaMallocClient newClient{
                     client.arenas, index, isTcacheEnabled(threadCache)};
-            clientRegistered(newClient, arenaDebugChecksEnabled);
+            clientRegistered(newClient, arenaDebugChecksEnabled());
             return newClient;
         }
     }
@@ -411,7 +416,7 @@ template <>
 void JEArenaMalloc::free(void* ptr) {
     if (ptr) {
         auto c = ThreadLocalData::get().getCurrentClient();
-        if (arenaDebugChecksEnabled) {
+        if (arenaDebugChecksEnabled()) {
             verifyMemDeallocatedByCorrectClient(c, ptr, je_sallocx(ptr, 0));
         }
         memDeallocated(c.index, c.domain, ptr);
@@ -429,7 +434,7 @@ template <>
 void JEArenaMalloc::sized_free(void* ptr, size_t size) {
     if (ptr) {
         auto c = ThreadLocalData::get().getCurrentClient();
-        if (arenaDebugChecksEnabled) {
+        if (arenaDebugChecksEnabled()) {
             verifyMemDeallocatedByCorrectClient(c, ptr, size);
         }
         memDeallocated(c.index, c.domain, size);
