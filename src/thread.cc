@@ -9,6 +9,7 @@
  */
 #include <platform/thread.h>
 
+#include <stdexcept>
 #include <utility>
 
 Couchbase::Thread::Thread(std::string name_)
