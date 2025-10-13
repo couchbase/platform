@@ -10,6 +10,7 @@
 #include <folly/system/ThreadName.h>
 #include <phosphor/phosphor.h>
 #include <platform/thread.h>
+#include <stdexcept>
 #include <utility>
 
 Couchbase::Thread::Thread(std::string name_)
