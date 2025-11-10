@@ -18,6 +18,7 @@
 #include "platform/string_hex.h"
 
 #include <cbcrypto/digest.h>
+#include <cbcrypto/key_derivation.h>
 #include <cbcrypto/random_gen.h>
 #include <cbcrypto/symmetric.h>
 
@@ -411,6 +412,75 @@ TEST(Aes256Gcm, IntegerNonce) {
 
     cipher->decrypt({nonce.data(), nonce.size()}, ct, mac, decrypted);
     EXPECT_EQ(msg, decrypted);
+}
+
+// https://csrc.nist.gov/Projects/Cryptographic-Algorithm-Validation-Program/
+// Key-Derivation
+static void testKeyDerivationNIST(std::string_view derived64,
+                                  std::string_view key64,
+                                  std::string_view label64,
+                                  std::string_view context64) {
+    const auto derived = cb::crypto::deriveKey(
+            cb::base64::decode(derived64).size(),
+            cb::base64::decode(key64),
+            cb::base64::decode(label64),
+            cb::base64::decode(context64),
+            cb::crypto::KeyDerivationFunction::HMAC_SHA256_COUNTER_WITHOUT_L);
+    EXPECT_EQ(derived64, cb::base64::encode(derived));
+}
+
+static void testKeyDerivation(std::string_view derived64,
+                              std::string_view key,
+                              std::string_view label,
+                              std::string_view context) {
+    const auto derived = cb::crypto::deriveKey(
+            cb::base64::decode(derived64).size(), key, label, context);
+    EXPECT_EQ(derived64, cb::base64::encode(derived));
+}
+
+TEST(KeyDerivation, NIST128) {
+    testKeyDerivationNIST("p/RBh9Tr51m5o35ISoROKw==",
+                          "qxLKRwnKODUMr1YC7uUhjslQNT0Z5l3p78TcLRn+MBc=",
+                          "qNpbJeTyksFJyI+SA8U3CCIZPNrBNfvNawP0Iw==",
+                          "uMNy9oUg3TtSXHmqJfJQt4bm3n9dc7X7RsmHZxx/dg==");
+}
+
+TEST(KeyDerivation, NIST256) {
+    testKeyDerivationNIST(
+            "4pdkD3doSF1Kbnz+JF+L+oRwDZl2JpLqGkJczAJ16PU=",
+            "D2ioL/FnFjTMkTbFZKngKnZ2Id10ob9cJBKbgIIUt1I=",
+            "ZIWZgJwsTnxqXmxEnw==",
+            "Mev1XDZhqJW0TbBXLuiAg7H0sSYCqlX8HfFQplptbu2gqnmkNKEDm5G1pY/H8Q==");
+}
+
+TEST(KeyDerivation, EmptyLabelAndContext) {
+    std::string key(32, 'a');
+    testKeyDerivation(
+            "SBFwdKXp7O3X6e62KfLrROvIiaGljsXiyV3uKHA/sUg=", key, {}, {});
+}
+
+TEST(KeyDerivation, JustContext) {
+    std::string key(32, 'a');
+    testKeyDerivation("vFMbjnSUSM6+JrcJbFaszoJGaK6tdbP7jphszExNS5I=",
+                      key,
+                      {},
+                      "context/0");
+    testKeyDerivation("/rX8TzokiK5ctjOa13adgP170Prq9gsXdquw39yGlUw=",
+                      key,
+                      {},
+                      "context/1");
+}
+
+TEST(KeyDerivation, LabelAndContext) {
+    std::string key(32, 'a');
+    testKeyDerivation("ODAhvfA5xM/K2wQA2x/FJDZiZ+xvX//SHJhM9NFNq0k=",
+                      key,
+                      "label0",
+                      "context/0");
+    testKeyDerivation("8TGCH9pWWGFx4LP8650IBvi2HhjYcI9LYxLj60DDCtM=",
+                      key,
+                      "label1",
+                      "context/1");
 }
 
 TEST(RandomBitGenerator, Generate) {

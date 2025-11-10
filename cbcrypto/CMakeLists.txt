@@ -7,6 +7,7 @@ add_library(cbcrypto STATIC
         file_reader.cc
         file_utilities.cc
         file_writer.cc
+        key_derivation.cc
         key_store.cc
         random_gen.cc
         symmetric.cc
@@ -17,6 +18,7 @@ add_library(cbcrypto STATIC
         ${Platform_SOURCE_DIR}/include/cbcrypto/file_reader.h
         ${Platform_SOURCE_DIR}/include/cbcrypto/file_utilities.h
         ${Platform_SOURCE_DIR}/include/cbcrypto/file_writer.h
+        ${Platform_SOURCE_DIR}/include/cbcrypto/key_derivation.h
         ${Platform_SOURCE_DIR}/include/cbcrypto/key_store.h
         ${Platform_SOURCE_DIR}/include/cbcrypto/random_gen.h
         ${Platform_SOURCE_DIR}/include/cbcrypto/symmetric.h
