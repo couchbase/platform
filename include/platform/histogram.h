@@ -450,7 +450,7 @@ public:
         if (o && name) {
             *o << name << "\t" << spent.count() << "\n";
         }
-        if (THRESHOLD_MS > 0) {
+        if constexpr (THRESHOLD_MS > 0) {
             const auto msec =
                     std::make_unsigned<std::chrono::steady_clock::rep>::type(
                             std::chrono::duration_cast<
