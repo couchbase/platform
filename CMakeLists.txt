@@ -66,6 +66,43 @@ else(WIN32)
     endif()
 endif(WIN32)
 
+# Some versions of GCC needs an explicit link to stdc++exp to get
+# stacktrace support.
+set(BACKTRACE_EXTRA_LIB "")
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+    cmake_push_check_state(RESET)
+
+    check_cxx_source_compiles(
+            "#include <stacktrace>
+#include <iostream>
+int main() {
+    std::cout << std::to_string(std::stacktrace::current());
+    return 0;
+}
+    "
+            HAVE_LIB_STACKTRACE_WITHOUT_EXTRA_LIB
+    )
+
+    if (NOT HAVE_LIB_STACKTRACE_WITHOUT_EXTRA_LIB)
+        set(CMAKE_REQUIRED_LIBRARIES stdc++exp)
+        check_cxx_source_compiles(
+                "#include <stacktrace>
+#include <iostream>
+int main() {
+    std::cout << std::to_string(std::stacktrace::current());
+    return 0;
+}
+    "
+                HAVE_LIB_STACKTRACE_WITH_EXTRA_LIB
+        )
+        if (HAVE_LIB_STACKTRACE_WITH_EXTRA_LIB)
+            set(BACKTRACE_EXTRA_LIB "stdc++exp")
+        endif (HAVE_LIB_STACKTRACE_WITH_EXTRA_LIB)
+    endif ()
+
+    cmake_pop_check_state()
+endif ()
+
 CONFIGURE_FILE (${CMAKE_CURRENT_SOURCE_DIR}/include/platform/dynamic.in.h
                 ${CMAKE_CURRENT_BINARY_DIR}/include/platform/dynamic.h)
 
@@ -297,7 +334,7 @@ foreach(platform_cbassert_variant ${platform_cbassert_VARIANTS})
   if (WIN32)
     target_link_libraries(${platform_cbassert_variant} PRIVATE DbgHelp.lib)
   else()
-    target_link_libraries(${platform_cbassert_variant} PRIVATE ${CMAKE_DL_LIBS})
+    target_link_libraries(${platform_cbassert_variant} PRIVATE ${CMAKE_DL_LIBS} ${BACKTRACE_EXTRA_LIB})
   endif()
   target_link_libraries(${platform_cbassert_variant} PRIVATE Folly::headers)
 endforeach()
@@ -370,7 +407,8 @@ target_link_libraries(platform PRIVATE
   simdutf::simdutf
   spdlog::spdlog
   ${MALLOC_LIBRARIES}
-  ${PLATFORM_LIBRARIES})
+  ${PLATFORM_LIBRARIES}
+  ${BACKTRACE_EXTRA_LIB})
 
 if (APPLE)
     if (${CMAKE_OSX_DEPLOYMENT_TARGET} VERSION_LESS "14.0")
