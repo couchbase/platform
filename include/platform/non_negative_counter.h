@@ -9,12 +9,13 @@
  */
 #pragma once
 
+#include <platform/exceptions.h>
 #include <atomic>
+#include <cstdlib>
 #include <limits>
 #include <stdexcept>
 #include <string>
 #include <type_traits>
-#include <platform/exceptions.h>
 
 namespace cb {
 
