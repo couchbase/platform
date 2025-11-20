@@ -9,6 +9,7 @@
  */
 #include <platform/byte_buffer_dump.h>
 #include <iomanip>
+#include <ostream>
 
 static void printByte(uint8_t b, std::ostream& out) {
     uint32_t val = b & 0xff;
