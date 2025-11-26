@@ -38,7 +38,7 @@ static KeyStore keyStore;
 /// to avoid running dump-keys again in the case where one is trying to
 /// dump multiple files (in the case the same key is used for multiple
 /// files)
-static SharedEncryptionKey key_lookup_callback(std::string_view id) {
+static SharedKeyDerivationKey key_lookup_callback(std::string_view id) {
     auto ret = keyStore.lookup(id);
     if (ret) {
         return ret;
@@ -76,12 +76,12 @@ void populateKeyStore(std::string_view data) {
         const auto json = nlohmann::json::parse(data);
         if (json.is_array()) {
             for (const auto& entry : json) {
-                auto key = std::make_shared<DataEncryptionKey>();
+                auto key = std::make_shared<KeyDerivationKey>();
                 *key = entry;
                 keyStore.add(key);
             }
         } else if (json.is_object()) {
-            auto key = std::make_shared<DataEncryptionKey>();
+            auto key = std::make_shared<KeyDerivationKey>();
             *key = json;
             keyStore.add(key);
         }

@@ -27,7 +27,43 @@ enum class Cipher {
 void to_json(nlohmann::json& json, const Cipher& cipher);
 void from_json(const nlohmann::json& json, Cipher& cipher);
 
+enum class KeyDerivationMethod { NoDerivation, KeyBased, PasswordBased };
+
+/// A structure to hold the information needed by a single key derivation key
+struct KeyDerivationKey {
+    /// Generate a key with the provided cipher type
+    static std::unique_ptr<KeyDerivationKey> generate(
+            Cipher cipher = Cipher::AES_256_GCM);
+
+    KeyDerivationKey() = default;
+
+    KeyDerivationKey(std::string id, Cipher cipher, std::string derivationKey)
+        : id(std::move(id)),
+          cipher(cipher),
+          derivationKey(std::move(derivationKey)) {
+    }
+
+    bool operator==(const KeyDerivationKey&) const;
+
+    static constexpr auto UnencryptedKeyId = "unencrypted";
+
+    /// The identification for the derivation key (dek)
+    std::string id = UnencryptedKeyId;
+    /// The cipher the target key if for
+    Cipher cipher = Cipher::None;
+    /// The derivation key in bytes
+    std::string derivationKey;
+    /// How to turn the derivationKey into an encryption key
+    KeyDerivationMethod derivationMethod = KeyDerivationMethod::NoDerivation;
+};
+
+[[nodiscard]] std::string format_as(const KeyDerivationKey& kdk);
+void to_json(nlohmann::json& json, const KeyDerivationKey& kdk);
+void from_json(const nlohmann::json& json, KeyDerivationKey& kdk);
+using SharedKeyDerivationKey = std::shared_ptr<const KeyDerivationKey>;
+
 /// EncryptionKeyIface defines an interface for the encryption key.
+/// @todo remove
 class EncryptionKeyIface {
 public:
     virtual ~EncryptionKeyIface() = default;
@@ -43,6 +79,7 @@ public:
 };
 
 /// A structure to hold the information needed by a single key
+/// @todo remove
 struct DataEncryptionKey final : public EncryptionKeyIface {
     /// generate a key with the provided cipher type
     static std::unique_ptr<DataEncryptionKey> generate(

@@ -27,7 +27,7 @@ public:
     /**
      * Create a new instance of the FileWriter
      *
-     * @param dek The key to use to write the files. If no key is present
+     * @param kdk The key to use to write the files. If no key is present
      *            the data is written unencrypted
      * @param path The name of the file to write
      * @param buffer_size An optional buffer size to let the underlying file
@@ -37,7 +37,7 @@ public:
      * @return A new FileWriter instance
      */
     static std::unique_ptr<FileWriter> create(
-            const SharedEncryptionKey& dek,
+            const SharedKeyDerivationKey& kdk,
             std::filesystem::path path,
             size_t buffer_size = 0,
             Compression compression = Compression::None);

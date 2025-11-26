@@ -15,7 +15,7 @@
 
 namespace cb::crypto {
 
-SharedEncryptionKey KeyStore::lookup(std::string_view id) const {
+SharedKeyDerivationKey KeyStore::lookup(std::string_view id) const {
     for (const auto& k : keys) {
         if (k->id == id) {
             return k;
@@ -24,7 +24,7 @@ SharedEncryptionKey KeyStore::lookup(std::string_view id) const {
     return {};
 }
 
-void KeyStore::setActiveKey(SharedEncryptionKey key) {
+void KeyStore::setActiveKey(SharedKeyDerivationKey key) {
     if (active && key && active->id == key->id) {
         // This represents the same key
         return;
@@ -33,7 +33,7 @@ void KeyStore::setActiveKey(SharedEncryptionKey key) {
     active = std::move(key);
 }
 
-void KeyStore::add(SharedEncryptionKey key) {
+void KeyStore::add(SharedKeyDerivationKey key) {
     if (!key) {
         return;
     }
@@ -48,7 +48,7 @@ void KeyStore::add(SharedEncryptionKey key) {
 }
 
 void KeyStore::iterateKeys(
-        const std::function<void(SharedEncryptionKey)>& callback) const {
+        const std::function<void(SharedKeyDerivationKey)>& callback) const {
     for (auto& key : keys) {
         callback(key);
     }
@@ -86,7 +86,7 @@ void from_json(const nlohmann::json& json, KeyStore& ks) {
 
     if (json.contains("keys")) {
         for (const auto& obj : json["keys"].get<nlohmann::json::array_t>()) {
-            auto object = std::make_shared<crypto::DataEncryptionKey>();
+            auto object = std::make_shared<crypto::KeyDerivationKey>();
             *object = obj;
             ks.add(object);
         }
@@ -108,11 +108,11 @@ void from_json(const nlohmann::json& json, KeyStore& ks) {
 
 nlohmann::json toLoggableJson(const cb::crypto::KeyStore& keystore) {
     nlohmann::json ids = nlohmann::json::array();
-    keystore.iterateKeys([&ids](auto key) { ids.emplace_back(key->getId()); });
+    keystore.iterateKeys([&ids](auto key) { ids.emplace_back(key->id); });
     nlohmann::json entry;
     entry["keys"] = std::move(ids);
     if (keystore.getActiveKey()) {
-        entry["active"] = keystore.getActiveKey()->getId();
+        entry["active"] = keystore.getActiveKey()->id;
     }
     return entry;
 }

@@ -82,8 +82,8 @@ void maybeRewriteFiles(
         const std::filesystem::path& directory,
         const std::function<bool(const std::filesystem::path&,
                                  std::string_view)>& filefilter,
-        SharedEncryptionKey encryption_key,
-        const std::function<SharedEncryptionKey(std::string_view)>&
+        SharedKeyDerivationKey derivation_key,
+        const std::function<SharedKeyDerivationKey(std::string_view)>&
                 key_lookup_function,
         const std::function<void(std::string_view, const nlohmann::json&)>&
                 error,
@@ -108,7 +108,7 @@ void maybeRewriteFiles(
 
         auto reader = FileReader::create(path, key_lookup_function);
         std::filesystem::path tmpfile = cb::io::mktemp(path.string());
-        auto writer = FileWriter::create(encryption_key, tmpfile, 64 * 1024);
+        auto writer = FileWriter::create(derivation_key, tmpfile, 64 * 1024);
         std::vector<uint8_t> data(8 * 1024);
 
         while (!reader->eof()) {
@@ -122,12 +122,12 @@ void maybeRewriteFiles(
         writer->flush();
         writer->close();
         reader.reset();
-        if (encryption_key && path.extension() != ".cef") {
+        if (derivation_key && path.extension() != ".cef") {
             auto next = path;
             next.replace_extension(".cef");
             rename(tmpfile, next);
             remove(path);
-        } else if (!encryption_key && path.extension() == ".cef") {
+        } else if (!derivation_key && path.extension() == ".cef") {
             auto next = path;
             next.replace_extension(unencrypted_extension);
             rename(tmpfile, next);

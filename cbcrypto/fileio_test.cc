@@ -44,7 +44,7 @@ TEST_F(FileIoTest, FileWriterTestPlain) {
 
 TEST_F(FileIoTest, FileWriterTestEncrypted) {
     const std::string_view content = "This is the content"sv;
-    std::shared_ptr<DataEncryptionKey> key = DataEncryptionKey::generate();
+    SharedKeyDerivationKey key = KeyDerivationKey::generate();
     auto writer = FileWriter::create(key, file);
     EXPECT_TRUE(writer->is_encrypted());
     writer->write(content);
@@ -56,7 +56,7 @@ TEST_F(FileIoTest, FileWriterTestEncrypted) {
     EXPECT_TRUE(header->is_supported());
     EXPECT_TRUE(header->is_encrypted());
     EXPECT_EQ(Compression::None, header->get_compression());
-    EXPECT_EQ(key->getId(), header->get_id());
+    EXPECT_EQ(key->id, header->get_id());
 }
 
 /**
@@ -67,10 +67,10 @@ TEST_F(FileIoTest, FileWriterTestEncrypted) {
  * @param file the file to operate on
  * @param compression the compression to use
  */
-static void testEnctyptedAndCompressed(const std::filesystem::path& file,
+static void testEncryptedAndCompressed(const std::filesystem::path& file,
                                        Compression compression) {
     std::string content(8192, 'a');
-    std::shared_ptr<DataEncryptionKey> key = DataEncryptionKey::generate();
+    SharedKeyDerivationKey key = KeyDerivationKey::generate();
     auto writer = FileWriter::create(key, file, 8192, compression);
     EXPECT_TRUE(writer->is_encrypted());
     writer->write(content);
@@ -86,23 +86,22 @@ static void testEnctyptedAndCompressed(const std::filesystem::path& file,
     EXPECT_TRUE(header->is_supported());
     EXPECT_TRUE(header->is_encrypted());
     EXPECT_EQ(compression, header->get_compression());
-    EXPECT_EQ(key->getId(), header->get_id());
+    EXPECT_EQ(key->id, header->get_id());
     EXPECT_LT(data.size(), content.size())
             << "Expected the content to be compressed";
 
     auto reader = FileReader::create(
-            file,
-            [&key](auto) -> std::shared_ptr<DataEncryptionKey> { return key; });
+            file, [&key](auto) -> SharedKeyDerivationKey { return key; });
     EXPECT_TRUE(reader->is_encrypted());
     EXPECT_EQ(content, reader->read());
 }
 
 TEST_F(FileIoTest, FileWriterTestEncryptedCompressedSnappy) {
-    testEnctyptedAndCompressed(file, Compression::Snappy);
+    testEncryptedAndCompressed(file, Compression::Snappy);
 }
 
 TEST_F(FileIoTest, FileWriterTestEncryptedCompressedZlib) {
-    testEnctyptedAndCompressed(file, Compression::ZLIB);
+    testEncryptedAndCompressed(file, Compression::ZLIB);
 }
 
 TEST_F(FileIoTest, ReadFile) {
@@ -115,15 +114,14 @@ TEST_F(FileIoTest, ReadFile) {
     EXPECT_EQ(content, cb::io::loadFile(file));
 
     auto reader = FileReader::create(
-            file,
-            [](auto) -> std::shared_ptr<DataEncryptionKey> { return {}; });
+            file, [](auto) -> SharedKeyDerivationKey { return {}; });
     EXPECT_FALSE(reader->is_encrypted());
     EXPECT_EQ(content, reader->read());
 }
 
 TEST_F(FileIoTest, ReadFileEncrypted) {
     const std::string_view content = "This is the content"sv;
-    std::shared_ptr key = DataEncryptionKey::generate();
+    SharedKeyDerivationKey key = KeyDerivationKey::generate();
     EXPECT_TRUE(key);
     auto writer = FileWriter::create(key, file);
     EXPECT_TRUE(writer->is_encrypted());
@@ -131,7 +129,7 @@ TEST_F(FileIoTest, ReadFileEncrypted) {
     writer->flush();
     writer.reset();
 
-    auto lookup = [&key](auto k) -> std::shared_ptr<DataEncryptionKey> {
+    auto lookup = [&key](auto k) -> SharedKeyDerivationKey {
         if (key && key->id == k) {
             return key;
         }
@@ -153,8 +151,8 @@ TEST_F(FileIoTest, ReadFileEncrypted) {
 }
 
 TEST_F(FileIoTest, BufferedFileWriterTestEncrypted) {
-    std::shared_ptr key = DataEncryptionKey::generate();
-    auto lookup = [&key](auto k) -> std::shared_ptr<DataEncryptionKey> {
+    SharedKeyDerivationKey key = KeyDerivationKey::generate();
+    auto lookup = [&key](auto k) -> SharedKeyDerivationKey {
         if (key && key->id == k) {
             return key;
         }

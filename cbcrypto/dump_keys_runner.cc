@@ -89,19 +89,19 @@ public:
           gosecrets_cfg(std::move(gosecrets_cfg)) {
     }
 
-    [[nodiscard]] SharedEncryptionKey lookup(
+    [[nodiscard]] SharedKeyDerivationKey lookup(
             std::string_view id) const override;
 
 protected:
-    static SharedEncryptionKey decodeJsonResponse(std::string_view id,
-                                                  nlohmann::json json);
+    static SharedKeyDerivationKey decodeJsonResponse(std::string_view id,
+                                                     nlohmann::json json);
 
     const std::string password;
     const std::filesystem::path executable;
     const std::filesystem::path gosecrets_cfg;
 };
 
-SharedEncryptionKey DumpKeysRunnerImpl::lookup(
+SharedKeyDerivationKey DumpKeysRunnerImpl::lookup(
         const std::string_view id) const {
     boost::asio::io_service ios;
     std::future<std::string> out;
@@ -168,7 +168,7 @@ SharedEncryptionKey DumpKeysRunnerImpl::lookup(
     return decodeJsonResponse(id, json);
 }
 
-SharedEncryptionKey DumpKeysRunnerImpl::decodeJsonResponse(
+SharedKeyDerivationKey DumpKeysRunnerImpl::decodeJsonResponse(
         const std::string_view id, nlohmann::json json) {
     if (!json.contains(id) || !json[id].is_object()) {
         throw dump_keys::InvalidFormatError(
@@ -227,7 +227,7 @@ SharedEncryptionKey DumpKeysRunnerImpl::decodeJsonResponse(
         throw dump_keys::UnsupportedCipherError(
                 std::string{id}, response["cipher"].get<std::string>());
     }
-    return std::make_unique<DataEncryptionKey>(
+    return std::make_unique<KeyDerivationKey>(
             std::string{id},
             Cipher::AES_256_GCM,
             base64::decode(response["key"].get<std::string>()));

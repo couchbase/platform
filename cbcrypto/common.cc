@@ -53,6 +53,40 @@ void from_json(const nlohmann::json& json, Cipher& cipher) {
     cipher = to_cipher(json.get<std::string>());
 }
 
+std::unique_ptr<KeyDerivationKey> KeyDerivationKey::generate(
+        cb::crypto::Cipher cipher) {
+    Expects(cipher != Cipher::None);
+    return std::make_unique<KeyDerivationKey>(
+            to_string(uuid::random()),
+            cipher,
+            SymmetricCipher::generateKey(cipher));
+}
+
+bool KeyDerivationKey::operator==(const KeyDerivationKey& other) const {
+    return id == other.id && derivationKey == other.derivationKey &&
+           cipher == other.cipher && derivationMethod == other.derivationMethod;
+}
+
+std::string format_as(const KeyDerivationKey& kdk) {
+    nlohmann::json json = kdk;
+    json.erase("key");
+    return json.dump();
+}
+
+void to_json(nlohmann::json& json, const KeyDerivationKey& kdk) {
+    json = {{"id", kdk.id},
+            {"cipher", kdk.cipher},
+            {"key", base64::encode(kdk.derivationKey)}};
+}
+
+void from_json(const nlohmann::json& json, KeyDerivationKey& kdk) {
+    kdk = {json["id"].get<std::string>(),
+           json["cipher"],
+           base64::decode(json["key"].get<std::string>())};
+    Expects(kdk.derivationKey.size() ==
+            SymmetricCipher::getKeySize(kdk.cipher));
+}
+
 std::string format_as(const DataEncryptionKey& dek) {
     nlohmann::json json = dek;
     json.erase("key");

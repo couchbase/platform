@@ -308,12 +308,12 @@ protected:
 
 class EncryptedWriter : public StackedWriter {
 public:
-    EncryptedWriter(const SharedEncryptionKey& dek,
+    EncryptedWriter(const SharedKeyDerivationKey& kdk,
                     const EncryptedFileHeader& header,
                     std::unique_ptr<FileWriter> underlying)
         : StackedWriter(std::move(underlying)),
           associatedData(std::make_unique<EncryptedFileAssociatedData>(header)),
-          cipher(SymmetricCipher::create(dek->cipher, dek->key)) {
+          cipher(SymmetricCipher::create(kdk->cipher, kdk->derivationKey)) {
     }
 
     bool is_encrypted() const override {
@@ -334,10 +334,11 @@ protected:
     std::unique_ptr<SymmetricCipher> cipher;
 };
 
-std::unique_ptr<FileWriter> FileWriter::create(const SharedEncryptionKey& dek,
-                                               std::filesystem::path path,
-                                               size_t buffer_size,
-                                               Compression compression) {
+std::unique_ptr<FileWriter> FileWriter::create(
+        const SharedKeyDerivationKey& kdk,
+        std::filesystem::path path,
+        size_t buffer_size,
+        Compression compression) {
     std::ofstream file;
     file.exceptions(std::ofstream::failbit | std::ofstream::badbit);
     file.open(path.string().c_str(),
@@ -346,13 +347,13 @@ std::unique_ptr<FileWriter> FileWriter::create(const SharedEncryptionKey& dek,
     std::unique_ptr<FileWriter> ret;
 
     ret = std::make_unique<FileWriterImpl>(std::move(file));
-    if (dek) {
-        EncryptedFileHeader header(dek->id, cb::uuid::random(), compression);
+    if (kdk) {
+        EncryptedFileHeader header(kdk->id, cb::uuid::random(), compression);
         ret->write(header);
 
         // time to build up the stack of writers
         std::unique_ptr<FileWriter> next =
-                std::make_unique<EncryptedWriter>(dek, header, std::move(ret));
+                std::make_unique<EncryptedWriter>(kdk, header, std::move(ret));
 
         ret = std::move(next);
 

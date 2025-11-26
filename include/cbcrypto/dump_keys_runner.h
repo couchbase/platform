@@ -76,7 +76,7 @@ public:
             std::filesystem::path executable,
             std::filesystem::path gosecrets_cfg);
 
-    [[nodiscard]] virtual SharedEncryptionKey lookup(
+    [[nodiscard]] virtual SharedKeyDerivationKey lookup(
             std::string_view id) const = 0;
 };
 

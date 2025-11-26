@@ -59,7 +59,7 @@ TEST_F(KeyStoreTest, GetActiveKey) {
     EXPECT_EQ(Cipher::AES_256_GCM, active->cipher);
     EXPECT_EQ("AES-256-GCM"sv, format_as(active->cipher));
     EXPECT_EQ("cXOdH9oGE834Y2rWA+FSdXXi5CN3mLJ+Z+C0VpWbOdA="sv,
-              encode(active->key));
+              encode(active->derivationKey));
 }
 
 TEST_F(KeyStoreTest, SetActiveKey) {
@@ -67,7 +67,7 @@ TEST_F(KeyStoreTest, SetActiveKey) {
     ks.setActiveKey({});
     EXPECT_FALSE(ks.getActiveKey());
     EXPECT_EQ(2, countKeys());
-    std::shared_ptr next = DataEncryptionKey::generate();
+    std::shared_ptr next = KeyDerivationKey::generate();
     ks.setActiveKey(next);
     EXPECT_EQ(3, countKeys());
 
@@ -89,7 +89,7 @@ TEST_F(KeyStoreTest, LookupKey) {
     EXPECT_EQ("c7e26d06-88ed-43bc-9f66-87b60c037211"sv, second->id);
     EXPECT_EQ(Cipher::AES_256_GCM, second->cipher);
     EXPECT_EQ("ZdA1gPe3Z4RRfC+r4xjBBCKYtYJ9dNOOLxNEC0zjKVY="sv,
-              encode(second->key));
+              encode(second->derivationKey));
 }
 
 TEST_F(KeyStoreTest, iterateKeys) {
@@ -103,13 +103,13 @@ TEST_F(KeyStoreTest, iterateKeys) {
             foundActive = true;
             EXPECT_EQ(Cipher::AES_256_GCM, key->cipher);
             EXPECT_EQ("cXOdH9oGE834Y2rWA+FSdXXi5CN3mLJ+Z+C0VpWbOdA="sv,
-                      encode(key->key));
+                      encode(key->derivationKey));
         } else if (key->id == "c7e26d06-88ed-43bc-9f66-87b60c037211") {
             EXPECT_FALSE(foundSecond) << "Second key already reported";
             foundSecond = true;
             EXPECT_EQ(Cipher::AES_256_GCM, key->cipher);
             EXPECT_EQ("ZdA1gPe3Z4RRfC+r4xjBBCKYtYJ9dNOOLxNEC0zjKVY="sv,
-                      encode(key->key));
+                      encode(key->derivationKey));
         } else {
             FAIL() << "Unexpected key: " << key->id;
         }
@@ -127,7 +127,7 @@ TEST_F(KeyStoreTest, Add) {
     EXPECT_EQ(2, countKeys());
 
     auto active = ks.getActiveKey();
-    std::shared_ptr next = DataEncryptionKey::generate();
+    std::shared_ptr next = KeyDerivationKey::generate();
     ks.add(next);
     EXPECT_EQ(3, countKeys());
     bool found = false;
@@ -146,8 +146,7 @@ TEST_F(KeyStoreTest, toLoggableJson) {
     nlohmann::json loggable = toLoggableJson(ks);
     ASSERT_TRUE(loggable.contains("active"));
     EXPECT_TRUE(loggable["active"].is_string());
-    EXPECT_EQ(ks.getActiveKey()->getId(),
-              loggable["active"].get<std::string>());
+    EXPECT_EQ(ks.getActiveKey()->id, loggable["active"].get<std::string>());
     ASSERT_TRUE(loggable.contains("keys"));
     EXPECT_TRUE(loggable["keys"].is_array());
     for (const auto& key : loggable["keys"]) {

@@ -105,12 +105,12 @@ protected:
 
 class EncryptedFileReader : public FileReader {
 public:
-    EncryptedFileReader(const DataEncryptionKey& dek,
+    EncryptedFileReader(const KeyDerivationKey& dek,
                         EncryptedFileAssociatedData associatedData,
                         std::unique_ptr<FileStreamReader> underlying)
         : associatedData(associatedData),
           offset(sizeof(EncryptedFileHeader)),
-          cipher(SymmetricCipher::create(dek.cipher, dek.key)),
+          cipher(SymmetricCipher::create(dek.cipher, dek.derivationKey)),
           file(std::move(underlying)) {
         std::array<uint8_t, sizeof(EncryptedFileHeader)> buffer;
         const auto nr = file->read(buffer);
@@ -366,7 +366,7 @@ protected:
 
 std::unique_ptr<FileReader> FileReader::create(
         const std::filesystem::path& path,
-        const std::function<SharedEncryptionKey(std::string_view)>&
+        const std::function<SharedKeyDerivationKey(std::string_view)>&
                 key_lookup_function,
         std::chrono::microseconds waittime) {
     const auto timeout =
@@ -390,7 +390,7 @@ std::unique_ptr<FileReader> FileReader::create(
     unique_file_stream_ptr file_stream(fp);
 
     bool encrypted = false;
-    SharedEncryptionKey dek;
+    SharedKeyDerivationKey kdk;
     Compression compression = Compression::None;
 
     std::vector<uint8_t> buffer(sizeof(EncryptedFileHeader));
@@ -405,8 +405,8 @@ std::unique_ptr<FileReader> FileReader::create(
                         "FileReader::create({}): File format not supported",
                         path.string()));
             }
-            dek = key_lookup_function(header->get_id());
-            if (!dek) {
+            kdk = key_lookup_function(header->get_id());
+            if (!kdk) {
                 throw std::runtime_error(
                         fmt::format("FileReader::create({}): Missing key {}",
                                     path.string(),
@@ -419,7 +419,7 @@ std::unique_ptr<FileReader> FileReader::create(
 
     if (encrypted) {
         auto enc_file_reader = std::make_unique<EncryptedFileReader>(
-                *dek,
+                *kdk,
                 *header,
                 std::make_unique<FileStreamReader>(path,
                                                    std::move(file_stream)));

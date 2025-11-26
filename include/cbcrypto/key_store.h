@@ -24,26 +24,26 @@ namespace cb ::crypto {
 class KeyStore {
 public:
     /// Get the current active key (note: it may be empty)
-    [[nodiscard]] SharedEncryptionKey getActiveKey() const {
+    [[nodiscard]] SharedKeyDerivationKey getActiveKey() const {
         return active;
     }
 
     /// Look up a given key by its id (or return {} if the id is unknown)
-    [[nodiscard]] SharedEncryptionKey lookup(std::string_view id) const;
+    [[nodiscard]] SharedKeyDerivationKey lookup(std::string_view id) const;
 
     /// set the provided key as active (and add it to the list of keys_
-    void setActiveKey(SharedEncryptionKey key);
+    void setActiveKey(SharedKeyDerivationKey key);
 
     /// Add a key to the list of keys (but do not mark it as active)
-    void add(SharedEncryptionKey key);
+    void add(SharedKeyDerivationKey key);
 
     /// Iterate over all known keys and call the provided callback
     void iterateKeys(
-            const std::function<void(SharedEncryptionKey)>& callback) const;
+            const std::function<void(SharedKeyDerivationKey)>& callback) const;
 
 protected:
-    std::vector<SharedEncryptionKey> keys;
-    SharedEncryptionKey active;
+    std::vector<SharedKeyDerivationKey> keys;
+    SharedKeyDerivationKey active;
 };
 
 [[nodiscard]] std::string format_as(const KeyStore& ks);

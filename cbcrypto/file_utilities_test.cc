@@ -27,7 +27,7 @@ class FileUtilitiesTest : public ::testing::Test {
 protected:
     void SetUp() override {
         keystore = {};
-        keystore.setActiveKey(DataEncryptionKey::generate());
+        keystore.setActiveKey(KeyDerivationKey::generate());
         dir = cb::io::mkdtemp("FileUtilitiesTest");
     }
 
@@ -40,9 +40,9 @@ protected:
                      const bool encrypted = true,
                      const std::size_t max_chunk_size =
                              std::numeric_limits<std::size_t>::max()) {
-        std::shared_ptr<DataEncryptionKey> key;
+        std::shared_ptr<KeyDerivationKey> key;
         if (encrypted) {
-            key = DataEncryptionKey::generate();
+            key = KeyDerivationKey::generate();
             keystore.add(key);
         }
         auto writer = FileWriter::create(key, dir / name);
@@ -55,7 +55,7 @@ protected:
         writer->flush();
         writer.reset();
 
-        files[name] = encrypted ? key->getId() : "";
+        files[name] = encrypted ? key->id : "";
     }
 
     std::filesystem::path dir;
@@ -176,7 +176,7 @@ TEST_F(FileUtilitiesTest, rewriteUsingCertainKey) {
 
     EXPECT_TRUE(reader->is_encrypted());
     EXPECT_EQ("This is the content", reader->read());
-    EXPECT_EQ(requested, keystore.getActiveKey()->getId());
+    EXPECT_EQ(requested, keystore.getActiveKey()->id);
 }
 
 TEST_F(FileUtilitiesTest, rewriteTruncatedFile) {
@@ -209,5 +209,5 @@ TEST_F(FileUtilitiesTest, rewriteTruncatedFile) {
     EXPECT_EQ(content.size(), data.size() - 1024);
     data.resize(data.size() - 1024);
     EXPECT_EQ(data, content);
-    EXPECT_EQ(requested, keystore.getActiveKey()->getId());
+    EXPECT_EQ(requested, keystore.getActiveKey()->id);
 }

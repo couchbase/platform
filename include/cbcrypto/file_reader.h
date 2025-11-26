@@ -41,7 +41,7 @@ public:
      */
     static std::unique_ptr<FileReader> create(
             const std::filesystem::path& path,
-            const std::function<SharedEncryptionKey(std::string_view)>&
+            const std::function<SharedKeyDerivationKey(std::string_view)>&
                     key_lookup_function,
             std::chrono::microseconds waittime = {});
 
