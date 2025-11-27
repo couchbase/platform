@@ -344,11 +344,19 @@ if (UNIX)
 endif()
 
 if (MEMORY_ALLOCATOR STREQUAL "jemalloc")
-LIST(APPEND PLATFORM_FILES src/je_arena_corelocal_tracker.cc)
-LIST(APPEND PLATFORM_FILES src/je_arena_simple_tracker.cc)
-LIST(APPEND PLATFORM_FILES src/je_arena_malloc.cc)
-LIST(APPEND PLATFORM_FILES src/je_arena_malloc_stats.cc)
-endif()
+    LIST(APPEND PLATFORM_FILES src/je_arena_corelocal_tracker.cc)
+    LIST(APPEND PLATFORM_FILES src/je_arena_simple_tracker.cc)
+    LIST(APPEND PLATFORM_FILES src/je_arena_malloc.cc)
+    LIST(APPEND PLATFORM_FILES src/je_arena_malloc_stats.cc)
+
+    # Exclude je_arena_simple_tracker.cc from unity builds as it
+    # defines a static array which cause compiler warning when other
+    # files in the same unity build also define variables with the same
+    # name.
+    set_source_files_properties(
+            src/je_arena_corelocal_tracker.cc
+            PROPERTIES SKIP_UNITY_BUILD_INCLUSION 1)
+endif ()
 # Always build the system_arena code for simpler concurrent development
 LIST(APPEND PLATFORM_FILES src/system_arena_malloc.cc)
 

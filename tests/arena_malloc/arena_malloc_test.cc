@@ -143,7 +143,7 @@ TEST_F(ArenaMalloc, DomainGuard) {
 
     void *p1, *p2;
     {
-        cb::UseArenaMallocSecondaryDomain domain;
+        cb::UseArenaMallocSecondaryDomain secondary_domain;
         p1 = cb_malloc(4096);
         EXPECT_EQ(0,
                   cb::ArenaMalloc::getPreciseAllocated(
@@ -173,7 +173,7 @@ TEST_F(ArenaMalloc, DomainGuard) {
                       client, cb::MemoryDomain::Secondary));
 
     {
-        cb::UseArenaMallocSecondaryDomain domain;
+        cb::UseArenaMallocSecondaryDomain secondary_domain;
         cb_free(p1);
         EXPECT_EQ(0,
                   cb::ArenaMalloc::getPreciseAllocated(

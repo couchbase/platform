@@ -106,9 +106,9 @@ public:
         return baseAllocator.allocate(n);
     }
 
-    void deallocate(value_type* p, std::size_t n) noexcept {
+    void deallocate(value_type* ptr, std::size_t n) noexcept {
         *bytesAllocated -= n * sizeof(T);
-        baseAllocator.deallocate(p, n);
+        baseAllocator.deallocate(ptr, n);
     }
 
     MemoryTrackingAllocator select_on_container_copy_construction() const {
