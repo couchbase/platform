@@ -293,7 +293,8 @@ TEST(HdrHistogramTest, meanTest) {
     // calculate the mean
     double_t avg = (sum / static_cast<double_t>(total_count));
 
-    uint64_t meanDiff = std::abs(avg - histogram.getMean());
+    const auto meanDiff =
+            static_cast<uint64_t>(std::abs(avg - histogram.getMean()));
     double_t errorPer = (meanDiff / avg) * 100.0;
 
     // check that the error percentage is less than 0.05%
@@ -324,7 +325,8 @@ TEST(HdrHistogramTest, meanOverflowTest) {
     // calculate the "real" mean, and difference from what HdrHistogram
     // calculated.
     double_t realMean = (sum / static_cast<double_t>(total_count));
-    uint64_t meanDiff = std::abs(realMean - histogram.getMean());
+    const auto meanDiff =
+            static_cast<uint64_t>(std::abs(realMean - histogram.getMean()));
     double_t errorPer = (meanDiff / realMean) * 100.0;
 
     // check that the error percentage is less than 0.05%

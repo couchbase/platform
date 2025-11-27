@@ -322,7 +322,8 @@ void HdrHistogram::Iterator::advanceToNextBucket(Specifics& specifics) {
     }
 
     if constexpr (std::is_same_v<Specifics, hdr_iter_log>) {
-        specifics.next_value_reporting_level *= specifics.log_base;
+        specifics.next_value_reporting_level = static_cast<int64_t>(
+                specifics.next_value_reporting_level * specifics.log_base);
     } else if constexpr (std::is_same_v<Specifics, hdr_iter_linear>) {
         specifics.next_value_reporting_level +=
                 specifics.value_units_per_bucket;

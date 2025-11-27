@@ -67,7 +67,7 @@ std::string timestamp(std::chrono::nanoseconds time_since_epoc) {
 std::string cb::time2text(std::chrono::nanoseconds time2convert) {
     const char* const extensions[] = {" ns", " us", " ms", " s", nullptr};
     int id = 0;
-    double time = std::abs(time2convert.count());
+    auto time = static_cast<double>(std::abs(time2convert.count()));
 
     while (time > 9999) {
         ++id;

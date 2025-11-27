@@ -83,8 +83,8 @@ static size_t groupSize = 0;
 size_t cb::get_cpu_count() {
 #if defined(WIN32)
     size_t logicalProcs = 0;
-    int groups = GetMaximumProcessorGroupCount();
-    for (int group = 0; group < groups; group++) {
+    const auto groups = GetMaximumProcessorGroupCount();
+    for (WORD group = 0; group < groups; group++) {
         size_t currentGroupSize = GetMaximumProcessorCount(group);
         groupSize = std::max(groupSize, logicalProcs);
         logicalProcs += currentGroupSize;

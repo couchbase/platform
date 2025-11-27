@@ -33,7 +33,7 @@ static void SnappyCompress(benchmark::State& state) {
         benchmark::ClobberMemory();
 #endif
     }
-    state.counters["compressed"] = compressed_length;
+    state.counters["compressed"] = static_cast<double>(compressed_length);
 }
 
 BENCHMARK(SnappyCompress)->RangeMultiplier(FACTOR)->Range(START, END);

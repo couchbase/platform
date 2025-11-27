@@ -412,9 +412,10 @@ public:
     OtherProcessMonitor(uint64_t pid,
                         ProcessMonitor::TerminateHandler terminateHandler,
                         std::string name)
-        : ProcessMonitorImpl(OpenProcess(SYNCHRONIZE, FALSE, pid),
-                             std::move(terminateHandler),
-                             std::move(name)) {
+        : ProcessMonitorImpl(
+                  OpenProcess(SYNCHRONIZE, FALSE, static_cast<DWORD>(pid)),
+                  std::move(terminateHandler),
+                  std::move(name)) {
     }
 #else
     OtherProcessMonitor(uint64_t pid,
