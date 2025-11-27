@@ -11,6 +11,12 @@
 #include <platform/backtrace.h>
 #include <folly/portability/GTest.h>
 
+#ifdef WIN32
+// Disable warning:
+// 'argument': conversion from 'int' to 'const T', signed/unsigned mismatch
+#pragma warning(disable : 4245)
+#endif
+
 /**
  * Test fixture for tests checking basic NonNegativeCounter test functionality
  * (unrelated to underflow - hence not specifying UnderflowPolicy).
