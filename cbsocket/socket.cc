@@ -202,9 +202,9 @@ nlohmann::json to_json(const struct sockaddr_storage* addr,
     int err = getnameinfo(reinterpret_cast<const struct sockaddr*>(addr),
                           addr_len,
                           host.data(),
-                          host.size(),
+                          static_cast<socklen_t>(host.size()),
                           port.data(),
-                          port.size(),
+                          static_cast<socklen_t>(port.size()),
                           NI_NUMERICHOST | NI_NUMERICSERV);
     if (err != 0) {
         throw std::runtime_error(
@@ -276,7 +276,7 @@ std::pair<std::vector<std::string>, std::vector<std::string>> getIpAddresses(
 #ifdef WIN32
     std::vector<char> blob(1024 * 1024);
     auto* addresses = reinterpret_cast<IP_ADAPTER_ADDRESSES*>(blob.data());
-    ULONG dataSize = blob.size();
+    auto dataSize = static_cast<ULONG>(blob.size());
     auto rw = GetAdaptersAddresses(
             AF_UNSPEC,
             GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST |
@@ -373,8 +373,9 @@ std::pair<std::vector<std::string>, std::vector<std::string>> getIpAddresses(
 }
 
 std::string getHostname() {
-    std::array<char, 256> host;
-    if (::gethostname(host.data(), host.size()) != 0) {
+    constexpr int MaxLen = 256;
+    std::array<char, MaxLen> host;
+    if (::gethostname(host.data(), MaxLen) != 0) {
         throw std::system_error(
                 get_socket_error(), std::system_category(), "gethostname()");
     }

@@ -18,12 +18,13 @@
 
 namespace cb::compression {
 static std::unique_ptr<folly::IOBuf> deflateZlib(std::string_view input) {
-    auto ret = folly::IOBuf::createCombined(compressBound(input.size()));
-    uLong destlen = input.size() + 128;
+    auto ret = folly::IOBuf::createCombined(
+            compressBound(static_cast<uLong>(input.size())));
+    uLong destlen = static_cast<uLong>(input.size()) + 128;
     const auto rv = compress(ret->writableTail(),
                              &destlen,
                              reinterpret_cast<const uint8_t*>(input.data()),
-                             input.size());
+                             static_cast<uLong>(input.size()));
     if (rv != Z_OK) {
         throw std::runtime_error(fmt::format(
                 "deflateZlib(): compress() failed with error code: {}", rv));
@@ -99,12 +100,12 @@ static bool inflateZlib(std::string_view input,
 }
 
 static bool deflateZlib(std::string_view input, Buffer& output) {
-    output.resize(compressBound(input.size()));
-    uLong destlen = input.size() + 128;
+    output.resize(compressBound(static_cast<uLong>(input.size())));
+    uLong destlen = static_cast<uLong>(input.size()) + 128;
     if (compress(reinterpret_cast<uint8_t*>(output.data()),
                  &destlen,
                  reinterpret_cast<const uint8_t*>(input.data()),
-                 input.size()) != Z_OK) {
+                 static_cast<uLong>(input.size())) != Z_OK) {
         return false;
     }
     output.resize(destlen);
