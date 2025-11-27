@@ -22,89 +22,89 @@ class RelaxedAtomic {
 public:
     using value_type = T;
 
-    RelaxedAtomic() {
+    RelaxedAtomic() noexcept {
         store({});
     }
 
-    RelaxedAtomic(const T& initial) {
+    RelaxedAtomic(const T& initial) noexcept {
         store(initial);
     }
 
-    explicit RelaxedAtomic(const RelaxedAtomic& other) {
+    explicit RelaxedAtomic(const RelaxedAtomic& other) noexcept {
         store(other.load());
     }
 
-    operator T() const {
+    operator T() const noexcept {
         return load();
     }
 
-    [[nodiscard]] T load() const {
+    [[nodiscard]] T load() const noexcept {
         return value.load(std::memory_order_relaxed);
     }
 
-    void store(T desired) {
+    void store(T desired) noexcept {
         value.store(desired, std::memory_order_relaxed);
     }
 
-    T fetch_add(T arg) {
+    T fetch_add(T arg) noexcept {
         return value.fetch_add(arg, std::memory_order_relaxed);
     }
 
-    T fetch_sub(T arg) {
+    T fetch_sub(T arg) noexcept {
         return value.fetch_sub(arg, std::memory_order_relaxed);
     }
 
-    RelaxedAtomic& operator=(const RelaxedAtomic& rhs) {
+    RelaxedAtomic& operator=(const RelaxedAtomic& rhs) noexcept {
         store(rhs.load());
         return *this;
     }
 
-    RelaxedAtomic& operator+=(const T rhs) {
+    RelaxedAtomic& operator+=(const T rhs) noexcept {
         fetch_add(rhs);
         return *this;
     }
 
-    RelaxedAtomic& operator+=(const RelaxedAtomic& rhs) {
+    RelaxedAtomic& operator+=(const RelaxedAtomic& rhs) noexcept {
         fetch_add(rhs.load());
         return *this;
     }
 
-    RelaxedAtomic& operator-=(const T rhs) {
+    RelaxedAtomic& operator-=(const T rhs) noexcept {
         fetch_sub(rhs);
         return *this;
     }
 
-    RelaxedAtomic& operator-=(const RelaxedAtomic& rhs) {
+    RelaxedAtomic& operator-=(const RelaxedAtomic& rhs) noexcept {
         fetch_sub(rhs.load());
         return *this;
     }
 
-    T operator++() {
+    T operator++() noexcept {
         return fetch_add(1) + 1;
     }
 
-    T operator++(int) {
+    T operator++(int) noexcept {
         return fetch_add(1);
     }
 
-    T operator--() {
+    T operator--() noexcept {
         return fetch_sub(1) - 1;
     }
 
-    T operator--(int) {
+    T operator--(int) noexcept {
         return fetch_sub(1);
     }
 
-    RelaxedAtomic& operator=(T val) {
+    RelaxedAtomic& operator=(T val) noexcept {
         store(val);
         return *this;
     }
 
-    void reset() {
+    void reset() noexcept {
         store({});
     }
 
-    void setIfGreater(const T& val) {
+    void setIfGreater(const T& val) noexcept {
         do {
             T currval = load();
             if (val > currval) {
@@ -118,11 +118,11 @@ public:
         } while (true);
     }
 
-    void setIfGreater(const RelaxedAtomic& val) {
+    void setIfGreater(const RelaxedAtomic& val) noexcept {
         setIfGreater(val.load());
     }
 
-    void setIfSmaller(const T& val) {
+    void setIfSmaller(const T& val) noexcept {
         do {
             T currval = load();
             if (val < currval) {
@@ -136,7 +136,7 @@ public:
         } while (true);
     }
 
-    void setIfSmaller(const RelaxedAtomic& val) {
+    void setIfSmaller(const RelaxedAtomic& val) noexcept {
         setIfSmaller(val.load());
     }
 
@@ -148,7 +148,7 @@ public:
      * optimized, this should only be used if that is not possible.
      * @param val The value to add to that of the one stored
      */
-    void setAdd(const T& val) {
+    void setAdd(const T& val) noexcept {
         do {
             T currval = load();
             if (value.compare_exchange_weak(
@@ -167,7 +167,7 @@ public:
      * @param val The RelaxedAtomic containing the value to add to that of
      * the one stored
      */
-    void setAdd(const RelaxedAtomic& val) {
+    void setAdd(const RelaxedAtomic& val) noexcept {
         setAdd(val.load());
     }
 
@@ -179,7 +179,7 @@ public:
      * optimized, this should only be used if that is not possible.
      * @param val The value to subtract to that of the one stored
      */
-    void setSub(const T& val) {
+    void setSub(const T& val) noexcept {
         do {
             T currval = load();
             if (value.compare_exchange_weak(
@@ -198,11 +198,11 @@ public:
      * @param val The RelaxedAtomic containing the value to subtract to that
      * of the one stored
      */
-    void setSub(const RelaxedAtomic& val) {
+    void setSub(const RelaxedAtomic& val) noexcept {
         setSub(val.load());
     }
 
-    bool compare_exchange_weak(T& expected, T desired) {
+    bool compare_exchange_weak(T& expected, T desired) noexcept {
         return value.compare_exchange_weak(expected,
                                            desired,
                                            std::memory_order_release,
