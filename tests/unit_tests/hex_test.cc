@@ -12,9 +12,10 @@
 #include <platform/string_hex.h>
 
 TEST(Hex, InputStringTooLong) {
+    constexpr auto value = std::numeric_limits<uint64_t>::max();
     std::stringstream ss;
-    ss << std::hex << uint64_t(-1);
-    EXPECT_EQ(-1ULL, cb::from_hex(ss.str()));
+    ss << std::hex << value;
+    EXPECT_EQ(value, cb::from_hex(ss.str()));
     // Make sure it won't fit in there
     ss << "0";
     EXPECT_THROW(cb::from_hex(ss.str()), std::overflow_error);
