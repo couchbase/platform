@@ -98,11 +98,13 @@ TEST(BackTraceTest, PrintBacktraceToBufferMB19580) {
     char* buffer_ptr = data + redzone_sz;
     EXPECT_FALSE(print_backtrace_to_buffer("", buffer_ptr, buffer_sz));
 
+    constexpr auto character = static_cast<char>(0xee);
+
     // Redzones should not be touched.
     const char* redzone_1 = data;
     const char* redzone_2 = redzone_1 + redzone_sz + buffer_sz;
-    EXPECT_TRUE(ArrayFilledWith(char(0xee), redzone_1, redzone_sz));
-    EXPECT_TRUE(ArrayFilledWith(char(0xee), redzone_2, redzone_sz));
+    EXPECT_TRUE(ArrayFilledWith(character, redzone_1, redzone_sz));
+    EXPECT_TRUE(ArrayFilledWith(character, redzone_2, redzone_sz));
 }
 
 TEST(BackTraceTest, Current) {
