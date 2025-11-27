@@ -94,101 +94,11 @@ ssize_t send(SOCKET sock, const void* buffer, size_t length, int flags) {
 #endif
 }
 
-ssize_t sendmsg(SOCKET sock, const struct msghdr* message, int flags) {
-#ifdef WIN32
-    /* @todo make this more optimal! */
-    int ii;
-    int ret = 0;
-
-    for (ii = 0; ii < message->msg_iovlen; ++ii) {
-        if (message->msg_iov[ii].iov_len > 0) {
-            int nw = ::send(
-                    sock,
-                    static_cast<const char*>(message->msg_iov[ii].iov_base),
-                    (int)message->msg_iov[ii].iov_len,
-                    flags);
-            if (nw > 0) {
-                ret += nw;
-                if (nw != message->msg_iov[ii].iov_len) {
-                    return ret;
-                }
-            } else {
-                if (ret > 0) {
-                    return ret;
-                }
-                return nw;
-            }
-        }
-    }
-
-    return ret;
-#else
-    return ::sendmsg(sock, message, flags);
-#endif
-}
-
-ssize_t sendto(SOCKET sock,
-               const void* buffer,
-               size_t length,
-               int flags,
-               const struct sockaddr* dest_addr,
-               socklen_t dest_len) {
-#ifdef WIN32
-    return ::sendto(sock,
-                    static_cast<const char*>(buffer),
-                    int(length),
-                    flags,
-                    dest_addr,
-                    dest_len);
-#else
-    return ::sendto(sock, buffer, length, flags, dest_addr, dest_len);
-#endif
-}
-
 ssize_t recv(SOCKET sock, void* buffer, size_t length, int flags) {
 #ifdef WIN32
     return ::recv(sock, static_cast<char*>(buffer), gsl::narrow<int>(length), flags);
 #else
     return ::recv(sock, buffer, length, flags);
-#endif
-}
-
-ssize_t recvfrom(SOCKET sock,
-                 void* buffer,
-                 size_t length,
-                 int flags,
-                 struct sockaddr* address,
-                 socklen_t* address_len) {
-#ifdef WIN32
-    return ::recvfrom(sock,
-                      static_cast<char*>(buffer),
-                      int(length),
-                      flags,
-                      address,
-                      address_len);
-#else
-    return ::recvfrom(sock, buffer, length, flags, address, address_len);
-#endif
-}
-
-ssize_t recvmsg(SOCKET sock, struct msghdr* message, int flags) {
-#ifdef WIN32
-    int res = 0;
-    for (size_t ii = 0; ii < size_t(message->msg_iovlen); ii++) {
-        auto nr = cb::net::recv(sock,
-                                message->msg_iov[ii].iov_base,
-                                message->msg_iov[ii].iov_len,
-                                0);
-        if (nr == -1) {
-            return (res == 0) ? -1 : res;
-        }
-
-        res += nr;
-    }
-
-    return res;
-#else
-    return ::recvmsg(sock, message, flags);
 #endif
 }
 

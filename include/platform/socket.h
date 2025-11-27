@@ -64,25 +64,7 @@ int shutdown(SOCKET sock, int how);
 
 ssize_t send(SOCKET sock, const void* buffer, size_t length, int flags);
 
-ssize_t sendmsg(SOCKET sock, const struct msghdr* message, int flags);
-
-ssize_t sendto(SOCKET sock,
-               const void* buffer,
-               size_t length,
-               int flags,
-               const struct sockaddr* dest_addr,
-               socklen_t dest_len);
-
 ssize_t recv(SOCKET sock, void* buffer, size_t length, int flags);
-
-ssize_t recvfrom(SOCKET sock,
-                 void* buffer,
-                 size_t length,
-                 int flags,
-                 struct sockaddr* address,
-                 socklen_t* address_len);
-
-ssize_t recvmsg(SOCKET sock, struct msghdr* message, int flags);
 
 int getsockopt(SOCKET sock,
                int level,
@@ -97,7 +79,7 @@ int setsockopt(SOCKET sock,
                socklen_t option_len);
 
 template <typename T>
-inline bool setSocketOption(SOCKET sock, int level, int name, const T& value) {
+bool setSocketOption(SOCKET sock, int level, int name, const T& value) {
     return cb::net::setsockopt(sock,
                                level,
                                name,
@@ -106,7 +88,7 @@ inline bool setSocketOption(SOCKET sock, int level, int name, const T& value) {
 }
 
 template <typename T>
-inline T getSocketOption(SOCKET sock, int level, int name) {
+T getSocketOption(SOCKET sock, int level, int name) {
     T ret;
     socklen_t size(sizeof(T));
     if (cb::net::getsockopt(sock, level, name, &ret, &size) == 0) {
