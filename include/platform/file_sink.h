@@ -10,6 +10,8 @@
 
 #pragma once
 
+#include <platform/sink.h>
+
 #include <cstdio>
 #include <filesystem>
 #include <limits>
@@ -20,7 +22,7 @@ namespace cb::io {
  * A sink which writes to a file and throws std::system_error on failures to
  * write the data to the file.
  */
-class FileSink {
+class FileSink : public Sink {
 public:
     enum class Mode {
         /// Append to the file if it exists, otherwise create a new file
@@ -51,7 +53,7 @@ public:
      * Write a blob of data to the end of the file
      * @param data The data to write to the file
      */
-    void sink(std::string_view data);
+    void sink(std::string_view data) override;
 
     /**
      * (Explicit) Flush any uncommited data to the file system
@@ -61,7 +63,7 @@ public:
      * @throws std::system_error if there is an error writing the data to the
      *                           file
      */
-    std::size_t fsync();
+    std::size_t fsync() override;
 
     /**
      * Close the file (flushing any pending data). Trying to write to the file
@@ -71,10 +73,10 @@ public:
      * @throws std::system_error if there is an error writing the data to the
      *                           file
      */
-    std::size_t close();
+    std::size_t close() override;
 
     /// Get the number of bytes written to the file so far
-    std::size_t getBytesWritten() const {
+    std::size_t getBytesWritten() const override {
         return bytes_written;
     }
 
