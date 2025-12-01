@@ -8,8 +8,6 @@
  *   the file licenses/APL2.txt.
  */
 
-#include "platform/base64.h"
-
 #include <cbcrypto/dump_keys_runner.h>
 #include <cbcrypto/file_reader.h>
 #include <cbcrypto/key_store.h>
@@ -30,6 +28,7 @@ using namespace cb::crypto;
 /// Exit code for incorrect password returned from dump-deks
 static constexpr int EXIT_INCORRECT_PASSWORD = 2;
 
+static std::string password;
 static std::unique_ptr<DumpKeysRunner> dump_keys_runner;
 static KeyStore keyStore;
 
@@ -39,6 +38,14 @@ static KeyStore keyStore;
 /// dump multiple files (in the case the same key is used for multiple
 /// files)
 static SharedKeyDerivationKey key_lookup_callback(std::string_view id) {
+    if (id == KeyDerivationKey::PasswordKeyId) {
+        return std::make_shared<KeyDerivationKey>(
+                std::string{id},
+                Cipher::AES_256_GCM,
+                password,
+                KeyDerivationMethod::PasswordBased);
+    }
+
     auto ret = keyStore.lookup(id);
     if (ret) {
         return ret;
@@ -125,7 +132,6 @@ int main(int argc, char** argv) {
     std::string dumpKeysExecutable = INSTALL_ROOT "/bin/dump-keys";
     std::string gosecrets =
             INSTALL_ROOT "/var/lib/couchbase/config/gosecrets.cfg";
-    std::string password;
     bool printHeader = false;
     bool withKeyStore = false;
     bool stdinUsed = false;
@@ -148,7 +154,7 @@ int main(int argc, char** argv) {
              fmt::format("The location of gosecrets.cfg (by default {})",
                          gosecrets)});
     parser.addOption(
-            {[&password, &stdinUsed](auto value) {
+            {[&stdinUsed](auto value) {
                  if (value == "-") {
                      if (stdinUsed) {
                          stdinOveruse();
@@ -162,8 +168,8 @@ int main(int argc, char** argv) {
              "password",
              Argument::Required,
              "password",
-             "The password to use for authentication (use '-' to read from "
-             "standard input)"});
+             "The password to use for authentication or as decryption key "
+             "(use '-' to read from standard input)"});
 
     parser.addOption(
             {[&withKeyStore, &stdinUsed](auto value) {
