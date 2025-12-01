@@ -8,6 +8,7 @@
  *   the file licenses/APL2.txt.
  */
 #include <cbcrypto/common.h>
+#include <cbcrypto/encrypted_file_header.h>
 #include <cbcrypto/file_reader.h>
 #include <cbcrypto/file_writer.h>
 #include <folly/portability/GTest.h>
@@ -18,6 +19,19 @@
 using namespace cb::crypto;
 using namespace std::string_view_literals;
 using namespace std::string_literals;
+
+TEST(EncryptedFileHeaderTest, Iterations) {
+    EncryptedFileHeader header(KeyDerivationKey::PasswordKeyId,
+                               KeyDerivationMethod::PasswordBased,
+                               Compression::None);
+    EXPECT_EQ(1024U << 15, header.set_pbkdf_iterations(1024U << 16));
+    EXPECT_EQ(1024U << 15, header.get_pbkdf_iterations());
+    for (unsigned int ii = 0; ii <= 15; ++ii) {
+        auto value = 1024U << ii;
+        EXPECT_EQ(value, header.set_pbkdf_iterations(value));
+        EXPECT_EQ(value, header.get_pbkdf_iterations());
+    }
+}
 
 class FileIoTest : public ::testing::Test {
 protected:
@@ -119,10 +133,13 @@ TEST_F(FileIoTest, ReadFile) {
     EXPECT_EQ(content, reader->read());
 }
 
-TEST_F(FileIoTest, ReadFileEncrypted) {
+static void testReadFileEncrypted(const std::filesystem::path& file,
+                                  KeyDerivationMethod kdm) {
     const std::string_view content = "This is the content"sv;
-    SharedKeyDerivationKey key = KeyDerivationKey::generate();
-    EXPECT_TRUE(key);
+    std::shared_ptr<KeyDerivationKey> key = KeyDerivationKey::generate();
+    ASSERT_TRUE(key);
+    key->derivationMethod = kdm;
+
     auto writer = FileWriter::create(key, file);
     EXPECT_TRUE(writer->is_encrypted());
     writer->write(content);
@@ -140,6 +157,15 @@ TEST_F(FileIoTest, ReadFileEncrypted) {
     EXPECT_TRUE(reader->is_encrypted());
     EXPECT_EQ(content, reader->read());
 
+    // verify that we can read the file when the default key derivation method
+    // is different
+    key->derivationMethod = (kdm == KeyDerivationMethod::NoDerivation)
+                                    ? KeyDerivationMethod::KeyBased
+                                    : KeyDerivationMethod::NoDerivation;
+    reader = FileReader::create(file, lookup);
+    EXPECT_TRUE(reader->is_encrypted());
+    EXPECT_EQ(content, reader->read());
+
     // verify that we can't read the file if we don't have the key
     key.reset();
     try {
@@ -148,6 +174,12 @@ TEST_F(FileIoTest, ReadFileEncrypted) {
     } catch (const std::exception& error) {
         EXPECT_NE(nullptr, strstr(error.what(), "Missing key"));
     }
+}
+
+TEST_F(FileIoTest, ReadFileEncrypted) {
+    testReadFileEncrypted(file, KeyDerivationMethod::NoDerivation);
+    testReadFileEncrypted(file, KeyDerivationMethod::KeyBased);
+    testReadFileEncrypted(file, KeyDerivationMethod::PasswordBased);
 }
 
 TEST_F(FileIoTest, BufferedFileWriterTestEncrypted) {

@@ -27,7 +27,14 @@ enum class Cipher {
 void to_json(nlohmann::json& json, const Cipher& cipher);
 void from_json(const nlohmann::json& json, Cipher& cipher);
 
-enum class KeyDerivationMethod { NoDerivation, KeyBased, PasswordBased };
+/// The method of deriving an encryption key from a key derivation key or a
+/// password.
+/// The values are what is stored in the header of Couchbase Encrypted File.
+enum class KeyDerivationMethod : uint8_t {
+    NoDerivation = 0,
+    KeyBased = 1,
+    PasswordBased = 2
+};
 
 /// A structure to hold the information needed by a single key derivation key
 struct KeyDerivationKey {
@@ -37,22 +44,28 @@ struct KeyDerivationKey {
 
     KeyDerivationKey() = default;
 
-    KeyDerivationKey(std::string id, Cipher cipher, std::string derivationKey)
+    KeyDerivationKey(std::string id,
+                     Cipher cipher,
+                     std::string derivationKey,
+                     KeyDerivationMethod derivationMethod =
+                             KeyDerivationMethod::NoDerivation)
         : id(std::move(id)),
+          derivationKey(std::move(derivationKey)),
           cipher(cipher),
-          derivationKey(std::move(derivationKey)) {
+          derivationMethod(derivationMethod) {
     }
 
     bool operator==(const KeyDerivationKey&) const;
 
     static constexpr auto UnencryptedKeyId = "unencrypted";
+    static constexpr auto PasswordKeyId = "password";
 
     /// The identification for the derivation key (dek)
     std::string id = UnencryptedKeyId;
-    /// The cipher the target key if for
-    Cipher cipher = Cipher::None;
     /// The derivation key in bytes
     std::string derivationKey;
+    /// The cipher the derived key is for
+    Cipher cipher = Cipher::None;
     /// How to turn the derivationKey into an encryption key
     KeyDerivationMethod derivationMethod = KeyDerivationMethod::NoDerivation;
 };

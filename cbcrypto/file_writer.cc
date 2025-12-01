@@ -311,7 +311,8 @@ public:
                     std::unique_ptr<FileWriter> underlying)
         : StackedWriter(std::move(underlying)),
           associatedData(std::make_unique<EncryptedFileAssociatedData>(header)),
-          cipher(SymmetricCipher::create(kdk->cipher, kdk->derivationKey)) {
+          cipher(SymmetricCipher::create(kdk->cipher,
+                                         header.derive_key(*kdk))) {
     }
 
     bool is_encrypted() const override {
@@ -347,7 +348,11 @@ std::unique_ptr<FileWriter> FileWriter::create(
         return ret;
     }
 
-    EncryptedFileHeader header(kdk->id, cb::uuid::random(), compression);
+    EncryptedFileHeader header(kdk->id, kdk->derivationMethod, compression);
+    if (kdk->derivationMethod == KeyDerivationMethod::PasswordBased) {
+        // set a default number of iterations
+        header.set_pbkdf_iterations(128 * 1024);
+    }
     ret->write(header);
 
     // time to build up the stack of writers

@@ -105,12 +105,12 @@ protected:
 
 class EncryptedFileReader : public FileReader {
 public:
-    EncryptedFileReader(const KeyDerivationKey& dek,
-                        EncryptedFileAssociatedData associatedData,
+    EncryptedFileReader(const KeyDerivationKey& kdk,
+                        const EncryptedFileHeader& header,
                         std::unique_ptr<FileStreamReader> underlying)
-        : associatedData(associatedData),
+        : associated_data(header),
           offset(sizeof(EncryptedFileHeader)),
-          cipher(SymmetricCipher::create(dek.cipher, dek.derivationKey)),
+          cipher(SymmetricCipher::create(kdk.cipher, header.derive_key(kdk))),
           file(std::move(underlying)) {
         std::array<uint8_t, sizeof(EncryptedFileHeader)> buffer;
         const auto nr = file->read(buffer);
@@ -191,8 +191,8 @@ protected:
                     "EncryptedFileReader: Missing Chunk data");
         }
 
-        associatedData.set_offset(offset);
-        auto decrypted = cipher->decrypt(buffer, associatedData);
+        associated_data.set_offset(offset);
+        auto decrypted = cipher->decrypt(buffer, associated_data);
         offset += chunk_size + sizeof(uint32_t);
         if (current_chunk->tailroom() < decrypted.size()) {
             current_chunk->reserve(0, decrypted.size());
@@ -204,7 +204,7 @@ protected:
         current_chunk->append(decrypted.size());
     }
 
-    EncryptedFileAssociatedData associatedData;
+    EncryptedFileAssociatedData associated_data;
     std::size_t offset;
     std::unique_ptr<SymmetricCipher> cipher;
     std::unique_ptr<FileStreamReader> file;
