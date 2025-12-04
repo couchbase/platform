@@ -210,9 +210,8 @@ protected:
 
 class ZLibStreamingWriter : public StackedWriter {
 public:
-    ZLibStreamingWriter(std::unique_ptr<FileWriter> underlying,
-                        Compression compression)
-        : StackedWriter(std::move(underlying)), compression(compression) {
+    ZLibStreamingWriter(std::unique_ptr<FileWriter> underlying)
+        : StackedWriter(std::move(underlying)) {
         std::memset(&zstream, 0, sizeof(zstream));
         if (deflateInit(&zstream, Z_DEFAULT_COMPRESSION) != Z_OK) {
             throw std::runtime_error("Failed to initialize zlib");
@@ -301,7 +300,6 @@ protected:
         Expects(zstream.avail_in == 0);
     }
 
-    const Compression compression;
     bool closed = false;
     z_stream zstream;
 };
@@ -341,49 +339,37 @@ std::unique_ptr<FileWriter> FileWriter::create(
         Compression compression) {
     std::ofstream file;
     file.exceptions(std::ofstream::failbit | std::ofstream::badbit);
-    file.open(path.string().c_str(),
-              std::ios_base::trunc | std::ios_base::binary);
+    file.open(path.string(), std::ios_base::trunc | std::ios_base::binary);
 
-    std::unique_ptr<FileWriter> ret;
+    std::unique_ptr<FileWriter> ret =
+            std::make_unique<FileWriterImpl>(std::move(file));
+    if (!kdk) {
+        return ret;
+    }
 
-    ret = std::make_unique<FileWriterImpl>(std::move(file));
-    if (kdk) {
-        EncryptedFileHeader header(kdk->id, cb::uuid::random(), compression);
-        ret->write(header);
+    EncryptedFileHeader header(kdk->id, cb::uuid::random(), compression);
+    ret->write(header);
 
-        // time to build up the stack of writers
-        std::unique_ptr<FileWriter> next =
-                std::make_unique<EncryptedWriter>(kdk, header, std::move(ret));
+    // time to build up the stack of writers
 
-        ret = std::move(next);
+    ret = std::make_unique<EncryptedWriter>(kdk, header, std::move(ret));
 
-        decltype(ret) compressor;
-        switch (compression) {
-        case Compression::None:
-            break;
-        case Compression::ZLIB:
-            compressor = std::make_unique<ZLibStreamingWriter>(std::move(ret),
-                                                               compression);
-            break;
+    switch (compression) {
+    case Compression::None:
+        break;
+    case Compression::ZLIB:
+        ret = std::make_unique<ZLibStreamingWriter>(std::move(ret));
+        break;
+    case Compression::Snappy:
+    case Compression::GZIP:
+    case Compression::ZSTD:
+    case Compression::BZIP2:
+        ret = std::make_unique<CompressionWriter>(std::move(ret), compression);
+        break;
+    }
 
-        case Compression::Snappy:
-        case Compression::GZIP:
-        case Compression::ZSTD:
-        case Compression::BZIP2:
-            compressor = std::make_unique<CompressionWriter>(std::move(ret),
-                                                             compression);
-            break;
-        }
-
-        if (compressor) {
-            ret = std::move(compressor);
-        }
-
-        if (buffer_size != 0) {
-            next = std::make_unique<BufferedWriter>(std::move(ret),
-                                                    buffer_size);
-            ret = std::move(next);
-        }
+    if (buffer_size != 0) {
+        ret = std::make_unique<BufferedWriter>(std::move(ret), buffer_size);
     }
     return ret;
 }
