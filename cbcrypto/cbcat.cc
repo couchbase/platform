@@ -71,6 +71,11 @@ program.
     std::exit(exitcode);
 }
 
+static void stdinOveruse() {
+    std::cerr << "stdin may only be used once (password or key store)\n";
+    std::exit(EXIT_FAILURE);
+}
+
 void populateKeyStore(std::string_view data) {
     try {
         const auto json = nlohmann::json::parse(data);
@@ -146,10 +151,7 @@ int main(int argc, char** argv) {
             {[&password, &stdinUsed](auto value) {
                  if (value == "-") {
                      if (stdinUsed) {
-                         std::cerr << "stdin may only be used one (password or "
-                                      "key store)"
-                                   << std::endl;
-                         exit(EXIT_FAILURE);
+                         stdinOveruse();
                      }
                      password = cb::getpass();
                      stdinUsed = true;
@@ -169,10 +171,7 @@ int main(int argc, char** argv) {
 
                  if (value == "-") {
                      if (stdinUsed) {
-                         std::cerr << "stdin may only be used one (password or "
-                                      "key store)"
-                                   << std::endl;
-                         exit(EXIT_FAILURE);
+                         stdinOveruse();
                      }
                      stdinUsed = true;
                      readKeyStoreFromStdin();
@@ -211,10 +210,9 @@ int main(int argc, char** argv) {
 
     for (const auto& file : arguments) {
         if (printHeader) {
-            std::cout << fmt::format("{}\n{}\n",
-                                     file,
-                                     std::string(file.length(), '='))
-                      << std::endl;
+            std::cout << std::endl
+                      << file << std::endl
+                      << std::string(file.length(), '=') << std::endl;
         }
         try {
             auto reader = FileReader::create(file, key_lookup_callback);
