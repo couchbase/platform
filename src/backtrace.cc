@@ -21,7 +21,11 @@
 #include <execinfo.h> // for backtrace()
 #endif
 
-#if __cpp_lib_stacktrace
+#if defined(__cpp_lib_stacktrace) && !defined(STD_STACKTRACE_WONT_WORK)
+#define HAVE_STD_STACKTRACE_SUPPORT 1
+#endif
+
+#if HAVE_STD_STACKTRACE_SUPPORT
 #include <stacktrace>
 #endif
 
@@ -207,7 +211,7 @@ void cb::backtrace::initialize() {
 
 namespace cb::backtrace {
 
-#if __cpp_lib_stacktrace
+#if HAVE_STD_STACKTRACE_SUPPORT
 [[nodiscard]] std::string current() {
     return std::to_string(std::stacktrace::current());
 }

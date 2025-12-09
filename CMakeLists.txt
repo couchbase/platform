@@ -66,42 +66,42 @@ else(WIN32)
     endif()
 endif(WIN32)
 
-# Some versions of GCC needs an explicit link to stdc++exp to get
-# stacktrace support.
+# Some versions of GCC / clang needs an explicit link to stdc++exp
+# to get stacktrace support.
 set(BACKTRACE_EXTRA_LIB "")
-if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-    cmake_push_check_state(RESET)
+cmake_push_check_state(RESET)
 
+check_cxx_source_compiles(
+        "#include <stacktrace>
+#include <iostream>
+int main() {
+std::cout << std::to_string(std::stacktrace::current());
+return 0;
+}
+"
+        HAVE_LIB_STACKTRACE_WITHOUT_EXTRA_LIB
+)
+
+if (NOT HAVE_LIB_STACKTRACE_WITHOUT_EXTRA_LIB)
+    set(CMAKE_REQUIRED_LIBRARIES stdc++exp)
     check_cxx_source_compiles(
             "#include <stacktrace>
 #include <iostream>
 int main() {
-    std::cout << std::to_string(std::stacktrace::current());
-    return 0;
+std::cout << std::to_string(std::stacktrace::current());
+return 0;
 }
-    "
-            HAVE_LIB_STACKTRACE_WITHOUT_EXTRA_LIB
+"
+            HAVE_LIB_STACKTRACE_WITH_EXTRA_LIB
     )
-
-    if (NOT HAVE_LIB_STACKTRACE_WITHOUT_EXTRA_LIB)
-        set(CMAKE_REQUIRED_LIBRARIES stdc++exp)
-        check_cxx_source_compiles(
-                "#include <stacktrace>
-#include <iostream>
-int main() {
-    std::cout << std::to_string(std::stacktrace::current());
-    return 0;
-}
-    "
-                HAVE_LIB_STACKTRACE_WITH_EXTRA_LIB
-        )
-        if (HAVE_LIB_STACKTRACE_WITH_EXTRA_LIB)
-            set(BACKTRACE_EXTRA_LIB "stdc++exp")
-        endif (HAVE_LIB_STACKTRACE_WITH_EXTRA_LIB)
-    endif ()
-
-    cmake_pop_check_state()
+    if (HAVE_LIB_STACKTRACE_WITH_EXTRA_LIB)
+        set(BACKTRACE_EXTRA_LIB "stdc++exp")
+    else ()
+        add_definitions(-DSTD_STACKTRACE_WONT_WORK=1)
+    endif (HAVE_LIB_STACKTRACE_WITH_EXTRA_LIB)
 endif ()
+
+cmake_pop_check_state()
 
 CONFIGURE_FILE (${CMAKE_CURRENT_SOURCE_DIR}/include/platform/dynamic.in.h
                 ${CMAKE_CURRENT_BINARY_DIR}/include/platform/dynamic.h)
