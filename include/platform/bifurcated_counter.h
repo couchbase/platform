@@ -9,7 +9,6 @@
  */
 #pragma once
 
-#include <folly/Likely.h>
 #include <algorithm>
 #include <atomic>
 #include <type_traits>
