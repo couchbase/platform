@@ -106,11 +106,6 @@ cmake_pop_check_state()
 CONFIGURE_FILE (${CMAKE_CURRENT_SOURCE_DIR}/include/platform/dynamic.in.h
                 ${CMAKE_CURRENT_BINARY_DIR}/include/platform/dynamic.h)
 
-#
-# Set the include path
-#
-include_directories(AFTER SYSTEM ${gsl_lite_SOURCE_DIR}/include)
-
 IF (MEMORY_ALLOCATOR)
   include_directories(AFTER SYSTEM ${MALLOC_INCLUDE_DIR})
 ENDIF (MEMORY_ALLOCATOR)
@@ -197,7 +192,7 @@ endif()
 # the single .cc file for the code it is testing, but needs the prototype(s)
 # of that .cc file.
 ADD_LIBRARY(platform_headers INTERFACE)
-TARGET_LINK_LIBRARIES(platform_headers INTERFACE Folly::headers)
+TARGET_LINK_LIBRARIES(platform_headers INTERFACE Folly::headers gsl::gsl-lite)
 TARGET_INCLUDE_DIRECTORIES(platform_headers INTERFACE
         include
         ${Platform_BINARY_DIR}/include)
