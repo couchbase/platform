@@ -221,7 +221,6 @@ LIST(APPEND PLATFORM_FILES
   src/byte_buffer_dump.cc
   src/cb_arena_malloc.cc
   src/cb_time.cc
-  src/checked_snprintf.cc
   src/command_line_options_parser.cc
   src/crc32c.cc
   src/crc32c_private.h
@@ -257,7 +256,6 @@ LIST(APPEND PLATFORM_FILES
   include/platform/byte_literals.h
   include/platform/cb_allocator.h
   include/platform/cb_malloc.h
-  include/platform/checked_snprintf.h
   include/platform/command_line_options_parser.h
   include/platform/corestore.h
   include/platform/crc32c.h
