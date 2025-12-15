@@ -87,7 +87,8 @@ void maybeRewriteFiles(
                 key_lookup_function,
         const std::function<void(std::string_view, const nlohmann::json&)>&
                 error,
-        std::string_view unencrypted_extension) {
+        std::string_view unencrypted_extension,
+        bool compression) {
     std::error_code ec;
     for (const auto& p : std::filesystem::directory_iterator(directory, ec)) {
         auto path = p.path();
@@ -108,7 +109,14 @@ void maybeRewriteFiles(
 
         auto reader = FileReader::create(path, key_lookup_function);
         std::filesystem::path tmpfile = cb::io::mktemp(path.string());
-        auto writer = FileWriter::create(derivation_key, tmpfile, 64 * 1024);
+        if (compression && !derivation_key) {
+            tmpfile.replace_extension(".gz");
+        }
+        auto writer = FileWriter::create(
+                derivation_key,
+                tmpfile,
+                64 * 1024,
+                compression ? Compression::GZIP : Compression::None);
         std::vector<uint8_t> data(8 * 1024);
 
         while (!reader->eof()) {
@@ -130,6 +138,9 @@ void maybeRewriteFiles(
         } else if (!derivation_key && path.extension() == ".cef") {
             auto next = path;
             next.replace_extension(unencrypted_extension);
+            if (compression) {
+                next.append(".gz");
+            }
             rename(tmpfile, next);
             remove(path);
         } else {

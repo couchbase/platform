@@ -46,6 +46,8 @@ std::unordered_set<std::string> findDeksInUse(
  *            the id
  * @param error a callback to add log messages when errors occurs
  * @param unencrypted_extension The extension to use for unencrypted files
+ * @param compression true if the rewritten files should be compressed (gzip
+ *                         for plain files, zlib for encrypted files)
  */
 void maybeRewriteFiles(
         const std::filesystem::path& directory,
@@ -56,6 +58,7 @@ void maybeRewriteFiles(
                 key_lookup_function,
         const std::function<void(std::string_view, const nlohmann::json&)>&
                 error,
-        std::string_view unencrypted_extension = ".txt");
+        std::string_view unencrypted_extension = ".txt",
+        bool compression = false);
 
 } // namespace cb::crypto
