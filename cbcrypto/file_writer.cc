@@ -213,29 +213,18 @@ public:
     ZLibStreamingWriter(std::unique_ptr<FileWriter> underlying)
         : StackedWriter(std::move(underlying)) {
         std::memset(&zstream, 0, sizeof(zstream));
-        if (deflateInit(&zstream, Z_DEFAULT_COMPRESSION) != Z_OK) {
-            throw std::runtime_error("Failed to initialize zlib");
+        const auto rc = deflateInit(&zstream, Z_DEFAULT_COMPRESSION);
+        if (rc != Z_OK) {
+            throw std::runtime_error(
+                    fmt::format("ZLibStreamingWriter::ZLibStreamingWriter(): "
+                                "Failed to initialize zlib: {}",
+                                rc));
         }
     }
 
     void flush() override {
-        Expects(!closed);
-        zstream.avail_in = 0;
-        zstream.next_in = nullptr;
-
-        std::vector<uint8_t> buffer(1024);
-        zstream.avail_out = gsl::narrow_cast<uInt>(buffer.size());
-        zstream.next_out = buffer.data();
-
-        // (given that the output size is the same as the input size I expect
-        // that we should be able to compress the data in one go)
-        if (deflate(&zstream, Z_FULL_FLUSH) != Z_OK) {
-            throw std::runtime_error("Failed to deflate data");
-        }
-        auto nbytes = buffer.size() - zstream.avail_out;
-        this->underlying->write(std::string_view{
-                reinterpret_cast<const char*>(buffer.data()), nbytes});
-        this->underlying->flush();
+        // We don't want to flush the zlib stream here as it would
+        // reduce the compression ratio.
     }
 
     void close() override {
@@ -253,11 +242,12 @@ public:
     }
 
 protected:
+    constexpr static size_t BufferSize = 4096;
     void do_close() {
         Expects(!closed);
         zstream.avail_in = 0;
         zstream.next_in = nullptr;
-        std::vector<uint8_t> buffer(1024);
+        std::vector<uint8_t> buffer(BufferSize);
         int rc = Z_OK;
         do {
             zstream.avail_out = gsl::narrow_cast<uInt>(buffer.size());
@@ -275,7 +265,9 @@ protected:
             return;
         }
         throw std::runtime_error(
-                fmt::format("Failed to deflate data with Z_FINISH: {}", rc));
+                fmt::format("ZLibStreamingWriter::do_close(): Failed to "
+                            "deflate data with Z_FINISH: {}",
+                            rc));
     }
 
     void do_write(std::string_view data) override {
@@ -291,7 +283,9 @@ protected:
 
             auto status = deflate(&zstream, Z_NO_FLUSH);
             if (status == Z_STREAM_ERROR) {
-                throw std::runtime_error("Failed to deflate data (Z_NO_FLUSH)");
+                throw std::runtime_error(
+                        "ZLibStreamingWriter::do_write(): Failed to deflate "
+                        "data (Z_NO_FLUSH)");
             }
             const auto nbytes = buffer.size() - zstream.avail_out;
             this->underlying->write(std::string_view{
