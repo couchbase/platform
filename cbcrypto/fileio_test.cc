@@ -11,6 +11,7 @@
 #include <cbcrypto/encrypted_file_header.h>
 #include <cbcrypto/file_reader.h>
 #include <cbcrypto/file_writer.h>
+#include <folly/ScopeGuard.h>
 #include <folly/portability/GTest.h>
 #include <nlohmann/json.hpp>
 #include <platform/dirutils.h>
@@ -209,4 +210,26 @@ TEST_F(FileIoTest, BufferedFileWriterTestEncrypted) {
     EXPECT_EQ(10, chunk.size());
     chunk = reader->nextChunk();
     EXPECT_EQ(101, chunk.size());
+}
+
+TEST_F(FileIoTest, TestReadWriteGzipFile) {
+    std::filesystem::path source_dir = SOURCE_PATH;
+    const auto content = cb::io::loadFile(source_dir / "CMakeLists.txt");
+    std::filesystem::path gzfile = file.string() + ".gz";
+    auto guard = folly::makeGuard([&]() { remove(gzfile); });
+
+    auto writer = FileWriter::create({}, gzfile, 1000, Compression::GZIP);
+    EXPECT_FALSE(writer->is_encrypted());
+    writer->write(content);
+    writer->flush();
+    writer->close();
+    writer.reset();
+
+    auto lookup = [](auto k) -> SharedKeyDerivationKey { return {}; };
+
+    auto reader = FileReader::create(gzfile, lookup);
+    EXPECT_FALSE(reader->is_encrypted());
+    const auto data = reader->read();
+    reader.reset();
+    EXPECT_EQ(content, data);
 }

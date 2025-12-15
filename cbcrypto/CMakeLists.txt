@@ -52,6 +52,8 @@ target_link_libraries(cbcrypto_unit_test
                      GTest::gtest
                      GTest::gtest_main
                      platform)
+target_compile_definitions(cbcrypto_unit_test
+        PRIVATE SOURCE_PATH="${CMAKE_CURRENT_SOURCE_DIR}")
 add_test(cbcrypto_unit_test cbcrypto_unit_test)
 
 add_executable(cbcat cbcat.cc)

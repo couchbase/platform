@@ -103,6 +103,99 @@ protected:
     static constexpr std::size_t ChunkSize = 8192;
 };
 
+class GZipFileReader : public FileReader {
+public:
+    GZipFileReader(std::filesystem::path path_, unique_file_stream_ptr stream)
+        : path(std::move(path_)), file(gzdopen(fileno(stream.get()), "rb")) {
+        if (!file) {
+            throw std::runtime_error(
+                    fmt::format("GZipFileStreamReader: Failed to open file {}",
+                                path.string()));
+        }
+        stream.release();
+    }
+
+    ~GZipFileReader() override {
+        if (file != nullptr) {
+            try {
+                do_close();
+            } catch (const std::exception&) {
+            }
+            gzclose(file);
+        }
+    }
+
+    std::size_t read(std::span<uint8_t> buffer) override {
+        return read(buffer.data(), buffer.size());
+    }
+
+    std::size_t read(std::span<char> buffer) {
+        return read(buffer.data(), buffer.size());
+    }
+
+    std::size_t read(void* data, size_t nbytes) {
+        auto nr = gzread(file, data, gsl::narrow_cast<unsigned int>(nbytes));
+        if (nr == -1) {
+            int error;
+            const auto* message = gzerror(file, &error);
+
+            throw std::runtime_error(
+                    fmt::format("GZipFileReader::read(): fread failed: "
+                                "nbytes:{} nr:{} feof:{} message:{}",
+                                nbytes,
+                                nr,
+                                eof(),
+                                message));
+        }
+        return nr;
+    }
+
+    bool eof() override {
+        return gzeof(file);
+    }
+
+    [[nodiscard]] bool is_encrypted() const override {
+        return false;
+    }
+
+    std::string nextChunk() override {
+        if (eof()) {
+            return {};
+        }
+        std::string buffer;
+        buffer.resize(ChunkSize);
+        buffer.resize(read(buffer));
+        return buffer;
+    }
+
+    void set_max_allowed_chunk_size(std::size_t limit) override {
+        // Ignore
+    }
+
+protected:
+    void do_close() {
+        Expects(file);
+        const auto status = gzclose(file);
+        file = nullptr;
+        if (status == Z_OK) {
+            return;
+        }
+
+        if (status == Z_ERRNO) {
+            throw std::system_error(errno,
+                                    std::system_category(),
+                                    "GZipFileWriter: Failed to close file");
+        }
+
+        throw std::runtime_error(fmt::format(
+                "GZipFileWriter: Failed to close file: {}", status));
+    }
+
+    const std::filesystem::path path;
+    gzFile file;
+    static constexpr std::size_t ChunkSize = 8192;
+};
+
 class EncryptedFileReader : public FileReader {
 public:
     EncryptedFileReader(const KeyDerivationKey& kdk,
@@ -388,6 +481,9 @@ std::unique_ptr<FileReader> FileReader::create(
     }
 
     unique_file_stream_ptr file_stream(fp);
+    if (path.extension() == ".gz") {
+        return std::make_unique<GZipFileReader>(path, std::move(file_stream));
+    }
 
     bool encrypted = false;
     SharedKeyDerivationKey kdk;

@@ -69,6 +69,80 @@ protected:
     std::size_t current_size = 0;
 };
 
+class GZipFileWriter : public FileWriter {
+public:
+    GZipFileWriter(std::filesystem::path path)
+        : filename(std::move(path)),
+          file(gzopen(filename.string().c_str(), "wb")) {
+        if (!file) {
+            throw std::runtime_error(
+                    fmt::format("GZipFileWriter: Failed to open file {}",
+                                filename.string()));
+        }
+    }
+
+    [[nodiscard]] bool is_encrypted() const override {
+        return false;
+    }
+
+    [[nodiscard]] size_t size() const override {
+        return current_size;
+    }
+
+    void write(std::string_view chunk) override {
+        Expects(file);
+        auto nb = gzfwrite(chunk.data(), 1, chunk.size(), file);
+        if (nb != chunk.size()) {
+            throw std::runtime_error(
+                    "GZipFileWriter: Failed to write all data");
+        }
+        current_size += chunk.size();
+    }
+
+    void flush() override {
+        // ignore flush'ing now as running flush reduce the compression ratio
+    }
+
+    void close() override {
+        do_close();
+    }
+
+    ~GZipFileWriter() override {
+        if (file) {
+            // User didn't explicitly close the stream so we need
+            // to do it to avoid resource leaks. Catch exceptions
+            // as a destructor should throw.
+            try {
+                do_close();
+            } catch (const std::exception&) {
+            }
+        }
+    };
+
+protected:
+    void do_close() {
+        Expects(file);
+        const auto status = gzclose(file);
+        file = nullptr;
+        if (status == Z_OK) {
+            return;
+        }
+
+        if (status == Z_ERRNO) {
+            throw std::system_error(errno,
+                                    std::system_category(),
+                                    "GZipFileWriter: Failed to close file");
+        }
+
+        throw std::runtime_error(fmt::format(
+                "GZipFileWriter: Failed to close file: {}", status));
+    }
+
+    const std::filesystem::path filename;
+    gzFile file;
+    std::size_t current_size = 0;
+};
+
 class StackedWriter : public FileWriter {
 public:
     StackedWriter(std::unique_ptr<FileWriter> underlying)
@@ -332,6 +406,16 @@ std::unique_ptr<FileWriter> FileWriter::create(
         std::filesystem::path path,
         size_t buffer_size,
         Compression compression) {
+    if (!kdk && compression == Compression::GZIP) {
+        // use a specialized GZip writer which uses the gzip file format
+        std::unique_ptr<FileWriter> ret =
+                std::make_unique<GZipFileWriter>(std::move(path));
+        if (buffer_size != 0) {
+            ret = std::make_unique<BufferedWriter>(std::move(ret), buffer_size);
+        }
+        return ret;
+    }
+
     std::ofstream file;
     file.exceptions(std::ofstream::failbit | std::ofstream::badbit);
     file.open(path.string(), std::ios_base::trunc | std::ios_base::binary);
@@ -340,6 +424,11 @@ std::unique_ptr<FileWriter> FileWriter::create(
             std::make_unique<FileWriterImpl>(std::move(file));
     if (!kdk) {
         return ret;
+    }
+
+    // GZIP is not supported in encrypted files, map to ZLIB
+    if (compression == Compression::GZIP) {
+        compression = Compression::ZLIB;
     }
 
     EncryptedFileHeader header(kdk->id, kdk->derivationMethod, compression);
@@ -356,11 +445,12 @@ std::unique_ptr<FileWriter> FileWriter::create(
     switch (compression) {
     case Compression::None:
         break;
+    case Compression::GZIP:
+        folly::assume_unreachable();
     case Compression::ZLIB:
         ret = std::make_unique<ZLibStreamingWriter>(std::move(ret));
         break;
     case Compression::Snappy:
-    case Compression::GZIP:
     case Compression::ZSTD:
     case Compression::BZIP2:
         ret = std::make_unique<CompressionWriter>(std::move(ret), compression);
