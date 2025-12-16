@@ -31,6 +31,8 @@ static constexpr int EXIT_INCORRECT_PASSWORD = 2;
 static std::string password;
 static std::unique_ptr<DumpKeysRunner> dump_keys_runner;
 static KeyStore keyStore;
+bool printHeader = false;
+bool dumpEncryptionHeader = false;
 
 /// The key lookup callback gets called from the FileReader whenever it
 /// encounters an encrypted file. It'll keep the keys around in a key store
@@ -125,6 +127,37 @@ void readKeyStoreFromStdin() {
     }
 }
 
+void print_header(std::string_view filename,
+                  std::optional<EncryptedFileHeader> header) {
+    if (!printHeader) {
+        return;
+    }
+    std::cout << "File: " << filename << std::endl;
+    if (header) {
+        try {
+            fmt::println("  Encrypted:");
+            fmt::println("    Key ID: {}", header->get_id());
+            fmt::println("    Key Derivation: {}",
+                         header->get_key_derivation());
+            if (header->get_key_derivation() ==
+                KeyDerivationMethod::PasswordBased) {
+                fmt::println("    PBKDF2 Iterations: {}",
+                             header->get_pbkdf_iterations());
+            }
+            fmt::println("    Compression: {}", header->get_compression());
+        } catch (const std::exception&) {
+            // Ignore errors
+        }
+    } else {
+        if (dumpEncryptionHeader) {
+            std::cout << "  Not an encrypted file or unable to read "
+                         "encryption header"
+                      << std::endl;
+        }
+    }
+    std::cout << std::string(70, '=') << std::endl;
+}
+
 int main(int argc, char** argv) {
     using cb::getopt::Argument;
     cb::getopt::CommandLineOptionsParser parser;
@@ -132,7 +165,6 @@ int main(int argc, char** argv) {
     std::string dumpKeysExecutable = INSTALL_ROOT "/bin/dump-keys";
     std::string gosecrets =
             INSTALL_ROOT "/var/lib/couchbase/config/gosecrets.cfg";
-    bool printHeader = false;
     bool withKeyStore = false;
     bool stdinUsed = false;
 
@@ -191,10 +223,18 @@ int main(int argc, char** argv) {
              "The JSON containing the keystore to use (use '-' to read from "
              "standard input)"});
 
-    parser.addOption({[&printHeader](auto value) { printHeader = true; },
+    parser.addOption({[](auto value) { printHeader = true; },
                       "print-header",
                       "Print a header with the file name before the content of "
                       "the file"});
+    parser.addOption(
+            {[](auto value) {
+                 dumpEncryptionHeader = true;
+                 printHeader = true;
+             },
+             "dump-encryption-header",
+             "Print the information from the encryption header if the file is "
+             "encrypted"});
     parser.addOption({[](auto) {
                           std::cout << "Couchbase Server " << PRODUCT_VERSION
                                     << std::endl;
@@ -215,13 +255,21 @@ int main(int argc, char** argv) {
     }
 
     for (const auto& file : arguments) {
-        if (printHeader) {
-            std::cout << std::endl
-                      << file << std::endl
-                      << std::string(file.length(), '=') << std::endl;
-        }
+        bool header_printed = false;
+        auto do_print_header =
+                [&header_printed](std::string_view filename,
+                                  std::optional<EncryptedFileHeader> header) {
+                    if (!header_printed) {
+                        print_header(filename, header);
+                        header_printed = true;
+                    }
+                };
         try {
             auto reader = FileReader::create(file, key_lookup_callback);
+            do_print_header(file,
+                            dumpEncryptionHeader
+                                    ? reader->get_encryption_header()
+                                    : std::nullopt);
             reader->set_max_allowed_chunk_size(
                     std::numeric_limits<uint32_t>::max());
             std::vector<uint8_t> blob(8192);
@@ -231,10 +279,12 @@ int main(int argc, char** argv) {
                 std::cout.flush();
             }
         } catch (const cb::crypto::dump_keys::IncorrectPasswordError& e) {
+            do_print_header(file, {});
             std::cerr << e.what() << std::endl;
             std::exit(EXIT_INCORRECT_PASSWORD);
 
         } catch (const std::exception& e) {
+            do_print_header(file, {});
             std::cerr << "Fatal error: " << e.what() << std::endl;
             return EXIT_FAILURE;
         }

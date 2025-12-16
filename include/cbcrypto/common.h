@@ -35,6 +35,7 @@ enum class KeyDerivationMethod : uint8_t {
     KeyBased = 1,
     PasswordBased = 2
 };
+std::string format_as(const KeyDerivationMethod& keyDerivationMethod);
 
 /// A structure to hold the information needed by a single key derivation key
 struct KeyDerivationKey {

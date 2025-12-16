@@ -83,6 +83,11 @@ public:
         return false;
     }
 
+    [[nodiscard]] std::optional<EncryptedFileHeader> get_encryption_header()
+            override {
+        return std::nullopt;
+    }
+
     std::string nextChunk() override {
         if (eof()) {
             return {};
@@ -158,6 +163,11 @@ public:
         return false;
     }
 
+    [[nodiscard]] std::optional<EncryptedFileHeader> get_encryption_header()
+            override {
+        return std::nullopt;
+    }
+
     std::string nextChunk() override {
         if (eof()) {
             return {};
@@ -199,9 +209,10 @@ protected:
 class EncryptedFileReader : public FileReader {
 public:
     EncryptedFileReader(const KeyDerivationKey& kdk,
-                        const EncryptedFileHeader& header,
+                        const EncryptedFileHeader& header_,
                         std::unique_ptr<FileStreamReader> underlying)
-        : associated_data(header),
+        : header(header_),
+          associated_data(header),
           offset(sizeof(EncryptedFileHeader)),
           cipher(SymmetricCipher::create(kdk.cipher, header.derive_key(kdk))),
           file(std::move(underlying)) {
@@ -221,6 +232,11 @@ public:
 
     [[nodiscard]] bool is_encrypted() const override {
         return true;
+    }
+
+    [[nodiscard]] std::optional<EncryptedFileHeader> get_encryption_header()
+            override {
+        return header;
     }
 
     void set_max_allowed_chunk_size(std::size_t limit) override {
@@ -297,6 +313,7 @@ protected:
         current_chunk->append(decrypted.size());
     }
 
+    EncryptedFileHeader header;
     EncryptedFileAssociatedData associated_data;
     std::size_t offset;
     std::unique_ptr<SymmetricCipher> cipher;
@@ -312,6 +329,11 @@ public:
     }
     [[nodiscard]] bool is_encrypted() const override {
         return underlying->is_encrypted();
+    }
+
+    [[nodiscard]] std::optional<EncryptedFileHeader> get_encryption_header()
+            override {
+        return underlying->get_encryption_header();
     }
 
     void set_max_allowed_chunk_size(std::size_t limit) override {
@@ -382,6 +404,11 @@ public:
 
     [[nodiscard]] bool is_encrypted() const override {
         return underlying->is_encrypted();
+    }
+
+    [[nodiscard]] std::optional<EncryptedFileHeader> get_encryption_header()
+            override {
+        return underlying->get_encryption_header();
     }
 
     void set_max_allowed_chunk_size(std::size_t limit) override {

@@ -11,6 +11,7 @@
 #pragma once
 
 #include <cbcrypto/common.h>
+#include <cbcrypto/encrypted_file_header.h>
 #include <filesystem>
 #include <functional>
 #include <span>
@@ -47,6 +48,10 @@ public:
 
     /// Is the file being read encrypted or not
     [[nodiscard]] virtual bool is_encrypted() const = 0;
+
+    /// Get the encryption header if the file is encrypted
+    [[nodiscard]] virtual std::optional<EncryptedFileHeader>
+    get_encryption_header() = 0;
 
     /**
      * The file reader tries to read various length fields off the encrypted

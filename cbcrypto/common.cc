@@ -21,6 +21,20 @@
 
 namespace cb::crypto {
 
+std::string format_as(const KeyDerivationMethod& keyDerivationMethod) {
+    using namespace std::string_literals;
+    switch (keyDerivationMethod) {
+    case KeyDerivationMethod::NoDerivation:
+        return "NoDerivation"s;
+    case KeyDerivationMethod::KeyBased:
+        return "KeyBased"s;
+    case KeyDerivationMethod::PasswordBased:
+        return "PasswordBased"s;
+    }
+    throw std::logic_error(fmt::format("Unknown key derivation method: {}",
+                                       static_cast<int>(keyDerivationMethod)));
+}
+
 [[nodiscard]] std::string format_as(const Cipher& cipher) {
     switch (cipher) {
     case Cipher::None:
