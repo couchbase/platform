@@ -19,10 +19,20 @@ namespace cb {
  * "k", "M" etc
  *
  * @param value the value to convert
- * @param an optional "suffix" to add to the string. By default adding 'b' to
- *                    return sizes like: 10Mb etc
+ * @param suffix n optional "suffix" to add to the string. By default adding
+ *                 'b' to return sizes like: 10Mb etc
  * @return the size in a format easier to read for a human
  */
 std::string size2human(std::size_t value,
                        const std::optional<std::string>& suffix = "B");
+
+/**
+ * Convert a human readable size (with an optional suffix) into a size_t.
+ * Suffix may be one of: k, M, G, T, P (case insensitive) with an optional
+ * 'b'/'B'
+ *
+ * @param text The textual representation to convert
+ * @return the value in bytes
+ */
+std::size_t human2size(std::string_view text);
 } // namespace cb
