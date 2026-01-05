@@ -48,7 +48,7 @@
 #ifdef UNDEFIN
 #undef IN
 #endif
-#  elif defined(linux)
+#elif defined(__linux__)
 #    include "client/linux/handler/exception_handler.h"
 #  else
 #    error Unsupported platform for breakpad, cannot compile.
@@ -70,7 +70,7 @@ static bool dumpCallback(const wchar_t* dump_path, const wchar_t* minidump_id,
 }
 #endif
 
-#if defined(linux)
+#if defined(__linux__)
 /* Called by Breakpad when an exception triggers a dump. */
 static bool dumpCallback(const MinidumpDescriptor& descriptor,
                          void* context, bool succeeded) {
@@ -101,7 +101,7 @@ void breakpad_initialize(const char* minidump_dir) {
                                    /*custom_info*/NULL);
     delete[] wc_minidump_dir;
 
-#elif defined(linux)
+#elif defined(__linux__)
     MinidumpDescriptor descriptor(minidump_dir);
 
     if (handler != nullptr) {

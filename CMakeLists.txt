@@ -512,13 +512,6 @@ if (BREAKPAD_FOUND)
 endif (BREAKPAD_FOUND)
 target_link_libraries(breakpad_wrapper platform_headers)
 
-if (UNIX)
-   # Breakpad has headers (which are dependencies for our breakpad integration
-   # code) that don't compile cleanly as C++11, so the GNU standard is
-   # used instead.
-   set_source_files_properties(src/breakpad_wrapper.cc PROPERTIES COMPILE_FLAGS ${CB_GNU_CXX11_OPTION})
-endif (UNIX)
-
 INSTALL(TARGETS breakpad_wrapper
         RUNTIME DESTINATION bin
         LIBRARY DESTINATION lib
