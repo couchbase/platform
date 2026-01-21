@@ -78,6 +78,7 @@ std::size_t FileSink::fsync() {
 
 std::size_t FileSink::close() {
     Expects(fp);
+    fsync();
     if (fclose(fp) != 0) {
         throw std::system_error(
                 errno,
