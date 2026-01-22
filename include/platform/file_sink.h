@@ -81,6 +81,9 @@ public:
     }
 
 protected:
+    // @return errno if fsync fails, 0 if successful
+    int fsync_no_throw() noexcept;
+
     const std::filesystem::path filename;
     FILE* fp = nullptr;
     const std::size_t fsync_interval;

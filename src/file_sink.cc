@@ -78,14 +78,25 @@ std::size_t FileSink::fsync() {
 
 std::size_t FileSink::close() {
     Expects(fp);
-    fsync();
+    // Always attempt to fsync the file before closing it.
+    auto fsync_errno = fsync_no_throw();
     if (fclose(fp) != 0) {
         throw std::system_error(
                 errno,
                 std::system_category(),
-                fmt::format("Failed to close file '{}'", filename.string()));
+                fmt::format("Failed to close file '{}' fsync={}",
+                            filename.string(),
+                            fsync_errno));
     }
     fp = nullptr;
+    // failed fsync but closed the file, throw for the fsync error
+    if (fsync_errno) {
+        throw std::system_error(
+                fsync_errno,
+                std::system_category(),
+                fmt::format("Failed to fsync file before close '{}'",
+                            filename.string()));
+    }
     return bytes_written;
 }
 
@@ -97,5 +108,12 @@ FileSink::~FileSink() {
             // Can't throw from the destructor
         }
     }
+}
+
+int FileSink::fsync_no_throw() noexcept {
+    if (::fsync(fileno(fp)) == -1) {
+        return errno;
+    }
+    return 0;
 }
 } // namespace cb::io
