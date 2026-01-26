@@ -49,7 +49,7 @@ struct KeyDerivationKey {
                      Cipher cipher,
                      std::string derivationKey,
                      KeyDerivationMethod derivationMethod =
-                             KeyDerivationMethod::NoDerivation)
+                             KeyDerivationMethod::KeyBased)
         : id(std::move(id)),
           derivationKey(std::move(derivationKey)),
           cipher(cipher),
