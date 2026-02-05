@@ -425,6 +425,15 @@ std::unique_ptr<FileWriter> FileWriter::create(
     if (!kdk) {
         return ret;
     }
+    return wrap_with_encryption(kdk, std::move(ret), buffer_size, compression);
+}
+
+std::unique_ptr<FileWriter> FileWriter::wrap_with_encryption(
+        const SharedKeyDerivationKey& kdk,
+        std::unique_ptr<FileWriter> ret,
+        size_t buffer_size,
+        Compression compression) {
+    Expects(kdk);
 
     // GZIP is not supported in encrypted files, map to ZLIB
     if (compression == Compression::GZIP) {

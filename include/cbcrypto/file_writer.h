@@ -30,15 +30,31 @@ public:
      * @param kdk The key to use to write the files. If no key is present
      *            the data is written unencrypted
      * @param path The name of the file to write
-     * @param buffer_size An optional buffer size to let the underlying file
-     *                    writer buffer data before writing to disk. This
-     *                    is useful for encrypted logfiles ot avoid writing
-     *                    small chunks
+     * @param buffer_size An optional buffer size to buffer data before
+     *                    encrypting and writing to disk - useful for encrypted
+     *                    logfiles to avoid writing small chunks
      * @return A new FileWriter instance
      */
     static std::unique_ptr<FileWriter> create(
             const SharedKeyDerivationKey& kdk,
             std::filesystem::path path,
+            size_t buffer_size = 0,
+            Compression compression = Compression::None);
+
+    /**
+     * Create a new instance of the FileWriter which encrypts data and wraps an
+     * existing writer
+     *
+     * @param kdk The key to use to write the file
+     * @param writer FileWriter to wrap with encryption
+     * @param buffer_size An optional buffer size to buffer data before
+     *                    encrypting and writing to disk - useful for encrypted
+     *                    logfiles to avoid writing small chunks
+     * @return A new FileWriter instance
+     */
+    static std::unique_ptr<FileWriter> wrap_with_encryption(
+            const SharedKeyDerivationKey& kdk,
+            std::unique_ptr<FileWriter> writer,
             size_t buffer_size = 0,
             Compression compression = Compression::None);
 
