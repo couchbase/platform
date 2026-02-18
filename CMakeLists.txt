@@ -271,6 +271,7 @@ LIST(APPEND PLATFORM_FILES
   include/platform/processclock.h
   include/platform/process_monitor.h
   include/platform/random.h
+  include/platform/token_bucket_rate_limiter.h
   include/platform/rwlock.h
   include/platform/semaphore.h
   include/platform/semaphore_guard.h

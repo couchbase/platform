@@ -30,6 +30,7 @@ cb_add_test_executable(platform_unit_tests
                        process_monitor_test.cc
                        processclock_test.cc
                        random_test.cc
+                       token_bucket_rate_limiter_test.cc
                        relaxed_atomic_test.cc
                        save_file_test.cc
                        scope_timer_test.cc
