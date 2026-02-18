@@ -14,13 +14,7 @@
 #include <folly/portability/GTest.h>
 
 TEST(StaticClockTest, test) {
-    cb::time::steady_clock::use_chrono = false;
-
-    auto scopeGuard = folly::makeGuard([]() {
-        // Switch back to chrono as other tests may need real time
-        cb::time::steady_clock::use_chrono = true;
-    });
-
+    cb::time::StaticClockGuard guard{};
     auto time1 = cb::time::steady_clock::now();
     auto time2 = cb::time::steady_clock::now();
     EXPECT_EQ(time1, time2);

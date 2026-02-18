@@ -53,4 +53,22 @@ struct steady_clock {
      */
     static std::atomic<bool> use_chrono;
 };
+
+/**
+ * RAII helper to switch cb::time::steady_clock to static mode for a test
+ * and restore it afterwards.
+ */
+class StaticClockGuard {
+public:
+    StaticClockGuard() : wasUsingChrono(cb::time::steady_clock::use_chrono) {
+        cb::time::steady_clock::use_chrono = false;
+    }
+    ~StaticClockGuard() {
+        cb::time::steady_clock::use_chrono = wasUsingChrono;
+    }
+
+private:
+    const bool wasUsingChrono;
+};
+
 } // end namespace cb::time
