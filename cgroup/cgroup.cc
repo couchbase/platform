@@ -88,9 +88,9 @@ size_t ControlGroup::get_available_cpu() {
     return size_t(ret) * 100;
 }
 
-static auto cGroupInstance = priv::make_control_group();
 ControlGroup& ControlGroup::instance() {
-    return *cGroupInstance;
+    static auto instance = priv::make_control_group();
+    return *instance;
 }
 
 void ControlGroup::setTraceCallback(std::function<void(std::string_view)> cb) {
