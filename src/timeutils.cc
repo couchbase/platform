@@ -134,6 +134,13 @@ static std::string_view trim_space(std::string_view text) {
 
 static std::chrono::nanoseconds text2nano(std::string_view text) {
     text = trim_space(text);
+    if (text.empty()) {
+        return {};
+    }
+    if (text.front() == '-') {
+        throw std::invalid_argument(
+                "text2nano: negative values are not supported");
+    }
 
     int value{};
     const auto [ptr, ec]{
@@ -188,14 +195,26 @@ static std::chrono::nanoseconds text2nano(std::string_view text) {
 }
 
 std::chrono::nanoseconds cb::text2time(std::string_view text) {
+    text = trim_space(text);
     if (text.empty()) {
         throw std::invalid_argument(
                 "cb::text2time: can't convert empty string");
     }
+
+    bool negative = false;
+    if (text.front() == '-') {
+        negative = true;
+        text.remove_prefix(1);
+    }
+
     auto pieces = cb::string::split(text, ':');
     std::chrono::nanoseconds ret{0};
     for (const auto& p : pieces) {
-        ret += text2nano(std::string{p});
+        ret += text2nano(p);
+    }
+
+    if (negative) {
+        return -ret;
     }
     return ret;
 }
