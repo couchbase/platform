@@ -79,7 +79,7 @@ public:
      *        to one period's worth of data. Must be greater than zero.
      */
     void acquire(size_t bytes, size_t bytesPerPeriod) {
-        if (bytes == 0 || bytesPerPeriod == 0) {
+        if (bytes == 0 || bytesPerPeriod == 0 || bytes > bytesPerPeriod) {
             return;
         }
 
