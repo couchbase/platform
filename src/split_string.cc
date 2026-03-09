@@ -23,7 +23,7 @@ std::vector<std::string_view> cb::string::split(std::string_view s,
         result.emplace_back(std::string_view{s.data(), m});
         s.remove_prefix(m + 1);
         if (!allowEmpty) {
-            while (s.front() == delim) {
+            while (!s.empty() && s.front() == delim) {
                 s.remove_prefix(1);
             }
         }
