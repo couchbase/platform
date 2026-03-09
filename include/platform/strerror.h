@@ -13,14 +13,7 @@
 
 #ifdef WIN32
 // Need DWORD
-#ifndef WIN32_LEAN_AND_MEAN
-#define DO_UNDEF_WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
 #include <Windows.h>
-#ifdef DO_UNDEF_WIN32_LEAN_AND_MEAN
-#undef WIN32_LEAN_AND_MEAN
-#endif
 #endif
 
 /**
@@ -30,9 +23,9 @@
 std::string cb_strerror();
 
 #ifdef WIN32
-#define cb_os_error_t DWORD
+using cb_os_error_t = DWORD;
 #else
-#define cb_os_error_t int
+using cb_os_error_t = int;
 #endif
 
 /**

@@ -8,13 +8,8 @@
  *   the file licenses/APL2.txt.
  */
 #include <platform/strerror.h>
-
-#ifdef WIN32
-#include <windows.h>
-#else
-#include <string.h>
-#include <errno.h>
-#endif
+#include <cerrno>
+#include <system_error>
 
 std::string cb_strerror() {
 #ifdef WIN32
@@ -24,25 +19,6 @@ std::string cb_strerror() {
 #endif
 }
 
-std::string cb_strerror(cb_os_error_t error)
-{
-#ifdef WIN32
-    std::string reason;
-    char *win_msg = NULL;
-    if (FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER |
-                      FORMAT_MESSAGE_FROM_SYSTEM |
-                      FORMAT_MESSAGE_IGNORE_INSERTS,
-                      NULL, error,
-                      MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-                      (LPTSTR)&win_msg,
-                      0, NULL) > 0) {
-        reason.assign(win_msg);
-        LocalFree(win_msg);
-    } else {
-        reason = std::string("Windows error: ") + std::to_string(error);
-    }
-    return reason;
-#else
-    return std::string(strerror(error));
-#endif
+std::string cb_strerror(cb_os_error_t error) {
+    return std::system_category().message(error);
 }
