@@ -48,3 +48,11 @@ TEST(SplitStringTest, ColonSeparator) {
     auto res = cb::string::split("Dette er en: test"sv, ':');
     EXPECT_EQ(blueprint, res);
 }
+
+/// Verify that trailing delimiters don't cause UB when allowEmpty=false
+/// (previously s.front() was called on an empty string_view)
+TEST(SplitStringTest, TrailingDelimiterAllowEmptyFalse) {
+    std::vector<std::string_view> blueprint({"a"sv, "b"sv});
+    auto res = cb::string::split("a  b  "sv, ' ', false);
+    EXPECT_EQ(blueprint, res);
+}
