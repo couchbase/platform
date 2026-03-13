@@ -32,6 +32,7 @@ cb_add_test_executable(platform_unit_tests
                        random_test.cc
                        relaxed_atomic_test.cc
                        ringbuffer_test.cc
+                       roundrobin_test.cc
                        token_bucket_rate_limiter_test.cc
                        save_file_test.cc
                        scope_timer_test.cc
