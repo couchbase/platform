@@ -17,6 +17,7 @@ cb_add_test_executable(platform_unit_tests
                        enum_class_bitmask_functions_test.cc
                        file_sink_tests.cc
                        getopt_test.cc
+                       give_kernel_io_advise_test.cc
                        guarded_test.cc
                        hex_test.cc
                        json_checker_test.cc

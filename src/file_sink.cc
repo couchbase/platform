@@ -16,8 +16,11 @@
 namespace cb::io {
 FileSink::FileSink(std::filesystem::path path,
                    Mode mode,
-                   std::size_t fsync_interval)
-    : filename(std::move(path)), fsync_interval(fsync_interval) {
+                   std::size_t fsync_interval,
+                   IoHint io_hint)
+    : filename(std::move(path)),
+      fsync_interval(fsync_interval),
+      io_hint(io_hint) {
     if (mode == Mode::Append) {
         fp = fopen(filename.string().c_str(), "ab");
     } else {
@@ -31,6 +34,26 @@ FileSink::FileSink(std::filesystem::path path,
                 fmt::format("Failed to open file '{}'", filename.string()));
     }
     (void)std::setvbuf(fp, nullptr, _IONBF, 0);
+    if (io_hint != IoHint::Normal) {
+        std::error_code ec;
+        auto hint = io_hint;
+
+        if (io_hint == IoHint::DontNeed) {
+            // The "Don't need" tries to free what's currently in the cache for
+            // the file, but we haven't written anything yet. We could give
+            // the kernel a hint that we're not going to need the data again and
+            // *can* be evicted immediately.
+            hint = IoHint::NoReuse;
+        }
+        if (!giveKernelIoAdvise(fileno(fp), hint, ec)) {
+            throw std::system_error(ec.value(),
+                                    std::system_category(),
+                                    fmt::format("Failed to give kernel I/O "
+                                                "advice '{}' for file '{}'",
+                                                hint,
+                                                filename.string()));
+        }
+    }
 }
 
 void FileSink::sink(std::string_view data) {
@@ -56,6 +79,10 @@ void FileSink::sink(std::string_view data) {
 
         if (bytes_written_since_flush >= fsync_interval) {
             fsync();
+        } else if (io_hint == IoHint::DontNeed) {
+            // Try to drop pages (dirty pages won't be dropped)
+            std::error_code ec;
+            (void)giveKernelIoAdvise(fileno(fp), io_hint, ec);
         }
     }
 }
@@ -71,6 +98,12 @@ std::size_t FileSink::fsync() {
                                 filename.string(),
                                 bytes_written));
         }
+        if (io_hint == IoHint::DontNeed) {
+            // Try to drop pages
+            std::error_code ec;
+            (void)giveKernelIoAdvise(fileno(fp), io_hint, ec);
+        }
+
         bytes_written_since_flush = 0;
     }
     return bytes_written;

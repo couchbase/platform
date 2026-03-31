@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include <platform/io_hint.h>
 #include <platform/sink.h>
 
 #include <cstdio>
@@ -39,15 +40,22 @@ public:
      * @param path The name of the file to write
      * @param mode The mode to open the file in
      * @param fsync_interval The interval between fsync calls
+     * @param io_hint The I/O access pattern hint to give the kernel for this
+     *                file. If set to IoHint::DontNeed the kernel will be
+     *                advised that the data will not be needed again and can be
+     *                evicted from the buffer cache immediately after being
+     *                written (and as part of flush an explicit call to drop
+     *                pages is made)
      * @throws std::system_error if the file cannot be opened
      */
     explicit FileSink(std::filesystem::path path,
                       Mode mode = Mode::Truncate,
                       std::size_t fsync_interval =
-                              std::numeric_limits<std::size_t>::max());
+                              std::numeric_limits<std::size_t>::max(),
+                      IoHint io_hint = IoHint::Normal);
 
     /// Close the file (any errors is silently ignored)
-    ~FileSink();
+    ~FileSink() override;
 
     /**
      * Write a blob of data to the end of the file
@@ -85,8 +93,9 @@ protected:
     int fsync_no_throw() noexcept;
 
     const std::filesystem::path filename;
-    FILE* fp = nullptr;
     const std::size_t fsync_interval;
+    const IoHint io_hint;
+    FILE* fp = nullptr;
     std::size_t bytes_written = 0;
     std::size_t bytes_written_since_flush = 0;
 };
