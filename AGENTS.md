@@ -86,6 +86,16 @@ Guidelines:
   are also a key part of our coding style.
 - Always build (see building hints and testing hints) before running tests!
 
+Language: **CMake**
+
+Guidelines:
+
+- Use modern CMake style (target-based, avoid global properties)
+- Prefer `target_include_directories` and `target_link_libraries` for dependencies
+- Follow existing patterns in the repository for consistency
+- Avoid global variables and side effects in CMake scripts
+- The `CMake Best Practices<https://cliutils.gitlab.io/modern-cmake/>` are also a key part of our CMake style.
+
 ---
 
 ## Building hints
