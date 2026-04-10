@@ -1,7 +1,8 @@
-include_directories(AFTER ${LIBEVENT_INCLUDE_DIR})
 add_library(cbsocket STATIC
             ${Platform_SOURCE_DIR}/include/platform/socket.h
             socket.cc)
+
+target_include_directories(cbsocket PRIVATE ${LIBEVENT_INCLUDE_DIR})
 
 target_link_libraries(cbsocket
                       PRIVATE
