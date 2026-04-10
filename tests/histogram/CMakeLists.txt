@@ -11,6 +11,6 @@ cb_add_test_executable(platform-histogram-test
                ${Platform_SOURCE_DIR}/include/platform/histogram.h
                ${Platform_SOURCE_DIR}/src/histogram.cc
                histogram_test.cc)
-TARGET_LINK_LIBRARIES(platform-histogram-test PRIVATE platform GTest::gtest GTest::gtest_main)
+target_link_libraries(platform-histogram-test PRIVATE platform GTest::gtest GTest::gtest_main)
 platform_enable_pch(platform-histogram-test)
-ADD_TEST(platform-histogram-test platform-histogram-test)
+add_test(platform-histogram-test platform-histogram-test)

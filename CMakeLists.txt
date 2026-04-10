@@ -1,11 +1,11 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 3.15)
-PROJECT(Platform LANGUAGES C CXX)
+cmake_minimum_required(VERSION 3.15)
+project(Platform LANGUAGES C CXX)
 
-INCLUDE(CheckFunctionExists)
-INCLUDE(CheckIncludeFile)
-INCLUDE(CheckIncludeFileCXX)
-INCLUDE(CheckSymbolExists)
-INCLUDE(CTest)
+include(CheckFunctionExists)
+include(CheckIncludeFile)
+include(CheckIncludeFileCXX)
+include(CheckSymbolExists)
+include(CTest)
 
 enable_code_coverage_report()
 
@@ -17,60 +17,60 @@ endif ()
 
 if (WIN32)
     set(CB_DONT_NEED_BYTEORDER true)
-else(WIN32)
+else()
     # Backtrace support on !win32 use backtrace() from execinfo.h and dladdr()
     # from dlfcn.h. Verify that they're there
-    CMAKE_PUSH_CHECK_STATE(RESET)
-    FIND_LIBRARY(EXECINFO_LIBRARY NAMES execinfo)
-    IF (EXECINFO_LIBRARY)
-        SET(CMAKE_REQUIRED_LIBRARIES "${EXECINFO_LIBRARY}")
-        LIST(APPEND PLATFORM_LIBRARIES "${EXECINFO_LIBRARY}")
-    ENDIF (EXECINFO_LIBRARY)
-    CHECK_SYMBOL_EXISTS(backtrace execinfo.h HAVE_BACKTRACE)
+    cmake_push_check_state(RESET)
+    find_library(EXECINFO_LIBRARY NAMES execinfo)
+    if (EXECINFO_LIBRARY)
+        set(CMAKE_REQUIRED_LIBRARIES "${EXECINFO_LIBRARY}")
+        list(APPEND PLATFORM_LIBRARIES "${EXECINFO_LIBRARY}")
+    endif ()
+    check_symbol_exists(backtrace execinfo.h HAVE_BACKTRACE)
     if (NOT HAVE_BACKTRACE)
         message(FATAL_ERROR "backtrace not found in execinfo.h and is needed for backtrace support")
     endif ()
-    CMAKE_POP_CHECK_STATE()
+    cmake_pop_check_state()
 
-    CMAKE_PUSH_CHECK_STATE(RESET)
-    SET(CMAKE_REQUIRED_DEFINITIONS "-D_GNU_SOURCE")
-    FIND_LIBRARY(DL_LIBRARY NAMES dl)
-    IF (DL_LIBRARY)
-        SET(CMAKE_REQUIRED_LIBRARIES "${DL_LIBRARY}")
-        LIST(APPEND PLATFORM_LIBRARIES "${DL_LIBRARY}")
-    ENDIF (DL_LIBRARY)
-    CHECK_SYMBOL_EXISTS(dladdr dlfcn.h HAVE_DLADDR)
+    cmake_push_check_state(RESET)
+    set(CMAKE_REQUIRED_DEFINITIONS "-D_GNU_SOURCE")
+    find_library(DL_LIBRARY NAMES dl)
+    if (DL_LIBRARY)
+        set(CMAKE_REQUIRED_LIBRARIES "${DL_LIBRARY}")
+        list(APPEND PLATFORM_LIBRARIES "${DL_LIBRARY}")
+    endif ()
+    check_symbol_exists(dladdr dlfcn.h HAVE_DLADDR)
     if (NOT HAVE_DLADDR)
         message(FATAL_ERROR "dladdr not found in dlfcn.h and is needed for backtrace support")
-    endif (NOT HAVE_DLADDR)
-    CMAKE_POP_CHECK_STATE()
+    endif ()
+    cmake_pop_check_state()
 
-    CMAKE_PUSH_CHECK_STATE(RESET)
-    SET(CMAKE_REQUIRED_DEFINITIONS "-D_GNU_SOURCE")
-    SET(CMAKE_REQUIRED_LIBRARIES "pthread")
-    CHECK_SYMBOL_EXISTS(sched_getaffinity sched.h HAVE_SCHED_GETAFFINITY)
-    CHECK_SYMBOL_EXISTS(sched_getcpu sched.h HAVE_SCHED_GETCPU)
-    CMAKE_POP_CHECK_STATE()
+    cmake_push_check_state(RESET)
+    set(CMAKE_REQUIRED_DEFINITIONS "-D_GNU_SOURCE")
+    set(CMAKE_REQUIRED_LIBRARIES "pthread")
+    check_symbol_exists(sched_getaffinity sched.h HAVE_SCHED_GETAFFINITY)
+    check_symbol_exists(sched_getcpu sched.h HAVE_SCHED_GETCPU)
+    cmake_pop_check_state()
 
-    CMAKE_PUSH_CHECK_STATE(RESET)
+    cmake_push_check_state(RESET)
 
-    CHECK_SYMBOL_EXISTS(htonll arpa/inet.h CB_DONT_NEED_BYTEORDER)
-    CHECK_INCLUDE_FILE(cpuid.h HAVE_CPUID_H)
+    check_symbol_exists(htonll arpa/inet.h CB_DONT_NEED_BYTEORDER)
+    check_include_file(cpuid.h HAVE_CPUID_H)
 
     # Used by sysinfo.cc in get_available_cpu_count
     if (HAVE_SCHED_GETAFFINITY)
-        add_definitions(-DHAVE_SCHED_GETAFFINITY=1)
+        add_compile_definitions(HAVE_SCHED_GETAFFINITY=1)
     endif()
 
     # The following checks is used by sysinfo.cc to get cpu index
     if (HAVE_SCHED_GETCPU)
-        add_definitions(-DHAVE_SCHED_GETCPU=1)
+        add_compile_definitions(HAVE_SCHED_GETCPU=1)
     endif()
 
     if (HAVE_CPUID_H)
-        add_definitions(-DHAVE_CPUID_H=1)
+        add_compile_definitions(HAVE_CPUID_H=1)
     endif()
-endif(WIN32)
+endif()
 
 # Some versions of GCC / clang needs an explicit link to stdc++exp
 # to get stacktrace support.
@@ -103,32 +103,32 @@ return 0;
     if (HAVE_LIB_STACKTRACE_WITH_EXTRA_LIB)
         set(BACKTRACE_EXTRA_LIB "stdc++exp")
     else ()
-        add_definitions(-DSTD_STACKTRACE_WONT_WORK=1)
-    endif (HAVE_LIB_STACKTRACE_WITH_EXTRA_LIB)
+        add_compile_definitions(STD_STACKTRACE_WONT_WORK=1)
+    endif ()
 endif ()
 
 cmake_pop_check_state()
 
-CONFIGURE_FILE (${CMAKE_CURRENT_SOURCE_DIR}/include/platform/dynamic.in.h
+configure_file (${CMAKE_CURRENT_SOURCE_DIR}/include/platform/dynamic.in.h
                 ${CMAKE_CURRENT_BINARY_DIR}/include/platform/dynamic.h)
 
-IF (MEMORY_ALLOCATOR)
+if (MEMORY_ALLOCATOR)
   include_directories(AFTER SYSTEM ${MALLOC_INCLUDE_DIR})
-ENDIF (MEMORY_ALLOCATOR)
+endif ()
 
-ADD_LIBRARY(JSON_checker STATIC src/JSON_checker.cc include/JSON_checker.h)
-TARGET_LINK_LIBRARIES(JSON_checker PRIVATE
+add_library(JSON_checker STATIC src/JSON_checker.cc include/JSON_checker.h)
+target_link_libraries(JSON_checker PRIVATE
         platform_headers
         simdutf::simdutf)
 
-IF (WIN32)
-   INCLUDE_DIRECTORIES(AFTER ${CMAKE_CURRENT_SOURCE_DIR}/include/win32)
-   ADD_DEFINITIONS(-D_CRT_SECURE_NO_WARNINGS)
-   SET(PLATFORM_FILES src/cb_win32.cc
+if (WIN32)
+   include_directories(AFTER ${CMAKE_CURRENT_SOURCE_DIR}/include/win32)
+   add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
+   set(PLATFORM_FILES src/cb_win32.cc
                       src/crc32c_hw_accel.cc
                       include/win32/getopt.h)
-ELSE (WIN32)
-   SET(PLATFORM_FILES src/cb_pthreads.cc)
+else ()
+   set(PLATFORM_FILES src/cb_pthreads.cc)
    set(crc32_hw_archs "aarch64;AMD64;arm64;x86_64")
    if(CMAKE_SYSTEM_PROCESSOR IN_LIST crc32_hw_archs)
       list(APPEND PLATFORM_FILES src/crc32c_hw_accel.cc)
@@ -146,21 +146,20 @@ ELSE (WIN32)
    set_source_files_properties(src/crc32c_hw_accel.cc
                                PROPERTIES
                                SKIP_PRECOMPILE_HEADERS ON)
-   LIST(APPEND PLATFORM_LIBRARIES "pthread")
+   list(APPEND PLATFORM_LIBRARIES "pthread")
 
-   IF (NOT APPLE)
-      LIST(APPEND PLATFORM_LIBRARIES "rt")
-   ENDIF(NOT APPLE)
+   if (NOT APPLE)
+      list(APPEND PLATFORM_LIBRARIES "rt")
+   endif()
 
-   SET(LIB_M m)
-   LIST(REMOVE_DUPLICATES PLATFORM_LIBRARIES)
-ENDIF (WIN32)
+   list(REMOVE_DUPLICATES PLATFORM_LIBRARIES)
+endif ()
 
-IF (NOT DEFINED COUCHBASE_NETWORK_LIBS)
-   IF (WIN32)
-      SET(COUCHBASE_NETWORK_LIBS "Ws2_32")
-   ENDIF (WIN32)
-ENDIF (NOT DEFINED COUCHBASE_NETWORK_LIBS)
+if (NOT DEFINED COUCHBASE_NETWORK_LIBS)
+   if (WIN32)
+      set(COUCHBASE_NETWORK_LIBS "Ws2_32")
+   endif ()
+endif ()
 
 cmake_push_check_state(RESET)
 # On macOS, aligned_alloc() is only available when CMAKE_OSX_DEPLOYMENT_TARGET
@@ -177,13 +176,13 @@ if (APPLE)
 endif()
 check_symbol_exists(aligned_alloc stdlib.h HAVE_ALIGNED_ALLOC)
 if(HAVE_ALIGNED_ALLOC)
-    add_definitions(-DHAVE_ALIGNED_ALLOC)
+    add_compile_definitions(HAVE_ALIGNED_ALLOC)
 endif()
 cmake_pop_check_state()
 
 check_symbol_exists(posix_memalign stdlib.h HAVE_POSIX_MEMALIGN)
 if(HAVE_POSIX_MEMALIGN)
-    add_definitions(-DHAVE_POSIX_MEMALIGN)
+    add_compile_definitions(HAVE_POSIX_MEMALIGN)
 endif()
 
 #
@@ -197,9 +196,9 @@ endif()
 # complete library. For example, a unit test might want to just link against
 # the single .cc file for the code it is testing, but needs the prototype(s)
 # of that .cc file.
-ADD_LIBRARY(platform_headers INTERFACE)
-TARGET_LINK_LIBRARIES(platform_headers INTERFACE Folly::headers gsl::gsl-lite)
-TARGET_INCLUDE_DIRECTORIES(platform_headers INTERFACE
+add_library(platform_headers INTERFACE)
+target_link_libraries(platform_headers INTERFACE Folly::headers gsl::gsl-lite)
+target_include_directories(platform_headers INTERFACE
         include
         ${Platform_BINARY_DIR}/include)
 
@@ -216,9 +215,9 @@ elseif (UNIX)
   set(CB_MALLOC_IMPL src/cb_malloc_default.cc)
 else ()
   message(FATAL_ERROR "Unsupported system")
-endif (WIN32)
+endif ()
 
-LIST(APPEND PLATFORM_FILES
+list(APPEND PLATFORM_FILES
   src/awaitable_semaphore.cc
   src/base64.cc
   src/dirutils.cc
@@ -302,7 +301,7 @@ set_source_files_properties(src/getopt.cc
         PROPERTIES SKIP_UNITY_BUILD_INCLUSION 1)
 
 # Build a separate static library for cbassert/backtrace
-LIST(APPEND CBASSERT_FILES
+list(APPEND CBASSERT_FILES
   src/backtrace.cc
   src/cbassert.cc
   include/platform/backtrace.h
@@ -322,7 +321,7 @@ if(CB_SANITIZERS)
 else()
   add_library(platform_cbassert_unsanitized ALIAS platform_cbassert)
   set(platform_cbassert_VARIANTS platform_cbassert)
-endif(CB_SANITIZERS)
+endif()
 
 foreach(platform_cbassert_variant ${platform_cbassert_VARIANTS})
   target_sources(${platform_cbassert_variant} PRIVATE ${CBASSERT_FILES})
@@ -344,10 +343,10 @@ if (UNIX)
 endif()
 
 if (MEMORY_ALLOCATOR STREQUAL "jemalloc")
-    LIST(APPEND PLATFORM_FILES src/je_arena_corelocal_tracker.cc)
-    LIST(APPEND PLATFORM_FILES src/je_arena_simple_tracker.cc)
-    LIST(APPEND PLATFORM_FILES src/je_arena_malloc.cc)
-    LIST(APPEND PLATFORM_FILES src/je_arena_malloc_stats.cc)
+    list(APPEND PLATFORM_FILES src/je_arena_corelocal_tracker.cc)
+    list(APPEND PLATFORM_FILES src/je_arena_simple_tracker.cc)
+    list(APPEND PLATFORM_FILES src/je_arena_malloc.cc)
+    list(APPEND PLATFORM_FILES src/je_arena_malloc_stats.cc)
 
     # Exclude je_arena_simple_tracker.cc from unity builds as it
     # defines a static array which cause compiler warning when other
@@ -358,7 +357,7 @@ if (MEMORY_ALLOCATOR STREQUAL "jemalloc")
             PROPERTIES SKIP_UNITY_BUILD_INCLUSION 1)
 endif ()
 # Always build the system_arena code for simpler concurrent development
-LIST(APPEND PLATFORM_FILES src/system_arena_malloc.cc)
+list(APPEND PLATFORM_FILES src/system_arena_malloc.cc)
 
 
 if (CB_PCH)
@@ -442,11 +441,11 @@ target_sources(platform PRIVATE ${PLATFORM_FILES})
 # htons/htonl (via Ws2_32) etc when building on Windows.
 # Until all such targets are updated to link directly to Ws2_32, we
 # link publically.
-TARGET_LINK_LIBRARIES(platform PUBLIC
+target_link_libraries(platform PUBLIC
   ${COUCHBASE_NETWORK_LIBS}
   platform_cbassert nlohmann_json::nlohmann_json)
 
-SET_TARGET_PROPERTIES(platform PROPERTIES POSITION_INDEPENDENT_CODE true)
+set_target_properties(platform PROPERTIES POSITION_INDEPENDENT_CODE true)
 platform_enable_pch(platform)
 cb_enable_unity_build(platform)
 
@@ -479,9 +478,9 @@ elseif (UNIX)
   # JeMalloc must link against this extra library. This library will give
   # the target a strong symbol for cb_malloc, overriding the weak symbol within
   # platform_so.so
-  LIST(APPEND PLATFORM_CB_MALLOC_ARENA_FILES src/cb_malloc_arena.cc)
+  list(APPEND PLATFORM_CB_MALLOC_ARENA_FILES src/cb_malloc_arena.cc)
   if (MEMORY_ALLOCATOR STREQUAL "jemalloc")
-    LIST(APPEND PLATFORM_CB_MALLOC_ARENA_FILES src/je_malloc_conf.cc)
+    list(APPEND PLATFORM_CB_MALLOC_ARENA_FILES src/je_malloc_conf.cc)
   endif()
 else ()
   message(FATAL_ERROR "Unsupported system")
@@ -517,17 +516,17 @@ if (BREAKPAD_FOUND)
    target_compile_definitions(breakpad_wrapper PRIVATE -DHAVE_BREAKPAD)
    target_include_directories(breakpad_wrapper SYSTEM PRIVATE ${BREAKPAD_INCLUDE_DIR})
    target_link_libraries(breakpad_wrapper ${BREAKPAD_LIBRARIES})
-endif (BREAKPAD_FOUND)
+endif ()
 target_link_libraries(breakpad_wrapper platform_headers)
 
-INSTALL(TARGETS breakpad_wrapper
+install(TARGETS breakpad_wrapper
         RUNTIME DESTINATION bin
         LIBRARY DESTINATION lib
         ARCHIVE DESTINATION lib)
 
-ADD_SUBDIRECTORY(cbcompress)
-ADD_SUBDIRECTORY(hdrhistogram)
-ADD_SUBDIRECTORY(cbsocket)
+add_subdirectory(cbcompress)
+add_subdirectory(hdrhistogram)
+add_subdirectory(cbsocket)
 add_subdirectory(cbcrypto)
 add_subdirectory(tests)
 
