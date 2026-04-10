@@ -15,6 +15,8 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     add_compile_options(-Werror=shorten-64-to-32 -Werror=implicit-int-conversion)
 endif ()
 
+add_library(platform STATIC)
+
 if (WIN32)
     set(CB_DONT_NEED_BYTEORDER true)
 else()
@@ -24,7 +26,7 @@ else()
     find_library(EXECINFO_LIBRARY NAMES execinfo)
     if (EXECINFO_LIBRARY)
         set(CMAKE_REQUIRED_LIBRARIES "${EXECINFO_LIBRARY}")
-        list(APPEND PLATFORM_LIBRARIES "${EXECINFO_LIBRARY}")
+        target_link_libraries(platform PRIVATE "${EXECINFO_LIBRARY}")
     endif ()
     check_symbol_exists(backtrace execinfo.h HAVE_BACKTRACE)
     if (NOT HAVE_BACKTRACE)
@@ -37,7 +39,7 @@ else()
     find_library(DL_LIBRARY NAMES dl)
     if (DL_LIBRARY)
         set(CMAKE_REQUIRED_LIBRARIES "${DL_LIBRARY}")
-        list(APPEND PLATFORM_LIBRARIES "${DL_LIBRARY}")
+        target_link_libraries(platform PRIVATE "${DL_LIBRARY}")
     endif ()
     check_symbol_exists(dladdr dlfcn.h HAVE_DLADDR)
     if (NOT HAVE_DLADDR)
@@ -59,16 +61,16 @@ else()
 
     # Used by sysinfo.cc in get_available_cpu_count
     if (HAVE_SCHED_GETAFFINITY)
-        add_compile_definitions(HAVE_SCHED_GETAFFINITY=1)
+        target_compile_definitions(platform PRIVATE HAVE_SCHED_GETAFFINITY=1)
     endif()
 
     # The following checks is used by sysinfo.cc to get cpu index
     if (HAVE_SCHED_GETCPU)
-        add_compile_definitions(HAVE_SCHED_GETCPU=1)
+        target_compile_definitions(platform PRIVATE HAVE_SCHED_GETCPU=1)
     endif()
 
     if (HAVE_CPUID_H)
-        add_compile_definitions(HAVE_CPUID_H=1)
+        target_compile_definitions(platform PRIVATE HAVE_CPUID_H=1)
     endif()
 endif()
 
@@ -103,7 +105,7 @@ return 0;
     if (HAVE_LIB_STACKTRACE_WITH_EXTRA_LIB)
         set(BACKTRACE_EXTRA_LIB "stdc++exp")
     else ()
-        add_compile_definitions(STD_STACKTRACE_WONT_WORK=1)
+        target_compile_definitions(platform PRIVATE STD_STACKTRACE_WONT_WORK=1)
     endif ()
 endif ()
 
@@ -122,16 +124,16 @@ target_link_libraries(JSON_checker PRIVATE
         simdutf::simdutf)
 
 if (WIN32)
-   include_directories(AFTER ${CMAKE_CURRENT_SOURCE_DIR}/include/win32)
-   add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
-   set(PLATFORM_FILES src/cb_win32.cc
+   target_include_directories(platform PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include/win32)
+   target_compile_definitions(platform PRIVATE _CRT_SECURE_NO_WARNINGS)
+   target_sources(platform PRIVATE src/cb_win32.cc
                       src/crc32c_hw_accel.cc
                       include/win32/getopt.h)
 else ()
-   set(PLATFORM_FILES src/cb_pthreads.cc)
+   target_sources(platform PRIVATE src/cb_pthreads.cc)
    set(crc32_hw_archs "aarch64;AMD64;arm64;x86_64")
    if(CMAKE_SYSTEM_PROCESSOR IN_LIST crc32_hw_archs)
-      list(APPEND PLATFORM_FILES src/crc32c_hw_accel.cc)
+      target_sources(platform PRIVATE src/crc32c_hw_accel.cc)
    endif()
    if (CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
       set_source_files_properties(src/crc32c_hw_accel.cc
@@ -146,13 +148,12 @@ else ()
    set_source_files_properties(src/crc32c_hw_accel.cc
                                PROPERTIES
                                SKIP_PRECOMPILE_HEADERS ON)
-   list(APPEND PLATFORM_LIBRARIES "pthread")
+   target_link_libraries(platform PRIVATE pthread)
 
    if (NOT APPLE)
-      list(APPEND PLATFORM_LIBRARIES "rt")
+       target_link_libraries(platform PRIVATE rt)
    endif()
 
-   list(REMOVE_DUPLICATES PLATFORM_LIBRARIES)
 endif ()
 
 if (NOT DEFINED COUCHBASE_NETWORK_LIBS)
@@ -176,13 +177,13 @@ if (APPLE)
 endif()
 check_symbol_exists(aligned_alloc stdlib.h HAVE_ALIGNED_ALLOC)
 if(HAVE_ALIGNED_ALLOC)
-    add_compile_definitions(HAVE_ALIGNED_ALLOC)
+    target_compile_definitions(platform PRIVATE HAVE_ALIGNED_ALLOC)
 endif()
 cmake_pop_check_state()
 
 check_symbol_exists(posix_memalign stdlib.h HAVE_POSIX_MEMALIGN)
 if(HAVE_POSIX_MEMALIGN)
-    add_compile_definitions(HAVE_POSIX_MEMALIGN)
+    target_compile_definitions(platform PRIVATE HAVE_POSIX_MEMALIGN)
 endif()
 
 #
@@ -217,7 +218,7 @@ else ()
   message(FATAL_ERROR "Unsupported system")
 endif ()
 
-list(APPEND PLATFORM_FILES
+target_sources(platform PRIVATE
   src/awaitable_semaphore.cc
   src/base64.cc
   src/dirutils.cc
@@ -343,10 +344,10 @@ if (UNIX)
 endif()
 
 if (MEMORY_ALLOCATOR STREQUAL "jemalloc")
-    list(APPEND PLATFORM_FILES src/je_arena_corelocal_tracker.cc)
-    list(APPEND PLATFORM_FILES src/je_arena_simple_tracker.cc)
-    list(APPEND PLATFORM_FILES src/je_arena_malloc.cc)
-    list(APPEND PLATFORM_FILES src/je_arena_malloc_stats.cc)
+    target_sources(platform PRIVATE src/je_arena_corelocal_tracker.cc)
+    target_sources(platform PRIVATE src/je_arena_simple_tracker.cc)
+    target_sources(platform PRIVATE src/je_arena_malloc.cc)
+    target_sources(platform PRIVATE src/je_arena_malloc_stats.cc)
 
     # Exclude je_arena_simple_tracker.cc from unity builds as it
     # defines a static array which cause compiler warning when other
@@ -357,7 +358,7 @@ if (MEMORY_ALLOCATOR STREQUAL "jemalloc")
             PROPERTIES SKIP_UNITY_BUILD_INCLUSION 1)
 endif ()
 # Always build the system_arena code for simpler concurrent development
-list(APPEND PLATFORM_FILES src/system_arena_malloc.cc)
+target_sources(platform PRIVATE src/system_arena_malloc.cc)
 
 
 if (CB_PCH)
@@ -406,7 +407,6 @@ set_source_files_properties(src/global_new_replacement.cc
 # bugs when Folly is used from multiple shared binaries in the same
 # process - i.e. if both the main exe (memcached) and platform.so
 # linked folly, we run in to problems - see MB-45378.
-add_library(platform STATIC)
 target_link_libraries(platform PUBLIC Folly::folly platform_headers)
 target_link_libraries(platform PRIVATE
   phosphor
@@ -414,7 +414,6 @@ target_link_libraries(platform PRIVATE
   simdutf::simdutf
   spdlog::spdlog
   ${MALLOC_LIBRARIES}
-  ${PLATFORM_LIBRARIES}
   ${BACKTRACE_EXTRA_LIB})
 
 if (APPLE)
@@ -430,10 +429,9 @@ if (APPLE)
 endif ()
 
 if (UNIX)
-    list(APPEND PLATFORM_FILES $<TARGET_OBJECTS:cgroup_objs>)
+    target_sources(platform PRIVATE $<TARGET_OBJECTS:cgroup_objs>)
 endif()
 
-target_sources(platform PRIVATE ${PLATFORM_FILES})
 
 # Link publically with COUCHBASE_NETWORK_LIBS - strictly speaking this
 # shouldn't be necessary, however a number of downstream components
