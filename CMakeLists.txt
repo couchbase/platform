@@ -9,6 +9,12 @@ INCLUDE(CTest)
 
 enable_code_coverage_report()
 
+# MB-68266: Turn on some extra warnings as errors for clang
+#           builds to help catch potential issues earlier.
+if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    add_compile_options(-Werror=shorten-64-to-32 -Werror=implicit-int-conversion)
+endif ()
+
 if (WIN32)
     set(CB_DONT_NEED_BYTEORDER true)
 else(WIN32)
@@ -533,13 +539,3 @@ add_test(NAME platform-check-header-define-once-guard
         --exclude include/platform/simd/scan_neon.h
         --exclude external/valgrind/valgrind.h
         --exclude external/valgrind/memcheck.h)
-
-# MB-67520: Enable warnings for narrowing conversions and
-# implicit int conversions when building with Clang/AppleClang
-# PRIVATE is used to avoid leaking these warnings to other
-# targets which are yet to be fixed
-if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  target_compile_options(platform PRIVATE
-                                  -Werror=shorten-64-to-32
-                                  -Werror=implicit-int-conversion)
-endif()
