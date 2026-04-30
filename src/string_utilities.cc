@@ -10,6 +10,8 @@
 #include <fmt/format.h>
 #include <platform/byte_literals.h>
 #include <platform/string_utilities.h>
+
+#include <algorithm>
 #include <array>
 #include <charconv>
 
@@ -79,4 +81,18 @@ std::size_t cb::human2size(std::string_view text) {
     }
 
     return value;
+}
+
+std::string cb::toupper(std::string text) {
+    std::ranges::transform(text, text.begin(), [](unsigned char c) {
+        return std::toupper(c);
+    });
+    return text;
+}
+
+std::string cb::tolower(std::string text) {
+    std::ranges::transform(text, text.begin(), [](unsigned char c) {
+        return std::tolower(c);
+    });
+    return text;
 }

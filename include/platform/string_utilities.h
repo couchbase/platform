@@ -35,4 +35,21 @@ std::string size2human(std::size_t value,
  * @return the value in bytes
  */
 std::size_t human2size(std::string_view text);
+
+/**
+ * Convert all characters in the string to uppercase.
+ *
+ * @param text The string to convert
+ * @return A new string with all characters converted to uppercase
+ */
+std::string toupper(std::string text);
+
+/**
+ * Convert all characters in the string to lowercase.
+ *
+ * @param text The string to convert
+ * @return A new string with all characters converted to lowercase
+ */
+std::string tolower(std::string text);
+
 } // namespace cb

@@ -32,3 +32,51 @@ TEST(Human2Size, Conversion) {
     EXPECT_EQ(7_TiB, cb::human2size("7T"));
     EXPECT_EQ(8_TiB * 1024, cb::human2size("8PB"));
 }
+
+TEST(ToUpper, EmptyString) {
+    EXPECT_EQ("", cb::toupper(""));
+}
+
+TEST(ToUpper, AlreadyUppercase) {
+    EXPECT_EQ("HELLO", cb::toupper("HELLO"));
+}
+
+TEST(ToUpper, Lowercase) {
+    EXPECT_EQ("HELLO", cb::toupper("hello"));
+}
+
+TEST(ToUpper, MixedCase) {
+    EXPECT_EQ("HELLO WORLD", cb::toupper("HeLLo WoRLd"));
+}
+
+TEST(ToUpper, WithNumbers) {
+    EXPECT_EQ("ABC123DEF", cb::toupper("abc123def"));
+}
+
+TEST(ToUpper, WithSpecialCharacters) {
+    EXPECT_EQ("HELLO-WORLD_123!", cb::toupper("hello-world_123!"));
+}
+
+TEST(ToLower, EmptyString) {
+    EXPECT_EQ("", cb::tolower(""));
+}
+
+TEST(ToLower, AlreadyLowercase) {
+    EXPECT_EQ("hello", cb::tolower("hello"));
+}
+
+TEST(ToLower, Uppercase) {
+    EXPECT_EQ("hello", cb::tolower("HELLO"));
+}
+
+TEST(ToLower, MixedCase) {
+    EXPECT_EQ("hello world", cb::tolower("HeLLo WoRLd"));
+}
+
+TEST(ToLower, WithNumbers) {
+    EXPECT_EQ("abc123def", cb::tolower("ABC123DEF"));
+}
+
+TEST(ToLower, WithSpecialCharacters) {
+    EXPECT_EQ("hello-world_123!", cb::tolower("HELLO-WORLD_123!"));
+}
