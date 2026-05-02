@@ -9,6 +9,7 @@
  */
 #include <folly/io/IOBuf.h>
 #include <folly/portability/GTest.h>
+#include <platform/byte_literals.h>
 #include <platform/compress.h>
 #include <stdexcept>
 
@@ -33,12 +34,12 @@ TEST(Compression, TestSnappyCompression) {
     EXPECT_EQ(0, std::memcmp(output.data(), def->data(), def->length()));
 
     Buffer back;
-    EXPECT_TRUE(inflateSnappy(output, back));
+    EXPECT_TRUE(inflateSnappy(output, back, 30_MiB));
 
     EXPECT_EQ(8192u, back.size());
     EXPECT_NE(nullptr, back.data());
     EXPECT_EQ(0, memcmp(input.data(), back.data(), input.size()));
-    auto inf = inflateSnappy(output);
+    auto inf = inflateSnappy(output, 30_MiB);
     EXPECT_EQ(input.size(), inf->length());
     EXPECT_EQ(0, memcmp(input.data(), inf->data(), input.size()));
 
@@ -62,7 +63,7 @@ TEST(Compression, TestIllegalSnappyInflate) {
     input.resize(8192);
     memset(input.data(), 'a', 8192);
 
-    EXPECT_FALSE(inflateSnappy(input, output));
+    EXPECT_FALSE(inflateSnappy(input, output, 30_MiB));
 }
 
 TEST(Compression, TestGetUncompressedLength) {

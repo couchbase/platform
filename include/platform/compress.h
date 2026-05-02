@@ -21,13 +21,6 @@ class IOBuf;
 namespace cb::compression {
 
 /**
- * The default maximum size used during inflating of buffers to avoid having
- * the library go ahead and allocate crazy big sizes if the input is
- * garbled which could impact the rest of the system.
- */
-static const size_t DEFAULT_MAX_INFLATED_SIZE = 30 * 1024 * 1024;
-
-/**
  * Inflate the data in the buffer into the output buffer
  *
  * @param type The codec to use (currently ignored)
@@ -42,11 +35,10 @@ static const size_t DEFAULT_MAX_INFLATED_SIZE = 30 * 1024 * 1024;
  * @throws std::bad_alloc if we fail to allocate memory for the
  *                        destination buffer
  */
-[[nodiscard]] bool inflate(
-        folly::io::CodecType type,
-        std::string_view input,
-        Buffer& output,
-        size_t max_inflated_size = DEFAULT_MAX_INFLATED_SIZE);
+[[nodiscard]] bool inflate(folly::io::CodecType type,
+                           std::string_view input,
+                           Buffer& output,
+                           size_t max_inflated_size);
 
 /**
  * Inflate the data and return a std::unique_ptr to a folly IOBuf
@@ -65,10 +57,9 @@ static const size_t DEFAULT_MAX_INFLATED_SIZE = 30 * 1024 * 1024;
  * @throws std::range_error if the inflated data would exceed max_inflated_size
  * @throws std::runtime_error if there is an error related to inflating data
  */
-[[nodiscard]] std::unique_ptr<folly::IOBuf> inflate(
-        folly::io::CodecType type,
-        std::string_view input,
-        size_t max_inflated_size = DEFAULT_MAX_INFLATED_SIZE);
+[[nodiscard]] std::unique_ptr<folly::IOBuf> inflate(folly::io::CodecType type,
+                                                    std::string_view input,
+                                                    size_t max_inflated_size);
 
 /**
  * Deflate the data in the buffer into the output buffer
@@ -114,14 +105,12 @@ static const size_t DEFAULT_MAX_INFLATED_SIZE = 30 * 1024 * 1024;
  * All data inside kv-engine (and on the wire) use Snappy compression.
  * This is a wrapper method used to save some typing ;)
  */
-[[nodiscard]] bool inflateSnappy(
-        std::string_view input,
-        Buffer& output,
-        size_t max_inflated_size = DEFAULT_MAX_INFLATED_SIZE);
+[[nodiscard]] bool inflateSnappy(std::string_view input,
+                                 Buffer& output,
+                                 size_t max_inflated_size);
 
 [[nodiscard]] std::unique_ptr<folly::IOBuf> inflateSnappy(
-        std::string_view input,
-        size_t max_inflated_size = DEFAULT_MAX_INFLATED_SIZE);
+        std::string_view input, size_t max_inflated_size);
 
 /**
  * All data inside kv-engine (and on the wire) use Snappy compression.
