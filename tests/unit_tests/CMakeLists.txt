@@ -16,6 +16,7 @@ cb_add_test_executable(platform_unit_tests
                        dirutils_test_2.cc
                        enum_class_bitmask_functions_test.cc
                        file_sink_tests.cc
+                       from_hex_test.cc
                        getopt_test.cc
                        give_kernel_io_advise_test.cc
                        guarded_test.cc
