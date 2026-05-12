@@ -108,6 +108,41 @@ const char DirectorySeparator{'/'};
 void rmrf(std::string_view path);
 
 /**
+ * Try to remove a file or directory (including subdirectories) with retries if
+ * the file is locked by another process. The method will keep trying to remove
+ * the file until it succeeds or the max_wait_time is reached. If the file is
+ * still locked after max_wait_time, a std::system_error will be thrown.
+ *
+ * @param path The file/directory to remove
+ * @param max_wait_time The maximum time to wait for the file to be unlocked
+ *                      before giving up and throwing an exception
+ * @throws std::system_error if the file is still locked after max_wait_time or
+ *                           if any other error occurs during deletion
+ */
+void remove_with_retry(
+        const std::filesystem::path& path,
+        std::chrono::microseconds max_wait_time = std::chrono::seconds{5});
+
+/**
+ * Try to remove a file or directory (including subdirectories) with retries if
+ * the file is locked by another process. The method will keep trying to remove
+ * the file until it succeeds or the max_wait_time is reached.
+ *
+ * @param path The file/directory to remove
+ * @param ec Error code set on failure (contains error details if remove fails)
+ * @param max_wait_time The maximum time to wait for the file to be unlocked
+ *                      before giving up (default: 5 seconds)
+ * @return true if the file/directory was successfully removed or doesn't exist,
+ *         false if removal failed after max_wait_time (ec will contain error
+ *               code)
+ * @note This is the noexcept variant - errors are reported via ec parameter
+ */
+bool remove_with_retry(const std::filesystem::path& path,
+                       std::error_code& ec,
+                       std::chrono::microseconds max_wait_time =
+                               std::chrono::seconds{5}) noexcept;
+
+/**
  * Check if a directory exists or not
  */
 [[nodiscard]] bool isDirectory(std::string_view directory);

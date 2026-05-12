@@ -400,6 +400,211 @@ TEST_F(IoTest, DirectoryIteratorPermissionsViolation) {
     ASSERT_FALSE(cb::io::isDirectory(testRootDir.string()));
 }
 
+TEST_F(IoTest, removeWithRetryFile) {
+    // Test removing a regular file
+    auto filename = cb::io::mktemp("remove_with_retry_test");
+    ASSERT_TRUE(cb::io::isFile(filename));
+
+    cb::io::remove_with_retry(filename);
+    EXPECT_FALSE(cb::io::isFile(filename));
+}
+
+TEST_F(IoTest, removeWithRetryDirectory) {
+    // Test removing a directory
+    std::filesystem::path testDir("remove_with_retry_dir_test");
+    cb::io::mkdirp(testDir.string());
+    ASSERT_TRUE(cb::io::isDirectory(testDir.string()));
+
+    cb::io::remove_with_retry(testDir);
+    EXPECT_FALSE(cb::io::isDirectory(testDir.string()));
+}
+
+TEST_F(IoTest, removeWithRetryNestedDirectory) {
+    // Test removing a directory with nested contents
+    std::filesystem::path testDir("remove_with_retry_nested_test");
+    std::filesystem::path subDir = testDir / "subdir";
+    cb::io::mkdirp(subDir.string());
+    auto file = cb::io::mktemp((subDir / "file").make_preferred().string());
+    ASSERT_TRUE(cb::io::isFile(file));
+
+    cb::io::remove_with_retry(testDir);
+    EXPECT_FALSE(cb::io::isDirectory(testDir.string()));
+    EXPECT_FALSE(cb::io::isFile(file));
+}
+
+TEST_F(IoTest, removeWithRetryNonExistent) {
+    // Test removing a path that doesn't exist - should not throw
+    std::filesystem::path nonExistent("this_path_does_not_exist_12345");
+    ASSERT_FALSE(cb::io::isFile(nonExistent.string()));
+    ASSERT_FALSE(cb::io::isDirectory(nonExistent.string()));
+
+    // Should not throw for non-existent path
+    cb::io::remove_with_retry(nonExistent);
+}
+
+TEST_F(IoTest, removeWithRetryErrorCodeFile) {
+    // Test error code version removing a regular file
+    auto filename = cb::io::mktemp("remove_with_retry_ec_test");
+    ASSERT_TRUE(cb::io::isFile(filename));
+
+    std::error_code ec;
+    bool result = cb::io::remove_with_retry(filename, ec);
+    EXPECT_TRUE(result);
+    EXPECT_FALSE(ec);
+    EXPECT_FALSE(cb::io::isFile(filename));
+}
+
+TEST_F(IoTest, removeWithRetryErrorCodeDirectory) {
+    // Test error code version removing a directory
+    std::filesystem::path testDir("remove_with_retry_ec_dir_test");
+    cb::io::mkdirp(testDir.string());
+    ASSERT_TRUE(cb::io::isDirectory(testDir.string()));
+
+    std::error_code ec;
+    bool result = cb::io::remove_with_retry(testDir, ec);
+    EXPECT_TRUE(result);
+    EXPECT_FALSE(ec);
+    EXPECT_FALSE(cb::io::isDirectory(testDir.string()));
+}
+
+TEST_F(IoTest, removeWithRetryErrorCodeNonExistent) {
+    // Test error code version with non-existent path
+    std::filesystem::path nonExistent("this_path_does_not_exist_ec_12345");
+
+    std::error_code ec;
+    bool result = cb::io::remove_with_retry(nonExistent, ec);
+    EXPECT_TRUE(result);
+    EXPECT_FALSE(ec);
+}
+
+TEST_F(IoTest, removeWithRetryErrorCodeMultipleFiles) {
+    // Test removing a directory with multiple files
+    std::filesystem::path testDir("remove_with_retry_ec_multi_test");
+    cb::io::mkdirp(testDir.string());
+
+    auto file1 = cb::io::mktemp((testDir / "file1").make_preferred().string());
+    auto file2 = cb::io::mktemp((testDir / "file2").make_preferred().string());
+    ASSERT_TRUE(cb::io::isFile(file1));
+    ASSERT_TRUE(cb::io::isFile(file2));
+
+    std::error_code ec;
+    bool result = cb::io::remove_with_retry(testDir, ec);
+    EXPECT_TRUE(result);
+    EXPECT_FALSE(ec);
+    EXPECT_FALSE(cb::io::isDirectory(testDir.string()));
+    EXPECT_FALSE(cb::io::isFile(file1));
+    EXPECT_FALSE(cb::io::isFile(file2));
+}
+
+TEST_F(IoTest, removeWithRetryCustomTimeout) {
+    // Test with custom timeout - should succeed quickly for existing file
+    auto filename = cb::io::mktemp("remove_with_retry_timeout_test");
+    ASSERT_TRUE(cb::io::isFile(filename));
+
+    std::error_code ec;
+    bool result = cb::io::remove_with_retry(
+            filename, ec, std::chrono::milliseconds(100));
+    EXPECT_TRUE(result);
+    EXPECT_FALSE(ec);
+    EXPECT_FALSE(cb::io::isFile(filename));
+}
+
+TEST_F(IoTest, removeWithRetryDeepNesting) {
+    // Test removing deeply nested directory structure
+    std::filesystem::path testRoot("remove_with_retry_deep_test");
+    std::filesystem::path current = testRoot;
+    for (int i = 0; i < 5; ++i) {
+        current = current / ("level" + std::to_string(i));
+    }
+    cb::io::mkdirp(current.string());
+    auto file =
+            cb::io::mktemp((current / "deepfile").make_preferred().string());
+    ASSERT_TRUE(cb::io::isFile(file));
+
+    cb::io::remove_with_retry(testRoot);
+    EXPECT_FALSE(cb::io::isDirectory(testRoot.string()));
+    EXPECT_FALSE(cb::io::isFile(file));
+}
+
+TEST_F(IoTest, removeWithRetryTimeout) {
+    // Test timeout behavior - create a scenario where removal keeps failing
+    // and verify that the function times out and returns false
+    std::filesystem::path testDir("remove_with_retry_timeout_fail_test");
+    cb::io::mkdirp(testDir.string());
+    auto filename =
+            cb::io::mktemp((testDir / "file").make_preferred().string());
+    ASSERT_TRUE(cb::io::isFile(filename));
+
+#ifndef WIN32
+    // On POSIX systems, remove write permission on the parent directory
+    // to prevent directory modification (which would fail removal)
+    std::error_code ec_perm;
+    std::filesystem::permissions(testDir,
+                                 std::filesystem::perms::owner_read |
+                                         std::filesystem::perms::owner_exec,
+                                 std::filesystem::perm_options::replace,
+                                 ec_perm);
+
+    if (!ec_perm) {
+        // If permission change succeeded, removal should timeout
+        std::error_code ec;
+        auto start = std::chrono::steady_clock::now();
+        bool result = cb::io::remove_with_retry(
+                testDir, ec, std::chrono::milliseconds(50));
+        auto elapsed = std::chrono::steady_clock::now() - start;
+
+        EXPECT_FALSE(result) << "Should timeout and return false";
+        EXPECT_TRUE(ec) << "Error code should be set on timeout";
+        EXPECT_EQ(std::make_error_code(std::errc::timed_out), ec);
+        EXPECT_GE(elapsed, std::chrono::milliseconds(50))
+                << "Should wait at least the timeout duration";
+
+        // Restore permissions for cleanup
+        std::filesystem::permissions(testDir,
+                                     std::filesystem::perms::owner_all,
+                                     std::filesystem::perm_options::replace,
+                                     ec_perm);
+    }
+    // Clean up
+    cb::io::rmrf(testDir.string());
+#endif
+}
+
+TEST_F(IoTest, removeWithRetryExceptionThrows) {
+    // Test that exception-throwing variant throws on timeout
+    // Create a file that exists
+    std::filesystem::path testDir("remove_with_retry_exception_test");
+    cb::io::mkdirp(testDir.string());
+    auto file =
+            cb::io::mktemp((testDir / "testfile").make_preferred().string());
+    ASSERT_TRUE(cb::io::isFile(file));
+
+#ifndef WIN32
+    // On POSIX systems, remove all permissions on the directory to prevent
+    // removal
+    std::error_code ec_perm;
+    std::filesystem::permissions(testDir,
+                                 std::filesystem::perms::none,
+                                 std::filesystem::perm_options::replace,
+                                 ec_perm);
+
+    if (!ec_perm) {
+        // Should throw std::system_error when timeout occurs
+        EXPECT_THROW(cb::io::remove_with_retry(testDir,
+                                               std::chrono::milliseconds(50)),
+                     std::system_error);
+
+        // Restore permissions for cleanup
+        std::filesystem::permissions(testDir,
+                                     std::filesystem::perms::owner_all,
+                                     std::filesystem::perm_options::replace,
+                                     ec_perm);
+    }
+#endif
+    // Clean up
+    cb::io::rmrf(testDir.string());
+}
+
 #ifdef WIN32
 TEST_F(IoTest, sanitizePath) {
     const std::string content{"/hello/world\\foo"};

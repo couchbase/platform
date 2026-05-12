@@ -8,7 +8,6 @@
  *   the file licenses/APL2.txt.
  */
 #include <platform/dirutils.h>
-#include <filesystem>
 
 #include <fmt/format.h>
 #include <folly/portability/Dirent.h>
@@ -32,8 +31,10 @@
 #include <cinttypes>
 #include <cstdio>
 #include <cstring>
+#include <filesystem>
 #include <limits>
 #include <system_error>
+#include <thread>
 
 namespace cb::io {
 std::filesystem::path makeExtendedLengthPath(const std::string_view path) {
@@ -140,6 +141,68 @@ std::vector<std::string> findFilesContaining(const std::filesystem::path& dir,
 
 void rmrf(const std::string_view path) {
     remove_all(makeExtendedLengthPath(path));
+}
+
+bool remove_with_retry(const std::filesystem::path& path,
+                       std::error_code& ec,
+                       std::chrono::microseconds max_wait_time) noexcept {
+    using namespace std::filesystem;
+    const auto extended_path = makeExtendedLengthPath(path.string());
+    const auto timeout = std::chrono::steady_clock::now() + max_wait_time;
+    do {
+        if (exists(extended_path, ec)) {
+            remove_all(extended_path, ec);
+            if (!ec) {
+                return true;
+            }
+
+            if (ec.value() == static_cast<int>(std::errc::permission_denied)) {
+                std::error_code ec2;
+                if (is_directory(extended_path, ec2)) {
+                    try {
+                        for (const auto& p :
+                             recursive_directory_iterator(extended_path, ec2)) {
+                            permissions(p.path(), perms::owner_all, ec2);
+                        }
+                    } catch (...) {
+                        // Ignore exceptions during permission changes
+                    }
+                } else {
+                    permissions(extended_path, perms::owner_all, ec2);
+                }
+                // Try removal again immediately after fixing permissions
+                remove_all(extended_path, ec);
+                if (!ec) {
+                    return true;
+                }
+            }
+            if (max_wait_time < std::chrono::milliseconds{10}) {
+                std::this_thread::sleep_for(std::chrono::microseconds(100));
+            } else {
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            }
+        } else {
+            // Path doesn't exist - verify exists() didn't encounter an error
+            if (ec) {
+                // There was an actual error checking existence, keep retrying
+                ec.clear();
+            } else {
+                // Path truly doesn't exist, this is success
+                return true;
+            }
+        }
+    } while (std::chrono::steady_clock::now() < timeout);
+    ec = std::make_error_code(std::errc::timed_out);
+    return false;
+}
+
+void remove_with_retry(const std::filesystem::path& path,
+                       std::chrono::microseconds max_wait_time) {
+    std::error_code ec;
+    if (remove_with_retry(path, ec, max_wait_time)) {
+        return;
+    }
+    throw std::system_error(ec, "Failed to remove " + path.string());
 }
 
 bool isDirectory(const std::string_view directory) {
