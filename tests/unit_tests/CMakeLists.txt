@@ -20,6 +20,7 @@ cb_add_test_executable(platform_unit_tests
                        getopt_test.cc
                        give_kernel_io_advise_test.cc
                        guarded_test.cc
+                       io_hint_test.cc
                        hex_test.cc
                        json_checker_test.cc
                        json_log_test.cc

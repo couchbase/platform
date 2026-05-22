@@ -28,7 +28,9 @@
 
 #pragma once
 
+#include <nlohmann/json_fwd.hpp>
 #include <sys/types.h>
+#include <optional>
 #include <string_view>
 #include <system_error>
 
@@ -62,6 +64,9 @@ enum class IoHint {
 };
 
 std::string_view format_as(IoHint hint) noexcept;
+std::optional<IoHint> parse_io_hint(std::string_view hint_str) noexcept;
+void to_json(nlohmann::json& json, const IoHint& hint);
+void from_json(const nlohmann::json& json, IoHint& hint);
 
 /**
  * @brief Give kernel I/O advice for a specific file range with error handling.

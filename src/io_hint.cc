@@ -8,6 +8,7 @@
  *   the file licenses/APL2.txt.
  */
 
+#include <nlohmann/json.hpp>
 #include <platform/io_hint.h>
 
 #if defined(__linux__) || defined(__APPLE__)
@@ -33,6 +34,34 @@ std::string_view format_as(IoHint hint) noexcept {
         return "dont-need"sv;
     }
     return "Invalid IoHint"sv;
+}
+std::optional<IoHint> parse_io_hint(std::string_view hint_str) noexcept {
+    if (hint_str == "normal") {
+        return IoHint::Normal;
+    }
+    if (hint_str == "sequential") {
+        return IoHint::Sequential;
+    }
+    if (hint_str == "random") {
+        return IoHint::Random;
+    }
+    if (hint_str == "no-reuse") {
+        return IoHint::NoReuse;
+    }
+    if (hint_str == "will-need") {
+        return IoHint::WillNeed;
+    }
+    if (hint_str == "dont-need") {
+        return IoHint::DontNeed;
+    }
+
+    return std::nullopt;
+}
+void to_json(nlohmann::json& json, const IoHint& hint) {
+    json = format_as(hint);
+}
+void from_json(const nlohmann::json& json, IoHint& hint) {
+    hint = parse_io_hint(json.get<std::string>()).value_or(IoHint::Normal);
 }
 
 #if defined(__linux__) || defined(__APPLE__)
