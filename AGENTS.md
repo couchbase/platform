@@ -67,15 +67,16 @@ All changes must be submitted via:
 
 ## 📐 Code Standards
 
-Language: **C++ (up to C++20 supported)**
+Language: **C++ (up to C++23 supported)**
 
 Guidelines:
 
-- Prefer modern C++ where appropriate (C++17/20 features are supported)
+- Prefer modern C++ where appropriate (C++23 features are supported)
 - Use RAII, smart pointers, and standard library facilities where they improve
   safety and clarity
 - Structured bindings, `std::optional`, `std::variant`, `constexpr`, and other
   modern features are acceptable
+- Use designated initializers introduced in C++20
 - Match the surrounding style within the modified module.
 - It is acceptable to use older constructs if required for consistency with the
   existing code in that area
