@@ -35,6 +35,14 @@
 #include <limits>
 #include <system_error>
 
+#ifdef WIN32
+#include <windows.h>
+#endif
+
+#ifdef __APPLE__
+#include <mach-o/dyld.h>
+#endif
+
 namespace cb::io {
 std::filesystem::path makeExtendedLengthPath(const std::string_view path) {
     std::filesystem::path bPath = path;
@@ -308,6 +316,39 @@ void setBinaryMode(FILE* fp) {
     }
 #else
     (void)fp;
+#endif
+}
+
+std::filesystem::path get_current_executable_path() {
+#if defined(WIN32)
+    wchar_t buffer[MAX_PATH];
+    DWORD size = GetModuleFileNameW(nullptr, buffer, MAX_PATH);
+    if (size == 0) {
+        throw std::system_error(GetLastError(),
+                                std::system_category(),
+                                "GetModuleFileName failed");
+    }
+    return std::filesystem::path(buffer);
+#elif defined(__APPLE__)
+    uint32_t bufsize = 0;
+    _NSGetExecutablePath(nullptr, &bufsize);
+    std::string path(bufsize, '\0');
+    if (_NSGetExecutablePath(path.data(), &bufsize) != 0) {
+        throw std::system_error(
+                errno, std::system_category(), "_NSGetExecutablePath failed");
+    }
+    // Remove null terminator that was added to the string
+    path.resize(bufsize - 1);
+    return {path};
+#else
+    // Linux and other POSIX systems
+    constexpr std::string_view symlink_path{"/proc/self/exe"};
+    std::error_code ec;
+    auto result = std::filesystem::read_symlink(symlink_path, ec);
+    if (ec) {
+        throw std::system_error(ec, "Failed to read /proc/self/exe");
+    }
+    return result;
 #endif
 }
 

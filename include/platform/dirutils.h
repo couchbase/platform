@@ -243,4 +243,12 @@ void tokenizeFileLineByLine(
  */
 void setBinaryMode(FILE* fp);
 
+/**
+ * Get the path to the current executable
+ *
+ * @return The path to the executable running the current process
+ * @throws std::system_error if an error occurs retrieving the executable path
+ */
+[[nodiscard]] std::filesystem::path get_current_executable_path();
+
 } // namespace cb::io
