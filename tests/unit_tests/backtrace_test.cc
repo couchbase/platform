@@ -113,6 +113,12 @@ TEST(BackTraceTest, Current) {
     // Arg.. our cv don't give us full symbols on g++ builds...
     EXPECT_TRUE(backtrace.contains("BackTraceTest")) << backtrace;
 #else
+#ifdef __clang__
+    EXPECT_TRUE(backtrace.contains("cb::backtrace::current")) << backtrace;
+    EXPECT_TRUE(backtrace.contains("BackTraceTest_Current_Test::TestBody"))
+            << backtrace;
+#else
     EXPECT_TRUE(backtrace.contains("platform_unit_test")) << backtrace;
+#endif
 #endif
 }
