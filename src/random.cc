@@ -12,7 +12,6 @@
 #include <cerrno>
 #include <chrono>
 #include <memory>
-#include <mutex>
 #include <system_error>
 
 #ifdef WIN32
@@ -59,7 +58,6 @@ public:
     }
 
     bool getBytes(void* dest, size_t size) {
-        std::lock_guard<std::mutex> lock(mutex);
 #ifdef WIN32
         return CryptGenRandom(handle, (DWORD)size, static_cast<BYTE*>(dest));
 #else
@@ -73,7 +71,6 @@ protected:
 #else
     int handle = -1;
 #endif
-    std::mutex mutex;
 };
 
 RandomGenerator::RandomGenerator() = default;
