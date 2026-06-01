@@ -9,18 +9,41 @@
  */
 
 #include "encrypted_file_associated_data.h"
-#include "platform/cb_time.h"
 
 #include <cbcrypto/common.h>
 #include <cbcrypto/encrypted_file_header.h>
 #include <cbcrypto/file_reader.h>
 #include <cbcrypto/symmetric.h>
+#include <fcntl.h>
 #include <fmt/format.h>
 #include <folly/compression/Compression.h>
+#include <platform/cb_time.h>
 #include <platform/compress.h>
 #include <platform/dirutils.h>
 #include <platform/socket.h>
+#include <platform/string_utilities.h>
 #include <zlib.h>
+
+#ifdef WIN32
+#ifndef O_BINARY
+#define O_BINARY _O_BINARY
+#endif
+static inline int open(const char* path, int flags) {
+    return _open(path, flags);
+}
+
+static inline int close(int fd) {
+    return _close(fd);
+}
+
+#define fdopen(fd, mode) _fdopen(fd, mode)
+
+#else
+#include <unistd.h>
+#ifndef O_BINARY
+#define O_BINARY 0
+#endif
+#endif
 
 namespace cb::crypto {
 
@@ -110,14 +133,13 @@ protected:
 
 class GZipFileReader : public FileReader {
 public:
-    GZipFileReader(std::filesystem::path path_, unique_file_stream_ptr stream)
-        : path(std::move(path_)), file(gzdopen(fileno(stream.get()), "rb")) {
+    GZipFileReader(std::filesystem::path path_, int fd)
+        : path(std::move(path_)), file(gzdopen(fd, "rb")) {
         if (!file) {
-            throw std::runtime_error(
-                    fmt::format("GZipFileStreamReader: Failed to open file {}",
-                                path.string()));
+            ::close(fd);
+            throw std::runtime_error(fmt::format(
+                    "GZipFileReader: Failed to open file {}", path.string()));
         }
-        stream.release();
     }
 
     ~GZipFileReader() override {
@@ -125,8 +147,8 @@ public:
             try {
                 do_close();
             } catch (const std::exception&) {
+                // Close was already called in do_close()
             }
-            gzclose(file);
         }
     }
 
@@ -145,7 +167,7 @@ public:
             const auto* message = gzerror(file, &error);
 
             throw std::runtime_error(
-                    fmt::format("GZipFileReader::read(): fread failed: "
+                    fmt::format("GZipFileReader::read(): gzread failed: "
                                 "nbytes:{} nr:{} feof:{} message:{}",
                                 nbytes,
                                 nr,
@@ -194,11 +216,11 @@ protected:
         if (status == Z_ERRNO) {
             throw std::system_error(errno,
                                     std::system_category(),
-                                    "GZipFileWriter: Failed to close file");
+                                    "GZipFileReader: Failed to close file");
         }
 
         throw std::runtime_error(fmt::format(
-                "GZipFileWriter: Failed to close file: {}", status));
+                "GZipFileReader: Failed to close file: {}", status));
     }
 
     const std::filesystem::path path;
@@ -491,8 +513,9 @@ std::unique_ptr<FileReader> FileReader::create(
         std::chrono::microseconds waittime) {
     const auto timeout =
             cb::time::steady_clock::now() + std::chrono::microseconds(waittime);
-    FILE* fp;
-    while ((fp = fopen(path.string().c_str(), "rb")) == nullptr) {
+
+    int fd;
+    while ((fd = ::open(path.string().c_str(), O_RDONLY | O_BINARY)) == -1) {
         if (errno != ENOENT) {
             throw std::system_error(
                     errno,
@@ -507,11 +530,25 @@ std::unique_ptr<FileReader> FileReader::create(
         std::this_thread::sleep_for(std::chrono::milliseconds{10});
     }
 
-    unique_file_stream_ptr file_stream(fp);
-    if (path.extension() == ".gz") {
-        return std::make_unique<GZipFileReader>(path, std::move(file_stream));
+    if (cb::tolower(path.extension().string()) == ".gz") {
+        try {
+            return std::make_unique<GZipFileReader>(path, fd);
+        } catch (...) {
+            ::close(fd);
+            throw;
+        }
     }
 
+    FILE* fp = fdopen(fd, "rb");
+    if (fp == nullptr) {
+        ::close(fd);
+        throw std::system_error(
+                errno,
+                std::system_category(),
+                fmt::format("Failed to open {}", path.string()));
+    }
+
+    unique_file_stream_ptr file_stream(fp);
     bool encrypted = false;
     SharedKeyDerivationKey kdk;
     Compression compression = Compression::None;
