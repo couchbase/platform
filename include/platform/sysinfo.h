@@ -51,11 +51,4 @@ size_t stripe_for_current_cpu(size_t numStripes);
  * Get the number of last level caches in the system.
  */
 size_t get_num_last_level_cache();
-}
-
-// For backwards compatibility
-namespace Couchbase {
-inline size_t get_available_cpu_count() {
-    return cb::get_available_cpu_count();
-}
-}
+} // namespace cb
