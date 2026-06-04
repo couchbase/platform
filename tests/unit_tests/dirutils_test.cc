@@ -612,3 +612,30 @@ TEST_F(IoTest, sanitizePath) {
     EXPECT_EQ("\\hello\\world\\foo", path.make_preferred().string());
 }
 #endif
+
+TEST_F(IoTest, get_current_executable_path) {
+    auto exe_path = cb::io::get_current_executable_path();
+
+    // Verify the path is not empty
+    EXPECT_FALSE(exe_path.empty())
+            << "FAIL: get_current_executable_path returned empty path";
+
+    // Verify the path exists
+    EXPECT_TRUE(std::filesystem::exists(exe_path))
+            << "FAIL: Executable path does not exist: " << exe_path.string();
+
+    // Verify it's a regular file (or symlink on POSIX systems)
+    std::error_code ec;
+    bool is_regular_or_symlink =
+            std::filesystem::is_regular_file(exe_path, ec) ||
+            std::filesystem::is_symlink(exe_path, ec);
+    EXPECT_TRUE(is_regular_or_symlink)
+            << "FAIL: Executable path is not a regular file or symlink: "
+            << exe_path.string();
+
+    // Verify we can get the canonical path (resolves symlinks)
+    auto canonical_path = std::filesystem::canonical(exe_path, ec);
+    EXPECT_FALSE(ec) << "FAIL: Failed to get canonical path: " << ec.message();
+    EXPECT_TRUE(std::filesystem::is_regular_file(canonical_path, ec))
+            << "FAIL: Canonical path is not a regular file";
+}

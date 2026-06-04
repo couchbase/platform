@@ -13,7 +13,9 @@
 #include <cbcrypto/key_store.h>
 #include <fmt/format.h>
 #include <platform/command_line_options_parser.h>
+#include <platform/dirutils.h>
 #include <platform/getpass.h>
+#include <cstdlib>
 #include <filesystem>
 #include <iostream>
 
@@ -161,10 +163,27 @@ void print_header(std::string_view filename,
 int main(int argc, char** argv) {
     using cb::getopt::Argument;
     cb::getopt::CommandLineOptionsParser parser;
+    std::filesystem::path dumpKeysExecutable;
+    try {
+        dumpKeysExecutable =
+                cb::io::get_current_executable_path().parent_path() /
+                "dump-keys";
+    } catch (const std::exception&) {
+        dumpKeysExecutable = std::string(INSTALL_ROOT) + "/bin/dump-keys";
+    }
 
-    std::string dumpKeysExecutable = INSTALL_ROOT "/bin/dump-keys";
-    std::string gosecrets =
-            INSTALL_ROOT "/var/lib/couchbase/config/gosecrets.cfg";
+    std::filesystem::path gosecrets;
+    try {
+        gosecrets = std::filesystem::canonical(
+                dumpKeysExecutable.parent_path() / ".." / "var" / "lib" /
+                "couchbase" / "config" / "gosecrets.cfg");
+    } catch (const std::exception&) {
+        gosecrets = std::filesystem::path(INSTALL_ROOT) / "var" / "lib" /
+                    "couchbase" / "config" / "gosecrets.cfg";
+    }
+    dumpKeysExecutable = dumpKeysExecutable.make_preferred();
+    gosecrets = gosecrets.make_preferred();
+
     bool withKeyStore = false;
     bool stdinUsed = false;
 
@@ -176,7 +195,7 @@ int main(int argc, char** argv) {
             Argument::Required,
             "filename",
             fmt::format("The \"dump-keys\" binary to use (by default {}",
-                        dumpKeysExecutable),
+                        dumpKeysExecutable.string()),
     });
     parser.addOption(
             {[&gosecrets](auto value) { gosecrets = std::string{value}; },
@@ -184,7 +203,7 @@ int main(int argc, char** argv) {
              Argument::Required,
              "filename",
              fmt::format("The location of gosecrets.cfg (by default {})",
-                         gosecrets)});
+                         gosecrets.string())});
     parser.addOption(
             {[&stdinUsed](auto value) {
                  if (value == "-") {
