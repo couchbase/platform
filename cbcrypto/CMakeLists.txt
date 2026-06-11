@@ -40,6 +40,7 @@ target_link_libraries(cbcrypto
 
 cb_add_test_executable(cbcrypto_unit_test
         cbcrypto_test.cc
+        digest_test.cc
         file_utilities_test.cc
         fileio_test.cc
         key_store_test.cc

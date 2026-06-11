@@ -280,7 +280,8 @@ std::string pwhash(Algorithm algorithm,
     throw std::invalid_argument("pwhash(): Unknown algorithm");
 }
 
-std::string digest(const Algorithm algorithm, std::string_view data) {
+static std::string digest_raw(const Algorithm algorithm,
+                              std::string_view data) {
     TRACE_EVENT1("cbcrypto", "digest", "algorithm", int(algorithm));
     switch (algorithm) {
     case Algorithm::SHA1:
@@ -297,6 +298,20 @@ std::string digest(const Algorithm algorithm, std::string_view data) {
 
     throw std::invalid_argument("cb::crypto::digest: Unknown Algorithm" +
                                 std::to_string((int)algorithm));
+}
+
+std::string digest(Algorithm algorithm, std::string_view data, HexString hex) {
+    auto bytes = digest_raw(algorithm, data);
+    if (hex == HexString::Yes) {
+        std::string hexString;
+        // Each byte represents two hexadecimal characters
+        hexString.reserve(bytes.size() * 2);
+        for (uint8_t b : bytes) {
+            hexString += fmt::format("{:02x}", b);
+        }
+        return hexString;
+    }
+    return bytes;
 }
 
 std::string sha512sum(const std::filesystem::path& path,

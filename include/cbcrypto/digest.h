@@ -1,4 +1,3 @@
-/* -*- Mode: C++; tab-width: 4; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /*
  *     Copyright 2016-Present Couchbase, Inc.
  *
@@ -11,10 +10,13 @@
 #pragma once
 
 #include <nlohmann/json.hpp>
+#include <platform/define_yes_no_enum.h>
 #include <cstdint>
 #include <string>
 
 namespace cb::crypto {
+DEFINE_YES_NO_ENUM(HexString)
+
 enum class Algorithm { SHA1, SHA256, SHA512, Argon2id13, DeprecatedPlain };
 
 constexpr int SHA1_DIGEST_SIZE = 20;
@@ -47,8 +49,16 @@ std::string PBKDF2_HMAC(Algorithm algorithm,
 
 /**
  * Generate a digest by using the requested algorithm
+ *
+ * @param algorithm The algorithm to use
+ * @param data The data to hash
+ * @param hex Should we return the bytes as an hex encoded string or just
+ *            the raw bytes
+ * @return The digest of the data
  */
-std::string digest(Algorithm algorithm, std::string_view data);
+std::string digest(Algorithm algorithm,
+                   std::string_view data,
+                   HexString hex = HexString::No);
 
 /**
  * Generate a password hash with the given algorithm
