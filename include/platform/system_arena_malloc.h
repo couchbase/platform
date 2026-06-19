@@ -58,6 +58,7 @@ public:
     static void unregisterClient(const ArenaMallocClient& client);
     static uint8_t getCurrentClientIndex();
     static uint16_t getCurrentClientArena();
+    static ClientHandle getCurrentClient();
     static ClientHandle switchToClient(const ArenaMallocClient& client,
                                        cb::MemoryDomain domain,
                                        bool tcache);

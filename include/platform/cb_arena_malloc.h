@@ -121,6 +121,13 @@ public:
     }
 
     /**
+     * Returns the handle of the current client.
+     */
+    static ClientHandle getCurrentClient() {
+        return Impl::getCurrentClient();
+    }
+
+    /**
      * Switch to the given client, all subsequent memory allocations made by
      * the current thread will be accounted to the client.
      *

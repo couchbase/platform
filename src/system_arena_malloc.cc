@@ -74,6 +74,10 @@ uint16_t SystemArenaMalloc::getCurrentClientArena() {
     return 0;
 }
 
+SystemArenaMalloc::ClientHandle SystemArenaMalloc::getCurrentClient() {
+    return currentClient;
+}
+
 SystemArenaMalloc::ClientHandle SystemArenaMalloc::switchToClient(
         const ArenaMallocClient& client, MemoryDomain domain, bool tcache) {
     (void)tcache; // no use in system allocator
