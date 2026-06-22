@@ -21,6 +21,7 @@ add_library(cbcrypto STATIC
         ${Platform_SOURCE_DIR}/include/cbcrypto/key_derivation.h
         ${Platform_SOURCE_DIR}/include/cbcrypto/key_store.h
         ${Platform_SOURCE_DIR}/include/cbcrypto/random_gen.h
+        ${Platform_SOURCE_DIR}/include/cbcrypto/secret.h
         ${Platform_SOURCE_DIR}/include/cbcrypto/symmetric.h
 )
 set_property(TARGET cbcrypto PROPERTY POSITION_INDEPENDENT_CODE 1)
@@ -44,6 +45,7 @@ cb_add_test_executable(cbcrypto_unit_test
         file_utilities_test.cc
         fileio_test.cc
         key_store_test.cc
+        secret_test.cc
 )
 cb_enable_unity_build(cbcrypto_unit_test)
 platform_enable_pch(cbcrypto_unit_test)
