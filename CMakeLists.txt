@@ -520,6 +520,7 @@ add_subdirectory(cbcompress)
 add_subdirectory(hdrhistogram)
 add_subdirectory(cbsocket)
 add_subdirectory(cbcrypto)
+add_subdirectory(cblogger)
 add_subdirectory(tests)
 
 add_subdirectory(tools)
