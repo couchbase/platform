@@ -92,11 +92,22 @@ protected:
     // @return errno if fsync fails, 0 if successful
     int fsync_no_throw() noexcept;
 
+    /**
+     * If io_hint is IoHint::DontNeed, advise the kernel to drop the buffer
+     * cache pages for the range that has been flushed since the last advice
+     * ([advised_offset, bytes_written)) and advance advised_offset. Must only
+     * be called after the range has been fsync'ed (dirty pages won't be
+     * dropped) and while fp is valid.
+     */
+    void maybeEvictBufferCachePages();
+
     const std::filesystem::path filename;
     const std::size_t fsync_interval;
     const IoHint io_hint;
     FILE* fp = nullptr;
     std::size_t bytes_written = 0;
     std::size_t bytes_written_since_flush = 0;
+    /// File offset up to which DontNeed advice has already been issued
+    std::size_t advised_offset = 0;
 };
 } // namespace cb::io

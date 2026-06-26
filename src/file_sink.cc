@@ -79,12 +79,29 @@ void FileSink::sink(std::string_view data) {
 
         if (bytes_written_since_flush >= fsync_interval) {
             fsync();
-        } else if (io_hint == IoHint::DontNeed) {
-            // Try to drop pages (dirty pages won't be dropped)
-            std::error_code ec;
-            (void)giveKernelIoAdvise(fileno(fp), io_hint, ec);
         }
     }
+}
+
+void FileSink::maybeEvictBufferCachePages() {
+    if (io_hint != IoHint::DontNeed) {
+        return;
+    }
+    // Drop the pages for the range that has been flushed since we last gave
+    // the advice. The final flush (e.g. at close) may cover less than
+    // fsync_interval bytes, so advise the actual range rather than assuming a
+    // full interval.
+    const auto size = bytes_written - advised_offset;
+    if (size == 0) {
+        return;
+    }
+    std::error_code ec;
+    (void)giveKernelIoAdvise(fileno(fp),
+                             static_cast<off_t>(advised_offset),
+                             static_cast<off_t>(size),
+                             io_hint,
+                             ec);
+    advised_offset = bytes_written;
 }
 
 std::size_t FileSink::fsync() {
@@ -98,11 +115,7 @@ std::size_t FileSink::fsync() {
                                 filename.string(),
                                 bytes_written));
         }
-        if (io_hint == IoHint::DontNeed) {
-            // Try to drop pages
-            std::error_code ec;
-            (void)giveKernelIoAdvise(fileno(fp), io_hint, ec);
-        }
+        maybeEvictBufferCachePages();
 
         bytes_written_since_flush = 0;
     }
@@ -113,6 +126,11 @@ std::size_t FileSink::close() {
     Expects(fp);
     // Always attempt to fsync the file before closing it.
     auto fsync_errno = fsync_no_throw();
+    if (fsync_errno == 0) {
+        // Drop the pages for the tail (the data flushed by the fsync above that
+        // didn't reach a full fsync_interval). Must be done while fp is valid.
+        maybeEvictBufferCachePages();
+    }
     if (fclose(fp) != 0) {
         throw std::system_error(
                 errno,
