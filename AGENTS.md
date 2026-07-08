@@ -77,6 +77,9 @@ Guidelines:
 - Structured bindings, `std::optional`, `std::variant`, `constexpr`, and other
   modern features are acceptable
 - Use designated initializers introduced in C++20
+- Don't use C-style arrays, use `std::array` or `std::vector` instead
+- Don't use single character variable names
+- Always use braces for control structures, even if they are optional
 - Match the surrounding style within the modified module.
 - It is acceptable to use older constructs if required for consistency with the
   existing code in that area
@@ -86,6 +89,10 @@ Guidelines:
 - The `C++ Core Guidelines<http://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines>`
   are also a key part of our coding style.
 - Always build (see building hints and testing hints) before running tests!
+- Use Doxygen style for all code comments, using `/** ... */` block comment
+  style exclusively (not `///` or `/*!`). The first sentence of the comment
+  acts as the brief description (do not use the `@brief` tag explicitly).
+  Use tags such as `@param`, `@return`, and `@throws`.
 
 Language: **CMake**
 
@@ -96,6 +103,26 @@ Guidelines:
 - Follow existing patterns in the repository for consistency
 - Avoid global variables and side effects in CMake scripts
 - The `CMake Best Practices<https://cliutils.gitlab.io/modern-cmake/>` are also a key part of our CMake style.
+
+## New C++ File Headers
+Whenever you create a new C++ file (e.g., `.cc`, or `.h`), you must prepend the exact copyright header specified below.
+
+### Execution Rules
+1. **Dynamic Year**: Automatically replace [YEAR] with the current year (e.g. 2026).
+2. **Existing Files**: Do not modify or duplicate the header if editing an existing file.
+
+### C++ Header Template
+```cpp
+/*
+ *     Copyright [YEAR]-Present Couchbase, Inc.
+ *
+ *   Use of this software is governed by the Business Source License included
+ *   in the file licenses/BSL-Couchbase.txt.  As of the Change Date specified
+ *   in that file, in accordance with the Business Source License, use of this
+ *   software will be governed by the Apache License, Version 2.0, included in
+ *   the file licenses/APL2.txt.
+ */
+```
 
 ---
 
@@ -133,9 +160,10 @@ Agents must not:
 
 All commit messages must:
 
-- Start with: `MB-XXXXX: Short summary` where `MB-XXXXX` is the relevant
-  Jira issue key describing the change. Should not exceed 60 characters in
-  length (ideally less than 50 characters).
+- Start with: `MB-XXXXX: Short summary`
+- The summary (or subject line) of a Git commit should ideally be 50
+  characters or less, with 72 characters serving as the absolute hard
+  maximum. This practice is part of the industry-standard 50/72 rule.
 - Be wrapped at **72 characters per line**
 - Include a clear explanation of:
   - What changed
