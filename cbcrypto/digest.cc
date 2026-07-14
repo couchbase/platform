@@ -9,6 +9,7 @@
  */
 #include "platform/string_hex.h"
 
+#include <cbcrypto/common.h>
 #include <cbcrypto/digest.h>
 #include <fmt/format.h>
 #include <folly/portability/Fcntl.h>
@@ -27,146 +28,139 @@
 namespace cb::crypto {
 namespace internal {
 
-static std::string HMAC_SHA1(std::string_view key, std::string_view data) {
+struct EVP_MD_Deleter {
+    void operator()(EVP_MD* md) const {
+        EVP_MD_free(md);
+    }
+};
+
+/**
+ * Fetch the requested digest algorithm from the default OpenSSL provider.
+ *
+ * @param name the OpenSSL digest name (e.g. "SHA1", "SHA256", "SHA512")
+ * @param callingFunction the name of the function calling fetchDigest, used
+ *                        in the exception thrown on failure
+ * @throws OpenSslError if the algorithm isn't available
+ */
+static std::unique_ptr<EVP_MD, EVP_MD_Deleter> fetchDigest(
+        const char* name, const char* callingFunction) {
+    std::unique_ptr<EVP_MD, EVP_MD_Deleter> md(
+            EVP_MD_fetch(nullptr, name, nullptr));
+    if (!md) {
+        throw OpenSslError::get(callingFunction, "EVP_MD_fetch");
+    }
+    return md;
+}
+
+/**
+ * Shared implementation for the SHA1/SHA256/SHA512 HMAC variants.
+ *
+ * @param digestName the OpenSSL digest name (e.g. "SHA1")
+ * @param digestSize the size (in bytes) of the resulting digest
+ * @param callingFunction the name of the public function calling this, used
+ *                        in the exception thrown on failure. Must be a
+ *                        string literal (or otherwise outlive the exception),
+ *                        as OpenSslError only stores the pointer.
+ */
+static std::string HMAC_impl(const char* digestName,
+                             std::size_t digestSize,
+                             const char* callingFunction,
+                             std::string_view key,
+                             std::string_view data) {
     std::string ret;
-    ret.resize(SHA1_DIGEST_SIZE);
-    if (HMAC(EVP_sha1(),
+    ret.resize(digestSize);
+    auto md = fetchDigest(digestName, callingFunction);
+    if (HMAC(md.get(),
              key.data(),
              gsl::narrow_cast<int>(key.size()),
              reinterpret_cast<const uint8_t*>(data.data()),
              data.size(),
              reinterpret_cast<uint8_t*>(const_cast<char*>(ret.data())),
              nullptr) == nullptr) {
-        throw std::runtime_error("cb::crypto::HMAC(SHA1): HMAC failed");
+        throw OpenSslError::get(callingFunction, "HMAC");
     }
     return ret;
 }
 
-static std::string HMAC_SHA256(std::string_view key, std::string_view data) {
-    std::string ret;
-    ret.resize(SHA256_DIGEST_SIZE);
-    if (HMAC(EVP_sha256(),
-             key.data(),
-             gsl::narrow_cast<int>(key.size()),
-             reinterpret_cast<const uint8_t*>(data.data()),
-             data.size(),
-             reinterpret_cast<uint8_t*>(const_cast<char*>(ret.data())),
-             nullptr) == nullptr) {
-        throw std::runtime_error("cb::crypto::HMAC(SHA256): HMAC failed");
-    }
-    return ret;
-}
-
-static std::string HMAC_SHA512(std::string_view key, std::string_view data) {
-    std::string ret;
-    ret.resize(SHA512_DIGEST_SIZE);
-    if (HMAC(EVP_sha512(),
-             key.data(),
-             gsl::narrow_cast<int>(key.size()),
-             reinterpret_cast<const uint8_t*>(data.data()),
-             data.size(),
-             reinterpret_cast<uint8_t*>(const_cast<char*>(ret.data())),
-             nullptr) == nullptr) {
-        throw std::runtime_error("cb::crypto::HMAC(SHA512): HMAC failed");
-    }
-    return ret;
-}
-
-static std::string PBKDF2_HMAC_SHA1(std::string_view pass,
+/**
+ * Shared implementation for the SHA1/SHA256/SHA512 PBKDF2_HMAC variants.
+ *
+ * @param digestName the OpenSSL digest name (e.g. "SHA1")
+ * @param digestSize the size (in bytes) of the resulting digest
+ * @param callingFunction the name of the public function calling this, used
+ *                        in the exception thrown on failure. Must be a
+ *                        string literal (or otherwise outlive the exception),
+ *                        as OpenSslError only stores the pointer.
+ */
+static std::string PBKDF2_HMAC_impl(const char* digestName,
+                                    std::size_t digestSize,
+                                    const char* callingFunction,
+                                    std::string_view pass,
                                     std::string_view salt,
                                     unsigned int iterationCount) {
     std::string ret;
-    ret.resize(SHA1_DIGEST_SIZE);
+    ret.resize(digestSize);
+    auto md = fetchDigest(digestName, callingFunction);
     auto err = PKCS5_PBKDF2_HMAC(
             pass.data(),
             int(pass.size()),
             reinterpret_cast<const uint8_t*>(salt.data()),
             int(salt.size()),
             iterationCount,
-            EVP_sha1(),
-            SHA1_DIGEST_SIZE,
-            reinterpret_cast<uint8_t*>(const_cast<char*>(ret.data())));
-
-    if (err != 1) {
-        throw std::runtime_error(
-                "cb::crypto::PBKDF2_HMAC(SHA1): PKCS5_PBKDF2_HMAC_SHA1 "
-                "failed: " +
-                std::to_string(err));
-    }
-
-    return ret;
-}
-
-static std::string PBKDF2_HMAC_SHA256(std::string_view pass,
-                                      std::string_view salt,
-                                      unsigned int iterationCount) {
-    std::string ret;
-    ret.resize(SHA256_DIGEST_SIZE);
-    auto err = PKCS5_PBKDF2_HMAC(
-            pass.data(),
-            int(pass.size()),
-            reinterpret_cast<const uint8_t*>(salt.data()),
-            int(salt.size()),
-            iterationCount,
-            EVP_sha256(),
-            SHA256_DIGEST_SIZE,
+            md.get(),
+            gsl::narrow_cast<int>(digestSize),
             reinterpret_cast<uint8_t*>(const_cast<char*>(ret.data())));
     if (err != 1) {
-        throw std::runtime_error(
-                "cb::crypto::PBKDF2_HMAC(SHA256): PKCS5_PBKDF2_HMAC failed" +
-                std::to_string(err));
+        throw OpenSslError::get(callingFunction, "PKCS5_PBKDF2_HMAC");
     }
-
-    return ret;
-}
-
-static std::string PBKDF2_HMAC_SHA512(std::string_view pass,
-                                      std::string_view salt,
-                                      unsigned int iterationCount) {
-    std::string ret;
-    ret.resize(SHA512_DIGEST_SIZE);
-    auto err = PKCS5_PBKDF2_HMAC(
-            pass.data(),
-            int(pass.size()),
-            reinterpret_cast<const uint8_t*>(salt.data()),
-            int(salt.size()),
-            iterationCount,
-            EVP_sha512(),
-            SHA512_DIGEST_SIZE,
-            reinterpret_cast<uint8_t*>(const_cast<char*>(ret.data())));
-    if (err != 1) {
-        throw std::runtime_error(
-                "cb::crypto::PBKDF2_HMAC(SHA512): PKCS5_PBKDF2_HMAC failed" +
-                std::to_string(err));
-    }
-
     return ret;
 }
 
 static std::string digest_sha1(std::string_view data) {
     std::string ret;
     ret.resize(SHA1_DIGEST_SIZE);
-    SHA1(reinterpret_cast<const uint8_t*>(data.data()),
-         data.size(),
-         reinterpret_cast<uint8_t*>(const_cast<char*>(ret.data())));
+    auto md = fetchDigest("SHA1", "cb::crypto::digest(SHA1)");
+    unsigned int outlen = 0;
+    if (EVP_Digest(data.data(),
+                   data.size(),
+                   reinterpret_cast<uint8_t*>(const_cast<char*>(ret.data())),
+                   &outlen,
+                   md.get(),
+                   nullptr) == 0) {
+        throw OpenSslError::get("cb::crypto::digest(SHA1)", "EVP_Digest");
+    }
     return ret;
 }
 
 static std::string digest_sha256(std::string_view data) {
     std::string ret;
     ret.resize(SHA256_DIGEST_SIZE);
-    SHA256(reinterpret_cast<const uint8_t*>(data.data()),
-           data.size(),
-           reinterpret_cast<uint8_t*>(const_cast<char*>(ret.data())));
+    auto md = fetchDigest("SHA256", "cb::crypto::digest(SHA256)");
+    unsigned int outlen = 0;
+    if (EVP_Digest(data.data(),
+                   data.size(),
+                   reinterpret_cast<uint8_t*>(const_cast<char*>(ret.data())),
+                   &outlen,
+                   md.get(),
+                   nullptr) == 0) {
+        throw OpenSslError::get("cb::crypto::digest(SHA256)", "EVP_Digest");
+    }
     return ret;
 }
 
 static std::string digest_sha512(std::string_view data) {
     std::string ret;
     ret.resize(SHA512_DIGEST_SIZE);
-    SHA512(reinterpret_cast<const uint8_t*>(data.data()),
-           data.size(),
-           reinterpret_cast<uint8_t*>(const_cast<char*>(ret.data())));
+    auto md = fetchDigest("SHA512", "cb::crypto::digest(SHA512)");
+    unsigned int outlen = 0;
+    if (EVP_Digest(data.data(),
+                   data.size(),
+                   reinterpret_cast<uint8_t*>(const_cast<char*>(ret.data())),
+                   &outlen,
+                   md.get(),
+                   nullptr) == 0) {
+        throw OpenSslError::get("cb::crypto::digest(SHA512)", "EVP_Digest");
+    }
     return ret;
 }
 } // namespace internal
@@ -177,11 +171,20 @@ std::string HMAC(const Algorithm algorithm,
     TRACE_EVENT1("cbcrypto", "HMAC", "algorithm", int(algorithm));
     switch (algorithm) {
     case Algorithm::SHA1:
-        return internal::HMAC_SHA1(key, data);
+        return internal::HMAC_impl(
+                "SHA1", SHA1_DIGEST_SIZE, "cb::crypto::HMAC(SHA1)", key, data);
     case Algorithm::SHA256:
-        return internal::HMAC_SHA256(key, data);
+        return internal::HMAC_impl("SHA256",
+                                   SHA256_DIGEST_SIZE,
+                                   "cb::crypto::HMAC(SHA256)",
+                                   key,
+                                   data);
     case Algorithm::SHA512:
-        return internal::HMAC_SHA512(key, data);
+        return internal::HMAC_impl("SHA512",
+                                   SHA512_DIGEST_SIZE,
+                                   "cb::crypto::HMAC(SHA512)",
+                                   key,
+                                   data);
     case Algorithm::Argon2id13:
     case Algorithm::DeprecatedPlain:
         throw std::invalid_argument(
@@ -208,11 +211,26 @@ std::string PBKDF2_HMAC(const Algorithm algorithm,
                  iterationCount);
     switch (algorithm) {
     case Algorithm::SHA1:
-        return internal::PBKDF2_HMAC_SHA1(pass, salt, iterationCount);
+        return internal::PBKDF2_HMAC_impl("SHA1",
+                                          SHA1_DIGEST_SIZE,
+                                          "cb::crypto::PBKDF2_HMAC(SHA1)",
+                                          pass,
+                                          salt,
+                                          iterationCount);
     case Algorithm::SHA256:
-        return internal::PBKDF2_HMAC_SHA256(pass, salt, iterationCount);
+        return internal::PBKDF2_HMAC_impl("SHA256",
+                                          SHA256_DIGEST_SIZE,
+                                          "cb::crypto::PBKDF2_HMAC(SHA256)",
+                                          pass,
+                                          salt,
+                                          iterationCount);
     case Algorithm::SHA512:
-        return internal::PBKDF2_HMAC_SHA512(pass, salt, iterationCount);
+        return internal::PBKDF2_HMAC_impl("SHA512",
+                                          SHA512_DIGEST_SIZE,
+                                          "cb::crypto::PBKDF2_HMAC(SHA512)",
+                                          pass,
+                                          salt,
+                                          iterationCount);
     case Algorithm::DeprecatedPlain:
     case Algorithm::Argon2id13:
         throw std::invalid_argument(
