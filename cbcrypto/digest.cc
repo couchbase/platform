@@ -116,10 +116,23 @@ static std::string PBKDF2_HMAC_impl(const char* digestName,
     return ret;
 }
 
-static std::string digest_sha1(std::string_view data) {
+/**
+ * Shared implementation for the SHA1/SHA256/SHA512 digest variants.
+ *
+ * @param digestName the OpenSSL digest name (e.g. "SHA1")
+ * @param digestSize the size (in bytes) of the resulting digest
+ * @param callingFunction the name of the public function calling this, used
+ *                        in the exception thrown on failure. Must be a
+ *                        string literal (or otherwise outlive the exception),
+ *                        as OpenSslError only stores the pointer.
+ */
+static std::string digest_impl(const char* digestName,
+                               std::size_t digestSize,
+                               const char* callingFunction,
+                               std::string_view data) {
     std::string ret;
-    ret.resize(SHA1_DIGEST_SIZE);
-    auto md = fetchDigest("SHA1", "cb::crypto::digest(SHA1)");
+    ret.resize(digestSize);
+    auto md = fetchDigest(digestName, callingFunction);
     unsigned int outlen = 0;
     if (EVP_Digest(data.data(),
                    data.size(),
@@ -127,39 +140,7 @@ static std::string digest_sha1(std::string_view data) {
                    &outlen,
                    md.get(),
                    nullptr) == 0) {
-        throw OpenSslError::get("cb::crypto::digest(SHA1)", "EVP_Digest");
-    }
-    return ret;
-}
-
-static std::string digest_sha256(std::string_view data) {
-    std::string ret;
-    ret.resize(SHA256_DIGEST_SIZE);
-    auto md = fetchDigest("SHA256", "cb::crypto::digest(SHA256)");
-    unsigned int outlen = 0;
-    if (EVP_Digest(data.data(),
-                   data.size(),
-                   reinterpret_cast<uint8_t*>(const_cast<char*>(ret.data())),
-                   &outlen,
-                   md.get(),
-                   nullptr) == 0) {
-        throw OpenSslError::get("cb::crypto::digest(SHA256)", "EVP_Digest");
-    }
-    return ret;
-}
-
-static std::string digest_sha512(std::string_view data) {
-    std::string ret;
-    ret.resize(SHA512_DIGEST_SIZE);
-    auto md = fetchDigest("SHA512", "cb::crypto::digest(SHA512)");
-    unsigned int outlen = 0;
-    if (EVP_Digest(data.data(),
-                   data.size(),
-                   reinterpret_cast<uint8_t*>(const_cast<char*>(ret.data())),
-                   &outlen,
-                   md.get(),
-                   nullptr) == 0) {
-        throw OpenSslError::get("cb::crypto::digest(SHA512)", "EVP_Digest");
+        throw OpenSslError::get(callingFunction, "EVP_Digest");
     }
     return ret;
 }
@@ -303,11 +284,18 @@ static std::string digest_raw(const Algorithm algorithm,
     TRACE_EVENT1("cbcrypto", "digest", "algorithm", int(algorithm));
     switch (algorithm) {
     case Algorithm::SHA1:
-        return internal::digest_sha1(data);
+        return internal::digest_impl(
+                "SHA1", SHA1_DIGEST_SIZE, "cb::crypto::digest(SHA1)", data);
     case Algorithm::SHA256:
-        return internal::digest_sha256(data);
+        return internal::digest_impl("SHA256",
+                                     SHA256_DIGEST_SIZE,
+                                     "cb::crypto::digest(SHA256)",
+                                     data);
     case Algorithm::SHA512:
-        return internal::digest_sha512(data);
+        return internal::digest_impl("SHA512",
+                                     SHA512_DIGEST_SIZE,
+                                     "cb::crypto::digest(SHA512)",
+                                     data);
     case Algorithm::DeprecatedPlain:
     case Algorithm::Argon2id13:
         throw std::invalid_argument(
