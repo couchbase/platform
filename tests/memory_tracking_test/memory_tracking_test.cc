@@ -204,16 +204,10 @@ TEST_F(MemoryTrackerTest, Accounting) {
     thread.join();
 }
 
-/* Test that malloc_usable_size is correctly interposed when using a
- * non-system allocator, as otherwise, our global new replacement could
- * lead to memory being allocated with jemalloc, but the system
- * malloc_usable_size being called with it.
- * We compare the result of malloc_usable_size to the result of
- * AllocHooks::get_allocation_size, which under jemalloc
- * maps to je_malloc_usable_size.
- * If these differ, or this test segfaults, it is suspicious and
- * worth investigating.
- * NB: ASAN is not helpful here as it does not work well with jemalloc
+/* Test that cb_malloc_usable_size and cb::ArenaMalloc::malloc_usable_size agree
+ * for memory allocated via our global new replacement. We don't call the bare C
+ * malloc_usable_size: platform no longer interposes it (MB-71089), so it would
+ * resolve to glibc and must not be handed a jemalloc-allocated pointer.
  */
 TEST_F(MemoryTrackerTest, mallocUsableSize) {
     // Allocate some data
@@ -221,10 +215,8 @@ TEST_F(MemoryTrackerTest, mallocUsableSize) {
 
     size_t allocHooksResult = cb::ArenaMalloc::malloc_usable_size(ptr);
     size_t directCallResult = cb_malloc_usable_size(ptr);
-    size_t libraryResult = malloc_usable_size(ptr);
 
     EXPECT_EQ(allocHooksResult, directCallResult);
-    EXPECT_EQ(libraryResult, directCallResult);
     delete[] ptr;
 }
 

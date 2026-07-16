@@ -386,12 +386,6 @@ function(platform_enable_pch target)
     endif()
 endfunction()
 
-# Skip using precompiled headers in global_new_replacement or we end up with
-# redundant redeclarations of malloc_usable_size
-set_source_files_properties(src/global_new_replacement.cc
-        PROPERTIES
-        SKIP_PRECOMPILE_HEADERS ON)
-
 # platform - the main platform library containing our various
 # platform abstraction functionality.
 #
