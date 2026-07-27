@@ -21,16 +21,23 @@ target_link_libraries(cblogger
         nlohmann_json::nlohmann_json)
 add_sanitizers(cblogger)
 
-cb_add_test_executable(cblogger_unit_test
-        logger_config_test.cc
-        logger_test.cc
+add_library(cblogger_test_fixture STATIC
         logger_test_fixture.cc
         logger_test_fixture.h)
+set_property(TARGET cblogger_test_fixture PROPERTY POSITION_INDEPENDENT_CODE 1)
+platform_enable_pch(cblogger_test_fixture)
+target_include_directories(cblogger_test_fixture INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(cblogger_test_fixture PUBLIC cblogger GTest::gtest)
+
+cb_add_test_executable(cblogger_unit_test
+        logger_config_test.cc
+        logger_test.cc)
 cb_enable_unity_build(cblogger_unit_test)
 platform_enable_pch(cblogger_unit_test)
 target_link_libraries(cblogger_unit_test
         PRIVATE
         cblogger
+        cblogger_test_fixture
         GTest::gtest
         GTest::gtest_main
         platform)
