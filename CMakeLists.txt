@@ -254,6 +254,7 @@ target_sources(platform PRIVATE
   src/thread.cc
   src/timeutils.cc
   src/unique_waiter_queue.cc
+  src/utf8.cc
   src/uuid.cc
   ${CB_MALLOC_IMPL}
   include/platform/atomic_duration.h
@@ -290,6 +291,7 @@ target_sources(platform PRIVATE
   include/platform/terminal_size.h
   include/platform/thread.h
   include/platform/timeutils.h
+  include/platform/utf8.h
   include/platform/uuid.h
 )
 
