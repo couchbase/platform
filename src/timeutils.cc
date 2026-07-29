@@ -256,11 +256,15 @@ bool cb::waitForPredicateUntil(const std::function<bool()>& pred,
 }
 
 void cb::waitForPredicate(const std::function<bool()>& pred) {
-    std::chrono::microseconds sleepTime(128);
-    while (true) {
-        if (pred()) {
-            return;
-        }
-        sleepTime = decayingSleep(sleepTime);
-    };
+    using namespace std::chrono_literals;
+    constexpr auto maxWaitTime = 60s;
+    if (!waitForPredicateUntil(pred, maxWaitTime)) {
+        throw std::runtime_error(
+                "cb::waitForPredicate: timed out after " +
+                std::to_string(
+                        std::chrono::duration_cast<std::chrono::seconds>(
+                                maxWaitTime)
+                                .count()) +
+                " seconds waiting for predicate to become true");
+    }
 }

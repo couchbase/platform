@@ -247,6 +247,14 @@ bool waitForPredicateUntil(const std::function<bool()>& pred,
 /**
  * Waits for the specified predicate to return true. Between attempts sleeps
  * the calling thread for an exponentially increasing amount of time.
+ *
+ * Intended for use from test code only. Throws std::runtime_error if the
+ * predicate has not returned true within 60 seconds, rather than blocking
+ * forever - a stuck predicate should fail the test quickly instead of
+ * hanging until an external timeout (e.g. CI job / ctest) kills the process.
+ *
+ * @throws std::runtime_error if the predicate does not become true within
+ *         60 seconds.
  */
 void waitForPredicate(const std::function<bool()>& pred);
 
