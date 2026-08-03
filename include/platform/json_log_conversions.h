@@ -68,8 +68,7 @@ struct use_fmt_to_string {
 };
 
 template <typename T>
-struct use_fmt_to_string<T, true> : fmt::has_formatter<T, fmt::format_context> {
-};
+struct use_fmt_to_string<T, true> : fmt::is_formattable<T> {};
 } // namespace detail
 
 /**

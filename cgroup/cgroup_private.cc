@@ -10,7 +10,7 @@
 
 #include "cgroup_private.h"
 #include <cgroup/cgroup.h>
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include <platform/dirutils.h>
 #include <platform/split_string.h>
 #include <unistd.h>
