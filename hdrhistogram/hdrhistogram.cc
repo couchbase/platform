@@ -36,6 +36,23 @@ HdrHistogram::HdrHistogram(uint64_t lowestDiscernibleValue,
            significantFigures);
 }
 
+HdrHistogram::Iterator::Iterator(const SyncHdrHistogramPtr& SyncHistoPtr,
+                                 Iterator::IterMode mode)
+    : hdr_iter(), type(mode), histoRLockPtr(SyncHistoPtr.rlock()) {
+}
+
+uint64_t HdrHistogram::getMinDiscernibleValue() const {
+    return getMinDiscernibleValue(histogram.rlock());
+}
+
+int64_t HdrHistogram::getMaxTrackableValue() const {
+    return getMaxTrackableValue(histogram.rlock());
+}
+
+int HdrHistogram::getSigFigAccuracy() const {
+    return getSigFigAccuracy(histogram.rlock());
+}
+
 HdrHistogram& HdrHistogram::operator+=(const HdrHistogram& other) {
     /*
      * Note: folly::acquireLockedPair() takes an exclusive lock on

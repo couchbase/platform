@@ -113,9 +113,7 @@ public:
         };
 
         Iterator(const SyncHdrHistogramPtr& SyncHistoPtr,
-                 Iterator::IterMode mode)
-            : hdr_iter(), type(mode), histoRLockPtr(SyncHistoPtr.rlock()) {
-        }
+                 Iterator::IterMode mode);
 
         Iterator(Iterator&& itr) = default;
 
@@ -472,17 +470,13 @@ public:
     /**
      * Get the lowest non-zero value this histogram can represent.
      */
-    uint64_t getMinDiscernibleValue() const {
-        return getMinDiscernibleValue(histogram.rlock());
-    }
+    uint64_t getMinDiscernibleValue() const;
 
     /**
      * Method to get the maximum trackable value of this histogram
      * @return maximum trackable value
      */
-    int64_t getMaxTrackableValue() const {
-        return getMaxTrackableValue(histogram.rlock());
-    }
+    int64_t getMaxTrackableValue() const;
 
     /**
      * Method to get the number of significant figures being used to value
@@ -490,9 +484,7 @@ public:
      * @return an int between 0 and 5 of the number of significant
      * figures bing used
      */
-    int getSigFigAccuracy() const {
-        return getSigFigAccuracy(histogram.rlock());
-    }
+    int getSigFigAccuracy() const;
 
     /**
      * Method to get hold of the mean of this histogram.
