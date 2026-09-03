@@ -95,6 +95,12 @@ int cb::getopt::getopt_long(int argc,
         return parse_longopt(argc, argv, longopts, longindex);
     }
 
+    if (argv[cb::getopt::optind][1] == '\0') {
+        // A lone "-" is a non-option argument (commonly used to mean
+        // "stdin"/"stdout"), not an option.
+        return -1;
+    }
+
     if (argv[cb::getopt::optind][2] != '\0') {
         if (!silent) {
             fprintf(stderr,

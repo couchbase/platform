@@ -79,6 +79,22 @@ TEST_F(GetoptTest, NormalWithTermination) {
     release(argv, vec.size());
 }
 
+TEST_F(GetoptTest, LoneDashIsNotAnOption) {
+    getoptvec vec;
+    vec.emplace_back("program");
+    vec.emplace_back("-a");
+    vec.emplace_back("-");
+    auto argc = (int)vec.size();
+    auto** argv = vec2array(vec);
+
+    ASSERT_EQ('a', cb::getopt::getopt(argc, argv, "a"));
+    ASSERT_EQ(-1, cb::getopt::getopt(argc, argv, "a"));
+    ASSERT_EQ(2, cb::getopt::optind);
+    ASSERT_STREQ("-", argv[cb::getopt::optind]);
+
+    release(argv, vec.size());
+}
+
 TEST_F(GetoptTest, RegressionTestFromEpEngine) {
     getoptvec vec;
     vec.emplace_back("..\\memcached\\engine_testapp");
