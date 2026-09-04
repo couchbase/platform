@@ -7,7 +7,6 @@
  *   software will be governed by the Apache License, Version 2.0, included in
  *   the file licenses/APL2.txt.
  */
-#include <folly/compression/Compression.h>
 #include <folly/io/IOBuf.h>
 #include <gsl/gsl-lite.hpp>
 #include <platform/compress.h>
@@ -113,61 +112,57 @@ static bool deflateZlib(std::string_view input, Buffer& output) {
     return true;
 }
 
-bool inflate(folly::io::CodecType type,
+bool inflate(Algorithm type,
              std::string_view input,
              Buffer& output,
              size_t max_inflated_size) {
-    if (type == folly::io::CodecType::SNAPPY) {
+    if (type == Algorithm::Snappy) {
         return inflateSnappy(input, output, max_inflated_size);
     }
-    if (type == folly::io::CodecType::ZLIB) {
+    if (type == Algorithm::ZLIB) {
         return inflateZlib(input, output, max_inflated_size);
     }
     throw std::invalid_argument(
             "cb::compression::inflate(): type must be SNAPPY or ZLIB");
 }
 
-std::unique_ptr<folly::IOBuf> inflate(folly::io::CodecType type,
+std::unique_ptr<folly::IOBuf> inflate(Algorithm type,
                                       std::string_view input,
                                       size_t max_inflated_size) {
-    if (type == folly::io::CodecType::SNAPPY) {
+    if (type == Algorithm::Snappy) {
         return inflateSnappy(input, max_inflated_size);
     }
-    if (type == folly::io::CodecType::ZLIB) {
+    if (type == Algorithm::ZLIB) {
         return inflateZlib(input, max_inflated_size);
     }
     throw std::invalid_argument(
             "cb::compression::inflate(): type must be SNAPPY or ZLIB");
 }
 
-bool deflate(folly::io::CodecType type,
-             std::string_view input_buffer,
-             Buffer& output) {
-    if (type == folly::io::CodecType::SNAPPY) {
+bool deflate(Algorithm type, std::string_view input_buffer, Buffer& output) {
+    if (type == Algorithm::Snappy) {
         return deflateSnappy(input_buffer, output);
     }
-    if (type == folly::io::CodecType::ZLIB) {
+    if (type == Algorithm::ZLIB) {
         return deflateZlib(input_buffer, output);
     }
     throw std::invalid_argument(
             "cb::compression::deflate(): type must be SNAPPY or ZLIB");
 }
 
-std::unique_ptr<folly::IOBuf> deflate(folly::io::CodecType type,
-                                      std::string_view input) {
-    if (type == folly::io::CodecType::SNAPPY) {
+std::unique_ptr<folly::IOBuf> deflate(Algorithm type, std::string_view input) {
+    if (type == Algorithm::Snappy) {
         return deflateSnappy(input);
     }
-    if (type == folly::io::CodecType::ZLIB) {
+    if (type == Algorithm::ZLIB) {
         return deflateZlib(input);
     }
     throw std::invalid_argument(
             "cb::compression::deflate(): type must be SNAPPY or ZLIB");
 }
 
-size_t get_uncompressed_length(folly::io::CodecType type,
-                               std::string_view input) {
-    if (type == folly::io::CodecType::SNAPPY) {
+size_t get_uncompressed_length(Algorithm type, std::string_view input) {
+    if (type == Algorithm::Snappy) {
         return getUncompressedLengthSnappy(input);
     }
     throw std::invalid_argument(

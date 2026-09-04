@@ -14,8 +14,9 @@
 #include <cbcrypto/file_writer.h>
 #include <cbcrypto/symmetric.h>
 #include <fmt/format.h>
-#include <folly/compression/Compression.h>
+#include <folly/Range.h>
 #include <folly/io/IOBuf.h>
+#include <folly/lang/Assume.h>
 #include <gsl/gsl-lite.hpp>
 #include <platform/compress.h>
 #include <platform/dirutils.h>
@@ -252,23 +253,23 @@ protected:
             return {};
         }
 
-        folly::io::CodecType codec;
+        cb::compression::Algorithm codec;
 
         switch (compression) {
         case Compression::Snappy:
-            codec = folly::io::CodecType::SNAPPY;
+            codec = cb::compression::Algorithm::Snappy;
             break;
         case Compression::ZLIB:
-            codec = folly::io::CodecType::ZLIB;
+            codec = cb::compression::Algorithm::ZLIB;
             break;
         case Compression::GZIP:
-            codec = folly::io::CodecType::GZIP;
+            codec = cb::compression::Algorithm::GZIP;
             break;
         case Compression::ZSTD:
-            codec = folly::io::CodecType::ZSTD;
+            codec = cb::compression::Algorithm::ZSTD;
             break;
         case Compression::BZIP2:
-            codec = folly::io::CodecType::BZIP2;
+            codec = cb::compression::Algorithm::BZIP2;
             break;
         default:
             throw std::runtime_error(fmt::format(

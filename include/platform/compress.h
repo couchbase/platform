@@ -10,9 +10,10 @@
 
 #pragma once
 
-#include <folly/compression/Compression.h>
 #include <platform/compression/buffer.h>
+#include <cstddef>
 #include <memory>
+#include <string_view>
 
 namespace folly {
 class IOBuf;
@@ -21,9 +22,18 @@ class IOBuf;
 namespace cb::compression {
 
 /**
+ * The compression algorithms understood by this API.
+ *
+ * Note that not every entry is supported by every method; the methods
+ * below document which ones they accept and throw std::invalid_argument
+ * for the rest.
+ */
+enum class Algorithm { Snappy, ZLIB, GZIP, ZSTD, BZIP2 };
+
+/**
  * Inflate the data in the buffer into the output buffer
  *
- * @param type The codec to use (currently ignored)
+ * @param type The algorithm to use (currently ignored)
  * @param input buffer pointing to the input data
  * @param output Where to store the result
  * @param max_inflated_size The maximum size for the inflated object (the
@@ -35,7 +45,7 @@ namespace cb::compression {
  * @throws std::bad_alloc if we fail to allocate memory for the
  *                        destination buffer
  */
-[[nodiscard]] bool inflate(folly::io::CodecType type,
+[[nodiscard]] bool inflate(Algorithm type,
                            std::string_view input,
                            Buffer& output,
                            size_t max_inflated_size);
@@ -44,7 +54,7 @@ namespace cb::compression {
  * Inflate the data and return a std::unique_ptr to a folly IOBuf
  * containing the inflated data
  *
- * @param type The codec to use (currently ignored)
+ * @param type The algorithm to use (currently ignored)
  * @param input The data to inflate
  * @param max_inflated_size The maximum size for the inflated object (the
  *                          library needs to allocate buffers this big, which
@@ -52,26 +62,26 @@ namespace cb::compression {
  *                          the resulting object becomes bigger than this
  *                          limit we'll abort and return false)
  * @return The inflated data
- * @throws std::invalid_argument for unsupported CodecTypes
+ * @throws std::invalid_argument for unsupported algorithms
  * @throws std::bad_alloc if allocation fails for the destination buffer
  * @throws std::range_error if the inflated data would exceed max_inflated_size
  * @throws std::runtime_error if there is an error related to inflating data
  */
-[[nodiscard]] std::unique_ptr<folly::IOBuf> inflate(folly::io::CodecType type,
+[[nodiscard]] std::unique_ptr<folly::IOBuf> inflate(Algorithm type,
                                                     std::string_view input,
                                                     size_t max_inflated_size);
 
 /**
  * Deflate the data in the buffer into the output buffer
  *
- * @param type The codec type to use
+ * @param type The algorithm to use
  * @param input_buffer buffer pointing to the input data
  * @param output Where to store the result
  * @return true if success, false otherwise
  * @throws std::bad_alloc if we fail to allocate memory for the
  *                        destination buffer
  */
-[[nodiscard]] bool deflate(folly::io::CodecType type,
+[[nodiscard]] bool deflate(Algorithm type,
                            std::string_view input_buffer,
                            Buffer& output);
 
@@ -79,26 +89,26 @@ namespace cb::compression {
  * Deflate the data and return a std::unique_ptr to a folly IOBuf
  * containing the deflated data
  *
- * @param type The codec to use (currently ignored)
+ * @param type The algorithm to use (currently ignored)
  * @param input The data to deflate
  * @return The deflated data
- * @throws std::invalid_argument for unsupported CodecTypes
+ * @throws std::invalid_argument for unsupported algorithms
  * @throws std::bad_alloc if allocation fails for the destination buffer
  * @throws std::runtime_error if there is an error related to deflating data
  */
-[[nodiscard]] std::unique_ptr<folly::IOBuf> deflate(folly::io::CodecType type,
+[[nodiscard]] std::unique_ptr<folly::IOBuf> deflate(Algorithm type,
                                                     std::string_view input);
 
 /**
  * Get the uncompressed length from the given compressed input buffer
  *
- * @param type The codec type to use
+ * @param type The algorithm to use
  * @param input buffer pointing to the input buffer
  * @return the uncompressed length if success, false otherwise
  * @throws std::invalid_argument if the algorithm provided is an
  *                               unknown algorithm
  */
-[[nodiscard]] size_t get_uncompressed_length(folly::io::CodecType type,
+[[nodiscard]] size_t get_uncompressed_length(Algorithm type,
                                              std::string_view input);
 
 /**

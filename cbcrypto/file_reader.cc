@@ -16,7 +16,8 @@
 #include <cbcrypto/symmetric.h>
 #include <fcntl.h>
 #include <fmt/format.h>
-#include <folly/compression/Compression.h>
+#include <folly/Range.h>
+#include <folly/io/IOBuf.h>
 #include <platform/cb_time.h>
 #include <platform/compress.h>
 #include <platform/dirutils.h>
