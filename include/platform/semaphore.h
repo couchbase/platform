@@ -9,6 +9,7 @@
  */
 #pragma once
 
+#include <folly/portability/SysTypes.h>
 #include <sys/types.h>
 
 #include <atomic>

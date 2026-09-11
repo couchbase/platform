@@ -26,19 +26,11 @@
 #include <zlib.h>
 
 #ifdef WIN32
+// The UCRT declares the POSIX names open()/close()/fdopen() (folly's
+// portability/Windows.h no longer suppresses them), so use them directly.
 #ifndef O_BINARY
 #define O_BINARY _O_BINARY
 #endif
-static inline int open(const char* path, int flags) {
-    return _open(path, flags);
-}
-
-static inline int close(int fd) {
-    return _close(fd);
-}
-
-#define fdopen(fd, mode) _fdopen(fd, mode)
-
 #else
 #include <unistd.h>
 #ifndef O_BINARY
