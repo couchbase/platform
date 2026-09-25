@@ -233,54 +233,18 @@ protected:
     std::string buffer;
 };
 
-class CompressionWriter : public StackedWriter {
+class SnappyStreamingWriter : public StackedWriter {
 public:
-    CompressionWriter(std::unique_ptr<FileWriter> underlying,
-                      Compression compression)
-        : StackedWriter(std::move(underlying)), compression(compression) {
+    SnappyStreamingWriter(std::unique_ptr<FileWriter> underlying)
+        : StackedWriter(std::move(underlying)) {
     }
 
 protected:
     void do_write(std::string_view data) override {
-        std::unique_ptr<folly::IOBuf> iobuf;
-        iobuf = deflate(data);
+        auto iobuf = cb::compression::deflateSnappy(data);
         data = folly::StringPiece{iobuf->coalesce()};
         this->underlying->write(data);
     }
-
-    std::unique_ptr<folly::IOBuf> deflate(std::string_view chunk) {
-        if (chunk.empty()) {
-            return {};
-        }
-
-        cb::compression::Algorithm codec;
-
-        switch (compression) {
-        case Compression::Snappy:
-            codec = cb::compression::Algorithm::Snappy;
-            break;
-        case Compression::ZLIB:
-            codec = cb::compression::Algorithm::ZLIB;
-            break;
-        case Compression::GZIP:
-            codec = cb::compression::Algorithm::GZIP;
-            break;
-        case Compression::ZSTD:
-            codec = cb::compression::Algorithm::ZSTD;
-            break;
-        case Compression::BZIP2:
-            codec = cb::compression::Algorithm::BZIP2;
-            break;
-        default:
-            throw std::runtime_error(fmt::format(
-                    "CompressionWriter: Unsupported compression: {}",
-                    compression));
-        }
-
-        return cb::compression::deflate(codec, chunk);
-    }
-
-    const Compression compression;
 };
 
 class ZLibStreamingWriter : public StackedWriter {
@@ -461,10 +425,14 @@ std::unique_ptr<FileWriter> FileWriter::wrap_with_encryption(
         ret = std::make_unique<ZLibStreamingWriter>(std::move(ret));
         break;
     case Compression::Snappy:
+        ret = std::make_unique<SnappyStreamingWriter>(std::move(ret));
+        break;
     case Compression::ZSTD:
     case Compression::BZIP2:
-        ret = std::make_unique<CompressionWriter>(std::move(ret), compression);
-        break;
+        throw std::runtime_error(
+                fmt::format("FileWriter::wrap_with_encryption(): "
+                            "Unsupported compression: {}",
+                            compression));
     }
 
     if (buffer_size != 0) {
