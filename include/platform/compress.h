@@ -12,12 +12,8 @@
 
 #include <platform/compression/buffer.h>
 #include <cstddef>
-#include <memory>
+#include <string>
 #include <string_view>
-
-namespace folly {
-class IOBuf;
-}
 
 namespace cb::compression {
 
@@ -29,8 +25,22 @@ namespace cb::compression {
                                  Buffer& output,
                                  size_t max_inflated_size);
 
-[[nodiscard]] std::unique_ptr<folly::IOBuf> inflateSnappy(
-        std::string_view input, size_t max_inflated_size);
+/**
+ * Inflate Snappy-compressed data and return it as a std::string
+ *
+ * @param input The data to inflate
+ * @param max_inflated_size The maximum size for the inflated object (the
+ *                          library needs to allocate buffers this big, which
+ *                          could affect other components in the system. If
+ *                          the resulting object becomes bigger than this
+ *                          limit we'll abort and return false)
+ * @return The inflated data
+ * @throws std::bad_alloc if allocation fails for the destination buffer
+ * @throws std::range_error if the inflated data would exceed max_inflated_size
+ * @throws std::runtime_error if there is an error related to inflating data
+ */
+[[nodiscard]] std::string inflateSnappy(std::string_view input,
+                                        size_t max_inflated_size);
 
 /**
  * All data inside kv-engine (and on the wire) use Snappy compression.
@@ -38,8 +48,14 @@ namespace cb::compression {
  */
 [[nodiscard]] bool deflateSnappy(std::string_view input, Buffer& output);
 
-[[nodiscard]] std::unique_ptr<folly::IOBuf> deflateSnappy(
-        std::string_view input);
+/**
+ * Deflate the data with Snappy and return it as a std::string
+ *
+ * @param input The data to deflate
+ * @return The deflated data
+ * @throws std::bad_alloc if allocation fails for the destination buffer
+ */
+[[nodiscard]] std::string deflateSnappy(std::string_view input);
 
 /**
  * Get the uncompressed length from the given Snappy compressed input buffer

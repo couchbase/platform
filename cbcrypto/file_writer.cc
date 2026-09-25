@@ -14,8 +14,6 @@
 #include <cbcrypto/file_writer.h>
 #include <cbcrypto/symmetric.h>
 #include <fmt/format.h>
-#include <folly/Range.h>
-#include <folly/io/IOBuf.h>
 #include <folly/lang/Assume.h>
 #include <gsl/gsl-lite.hpp>
 #include <platform/compress.h>
@@ -241,9 +239,7 @@ public:
 
 protected:
     void do_write(std::string_view data) override {
-        auto iobuf = cb::compression::deflateSnappy(data);
-        data = folly::StringPiece{iobuf->coalesce()};
-        this->underlying->write(data);
+        this->underlying->write(cb::compression::deflateSnappy(data));
     }
 };
 

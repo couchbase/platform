@@ -7,7 +7,7 @@
  *   software will be governed by the Apache License, Version 2.0, included in
  *   the file licenses/APL2.txt.
  */
-#include <folly/io/IOBuf.h>
+#include <fmt/format.h>
 #include <gsl/gsl-lite.hpp>
 #include <platform/compress.h>
 #include <snappy.h>
@@ -36,8 +36,7 @@ bool inflateSnappy(std::string_view input,
     return true;
 }
 
-std::unique_ptr<folly::IOBuf> inflateSnappy(std::string_view input,
-                                            size_t max_inflated_size) {
+std::string inflateSnappy(std::string_view input, size_t max_inflated_size) {
     size_t inflated_length;
     if (!snappy::GetUncompressedLength(
                 input.data(), input.size(), &inflated_length)) {
@@ -54,14 +53,18 @@ std::unique_ptr<folly::IOBuf> inflateSnappy(std::string_view input,
                             max_inflated_size));
     }
 
-    auto ret = folly::IOBuf::createCombined(inflated_length);
-    if (!snappy::RawUncompress(input.data(),
-                               input.size(),
-                               reinterpret_cast<char*>(ret->writableData()))) {
+    bool success = false;
+    std::string ret;
+    ret.resize_and_overwrite(
+            inflated_length, [&input, &success](char* data, size_t size) {
+                success =
+                        snappy::RawUncompress(input.data(), input.size(), data);
+                return size;
+            });
+    if (!success) {
         throw std::runtime_error(
                 "cb::compression::inflateSnappy: Failed to inflate data");
     }
-    ret->append(inflated_length);
     return ret;
 }
 
@@ -74,15 +77,18 @@ bool deflateSnappy(std::string_view input, Buffer& output) {
     return true;
 }
 
-std::unique_ptr<folly::IOBuf> deflateSnappy(std::string_view input) {
-    size_t max_compressed_length = snappy::MaxCompressedLength(input.size());
-    auto ret = folly::IOBuf::createCombined(max_compressed_length);
+std::string deflateSnappy(std::string_view input) {
+    const size_t max_compressed_length =
+            snappy::MaxCompressedLength(input.size());
     size_t compressed_length = max_compressed_length;
-    snappy::RawCompress(input.data(),
-                        input.size(),
-                        reinterpret_cast<char*>(ret->writableData()),
-                        &compressed_length);
-    ret->append(compressed_length);
+    std::string ret;
+    ret.resize_and_overwrite(
+            max_compressed_length,
+            [&input, &compressed_length](char* data, size_t size) {
+                snappy::RawCompress(
+                        input.data(), input.size(), data, &compressed_length);
+                return compressed_length;
+            });
     return ret;
 }
 

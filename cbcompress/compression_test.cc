@@ -30,8 +30,8 @@ TEST(Compression, TestSnappyCompression) {
     EXPECT_LT(output.size(), 8192u);
     EXPECT_NE(nullptr, output.data());
     auto def = deflateSnappy(input);
-    EXPECT_EQ(output.size(), def->length());
-    EXPECT_EQ(0, std::memcmp(output.data(), def->data(), def->length()));
+    EXPECT_EQ(output.size(), def.size());
+    EXPECT_EQ(0, std::memcmp(output.data(), def.data(), def.size()));
 
     Buffer back;
     EXPECT_TRUE(inflateSnappy(output, back, 30_MiB));
@@ -40,8 +40,8 @@ TEST(Compression, TestSnappyCompression) {
     EXPECT_NE(nullptr, back.data());
     EXPECT_EQ(0, memcmp(input.data(), back.data(), input.size()));
     auto inf = inflateSnappy(output, 30_MiB);
-    EXPECT_EQ(input.size(), inf->length());
-    EXPECT_EQ(0, memcmp(input.data(), inf->data(), input.size()));
+    EXPECT_EQ(input.size(), inf.size());
+    EXPECT_EQ(0, memcmp(input.data(), inf.data(), input.size()));
 
     // Verify that we don't exceed the max size:
     EXPECT_FALSE(inflateSnappy(output, back, 4096));

@@ -16,7 +16,6 @@
 #include <cbcrypto/symmetric.h>
 #include <fcntl.h>
 #include <fmt/format.h>
-#include <folly/Range.h>
 #include <folly/io/IOBuf.h>
 #include <platform/cb_time.h>
 #include <platform/compress.h>
@@ -397,9 +396,8 @@ protected:
         if (chunk.empty()) {
             return {};
         }
-        auto inflated = cb::compression::inflateSnappy(
+        return cb::compression::inflateSnappy(
                 chunk, std::numeric_limits<std::size_t>::max());
-        return std::string(folly::StringPiece{inflated->coalesce()});
     }
 
     std::unique_ptr<FileReader> underlying;
