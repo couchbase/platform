@@ -70,15 +70,26 @@ struct sized_buffer {
     /**
      * Constructor from const reference to a string
      * (cannot be instantiated for non-const T)
+     *
+     * This is a template (rather than naming std::basic_string<base_type>
+     * directly) so that overload resolution doesn't instantiate
+     * std::basic_string<base_type> for types without a std::char_traits
+     * specialization (e.g. uint8_t). libc++ 19 and later removed the
+     * generic std::char_traits base template, so such an instantiation
+     * is a hard error.
      */
-    sized_buffer(const std::basic_string<base_type>& str)
+    template <typename CharT>
+        requires std::is_same_v<CharT, base_type>
+    sized_buffer(const std::basic_string<CharT>& str)
         : sized_buffer(str.data(), str.size()) {
     }
 
     /**
      * Constructor from non-const reference to a string
      */
-    sized_buffer(std::basic_string<base_type>& str)
+    template <typename CharT>
+        requires std::is_same_v<CharT, base_type>
+    sized_buffer(std::basic_string<CharT>& str)
         : sized_buffer(&str[0], str.size()) {
     }
 
