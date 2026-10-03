@@ -156,6 +156,36 @@ TEST_F(FileUtilitiesTest, rewriteEncryptedToUnencrypted) {
     EXPECT_EQ("This is the content", reader->read());
 }
 
+/// Decrypting a file with compression enabled should produce a gzip file
+/// named <name><unencrypted_extension>.gz next to the original file
+TEST_F(FileUtilitiesTest, rewriteEncryptedToUnencryptedCompressed) {
+    create_file("file.cef", "This is the content");
+    bool error = false;
+    maybeRewriteFiles(
+            dir,
+            [](const auto& path, auto) {
+                return path.filename().string() == "file.cef";
+            },
+            {},
+            [this](auto id) { return keystore.lookup(id); },
+            [&error](std::string_view message, const nlohmann::json& json) {
+                ADD_FAILURE() << message << " " << json.dump();
+                error = true;
+            },
+            ".log",
+            true);
+    EXPECT_FALSE(error);
+
+    EXPECT_FALSE(std::filesystem::exists(dir / "file.cef"));
+    const auto file = dir / "file.log.gz";
+    ASSERT_TRUE(std::filesystem::is_regular_file(file));
+
+    const auto reader = FileReader::create(
+            file, [this](auto id) { return keystore.lookup(id); });
+    EXPECT_FALSE(reader->is_encrypted());
+    EXPECT_EQ("This is the content", reader->read());
+}
+
 TEST_F(FileUtilitiesTest, rewriteUsingCertainKey) {
     create_file("file1.cef", "This is the content");
     const auto key_id = files["file1.cef"];

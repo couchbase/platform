@@ -139,7 +139,8 @@ void maybeRewriteFiles(
             auto next = path;
             next.replace_extension(unencrypted_extension);
             if (compression) {
-                next.append(".gz");
+                // Note: append() would add ".gz" as a path component
+                next += ".gz";
             }
             rename(tmpfile, next);
             remove(path);
