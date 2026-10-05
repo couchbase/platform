@@ -30,10 +30,14 @@ public:
      * @param dek The key to use to write the files. If no key is present
      *            the data is written unencrypted
      * @param path The name of the file to write
-     * @param buffer_size An optional buffer size to let the underlying file
-     *                    writer buffer data before writing to disk. This
-     *                    is useful for encrypted logfiles ot avoid writing
-     *                    small chunks
+     * @param buffer_size An optional buffer size to let the writer buffer
+     *                    data in memory before passing it on to the file
+     *                    (for both plain and encrypted files). Without a
+     *                    buffer every chunk written is passed directly on
+     *                    to the file (and for encrypted files becomes its
+     *                    own encrypted block), so callers writing many
+     *                    small chunks (for instance log files) should set
+     *                    a buffer size
      * @return A new FileWriter instance
      */
     static std::unique_ptr<FileWriter> create(

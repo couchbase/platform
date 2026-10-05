@@ -119,6 +119,18 @@ public:
         buffer.reserve(buffer_size);
     }
 
+    ~BufferedWriter() override {
+        // User didn't explicitly flush or close the stream so we need to
+        // pass on any pending data to avoid losing it. The underlying
+        // writer is destroyed after this destructor runs (it is a member
+        // of the base class) so it is still valid here. Catch exceptions
+        // as a destructor should not throw.
+        try {
+            flush_pending_data();
+        } catch (const std::exception&) {
+        }
+    }
+
     void flush() override {
         flush_pending_data();
         underlying->flush();
@@ -377,12 +389,10 @@ std::unique_ptr<FileWriter> FileWriter::create(const SharedEncryptionKey& dek,
         if (compressor) {
             ret = std::move(compressor);
         }
+    }
 
-        if (buffer_size != 0) {
-            next = std::make_unique<BufferedWriter>(std::move(ret),
-                                                    buffer_size);
-            ret = std::move(next);
-        }
+    if (buffer_size != 0) {
+        ret = std::make_unique<BufferedWriter>(std::move(ret), buffer_size);
     }
     return ret;
 }
