@@ -10,6 +10,7 @@
 #pragma once
 #include <cbcrypto/common.h>
 #include <cbcrypto/encrypted_file_header.h>
+#include <platform/byte_literals.h>
 #include <filesystem>
 #include <string_view>
 
@@ -30,20 +31,18 @@ public:
      * @param dek The key to use to write the files. If no key is present
      *            the data is written unencrypted
      * @param path The name of the file to write
-     * @param buffer_size An optional buffer size to let the writer buffer
-     *                    data in memory before passing it on to the file
-     *                    (for both plain and encrypted files). Without a
-     *                    buffer every chunk written is passed directly on
-     *                    to the file (and for encrypted files becomes its
-     *                    own encrypted block), so callers writing many
-     *                    small chunks (for instance log files) should set
-     *                    a buffer size
+     * @param buffer_size The size of the buffer used to buffer data in
+     *                    memory before passing it on to the file (for both
+     *                    plain and encrypted files). Use 0 to disable
+     *                    buffering, in which case every chunk written is
+     *                    passed directly on to the file (and for encrypted
+     *                    files becomes its own encrypted block)
      * @return A new FileWriter instance
      */
     static std::unique_ptr<FileWriter> create(
             const SharedEncryptionKey& dek,
             std::filesystem::path path,
-            size_t buffer_size = 0,
+            size_t buffer_size = 8_KiB,
             Compression compression = Compression::None);
 
     /// Is the file being read encrypted or not

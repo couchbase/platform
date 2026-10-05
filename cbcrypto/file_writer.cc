@@ -19,22 +19,21 @@
 #include <gsl/gsl-lite.hpp>
 #include <platform/compress.h>
 #include <platform/dirutils.h>
+#include <platform/file_sink.h>
 #include <platform/socket.h>
 #include <zlib.h>
-#include <fstream>
 
 namespace cb::crypto {
 
 /**
  * The FileWriterImpl is the actual implementation of the FileWriter
- * interface. It is used to write data to a file on disk.
+ * interface. It is used to write data to a file on disk, and fsync the
+ * data to disk as part of closing the file.
  */
 class FileWriterImpl : public FileWriter {
 public:
-    FileWriterImpl(std::ofstream fstream) : file(std::move(fstream)) {
-        if (!file.is_open()) {
-            throw std::invalid_argument("file should be open");
-        }
+    explicit FileWriterImpl(std::filesystem::path path)
+        : file(std::move(path)) {
     }
 
     [[nodiscard]] bool is_encrypted() const override {
@@ -42,31 +41,25 @@ public:
     }
 
     [[nodiscard]] size_t size() const override {
-        return current_size;
+        return file.getBytesWritten();
     }
 
     void write(std::string_view chunk) override {
-        Expects(file.is_open());
-        file.write(chunk.data(), chunk.size());
-        current_size += chunk.size();
+        file.sink(chunk);
     }
 
     void flush() override {
-        Expects(file.is_open());
-        file.flush();
+        // FileSink is unbuffered so all data has already been handed over
+        // to the OS. The data is synced to disk as part of close() (we
+        // don't want to fsync on every flush)
     }
 
     void close() override {
-        Expects(file.is_open());
         file.close();
     }
 
-    ~FileWriterImpl() override = default;
-
 protected:
-    const std::filesystem::path filename;
-    std::ofstream file;
-    std::size_t current_size = 0;
+    cb::io::FileSink file;
 };
 
 class StackedWriter : public FileWriter {
@@ -350,14 +343,8 @@ std::unique_ptr<FileWriter> FileWriter::create(const SharedEncryptionKey& dek,
                                                std::filesystem::path path,
                                                size_t buffer_size,
                                                Compression compression) {
-    std::ofstream file;
-    file.exceptions(std::ofstream::failbit | std::ofstream::badbit);
-    file.open(path.string().c_str(),
-              std::ios_base::trunc | std::ios_base::binary);
-
-    std::unique_ptr<FileWriter> ret;
-
-    ret = std::make_unique<FileWriterImpl>(std::move(file));
+    std::unique_ptr<FileWriter> ret =
+            std::make_unique<FileWriterImpl>(std::move(path));
     if (dek) {
         EncryptedFileHeader header(dek->id, cb::uuid::random(), compression);
         ret->write(header);

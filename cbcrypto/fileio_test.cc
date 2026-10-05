@@ -42,6 +42,18 @@ TEST_F(FileIoTest, FileWriterTestPlain) {
     EXPECT_EQ(content, cb::io::loadFile(file));
 }
 
+TEST_F(FileIoTest, FileWriterTestPlainClose) {
+    const std::string_view content = "This is the content"sv;
+    auto writer = FileWriter::create({}, file);
+    EXPECT_FALSE(writer->is_encrypted());
+    EXPECT_EQ(0, writer->size());
+    writer->write(content);
+    EXPECT_EQ(content.size(), writer->size());
+    writer->flush();
+    writer->close();
+    EXPECT_EQ(content, cb::io::loadFile(file));
+}
+
 TEST_F(FileIoTest, FileWriterTestPlainBuffered) {
     const std::string_view content = "This is the content"sv;
     auto writer = FileWriter::create({}, file, 1024);
@@ -66,6 +78,31 @@ TEST_F(FileIoTest, FileWriterTestPlainBufferedNoClose) {
     EXPECT_EQ(0, std::filesystem::file_size(file));
     writer.reset();
     EXPECT_EQ(content, cb::io::loadFile(file));
+}
+
+// The writer is buffered by default
+TEST_F(FileIoTest, FileWriterTestPlainDefaultBuffered) {
+    const std::string_view content = "This is the content"sv;
+    auto writer = FileWriter::create({}, file);
+    writer->write(content);
+    EXPECT_EQ(0, std::filesystem::file_size(file));
+    writer->flush();
+    EXPECT_EQ(content, cb::io::loadFile(file));
+}
+
+// A buffer size of 0 disables buffering
+TEST_F(FileIoTest, FileWriterTestPlainUnbuffered) {
+    const std::string_view content = "This is the content"sv;
+    auto writer = FileWriter::create({}, file, 0);
+    writer->write(content);
+    EXPECT_EQ(content, cb::io::loadFile(file));
+}
+
+TEST_F(FileIoTest, FileWriterOpenFailure) {
+    EXPECT_THROW(FileWriter::create({},
+                                    file.parent_path() / "non_existing_subdir" /
+                                            "file.txt"),
+                 std::system_error);
 }
 
 TEST_F(FileIoTest, FileWriterTestEncrypted) {

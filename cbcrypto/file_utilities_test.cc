@@ -45,7 +45,8 @@ protected:
             key = DataEncryptionKey::generate();
             keystore.add(key);
         }
-        auto writer = FileWriter::create(key, dir / name);
+        // Disable buffering so that each chunk becomes its own block
+        auto writer = FileWriter::create(key, dir / name, 0);
         while (!content.empty()) {
             auto chunk =
                     content.substr(0, std::min(content.size(), max_chunk_size));
