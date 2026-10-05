@@ -1,0 +1,125 @@
+/*
+ *     Copyright 2025-Present Couchbase, Inc.
+ *
+ *   Use of this software is governed by the Business Source License included
+ *   in the file licenses/BSL-Couchbase.txt.  As of the Change Date specified
+ *   in that file, in accordance with the Business Source License, use of this
+ *   software will be governed by the Apache License, Version 2.0, included in
+ *   the file licenses/APL2.txt.
+ */
+
+#include <fmt/format.h>
+#include <folly/portability/Unistd.h>
+#include <gsl/gsl-lite.hpp>
+#include <platform/file_sink.h>
+
+namespace cb::io {
+FileSink::FileSink(std::filesystem::path path,
+                   Mode mode,
+                   std::size_t fsync_interval)
+    : filename(std::move(path)), fsync_interval(fsync_interval) {
+    // sink() writes the data in chunks of fsync_interval bytes
+    Expects(fsync_interval > 0);
+    if (mode == Mode::Append) {
+        fp = fopen(filename.string().c_str(), "ab");
+    } else {
+        fp = fopen(filename.string().c_str(), "wb");
+    }
+
+    if (fp == nullptr) {
+        throw std::system_error(
+                errno,
+                std::generic_category(),
+                fmt::format("Failed to open file '{}'", filename.string()));
+    }
+    (void)std::setvbuf(fp, nullptr, _IONBF, 0);
+}
+
+void FileSink::sink(std::string_view data) {
+    Expects(fp);
+    if (data.empty()) {
+        return;
+    }
+    std::size_t offset = 0;
+    while (offset < data.size()) {
+        auto chunk = std::min(data.size() - offset, fsync_interval);
+        if (fwrite(data.data() + offset, chunk, 1, fp) != 1) {
+            throw std::system_error(
+                    errno,
+                    std::generic_category(),
+                    fmt::format("Failed to write to file '{}' at offset {}",
+                                filename.string(),
+                                bytes_written));
+        }
+
+        bytes_written += chunk;
+        bytes_written_since_flush += chunk;
+        offset += chunk;
+
+        if (bytes_written_since_flush >= fsync_interval) {
+            fsync();
+        }
+    }
+}
+
+std::size_t FileSink::fsync() {
+    Expects(fp);
+    if (bytes_written_since_flush) {
+        if (::fsync(fileno(fp)) == -1) {
+            throw std::system_error(
+                    errno,
+                    std::generic_category(),
+                    fmt::format("Failed to fsync file '{}' at offset {}",
+                                filename.string(),
+                                bytes_written));
+        }
+        bytes_written_since_flush = 0;
+    }
+    return bytes_written;
+}
+
+std::size_t FileSink::close() {
+    Expects(fp);
+    // Always attempt to fsync the file before closing it.
+    auto fsync_errno = fsync_no_throw();
+    // The stream is disassociated from the file even if fclose fails, so
+    // it must not be used again (the destructor would otherwise try to
+    // close it a second time)
+    const auto status = fclose(fp);
+    fp = nullptr;
+    if (status != 0) {
+        throw std::system_error(
+                errno,
+                std::generic_category(),
+                fmt::format("Failed to close file '{}' fsync={}",
+                            filename.string(),
+                            fsync_errno));
+    }
+    // failed fsync but closed the file, throw for the fsync error
+    if (fsync_errno) {
+        throw std::system_error(
+                fsync_errno,
+                std::generic_category(),
+                fmt::format("Failed to fsync file before close '{}'",
+                            filename.string()));
+    }
+    return bytes_written;
+}
+
+FileSink::~FileSink() {
+    if (fp) {
+        try {
+            close();
+        } catch (const std::exception&) {
+            // Can't throw from the destructor
+        }
+    }
+}
+
+int FileSink::fsync_no_throw() noexcept {
+    if (::fsync(fileno(fp)) == -1) {
+        return errno;
+    }
+    return 0;
+}
+} // namespace cb::io

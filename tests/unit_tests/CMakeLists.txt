@@ -14,6 +14,7 @@ cb_add_test_executable(platform_unit_tests
                        corestore_test.h
                        dirutils_test.cc
                        dirutils_test_2.cc
+                       file_sink_tests.cc
                        getopt_test.cc
                        hex_test.cc
                        json_checker_test.cc
@@ -26,6 +27,7 @@ cb_add_test_executable(platform_unit_tests
                        random_test.cc
                        relaxed_atomic_test.cc
                        ring_buffer_test.cc
+                       save_file_test.cc
                        scope_timer_test.cc
                        semaphore_test.cc
                        simd_scan_test.cc
