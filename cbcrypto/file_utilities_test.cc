@@ -212,3 +212,18 @@ TEST_F(FileUtilitiesTest, rewriteTruncatedFile) {
     EXPECT_EQ(data, content);
     EXPECT_EQ(requested, keystore.getActiveKey()->getId());
 }
+
+/// A missing directory means there is nothing to rewrite, and must not
+/// be reported as an error
+TEST_F(FileUtilitiesTest, rewriteMissingDirectory) {
+    bool error_reported = false;
+    EXPECT_NO_THROW(maybeRewriteFiles(
+            dir / "missing",
+            [](const auto&, auto) { return true; },
+            keystore.getActiveKey(),
+            [this](auto id) { return keystore.lookup(id); },
+            [&error_reported](std::string_view, const nlohmann::json&) {
+                error_reported = true;
+            }));
+    EXPECT_FALSE(error_reported);
+}
