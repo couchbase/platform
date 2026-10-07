@@ -19,22 +19,21 @@
 #include <gsl/gsl-lite.hpp>
 #include <platform/compress.h>
 #include <platform/dirutils.h>
+#include <platform/file_sink.h>
 #include <platform/socket.h>
 #include <zlib.h>
-#include <fstream>
 
 namespace cb::crypto {
 
 /**
  * The FileWriterImpl is the actual implementation of the FileWriter
- * interface. It is used to write data to a file on disk.
+ * interface. It is used to write data to a file on disk, and fsync the
+ * data to disk as part of closing the file.
  */
 class FileWriterImpl : public FileWriter {
 public:
-    FileWriterImpl(std::ofstream fstream) : file(std::move(fstream)) {
-        if (!file.is_open()) {
-            throw std::invalid_argument("file should be open");
-        }
+    explicit FileWriterImpl(std::filesystem::path path)
+        : file(std::move(path)) {
     }
 
     [[nodiscard]] bool is_encrypted() const override {
@@ -42,31 +41,25 @@ public:
     }
 
     [[nodiscard]] size_t size() const override {
-        return current_size;
+        return file.getBytesWritten();
     }
 
     void write(std::string_view chunk) override {
-        Expects(file.is_open());
-        file.write(chunk.data(), chunk.size());
-        current_size += chunk.size();
+        file.sink(chunk);
     }
 
     void flush() override {
-        Expects(file.is_open());
-        file.flush();
+        // FileSink is unbuffered so all data has already been handed over
+        // to the OS. The data is synced to disk as part of close() (we
+        // don't want to fsync on every flush)
     }
 
     void close() override {
-        Expects(file.is_open());
         file.close();
     }
 
-    ~FileWriterImpl() override = default;
-
 protected:
-    const std::filesystem::path filename;
-    std::ofstream file;
-    std::size_t current_size = 0;
+    cb::io::FileSink file;
 };
 
 class GZipFileWriter : public FileWriter {
@@ -191,6 +184,18 @@ public:
     BufferedWriter(std::unique_ptr<FileWriter> underlying, size_t buffer_size)
         : StackedWriter(std::move(underlying)), buffer_size(buffer_size) {
         buffer.reserve(buffer_size);
+    }
+
+    ~BufferedWriter() override {
+        // User didn't explicitly flush or close the stream so we need to
+        // pass on any pending data to avoid losing it. The underlying
+        // writer is destroyed after this destructor runs (it is a member
+        // of the base class) so it is still valid here. Catch exceptions
+        // as a destructor should not throw.
+        try {
+            flush_pending_data();
+        } catch (const std::exception&) {
+        }
     }
 
     void flush() override {
@@ -416,13 +421,12 @@ std::unique_ptr<FileWriter> FileWriter::create(
         return ret;
     }
 
-    std::ofstream file;
-    file.exceptions(std::ofstream::failbit | std::ofstream::badbit);
-    file.open(path.string(), std::ios_base::trunc | std::ios_base::binary);
-
     std::unique_ptr<FileWriter> ret =
-            std::make_unique<FileWriterImpl>(std::move(file));
+            std::make_unique<FileWriterImpl>(std::move(path));
     if (!kdk) {
+        if (buffer_size != 0) {
+            ret = std::make_unique<BufferedWriter>(std::move(ret), buffer_size);
+        }
         return ret;
     }
     return wrap_with_encryption(kdk, std::move(ret), buffer_size, compression);

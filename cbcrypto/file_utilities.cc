@@ -90,7 +90,16 @@ void maybeRewriteFiles(
         std::string_view unencrypted_extension,
         bool compression) {
     std::error_code ec;
-    for (const auto& p : std::filesystem::directory_iterator(directory, ec)) {
+    std::filesystem::directory_iterator iterator(directory, ec);
+    if (ec) {
+        // A missing directory means that there is nothing to rewrite
+        if (ec != std::errc::no_such_file_or_directory) {
+            error("Failed to iterate directory",
+                  {{"path", directory.string()}, {"error", ec.message()}});
+        }
+        return;
+    }
+    for (const auto& p : iterator) {
         auto path = p.path();
         std::string key;
         if (path.extension() == ".cef") {
@@ -130,10 +139,15 @@ void maybeRewriteFiles(
         writer->flush();
         writer->close();
         reader.reset();
+        // The content of tmpfile was synced as part of closing the writer,
+        // but the directory must be synced for the rename to be durable.
+        // When the file changes name, sync before removing the original so
+        // that a crash can't leave us with neither of them.
         if (derivation_key && path.extension() != ".cef") {
             auto next = path;
             next.replace_extension(".cef");
             rename(tmpfile, next);
+            cb::io::fsyncDirectory(directory);
             remove(path);
         } else if (!derivation_key && path.extension() == ".cef") {
             auto next = path;
@@ -142,9 +156,11 @@ void maybeRewriteFiles(
                 next.append(".gz");
             }
             rename(tmpfile, next);
+            cb::io::fsyncDirectory(directory);
             remove(path);
         } else {
             rename(tmpfile, path);
+            cb::io::fsyncDirectory(directory);
         }
     }
 }

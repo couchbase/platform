@@ -45,7 +45,8 @@ protected:
             key = KeyDerivationKey::generate();
             keystore.add(key);
         }
-        auto writer = FileWriter::create(key, dir / name);
+        // Disable buffering so that each chunk becomes its own block
+        auto writer = FileWriter::create(key, dir / name, 0);
         while (!content.empty()) {
             auto chunk =
                     content.substr(0, std::min(content.size(), max_chunk_size));
@@ -210,4 +211,19 @@ TEST_F(FileUtilitiesTest, rewriteTruncatedFile) {
     data.resize(data.size() - 1024);
     EXPECT_EQ(data, content);
     EXPECT_EQ(requested, keystore.getActiveKey()->id);
+}
+
+/// A missing directory means there is nothing to rewrite, and must not
+/// be reported as an error
+TEST_F(FileUtilitiesTest, rewriteMissingDirectory) {
+    bool error_reported = false;
+    EXPECT_NO_THROW(maybeRewriteFiles(
+            dir / "missing",
+            [](const auto&, auto) { return true; },
+            keystore.getActiveKey(),
+            [this](auto id) { return keystore.lookup(id); },
+            [&error_reported](std::string_view, const nlohmann::json&) {
+                error_reported = true;
+            }));
+    EXPECT_FALSE(error_reported);
 }

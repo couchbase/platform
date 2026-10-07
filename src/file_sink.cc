@@ -21,6 +21,8 @@ FileSink::FileSink(std::filesystem::path path,
     : filename(std::move(path)),
       fsync_interval(fsync_interval),
       io_hint(io_hint) {
+    // sink() writes the data in chunks of fsync_interval bytes
+    Expects(fsync_interval > 0);
     if (mode == Mode::Append) {
         fp = fopen(filename.string().c_str(), "ab");
     } else {
@@ -30,7 +32,7 @@ FileSink::FileSink(std::filesystem::path path,
     if (fp == nullptr) {
         throw std::system_error(
                 errno,
-                std::system_category(),
+                std::generic_category(),
                 fmt::format("Failed to open file '{}'", filename.string()));
     }
     (void)std::setvbuf(fp, nullptr, _IONBF, 0);
@@ -67,7 +69,7 @@ void FileSink::sink(std::string_view data) {
         if (fwrite(data.data() + offset, chunk, 1, fp) != 1) {
             throw std::system_error(
                     errno,
-                    std::system_category(),
+                    std::generic_category(),
                     fmt::format("Failed to write to file '{}' at offset {}",
                                 filename.string(),
                                 bytes_written));
@@ -110,7 +112,7 @@ std::size_t FileSink::fsync() {
         if (::fsync(fileno(fp)) == -1) {
             throw std::system_error(
                     errno,
-                    std::system_category(),
+                    std::generic_category(),
                     fmt::format("Failed to fsync file '{}' at offset {}",
                                 filename.string(),
                                 bytes_written));
@@ -131,20 +133,24 @@ std::size_t FileSink::close() {
         // didn't reach a full fsync_interval). Must be done while fp is valid.
         maybeEvictBufferCachePages();
     }
-    if (fclose(fp) != 0) {
+    // The stream is disassociated from the file even if fclose fails, so
+    // it must not be used again (the destructor would otherwise try to
+    // close it a second time)
+    const auto status = fclose(fp);
+    fp = nullptr;
+    if (status != 0) {
         throw std::system_error(
                 errno,
-                std::system_category(),
+                std::generic_category(),
                 fmt::format("Failed to close file '{}' fsync={}",
                             filename.string(),
                             fsync_errno));
     }
-    fp = nullptr;
     // failed fsync but closed the file, throw for the fsync error
     if (fsync_errno) {
         throw std::system_error(
                 fsync_errno,
-                std::system_category(),
+                std::generic_category(),
                 fmt::format("Failed to fsync file before close '{}'",
                             filename.string()));
     }

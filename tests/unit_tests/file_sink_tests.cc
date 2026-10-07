@@ -8,6 +8,7 @@
  *   the file licenses/APL2.txt.
  */
 #include <folly/portability/GTest.h>
+#include <folly/portability/Unistd.h>
 #include <gsl/gsl-lite.hpp>
 #include <platform/dirutils.h>
 #include <platform/file_sink.h>
@@ -48,12 +49,39 @@ TEST_F(FileSinkTest, SinkWritesData) {
     EXPECT_EQ(data, written);
 }
 
+TEST_F(FileSinkTest, ZeroFsyncIntervalNotAllowed) {
+    EXPECT_THROW(FileSink(path, FileSink::Mode::Truncate, 0), gsl::fail_fast);
+}
+
 TEST_F(FileSinkTest, SinkThrowsAfterClose) {
     FileSink sink(path);
     sink.close();
     std::string data = "Hello, World!";
     EXPECT_THROW(sink.sink(data), gsl::fail_fast);
 }
+
+#ifndef WIN32
+/** FileSink subclass which exposes the underlying file descriptor */
+class FileSinkWithDescriptor : public FileSink {
+public:
+    using FileSink::FileSink;
+    int getDescriptor() {
+        return fileno(fp);
+    }
+};
+
+/** Verify that the FILE* isn't used after a failing fclose() */
+TEST_F(FileSinkTest, CloseFailure) {
+    FileSinkWithDescriptor sink(path);
+    sink.sink("Hello, World!");
+    // Close the underlying file descriptor behind the back of the FILE*
+    // so that fclose() fails
+    ASSERT_EQ(0, ::close(sink.getDescriptor()));
+    EXPECT_THROW(sink.close(), std::system_error);
+    // The FILE* was released by fclose() and must not be used again
+    EXPECT_THROW(sink.close(), gsl::fail_fast);
+}
+#endif
 
 TEST_F(FileSinkTest, FsyncFlushesData) {
     FileSink sink(path);

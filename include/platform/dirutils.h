@@ -224,14 +224,14 @@ void mkdirp(std::string_view directory);
         size_t bytesToRead = std::numeric_limits<size_t>::max());
 
 /**
- * Save the content to the named file. It might throw other exceptions than
- * the ones listed below, but it use std::ofstream with exceptions enabled
- * which should throw an exception if something goes wrong.
+ * Save the content to the named file.
  *
  * @param path the name of the file to save
  * @param content the content to save
- * @param mode the mode to use when opening the file
- * @throws std::system_exception if an error occurs opening / writing the file
+ * @param mode the mode to use when opening the file (std::ios_base::app
+ *             appends to the file, otherwise it is truncated)
+ * @throws std::system_error if an error occurs opening / writing the file
+ *         (the error code contains the errno from the failing operation)
  */
 void saveFile(const std::filesystem::path& path,
               std::string_view content,
@@ -246,7 +246,6 @@ void saveFile(const std::filesystem::path& path,
  * @param ec Where to store the error code if an error occurs
  * @param mode the mode to use when opening the file
  * @returns true for success, false otherwise and ec contains the error code
- * @throws std::system_exception if an error occurs opening / writing the file
  */
 [[nodiscard]] bool saveFile(
         const std::filesystem::path& path,
@@ -254,6 +253,46 @@ void saveFile(const std::filesystem::path& path,
         std::error_code& ec,
         std::ios_base::openmode mode = std::ios_base::trunc |
                                        std::ios_base::binary) noexcept;
+
+/**
+ * Flush the named directory to stable storage so that changes to its
+ * entries (such as a file created or renamed into it) survive a crash.
+ * Windows doesn't support syncing a directory so it is a no-op there.
+ *
+ * @param directory the directory to sync (empty means current directory)
+ * @throws std::system_error if an error occurs opening or syncing
+ */
+void fsyncDirectory(const std::filesystem::path& directory);
+
+/**
+ * Atomically and durably replace the content of the named file.
+ *
+ * The content is written to a temporary file (path + ".tmp") which is
+ * fsync'ed before it is renamed over the destination. Finally the parent
+ * directory is fsync'ed (not on Windows) so that the rename itself survives
+ * a crash. After a crash the file contains either the old or the new
+ * content, never a partially written (or empty) file.
+ *
+ * @param path the name of the file to save
+ * @param content the content to save
+ * @throws std::system_error if an error occurs writing, syncing or renaming
+ *         the file (the temporary file is removed on failure)
+ */
+void saveFileAtomic(const std::filesystem::path& path,
+                    std::string_view content);
+
+/**
+ * Atomically and durably replace the content of the named file.
+ *
+ * @see saveFileAtomic(const std::filesystem::path&, std::string_view)
+ * @param path the name of the file to save
+ * @param content the content to save
+ * @param ec Where to store the error code if an error occurs
+ * @returns true for success, false otherwise and ec contains the error code
+ */
+[[nodiscard]] bool saveFileAtomic(const std::filesystem::path& path,
+                                  std::string_view content,
+                                  std::error_code& ec) noexcept;
 
 /**
  * Read a file line by line and tokenize the line with the provided tokens.
