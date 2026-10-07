@@ -13,6 +13,7 @@
 #include <cbcrypto/file_utilities.h>
 #include <cbcrypto/file_writer.h>
 #include <fmt/format.h>
+#include <folly/ScopeGuard.h>
 #include <nlohmann/json.hpp>
 #include <platform/dirutils.h>
 
@@ -117,11 +118,19 @@ void maybeRewriteFiles(
         }
 
         auto reader = FileReader::create(path, key_lookup_function);
-        std::filesystem::path tmpfile = cb::io::mktemp(path.string());
-        if (compression && !derivation_key) {
-            tmpfile.replace_extension(".gz");
-        }
-        auto writer = FileWriter::create(
+        // The name of the temporary file must be used as is: mktemp()
+        // created the file (and its name is only unique as returned). The
+        // file format is selected by the arguments to FileWriter::create()
+        // and not by the file name.
+        const std::filesystem::path tmpfile = cb::io::mktemp(path.string());
+        std::unique_ptr<FileWriter> writer;
+        auto remove_tmpfile = folly::makeGuard([&writer, &tmpfile] {
+            // Close the file before removing it (required on Windows)
+            writer.reset();
+            std::error_code ecode;
+            remove(tmpfile, ecode);
+        });
+        writer = FileWriter::create(
                 derivation_key,
                 tmpfile,
                 64 * 1024,
@@ -153,7 +162,7 @@ void maybeRewriteFiles(
             auto next = path;
             next.replace_extension(unencrypted_extension);
             if (compression) {
-                next.append(".gz");
+                next += ".gz";
             }
             rename(tmpfile, next);
             cb::io::fsyncDirectory(directory);
@@ -162,6 +171,7 @@ void maybeRewriteFiles(
             rename(tmpfile, path);
             cb::io::fsyncDirectory(directory);
         }
+        remove_tmpfile.dismiss();
     }
 }
 

@@ -62,80 +62,6 @@ protected:
     cb::io::FileSink file;
 };
 
-class GZipFileWriter : public FileWriter {
-public:
-    GZipFileWriter(std::filesystem::path path)
-        : filename(std::move(path)),
-          file(gzopen(filename.string().c_str(), "wb")) {
-        if (!file) {
-            throw std::runtime_error(
-                    fmt::format("GZipFileWriter: Failed to open file {}",
-                                filename.string()));
-        }
-    }
-
-    [[nodiscard]] bool is_encrypted() const override {
-        return false;
-    }
-
-    [[nodiscard]] size_t size() const override {
-        return current_size;
-    }
-
-    void write(std::string_view chunk) override {
-        Expects(file);
-        auto nb = gzfwrite(chunk.data(), 1, chunk.size(), file);
-        if (nb != chunk.size()) {
-            throw std::runtime_error(
-                    "GZipFileWriter: Failed to write all data");
-        }
-        current_size += chunk.size();
-    }
-
-    void flush() override {
-        // ignore flush'ing now as running flush reduce the compression ratio
-    }
-
-    void close() override {
-        do_close();
-    }
-
-    ~GZipFileWriter() override {
-        if (file) {
-            // User didn't explicitly close the stream so we need
-            // to do it to avoid resource leaks. Catch exceptions
-            // as a destructor should throw.
-            try {
-                do_close();
-            } catch (const std::exception&) {
-            }
-        }
-    };
-
-protected:
-    void do_close() {
-        Expects(file);
-        const auto status = gzclose(file);
-        file = nullptr;
-        if (status == Z_OK) {
-            return;
-        }
-
-        if (status == Z_ERRNO) {
-            throw std::system_error(errno,
-                                    std::system_category(),
-                                    "GZipFileWriter: Failed to close file");
-        }
-
-        throw std::runtime_error(fmt::format(
-                "GZipFileWriter: Failed to close file: {}", status));
-    }
-
-    const std::filesystem::path filename;
-    gzFile file;
-    std::size_t current_size = 0;
-};
-
 class StackedWriter : public FileWriter {
 public:
     StackedWriter(std::unique_ptr<FileWriter> underlying)
@@ -289,10 +215,29 @@ protected:
 
 class ZLibStreamingWriter : public StackedWriter {
 public:
-    ZLibStreamingWriter(std::unique_ptr<FileWriter> underlying)
+    /** The format of the compressed stream */
+    enum class Format {
+        /** zlib format (RFC 1950) */
+        Zlib,
+        /** gzip format (RFC 1952), readable by gzip(1) and gzread() */
+        Gzip
+    };
+
+    ZLibStreamingWriter(std::unique_ptr<FileWriter> underlying,
+                        Format format = Format::Zlib)
         : StackedWriter(std::move(underlying)) {
         std::memset(&zstream, 0, sizeof(zstream));
-        const auto rc = deflateInit(&zstream, Z_DEFAULT_COMPRESSION);
+        // Adding 16 to the window bits makes zlib write a gzip header and
+        // trailer instead of the zlib wrapper. 8 is the default memLevel
+        // used by deflateInit()
+        const int window_bits =
+                format == Format::Gzip ? MAX_WBITS + 16 : MAX_WBITS;
+        const auto rc = deflateInit2(&zstream,
+                                     Z_DEFAULT_COMPRESSION,
+                                     Z_DEFLATED,
+                                     window_bits,
+                                     8,
+                                     Z_DEFAULT_STRATEGY);
         if (rc != Z_OK) {
             throw std::runtime_error(
                     fmt::format("ZLibStreamingWriter::ZLibStreamingWriter(): "
@@ -307,11 +252,26 @@ public:
     }
 
     void close() override {
-        do_close();
+        try {
+            do_close();
+        } catch (const std::exception&) {
+            // Close the underlying writer to release the file, but report
+            // the original error
+            try {
+                underlying->close();
+            } catch (const std::exception&) {
+            }
+            throw;
+        }
+        underlying->close();
     }
 
     ~ZLibStreamingWriter() override {
-        if (!closed) {
+        // Don't try to complete a stream which is known to be broken (part
+        // of the compressed data was lost). Leaving it truncated lets the
+        // reader detect the error instead of getting a complete looking
+        // stream with a hole in it
+        if (!closed && !failed) {
             try {
                 do_close();
             } catch (const std::exception&) {
@@ -321,28 +281,61 @@ public:
     }
 
 protected:
-    constexpr static size_t BufferSize = 4096;
+    /**
+     * The size of the buffer used to receive the output from deflate().
+     * It is independent of the size of the chunks written to avoid passing
+     * on the compressed data in tiny pieces when the chunks are small (and
+     * allocating huge buffers when they are big)
+     */
+    constexpr static size_t OutputBufferSize = 64 * 1024;
+
+    /** Throw an exception if a previous error left the stream broken */
+    void check_not_failed(std::string_view method) const {
+        if (failed) {
+            throw std::runtime_error(fmt::format(
+                    "ZLibStreamingWriter::{}(): The stream is in a failed "
+                    "state due to a previous error",
+                    method));
+        }
+    }
+
+    /** Prepare the output buffer to receive output from deflate() */
+    void reset_output() {
+        zstream.avail_out = gsl::narrow_cast<uInt>(output.size());
+        zstream.next_out = output.data();
+    }
+
+    /** Pass the output produced by deflate() on to the underlying writer */
+    void write_output() {
+        const auto nbytes = output.size() - zstream.avail_out;
+        if (nbytes) {
+            underlying->write(std::string_view{
+                    reinterpret_cast<const char*>(output.data()), nbytes});
+        }
+    }
+
     void do_close() {
         Expects(!closed);
+        closed = true;
+        check_not_failed("do_close");
         zstream.avail_in = 0;
         zstream.next_in = nullptr;
-        std::vector<uint8_t> buffer(BufferSize);
         int rc = Z_OK;
-        do {
-            zstream.avail_out = gsl::narrow_cast<uInt>(buffer.size());
-            zstream.next_out = buffer.data();
-            rc = deflate(&zstream, Z_FINISH);
-            auto nbytes = buffer.size() - zstream.avail_out;
-            if (nbytes) {
-                this->underlying->write(std::string_view{
-                        reinterpret_cast<const char*>(buffer.data()), nbytes});
-                this->underlying->flush();
-            }
-        } while (rc == Z_OK);
-        closed = true;
+        try {
+            do {
+                reset_output();
+                rc = deflate(&zstream, Z_FINISH);
+                write_output();
+            } while (rc == Z_OK);
+        } catch (const std::exception&) {
+            // Part of the compressed data never reached the underlying writer
+            failed = true;
+            throw;
+        }
         if (rc == Z_STREAM_END) {
             return;
         }
+        failed = true;
         throw std::runtime_error(
                 fmt::format("ZLibStreamingWriter::do_close(): Failed to "
                             "deflate data with Z_FINISH: {}",
@@ -351,30 +344,40 @@ protected:
 
     void do_write(std::string_view data) override {
         Expects(!closed);
+        check_not_failed("do_write");
         zstream.avail_in = gsl::narrow_cast<uInt>(data.size());
         zstream.next_in =
                 reinterpret_cast<Bytef*>(const_cast<char*>(data.data()));
 
-        std::vector<uint8_t> buffer(data.size());
-        do {
-            zstream.avail_out = gsl::narrow_cast<uInt>(buffer.size());
-            zstream.next_out = buffer.data();
-
-            auto status = deflate(&zstream, Z_NO_FLUSH);
-            if (status == Z_STREAM_ERROR) {
-                throw std::runtime_error(
-                        "ZLibStreamingWriter::do_write(): Failed to deflate "
-                        "data (Z_NO_FLUSH)");
-            }
-            const auto nbytes = buffer.size() - zstream.avail_out;
-            this->underlying->write(std::string_view{
-                    reinterpret_cast<const char*>(buffer.data()), nbytes});
-        } while (zstream.avail_out == 0);
+        try {
+            do {
+                reset_output();
+                // Z_BUF_ERROR is not an error; it is returned when the
+                // output buffer was filled exactly by the previous call and
+                // there was nothing more to do
+                const auto status = deflate(&zstream, Z_NO_FLUSH);
+                if (status != Z_OK && status != Z_BUF_ERROR) {
+                    throw std::runtime_error(fmt::format(
+                            "ZLibStreamingWriter::do_write(): Failed to "
+                            "deflate data (Z_NO_FLUSH): {}",
+                            status));
+                }
+                write_output();
+            } while (zstream.avail_out == 0);
+        } catch (const std::exception&) {
+            // zlib may have consumed input (and produced output) which
+            // never reached the underlying writer
+            failed = true;
+            throw;
+        }
         Expects(zstream.avail_in == 0);
     }
 
     bool closed = false;
+    /** Set if an error caused data to be lost and the stream to be broken */
+    bool failed = false;
     z_stream zstream;
+    std::vector<uint8_t> output = std::vector<uint8_t>(OutputBufferSize);
 };
 
 class EncryptedWriter : public StackedWriter {
@@ -411,19 +414,14 @@ std::unique_ptr<FileWriter> FileWriter::create(
         std::filesystem::path path,
         size_t buffer_size,
         Compression compression) {
-    if (!kdk && compression == Compression::GZIP) {
-        // use a specialized GZip writer which uses the gzip file format
-        std::unique_ptr<FileWriter> ret =
-                std::make_unique<GZipFileWriter>(std::move(path));
-        if (buffer_size != 0) {
-            ret = std::make_unique<BufferedWriter>(std::move(ret), buffer_size);
-        }
-        return ret;
-    }
-
     std::unique_ptr<FileWriter> ret =
             std::make_unique<FileWriterImpl>(std::move(path));
     if (!kdk) {
+        if (compression == Compression::GZIP) {
+            // Plain files use the gzip file format
+            ret = std::make_unique<ZLibStreamingWriter>(
+                    std::move(ret), ZLibStreamingWriter::Format::Gzip);
+        }
         if (buffer_size != 0) {
             ret = std::make_unique<BufferedWriter>(std::move(ret), buffer_size);
         }
