@@ -36,7 +36,7 @@ public:
      *
      * @param path The name of the file to write
      * @param mode The mode to open the file in
-     * @param fsync_interval The interval between fsync calls
+     * @param fsync_interval The interval between fsync calls (must be > 0)
      * @throws std::system_error if the file cannot be opened
      */
     explicit FileSink(std::filesystem::path path,
@@ -79,6 +79,9 @@ public:
     }
 
 protected:
+    // @return errno if fsync fails, 0 if successful
+    int fsync_no_throw() noexcept;
+
     const std::filesystem::path filename;
     FILE* fp = nullptr;
     const std::size_t fsync_interval;
