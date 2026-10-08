@@ -14,6 +14,7 @@
 #include <cbcrypto/common.h>
 #include <cbcrypto/file_reader.h>
 #include <cbcrypto/file_writer.h>
+#include <fmt/format.h>
 #include <folly/portability/GTest.h>
 #include <nlohmann/json.hpp>
 #include <platform/dirutils.h>
@@ -320,4 +321,38 @@ TEST_F(FileUtilitiesTest, rewriteFailureRemovesTemporaryFile) {
             ".txt",
             true));
     EXPECT_EQ(std::vector<std::string>{"file.cef"}, listFiles(dir));
+}
+
+/**
+ * Files created by the rewrite (temporary files and the rewritten files)
+ * are created in the directory being scanned and must not be picked up
+ * (and rewritten again) by the same call to maybeRewriteFiles().
+ */
+TEST_F(FileUtilitiesTest, rewriteOnlyVisitsExistingFiles) {
+    std::vector<std::string> expected;
+    for (int ii = 0; ii < 100; ++ii) {
+        const auto name = fmt::format("file{:03}.txt", ii);
+        create_file(name, "This is the content", false);
+        expected.emplace_back(name);
+    }
+
+    std::vector<std::string> visited;
+    maybeRewriteFiles(
+            dir,
+            [&visited](const auto& path, auto) {
+                visited.emplace_back(path.filename().string());
+                return true;
+            },
+            keystore.getActiveKey(),
+            [this](auto id) { return keystore.lookup(id); },
+            [](std::string_view, const nlohmann::json&) {});
+
+    std::ranges::sort(visited);
+    EXPECT_EQ(expected, visited);
+
+    std::vector<std::string> rewritten;
+    for (int ii = 0; ii < 100; ++ii) {
+        rewritten.emplace_back(fmt::format("file{:03}.cef", ii));
+    }
+    EXPECT_EQ(rewritten, listFiles(dir));
 }

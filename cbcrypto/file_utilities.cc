@@ -18,6 +18,7 @@
 #include <platform/dirutils.h>
 
 #include <fstream>
+#include <vector>
 
 namespace cb::crypto {
 
@@ -100,8 +101,16 @@ void maybeRewriteFiles(
         }
         return;
     }
+    // Collect the files before rewriting any of them. The rewrite creates
+    // (and renames) files in the same directory, and it is unspecified
+    // whether a directory_iterator observes files added after it was
+    // created (the new files could otherwise be picked up and rewritten).
+    std::vector<std::filesystem::path> paths;
     for (const auto& p : iterator) {
-        auto path = p.path();
+        paths.emplace_back(p.path());
+    }
+
+    for (const auto& path : paths) {
         std::string key;
         if (path.extension() == ".cef") {
             try {
