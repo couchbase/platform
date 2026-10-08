@@ -253,6 +253,70 @@ TEST_P(ValidatorTest, Utf8EquivalenceTest) {
     }
 }
 
+/// Validating a document split in chunks (at any position, also within a
+/// multi-byte UTF-8 sequence) must give the same result as validating it in
+/// one piece
+TEST_P(ValidatorTest, ChunksEquivalenceTest) {
+    const std::vector<std::string> documents = {
+            R"({"test": 12})",
+            R"({"test": [1, 2.5e3, true, false, null, "x"]})",
+            "\"\xc3\xa9\xe2\x82\xac\xf0\x9f\x98\x80\"",
+            R"(["\u00e9", "\n"])",
+            "12",
+            "-0.5E-3",
+            "  true  ",
+            "",
+            " ",
+            R"({"test": 12)",
+            R"({"test": 12}})",
+            "[1 2]",
+            R"("\u12")",
+            "\"\xff\"",
+            "\"\xc3\x28\"",
+            "\"\xc3\"",
+            "\"\xe2\x82\"",
+            "\"\x80\"",
+            "\"\xed\x9f\xbf\xf4\x8f\xbf\xbf\"",
+            "\"\xc0\x80\"",
+            "\"\xe0\x9f\xbf\"",
+            "\"\xed\xa0\x80\"",
+            "\"\xf0\x8f\xbf\xbf\"",
+            "\"\xf4\x90\x80\x80\"",
+            "\"\xf5\x80\x80\x80\"",
+            "12 13",
+            "tru"};
+
+    for (const auto& doc : documents) {
+        const bool expected = validator->validate(doc);
+        const std::string_view view = doc;
+        EXPECT_EQ(expected, validator->validateChunks({view})) << doc;
+        for (size_t ii = 0; ii <= doc.size(); ++ii) {
+            for (size_t jj = ii; jj <= doc.size(); ++jj) {
+                EXPECT_EQ(expected,
+                          validator->validateChunks({view.substr(0, ii),
+                                                     view.substr(ii, jj - ii),
+                                                     view.substr(jj)}))
+                        << doc << " split at " << ii << " and " << jj;
+            }
+        }
+    }
+}
+
+TEST_P(ValidatorTest, ChunksTest) {
+    EXPECT_FALSE(validator->validateChunks({}));
+    EXPECT_TRUE(validator->validateChunks({"[", "1,2", "]"}));
+    EXPECT_FALSE(validator->validateChunks({"[", "1 2", "]"}));
+    EXPECT_TRUE(validator->validateChunks({R"({"k":)", "[1]", "}"}));
+    EXPECT_FALSE(validator->validateChunks({R"({"k":)", R"(1,"j":2)", "]"}));
+    EXPECT_TRUE(validator->validateChunks({"[\"", "key", "\"]"}));
+    EXPECT_FALSE(validator->validateChunks({"[\"", "k\"ey", "\"]"}));
+    EXPECT_FALSE(validator->validateChunks({"[\"", "\xc3", "\"]"}));
+    // The validator is reset between validations
+    EXPECT_FALSE(validator->validateChunks({"[", "1"}));
+    EXPECT_TRUE(validator->validateChunks({"1", "2"}));
+    EXPECT_TRUE(validator->validate("[]"));
+}
+
 INSTANTIATE_TEST_SUITE_P(JSON_checker,
                          ValidatorTest,
                          ::testing::Bool(),

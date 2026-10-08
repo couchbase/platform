@@ -335,7 +335,8 @@ static bool JSON_checker_done(JSON_checker::Instance &jc)
 }
 
 /*
- * Check for both UTF-8ness and JSONness in one pass.
+ * The state of the UTF-8 validation, kept between the chunks so that a
+ * multi-byte sequence may span two chunks.
  *
  * The UTF-8 check is strict (RFC 3629): it rejects overlong encodings,
  * UTF-16 surrogates (U+D800..U+DFFF) and code points above U+10FFFF, in
@@ -352,80 +353,109 @@ static bool JSON_checker_done(JSON_checker::Instance &jc)
  *     F1..F3       80..BF      80..BF      80..BF
  *     F4           80..8F      80..BF      80..BF
  */
-static bool checkUTF8JSON(JSON_checker::Instance &jc,
-                          const unsigned char* data,
-                          size_t size) {
+struct Utf8State {
     int expect = 0; /* Expect UTF code point to extend this many bytes */
     /* The valid range of the next continuation byte */
     unsigned char lower = 0x80;
     unsigned char upper = 0xBF;
-    int badjson = 0;
-    int badutf = 0;
+};
+
+/*
+ * Check a chunk of data for both UTF-8ness and JSONness in one pass. The
+ * JSON state is kept in jc and the UTF-8 state in utf8, so that a document
+ * may be fed in multiple chunks (and a multi-byte UTF-8 sequence may span
+ * two chunks). The caller must reset jc and use a new utf8 state before
+ * feeding the first chunk, and call finishUTF8JSON() after the last.
+ */
+static bool feedUTF8JSON(JSON_checker::Instance& jc,
+                         Utf8State& utf8,
+                         const unsigned char* data,
+                         size_t size) {
     const unsigned char *end = data + size;
-    jc.reset();
     for(;data < end; data++) {
         if(!JSON_checker_char(jc, *data)) {
-            badjson = 1;
-            break;
+            return false;
         }
 
         if(*data <= 0x7F) {
-            if(expect != 0) {
+            if (utf8.expect != 0) {
                 /* Must not be expecting >0x7F. */
-                badutf = 1;
-                break;
+                return false;
             }
             continue;
         }
 
-        if (expect != 0) {
+        if (utf8.expect != 0) {
             /* Continuation byte (also rejects a lead byte inside of a */
             /* multi-byte sequence as it is above any upper bound) */
-            if (*data < lower || *data > upper) {
-                badutf = 1;
-                break;
+            if (*data < utf8.lower || *data > utf8.upper) {
+                return false;
             }
-            lower = 0x80;
-            upper = 0xBF;
-            expect--;
+            utf8.lower = 0x80;
+            utf8.upper = 0xBF;
+            utf8.expect--;
             continue;
         }
 
         /* Lead byte of a multi-byte sequence */
         if (*data >= 0xC2 && *data <= 0xDF) {
-            expect = 1;
+            utf8.expect = 1;
         } else if (*data >= 0xE0 && *data <= 0xEF) {
-            expect = 2;
+            utf8.expect = 2;
             if (*data == 0xE0) {
-                lower = 0xA0; /* Overlong */
+                utf8.lower = 0xA0; /* Overlong */
             } else if (*data == 0xED) {
-                upper = 0x9F; /* Surrogates */
+                utf8.upper = 0x9F; /* Surrogates */
             }
         } else if (*data >= 0xF0 && *data <= 0xF4) {
-            expect = 3;
+            utf8.expect = 3;
             if (*data == 0xF0) {
-                lower = 0x90; /* Overlong */
+                utf8.lower = 0x90; /* Overlong */
             } else if (*data == 0xF4) {
-                upper = 0x8F; /* Above U+10FFFF */
+                utf8.upper = 0x8F; /* Above U+10FFFF */
             }
         } else {
             /* Continuation byte when not expecting it, an overlong lead */
             /* byte (C0, C1) or a lead byte above U+10FFFF (F5..FF) */
-            badutf = 1;
-            break;
+            return false;
         }
     }
-    if(!badjson) {
-        /* Feed fake space to the validator to force it to finish validating */
-        /* numerical values, iff it hasn't marked the current stream as valid */
-        if(jc.state != OK) {
-            badjson = !JSON_checker_char(jc, ' ');
-        }
-        if(!badjson) {
-            badjson = !JSON_checker_done(jc);
+    return true;
+}
+
+/* Finish the validation after all chunks were fed with feedUTF8JSON() */
+static bool finishUTF8JSON(JSON_checker::Instance& jc) {
+    /* Feed fake space to the validator to force it to finish validating */
+    /* numerical values, iff it hasn't marked the current stream as valid */
+    if (jc.state != OK && !JSON_checker_char(jc, ' ')) {
+        return false;
+    }
+    return JSON_checker_done(jc);
+}
+
+/* Check for both UTF-8ness and JSONness in one pass */
+static bool checkUTF8JSON(JSON_checker::Instance& jc,
+                          const unsigned char* data,
+                          size_t size) {
+    Utf8State utf8;
+    jc.reset();
+    return feedUTF8JSON(jc, utf8, data, size) && finishUTF8JSON(jc);
+}
+
+/* Check data split in multiple chunks as if it was one contiguous buffer */
+static bool checkUTF8JSON(JSON_checker::Instance& jc,
+                          std::initializer_list<std::string_view> chunks) {
+    Utf8State utf8;
+    jc.reset();
+    for (const auto& chunk : chunks) {
+        if (!feedUTF8JSON(jc,
+                          utf8,
+                          reinterpret_cast<const unsigned char*>(chunk.data()),
+                          chunk.size())) {
+            return false;
         }
     }
-    return (!badjson && !badutf);
+    return finishUTF8JSON(jc);
 }
 
 #if CB_JSON_CHECKER_VECTORIZED_SUPPORTED
@@ -552,6 +582,14 @@ bool JSON_checker::Validator::validate(const std::vector<uint8_t>& data) {
 
 bool JSON_checker::Validator::validate(std::string_view data) {
     return validate(reinterpret_cast<const uint8_t*>(data.data()), data.size());
+}
+
+bool JSON_checker::Validator::validateChunks(
+        std::initializer_list<std::string_view> chunks) {
+    // Always use the scalar implementation: the vectorized implementation
+    // validates the UTF-8 encoding of each buffer separately, and would
+    // reject a multi-byte sequence spanning two chunks
+    return checkUTF8JSON(instance, chunks);
 }
 
 JSON_checker::Instance::Instance() {

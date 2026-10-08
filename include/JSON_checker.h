@@ -5,9 +5,11 @@
 #ifdef __cplusplus
 
 #include <cstdint>
-#include <vector>
-#include <string>
+#include <initializer_list>
 #include <stack>
+#include <string>
+#include <string_view>
+#include <vector>
 
 /**
  * Variant of std::stack which exposes the clear() method from the
@@ -109,6 +111,24 @@ namespace JSON_checker {
          *         the internal state array
          */
         bool validate(std::string_view data);
+
+        /**
+         * Check if the concatenation of the chunks is valid JSON, without
+         * copying them into a contiguous buffer. Useful for validating a
+         * value in a context, for instance:
+         *
+         *     validator.validateChunks({"[", value, "]"});
+         *
+         * The chunks may be split anywhere (also within a multi-byte UTF-8
+         * sequence). The vectorized implementation is never used (both
+         * implementations validate the UTF-8 encoding equally strictly).
+         *
+         * @param chunks the data to check
+         * @return true if it is valid json, false otherwise
+         * @throws std::bad_alloc for memory allocation problems related to
+         *         the internal state array
+         */
+        bool validateChunks(std::initializer_list<std::string_view> chunks);
 
     private:
         Instance instance;
