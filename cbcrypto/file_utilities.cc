@@ -13,10 +13,12 @@
 #include <cbcrypto/file_utilities.h>
 #include <cbcrypto/file_writer.h>
 #include <fmt/format.h>
+#include <folly/ScopeGuard.h>
 #include <nlohmann/json.hpp>
 #include <platform/dirutils.h>
 
 #include <fstream>
+#include <vector>
 
 namespace cb::crypto {
 
@@ -90,8 +92,25 @@ void maybeRewriteFiles(
         std::string_view unencrypted_extension,
         bool compression) {
     std::error_code ec;
-    for (const auto& p : std::filesystem::directory_iterator(directory, ec)) {
-        auto path = p.path();
+    std::filesystem::directory_iterator iterator(directory, ec);
+    if (ec) {
+        // A missing directory means that there is nothing to rewrite
+        if (ec != std::errc::no_such_file_or_directory) {
+            error("Failed to iterate directory",
+                  {{"path", directory.string()}, {"error", ec.message()}});
+        }
+        return;
+    }
+    // Collect the files before rewriting any of them. The rewrite creates
+    // (and renames) files in the same directory, and it is unspecified
+    // whether a directory_iterator observes files added after it was
+    // created (the new files could otherwise be picked up and rewritten).
+    std::vector<std::filesystem::path> paths;
+    for (const auto& p : iterator) {
+        paths.emplace_back(p.path());
+    }
+
+    for (const auto& path : paths) {
         std::string key;
         if (path.extension() == ".cef") {
             try {
@@ -108,11 +127,19 @@ void maybeRewriteFiles(
         }
 
         auto reader = FileReader::create(path, key_lookup_function);
-        std::filesystem::path tmpfile = cb::io::mktemp(path.string());
-        if (compression && !derivation_key) {
-            tmpfile.replace_extension(".gz");
-        }
-        auto writer = FileWriter::create(
+        // The name of the temporary file must be used as is: mktemp()
+        // created the file (and its name is only unique as returned). The
+        // file format is selected by the arguments to FileWriter::create()
+        // and not by the file name.
+        const std::filesystem::path tmpfile = cb::io::mktemp(path.string());
+        std::unique_ptr<FileWriter> writer;
+        auto remove_tmpfile = folly::makeGuard([&writer, &tmpfile] {
+            // Close the file before removing it (required on Windows)
+            writer.reset();
+            std::error_code ecode;
+            remove(tmpfile, ecode);
+        });
+        writer = FileWriter::create(
                 derivation_key,
                 tmpfile,
                 64 * 1024,
@@ -130,10 +157,15 @@ void maybeRewriteFiles(
         writer->flush();
         writer->close();
         reader.reset();
+        // The content of tmpfile was synced as part of closing the writer,
+        // but the directory must be synced for the rename to be durable.
+        // When the file changes name, sync before removing the original so
+        // that a crash can't leave us with neither of them.
         if (derivation_key && path.extension() != ".cef") {
             auto next = path;
             next.replace_extension(".cef");
             rename(tmpfile, next);
+            cb::io::fsyncDirectory(directory);
             remove(path);
         } else if (!derivation_key && path.extension() == ".cef") {
             auto next = path;
@@ -143,10 +175,13 @@ void maybeRewriteFiles(
                 next += ".gz";
             }
             rename(tmpfile, next);
+            cb::io::fsyncDirectory(directory);
             remove(path);
         } else {
             rename(tmpfile, path);
+            cb::io::fsyncDirectory(directory);
         }
+        remove_tmpfile.dismiss();
     }
 }
 

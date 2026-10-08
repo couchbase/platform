@@ -232,6 +232,7 @@ target_sources(platform PRIVATE
   src/crc32c_private.h
   src/exceptions.cc
   src/file_sink.cc
+  src/fsync.cc
   src/getopt.cc
   src/getpass.cc
   src/histogram.cc

@@ -14,10 +14,13 @@
 #include <cbcrypto/common.h>
 #include <cbcrypto/file_reader.h>
 #include <cbcrypto/file_writer.h>
+#include <fmt/format.h>
 #include <folly/portability/GTest.h>
 #include <nlohmann/json.hpp>
 #include <platform/dirutils.h>
+#include <algorithm>
 #include <filesystem>
+#include <fstream>
 
 using namespace cb::crypto;
 using namespace std::string_view_literals;
@@ -45,7 +48,8 @@ protected:
             key = KeyDerivationKey::generate();
             keystore.add(key);
         }
-        auto writer = FileWriter::create(key, dir / name);
+        // Disable buffering so that each chunk becomes its own block
+        auto writer = FileWriter::create(key, dir / name, 0);
         while (!content.empty()) {
             auto chunk =
                     content.substr(0, std::min(content.size(), max_chunk_size));
@@ -240,4 +244,145 @@ TEST_F(FileUtilitiesTest, rewriteTruncatedFile) {
     data.resize(data.size() - 1024);
     EXPECT_EQ(data, content);
     EXPECT_EQ(requested, keystore.getActiveKey()->id);
+}
+
+/// A missing directory means there is nothing to rewrite, and must not
+/// be reported as an error
+TEST_F(FileUtilitiesTest, rewriteMissingDirectory) {
+    bool error_reported = false;
+    EXPECT_NO_THROW(maybeRewriteFiles(
+            dir / "missing",
+            [](const auto&, auto) { return true; },
+            keystore.getActiveKey(),
+            [this](auto id) { return keystore.lookup(id); },
+            [&error_reported](std::string_view, const nlohmann::json&) {
+                error_reported = true;
+            }));
+    EXPECT_FALSE(error_reported);
+}
+
+/**
+ * Get the names of all files in the test directory.
+ */
+static std::vector<std::string> listFiles(const std::filesystem::path& dir) {
+    std::vector<std::string> ret;
+    for (const auto& entry : std::filesystem::directory_iterator(dir)) {
+        ret.emplace_back(entry.path().filename().string());
+    }
+    std::ranges::sort(ret);
+    return ret;
+}
+
+/**
+ * Rewriting an encrypted file to a compressed plain file must not leave
+ * any temporary files behind.
+ */
+TEST_F(FileUtilitiesTest, rewriteEncryptedToCompressed) {
+    create_file("file.cef", "This is the content");
+    maybeRewriteFiles(
+            dir,
+            [](const auto& path, auto) {
+                return path.filename().string() == "file.cef";
+            },
+            {},
+            [this](auto id) { return keystore.lookup(id); },
+            [](std::string_view, const nlohmann::json&) {},
+            ".txt",
+            true);
+    EXPECT_EQ(std::vector<std::string>{"file.txt.gz"}, listFiles(dir));
+    const auto reader =
+            FileReader::create(dir / "file.txt.gz",
+                               [this](auto id) { return keystore.lookup(id); });
+    EXPECT_EQ("This is the content", reader->read());
+}
+
+/**
+ * Rewriting a compressed plain file (with compression enabled) must not
+ * use the file being read as the temporary file.
+ */
+TEST_F(FileUtilitiesTest, rewriteCompressedToCompressed) {
+    {
+        auto writer = FileWriter::create(
+                {}, dir / "file.txt.gz", 0, Compression::GZIP);
+        writer->write("This is the content");
+        writer->close();
+    }
+    maybeRewriteFiles(
+            dir,
+            [](const auto&, auto) { return true; },
+            {},
+            [this](auto id) { return keystore.lookup(id); },
+            [](std::string_view, const nlohmann::json&) {},
+            ".txt",
+            true);
+    EXPECT_EQ(std::vector<std::string>{"file.txt.gz"}, listFiles(dir));
+    const auto reader =
+            FileReader::create(dir / "file.txt.gz",
+                               [this](auto id) { return keystore.lookup(id); });
+    EXPECT_EQ("This is the content", reader->read());
+}
+
+/**
+ * If the rewrite fails the temporary file must be removed and the
+ * original file left untouched.
+ */
+TEST_F(FileUtilitiesTest, rewriteFailureRemovesTemporaryFile) {
+    std::string data(64 * 1024, 'a');
+    create_file("file.cef", data, true, 1024);
+    const auto filename = dir / "file.cef";
+    // Corrupt a block in the middle of the file so that decryption fails
+    std::string content;
+    {
+        std::ifstream in(filename, std::ios::binary);
+        content.assign(std::istreambuf_iterator<char>(in), {});
+    }
+    content[content.size() / 2] ^= 0xff;
+    {
+        std::ofstream out(filename, std::ios::binary | std::ios::trunc);
+        out.write(content.data(), content.size());
+    }
+
+    EXPECT_ANY_THROW(maybeRewriteFiles(
+            dir,
+            [](const auto&, auto) { return true; },
+            {},
+            [this](auto id) { return keystore.lookup(id); },
+            [](std::string_view, const nlohmann::json&) {},
+            ".txt",
+            true));
+    EXPECT_EQ(std::vector<std::string>{"file.cef"}, listFiles(dir));
+}
+
+/**
+ * Files created by the rewrite (temporary files and the rewritten files)
+ * are created in the directory being scanned and must not be picked up
+ * (and rewritten again) by the same call to maybeRewriteFiles().
+ */
+TEST_F(FileUtilitiesTest, rewriteOnlyVisitsExistingFiles) {
+    std::vector<std::string> expected;
+    for (int ii = 0; ii < 100; ++ii) {
+        const auto name = fmt::format("file{:03}.txt", ii);
+        create_file(name, "This is the content", false);
+        expected.emplace_back(name);
+    }
+
+    std::vector<std::string> visited;
+    maybeRewriteFiles(
+            dir,
+            [&visited](const auto& path, auto) {
+                visited.emplace_back(path.filename().string());
+                return true;
+            },
+            keystore.getActiveKey(),
+            [this](auto id) { return keystore.lookup(id); },
+            [](std::string_view, const nlohmann::json&) {});
+
+    std::ranges::sort(visited);
+    EXPECT_EQ(expected, visited);
+
+    std::vector<std::string> rewritten;
+    for (int ii = 0; ii < 100; ++ii) {
+        rewritten.emplace_back(fmt::format("file{:03}.cef", ii));
+    }
+    EXPECT_EQ(rewritten, listFiles(dir));
 }

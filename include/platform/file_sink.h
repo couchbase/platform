@@ -39,7 +39,7 @@ public:
      *
      * @param path The name of the file to write
      * @param mode The mode to open the file in
-     * @param fsync_interval The interval between fsync calls
+     * @param fsync_interval The interval between fsync calls (must be > 0)
      * @param io_hint The I/O access pattern hint to give the kernel for this
      *                file. If set to IoHint::DontNeed the kernel will be
      *                advised that the data will not be needed again and can be

@@ -11,11 +11,14 @@
 #include <cbcrypto/encrypted_file_header.h>
 #include <cbcrypto/file_reader.h>
 #include <cbcrypto/file_writer.h>
+#include <fmt/format.h>
 #include <folly/ScopeGuard.h>
 #include <folly/portability/GTest.h>
 #include <nlohmann/json.hpp>
 #include <platform/dirutils.h>
+#include <platform/file_sink.h>
 #include <filesystem>
+#include <random>
 
 using namespace cb::crypto;
 using namespace std::string_view_literals;
@@ -55,6 +58,69 @@ TEST_F(FileIoTest, FileWriterTestPlain) {
     writer->flush();
     writer.reset();
     EXPECT_EQ(content, cb::io::loadFile(file));
+}
+
+TEST_F(FileIoTest, FileWriterTestPlainClose) {
+    const std::string_view content = "This is the content"sv;
+    auto writer = FileWriter::create({}, file);
+    EXPECT_FALSE(writer->is_encrypted());
+    EXPECT_EQ(0, writer->size());
+    writer->write(content);
+    EXPECT_EQ(content.size(), writer->size());
+    writer->flush();
+    writer->close();
+    EXPECT_EQ(content, cb::io::loadFile(file));
+}
+
+TEST_F(FileIoTest, FileWriterTestPlainBuffered) {
+    const std::string_view content = "This is the content"sv;
+    auto writer = FileWriter::create({}, file, 1024);
+    EXPECT_FALSE(writer->is_encrypted());
+    EXPECT_EQ(0, writer->size());
+    writer->write(content);
+    EXPECT_EQ(content.size(), writer->size());
+    // The data should be held in the buffer until it is flushed
+    EXPECT_EQ(0, std::filesystem::file_size(file));
+    writer->flush();
+    EXPECT_EQ(content, cb::io::loadFile(file));
+    writer->close();
+    EXPECT_EQ(content, cb::io::loadFile(file));
+}
+
+// Verify that buffered data isn't lost if the writer is destroyed without
+// being flushed or closed
+TEST_F(FileIoTest, FileWriterTestPlainBufferedNoClose) {
+    const std::string_view content = "This is the content"sv;
+    auto writer = FileWriter::create({}, file, 1024);
+    writer->write(content);
+    EXPECT_EQ(0, std::filesystem::file_size(file));
+    writer.reset();
+    EXPECT_EQ(content, cb::io::loadFile(file));
+}
+
+// The writer is buffered by default
+TEST_F(FileIoTest, FileWriterTestPlainDefaultBuffered) {
+    const std::string_view content = "This is the content"sv;
+    auto writer = FileWriter::create({}, file);
+    writer->write(content);
+    EXPECT_EQ(0, std::filesystem::file_size(file));
+    writer->flush();
+    EXPECT_EQ(content, cb::io::loadFile(file));
+}
+
+// A buffer size of 0 disables buffering
+TEST_F(FileIoTest, FileWriterTestPlainUnbuffered) {
+    const std::string_view content = "This is the content"sv;
+    auto writer = FileWriter::create({}, file, 0);
+    writer->write(content);
+    EXPECT_EQ(content, cb::io::loadFile(file));
+}
+
+TEST_F(FileIoTest, FileWriterOpenFailure) {
+    EXPECT_THROW(FileWriter::create({},
+                                    file.parent_path() / "non_existing_subdir" /
+                                            "file.txt"),
+                 std::system_error);
 }
 
 TEST_F(FileIoTest, FileWriterTestEncrypted) {
@@ -232,4 +298,250 @@ TEST_F(FileIoTest, TestReadWriteGzipFile) {
     const auto data = reader->read();
     reader.reset();
     EXPECT_EQ(content, data);
+}
+
+// Verify that buffered data isn't lost if the writer is destroyed without
+// being flushed or closed
+TEST_F(FileIoTest, BufferedFileWriterTestEncryptedNoClose) {
+    SharedKeyDerivationKey key = KeyDerivationKey::generate();
+    auto lookup = [&key](auto k) -> SharedKeyDerivationKey {
+        if (key && key->id == k) {
+            return key;
+        }
+        return {};
+    };
+
+    auto writer = FileWriter::create(key, file, 100);
+    EXPECT_TRUE(writer->is_encrypted());
+    for (int ii = 0; ii < 10; ++ii) {
+        writer->write(std::string_view{"a", 1});
+    }
+    writer.reset();
+
+    auto reader = FileReader::create(file, lookup);
+    auto chunk = reader->nextChunk();
+    EXPECT_EQ(std::string(10, 'a'), chunk);
+}
+
+// Verify that the gzip stream is completed if the writer is destroyed
+// without being flushed or closed
+TEST_F(FileIoTest, TestReadWriteGzipFileNoClose) {
+    const std::string content(10000, 'a');
+    std::filesystem::path gzfile = file.string() + ".gz";
+    auto guard = folly::makeGuard([&]() { remove(gzfile); });
+
+    auto writer = FileWriter::create({}, gzfile, 1000, Compression::GZIP);
+    writer->write(content);
+    writer.reset();
+
+    auto lookup = [](auto k) -> SharedKeyDerivationKey { return {}; };
+    auto reader = FileReader::create(gzfile, lookup);
+    EXPECT_FALSE(reader->is_encrypted());
+    EXPECT_EQ(content, reader->read());
+}
+
+TEST_F(FileIoTest, TestReadWriteGzipFileUnbuffered) {
+    std::filesystem::path gzfile = file.string() + ".gz";
+    auto guard = folly::makeGuard([&]() { remove(gzfile); });
+
+    auto writer = FileWriter::create({}, gzfile, 0, Compression::GZIP);
+    std::string content;
+    for (int ii = 0; ii < 100; ++ii) {
+        const auto line = fmt::format("This is line {}\n", ii);
+        writer->write(line);
+        content.append(line);
+    }
+    writer->close();
+    // size() reports the number of (compressed) bytes in the file
+    EXPECT_EQ(std::filesystem::file_size(gzfile), writer->size());
+    EXPECT_GT(content.size(), writer->size());
+    writer.reset();
+
+    auto lookup = [](auto k) -> SharedKeyDerivationKey { return {}; };
+    auto reader = FileReader::create(gzfile, lookup);
+    EXPECT_EQ(content, reader->read());
+}
+
+TEST_F(FileIoTest, GzipFileWriterOpenFailure) {
+    EXPECT_THROW(FileWriter::create(
+                         {},
+                         file.parent_path() / "non_existing_subdir" / "file.gz",
+                         0,
+                         Compression::GZIP),
+                 std::system_error);
+}
+
+/**
+ * A FileWriter which keeps the data in memory and may be told to fail
+ * writes. The state lives in a separate object so that it may be inspected
+ * after the writer is handed over to (and destroyed by) the writer stack.
+ */
+class MockFileWriter : public FileWriter {
+public:
+    struct State {
+        std::string data;
+        std::size_t num_writes = 0;
+        bool fail_writes = false;
+        bool closed = false;
+    };
+
+    explicit MockFileWriter(std::shared_ptr<State> state)
+        : state(std::move(state)) {
+    }
+
+    [[nodiscard]] bool is_encrypted() const override {
+        return false;
+    }
+
+    [[nodiscard]] size_t size() const override {
+        return state->data.size();
+    }
+
+    void write(std::string_view chunk) override {
+        if (state->fail_writes) {
+            throw std::runtime_error("MockFileWriter: injected write failure");
+        }
+        ++state->num_writes;
+        state->data.append(chunk);
+    }
+
+    void flush() override {
+    }
+
+    void close() override {
+        state->closed = true;
+    }
+
+protected:
+    std::shared_ptr<State> state;
+};
+
+class ZLibStreamingWriterTest : public FileIoTest {
+protected:
+    /** Create an encrypted writer using ZLIB compression on the mock */
+    std::unique_ptr<FileWriter> createWriter(size_t buffer_size = 0) {
+        return FileWriter::wrap_with_encryption(
+                key,
+                std::make_unique<MockFileWriter>(state),
+                buffer_size,
+                Compression::ZLIB);
+    }
+
+    /** Store the data written to the mock in a file and read it back */
+    std::string readBack() {
+        {
+            cb::io::FileSink sink(file);
+            sink.sink(state->data);
+            sink.close();
+        }
+        auto reader = FileReader::create(
+                file, [this](auto) -> SharedKeyDerivationKey { return key; });
+        return reader->read();
+    }
+
+    /**
+     * Generate data which doesn't compress well (so that zlib produces
+     * output as part of the write)
+     */
+    static std::string randomData(size_t size) {
+        std::mt19937 generator(0xdeadbeef);
+        std::string ret(size, '\0');
+        for (auto& ch : ret) {
+            ch = static_cast<char>(generator());
+        }
+        return ret;
+    }
+
+    SharedKeyDerivationKey key = KeyDerivationKey::generate();
+    std::shared_ptr<MockFileWriter::State> state =
+            std::make_shared<MockFileWriter::State>();
+};
+
+// Flushing an unmodified stream (repeatedly) must not upset zlib
+TEST_F(ZLibStreamingWriterTest, RepeatedFlush) {
+    auto writer = createWriter();
+    writer->flush();
+    writer->flush();
+    writer->write("hello");
+    writer->flush();
+    writer->flush();
+    writer->write(" world");
+    writer->close();
+    EXPECT_TRUE(state->closed);
+    EXPECT_EQ("hello world", readBack());
+}
+
+// Closing a stream without writing any data produces a valid empty stream
+TEST_F(ZLibStreamingWriterTest, EmptyStream) {
+    auto writer = createWriter();
+    writer->close();
+    EXPECT_TRUE(state->closed);
+    EXPECT_EQ("", readBack());
+}
+
+// The compressed data must not be passed on in tiny pieces when the chunks
+// written are small (each write to the underlying writer becomes its own
+// encrypted block)
+TEST_F(ZLibStreamingWriterTest, SmallWritesProduceLargeBlocks) {
+    std::mt19937 generator(0xdeadbeef);
+    std::string content;
+    auto writer = createWriter();
+    for (int ii = 0; ii < 20000; ++ii) {
+        const auto line = fmt::format("line {}\n", generator());
+        writer->write(line);
+        content.append(line);
+    }
+    writer->close();
+    // The header + (length, block) per 64k of compressed data. Without
+    // a fixed size output buffer this was several thousand writes
+    EXPECT_GT(20, state->num_writes);
+    EXPECT_EQ(content, readBack());
+}
+
+// A failure to write the compressed data must leave the stream in a failed
+// state, and the destructor must not try to complete the broken stream
+TEST_F(ZLibStreamingWriterTest, WriteFailure) {
+    auto writer = createWriter();
+    writer->write("hello");
+    state->fail_writes = true;
+    EXPECT_THROW(writer->write(randomData(1024 * 1024)), std::runtime_error);
+    state->fail_writes = false;
+
+    const auto size = state->data.size();
+    EXPECT_THROW(writer->write("world"), std::runtime_error);
+    writer.reset();
+    EXPECT_EQ(size, state->data.size())
+            << "Nothing should be written to a broken stream";
+    EXPECT_FALSE(state->closed);
+}
+
+// close() must close the underlying writer even if completing the
+// stream failed
+TEST_F(ZLibStreamingWriterTest, CloseFailure) {
+    auto writer = createWriter();
+    writer->write(randomData(1024));
+    state->fail_writes = true;
+    EXPECT_THROW(writer->close(), std::runtime_error);
+    EXPECT_TRUE(state->closed);
+    state->fail_writes = false;
+
+    const auto size = state->data.size();
+    writer.reset();
+    EXPECT_EQ(size, state->data.size())
+            << "Nothing should be written to a broken stream";
+}
+
+// close() after a failed write must report the error and close the
+// underlying writer
+TEST_F(ZLibStreamingWriterTest, CloseAfterWriteFailure) {
+    auto writer = createWriter();
+    state->fail_writes = true;
+    EXPECT_THROW(writer->write(randomData(1024 * 1024)), std::runtime_error);
+    state->fail_writes = false;
+
+    const auto size = state->data.size();
+    EXPECT_THROW(writer->close(), std::runtime_error);
+    EXPECT_TRUE(state->closed);
+    writer.reset();
+    EXPECT_EQ(size, state->data.size());
 }
