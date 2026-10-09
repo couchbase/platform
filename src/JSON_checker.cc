@@ -334,11 +334,31 @@ static bool JSON_checker_done(JSON_checker::Instance &jc)
     return (jc.state == OK) && jc.pop(JSON_checker::Modes::DONE);
 }
 
-/* Check for both UTF-8ness and JSONness in one pass */
+/*
+ * Check for both UTF-8ness and JSONness in one pass.
+ *
+ * The UTF-8 check is strict (RFC 3629): it rejects overlong encodings,
+ * UTF-16 surrogates (U+D800..U+DFFF) and code points above U+10FFFF, in
+ * the same way as the vectorized implementation (simdutf) does. The valid
+ * multi-byte sequences are (the Unicode Standard, Table 3-7):
+ *
+ *     Lead byte    2nd byte    3rd byte    4th byte
+ *     C2..DF       80..BF
+ *     E0           A0..BF      80..BF
+ *     E1..EC       80..BF      80..BF
+ *     ED           80..9F      80..BF
+ *     EE..EF       80..BF      80..BF
+ *     F0           90..BF      80..BF      80..BF
+ *     F1..F3       80..BF      80..BF      80..BF
+ *     F4           80..8F      80..BF      80..BF
+ */
 static bool checkUTF8JSON(JSON_checker::Instance &jc,
                           const unsigned char* data,
                           size_t size) {
     int expect = 0; /* Expect UTF code point to extend this many bytes */
+    /* The valid range of the next continuation byte */
+    unsigned char lower = 0x80;
+    unsigned char upper = 0xBF;
     int badjson = 0;
     int badutf = 0;
     const unsigned char *end = data + size;
@@ -358,27 +378,39 @@ static bool checkUTF8JSON(JSON_checker::Instance &jc,
             continue;
         }
 
-        if((*data & 0xC0) == 0xC0) {
-            if(expect != 0) {
-               /* Beginning of UTF-8 multi-byte sequence inside of another one. */
+        if (expect != 0) {
+            /* Continuation byte (also rejects a lead byte inside of a */
+            /* multi-byte sequence as it is above any upper bound) */
+            if (*data < lower || *data > upper) {
                 badutf = 1;
                 break;
             }
-            expect++;
-            if(*data & 0x20) expect++;
-            if((*data & 0x10) && expect == 2) expect++;
-            /* Verify zero bit separates count bits and codepoint bits */
-            if(expect == 3 && (*data & 0x8)) {
-                badutf = 1;
-                break;
-            }
+            lower = 0x80;
+            upper = 0xBF;
+            expect--;
             continue;
         }
 
-        if(expect) {
-            expect--;
+        /* Lead byte of a multi-byte sequence */
+        if (*data >= 0xC2 && *data <= 0xDF) {
+            expect = 1;
+        } else if (*data >= 0xE0 && *data <= 0xEF) {
+            expect = 2;
+            if (*data == 0xE0) {
+                lower = 0xA0; /* Overlong */
+            } else if (*data == 0xED) {
+                upper = 0x9F; /* Surrogates */
+            }
+        } else if (*data >= 0xF0 && *data <= 0xF4) {
+            expect = 3;
+            if (*data == 0xF0) {
+                lower = 0x90; /* Overlong */
+            } else if (*data == 0xF4) {
+                upper = 0x8F; /* Above U+10FFFF */
+            }
         } else {
-           /* Got > 0x7F when not expecting it */
+            /* Continuation byte when not expecting it, an overlong lead */
+            /* byte (C0, C1) or a lead byte above U+10FFFF (F5..FF) */
             badutf = 1;
             break;
         }
