@@ -567,10 +567,11 @@ std::unique_ptr<FileReader> FileReader::create(
             }
             kdk = key_lookup_function(header->get_id());
             if (!kdk) {
-                throw std::runtime_error(
+                throw KeyNotFoundError(
                         fmt::format("FileReader::create({}): Missing key {}",
                                     path.string(),
-                                    header->get_id()));
+                                    header->get_id()),
+                        std::string(header->get_id()));
             }
             compression = header->get_compression();
             encrypted = true;

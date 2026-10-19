@@ -234,12 +234,14 @@ static void testReadFileEncrypted(const std::filesystem::path& file,
     EXPECT_EQ(content, reader->read());
 
     // verify that we can't read the file if we don't have the key
+    const auto keyId = key->id;
     key.reset();
     try {
         FileReader::create(file, lookup);
         FAIL() << "We should not be able to decode the file without the key";
-    } catch (const std::exception& error) {
+    } catch (const KeyNotFoundError& error) {
         EXPECT_NE(nullptr, strstr(error.what(), "Missing key"));
+        EXPECT_EQ(keyId, error.keyId);
     }
 }
 
