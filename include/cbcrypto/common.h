@@ -13,6 +13,7 @@
 #include <nlohmann/json_fwd.hpp>
 #include <stdexcept>
 #include <string>
+#include <utility>
 
 namespace cb::crypto {
 
@@ -152,6 +153,16 @@ public:
     const unsigned long errorCode;
 
     const std::string message;
+};
+
+/// Thrown when the key needed to decrypt data is not available.
+class KeyNotFoundError : public std::runtime_error {
+public:
+    KeyNotFoundError(const std::string& message, std::string id)
+        : std::runtime_error(message), keyId(std::move(id)) {
+    }
+
+    const std::string keyId;
 };
 
 /**
