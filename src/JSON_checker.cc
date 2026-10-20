@@ -29,6 +29,8 @@ SOFTWARE.
 #include "JSON_checker.h"
 
 #include <folly/Portability.h>
+#include <algorithm>
+#include <array>
 #include <cstdlib>
 #include <cstring>
 
@@ -495,14 +497,14 @@ int scan_any_of_128bit_ST(gsl::span<const unsigned char> data) {
  * the pointer by that many bytes, without calling into the JSON_checker_char
  * method and without touching the state machine (slow).
  */
-bool checkJSONVectorized(JSON_checker::Instance& jc,
-                         const unsigned char* bytes,
-                         size_t size) {
-    jc.reset();
-
+static bool feedJSONVectorized(JSON_checker::Instance& jc,
+                               const unsigned char* bytes,
+                               size_t size) {
     const unsigned char* const end = bytes + size;
-    // While we have enough bytes to read into a register
-    while (bytes + 16 < end) {
+    // While we have enough bytes to read into a register (compare the
+    // number of remaining bytes, as bytes + 16 may be beyond the end of the
+    // buffer, or applied to the null pointer of an empty buffer)
+    while (end - bytes > 16) {
         int c = 0;
         // And the state is ST (string) and the number of skippable characters
         // is non-zero
@@ -524,6 +526,16 @@ bool checkJSONVectorized(JSON_checker::Instance& jc,
         }
         ++bytes;
     }
+    return true;
+}
+
+bool checkJSONVectorized(JSON_checker::Instance& jc,
+                         const unsigned char* bytes,
+                         size_t size) {
+    jc.reset();
+    if (!feedJSONVectorized(jc, bytes, size)) {
+        return false;
+    }
 
     /* Feed fake space to the validator to force it to finish validating */
     /* numerical values, iff it hasn't marked the current stream as valid */
@@ -542,6 +554,170 @@ bool checkUTF8JSONVectorized(JSON_checker::Instance& jc,
         return checkJSONVectorized(jc, data, size) &&
                simdutf::validate_utf8(reinterpret_cast<const char*>(data),
                                       size);
+    } catch (std::bad_alloc&) {
+        return false;
+    }
+}
+
+/**
+ * The length of the UTF-8 sequence starting with the given lead byte, or 1
+ * for a byte which can't start a multi-byte sequence (ASCII, a
+ * continuation byte or an invalid lead byte; the validation of the
+ * sequence reports the invalid ones).
+ */
+static size_t utf8SequenceLength(unsigned char lead) {
+    if (lead >= 0xC0 && lead <= 0xDF) {
+        return 2;
+    }
+    if (lead >= 0xE0 && lead <= 0xEF) {
+        return 3;
+    }
+    if (lead >= 0xF0 && lead <= 0xF4) {
+        return 4;
+    }
+    return 1;
+}
+
+/** Check if all of the bytes in the data are ASCII */
+static bool isAscii(const char* data, size_t size) {
+    return std::all_of(data, data + size, [](char ch) {
+        return static_cast<unsigned char>(ch) < 0x80;
+    });
+}
+
+/**
+ * Validate the UTF-8 encoding of the data with simdutf, except for short
+ * pure ASCII data (such as the brackets and quotes wrapped around a value)
+ * where calling simdutf costs more than looking at the bytes.
+ */
+static bool validateUTF8(const char* data, size_t size) {
+    if (size < 16 && isAscii(data, size)) {
+        return true;
+    }
+    return simdutf::validate_utf8(data, size);
+}
+
+/**
+ * The number of bytes at the end of the data which start a multi-byte UTF-8
+ * sequence that doesn't end within the data (0 to 3).
+ */
+static size_t incompleteTail(std::string_view data) {
+    const size_t limit = std::min<size_t>(3, data.size());
+    for (size_t back = 1; back <= limit; ++back) {
+        const auto byte = static_cast<unsigned char>(data[data.size() - back]);
+        if ((byte & 0xC0) != 0x80) {
+            // The lead byte: is the sequence longer than the bytes left?
+            return utf8SequenceLength(byte) > back ? back : 0;
+        }
+    }
+    return 0;
+}
+
+/**
+ * Validate the UTF-8 encoding of data fed in chunks as if it was one
+ * contiguous buffer. Each chunk is validated with validateUTF8(), except for
+ * a multi-byte sequence which spans two (or more) chunks: its bytes are
+ * collected in carry and validated on their own.
+ */
+class Utf8ChunkValidator {
+public:
+    /**
+     * Validate the next chunk.
+     *
+     * @param chunk The next chunk of data
+     * @return false if the data fed so far is invalid
+     */
+    bool feed(std::string_view chunk) {
+        if (chunk.empty()) {
+            return true;
+        }
+        if (carrySize != 0) {
+            // Complete the sequence with the beginning of this chunk (the
+            // carry always starts with the lead byte of the sequence)
+            const size_t needed =
+                    utf8SequenceLength(static_cast<unsigned char>(carry[0])) -
+                    carrySize;
+            const size_t take = std::min(needed, chunk.size());
+            std::copy_n(chunk.data(), take, carry.data() + carrySize);
+            carrySize += take;
+            chunk.remove_prefix(take);
+            if (take < needed) {
+                // Still incomplete
+                return true;
+            }
+            if (!validateUTF8(carry.data(), carrySize)) {
+                return false;
+            }
+            carrySize = 0;
+        }
+        const size_t tail = incompleteTail(chunk);
+        if (!validateUTF8(chunk.data(), chunk.size() - tail)) {
+            return false;
+        }
+        std::copy_n(chunk.data() + chunk.size() - tail, tail, carry.data());
+        carrySize = tail;
+        return true;
+    }
+
+    /**
+     * Finish the validation after the last chunk. A sequence which isn't
+     * complete at the end is invalid (this can't happen after the JSON
+     * validation, as valid JSON ends with an ASCII character, but the
+     * validator shouldn't depend on that).
+     *
+     * @return true if the data fed was valid UTF-8
+     */
+    bool finish() const {
+        return carrySize == 0;
+    }
+
+private:
+    /** The bytes of an incomplete multi-byte sequence */
+    std::array<char, 4> carry{};
+    /** The number of bytes in carry */
+    size_t carrySize = 0;
+};
+
+/**
+ * Validate the UTF-8 encoding of the chunks as if they were one contiguous
+ * buffer.
+ */
+static bool validateUTF8Chunks(std::initializer_list<std::string_view> chunks) {
+    Utf8ChunkValidator utf8;
+    for (const auto& chunk : chunks) {
+        if (!utf8.feed(chunk)) {
+            return false;
+        }
+    }
+    return utf8.finish();
+}
+
+/**
+ * Check data split in multiple chunks as if it was one contiguous buffer,
+ * with the vectorized JSON validation and simdutf
+ */
+static bool checkUTF8JSONVectorized(
+        JSON_checker::Instance& jc,
+        std::initializer_list<std::string_view> chunks) {
+    try {
+        // Verify JSON, then UTF-8.
+        // The first check is more likely to fail quickly.
+        jc.reset();
+        for (const auto& chunk : chunks) {
+            if (chunk.empty()) {
+                continue;
+            }
+            if (!feedJSONVectorized(
+                        jc,
+                        reinterpret_cast<const unsigned char*>(chunk.data()),
+                        chunk.size())) {
+                return false;
+            }
+        }
+        if (jc.state != OK && !JSON_checker_char(jc, ' ')) {
+            return false;
+        }
+        return JSON_checker_done(jc) && validateUTF8Chunks(chunks);
     } catch (std::bad_alloc&) {
         return false;
     }
@@ -585,9 +761,11 @@ bool JSON_checker::Validator::validate(std::string_view data) {
 
 bool JSON_checker::Validator::validateChunks(
         std::initializer_list<std::string_view> chunks) {
-    // Always use the scalar implementation: the vectorized implementation
-    // validates the UTF-8 encoding of each buffer separately, and would
-    // reject a multi-byte sequence spanning two chunks
+#if CB_JSON_CHECKER_VECTORIZED_SUPPORTED
+    if (preferVectorized) {
+        return checkUTF8JSONVectorized(instance, chunks);
+    }
+#endif // CB_JSON_CHECKER_VECTORIZED_SUPPORTED
     return checkUTF8JSON(instance, chunks);
 }
 

@@ -122,8 +122,8 @@ namespace JSON_checker {
          *     validator.validateChunks({"[", value, "]"});
          *
          * The chunks may be split anywhere (also within a multi-byte UTF-8
-         * sequence). The vectorized implementation is never used (both
-         * implementations validate the UTF-8 encoding equally strictly).
+         * sequence). Both implementations validate the UTF-8 encoding
+         * equally strictly.
          *
          * @param chunks the data to check
          * @return true if it is valid json, false otherwise
