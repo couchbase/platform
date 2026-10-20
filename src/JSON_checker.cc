@@ -288,12 +288,10 @@ static bool JSON_checker_char(JSON_checker::Instance &jc, int next_char)
 /* , */ case -3:
             switch (jc.stack.top()) {
             case JSON_checker::Modes::OBJECT:
-/*
-    A comma causes a flip from object mode to key mode.
-*/
-                if (!jc.pop(JSON_checker::Modes::OBJECT) || !jc.push(JSON_checker::Modes::KEY)) {
-                    return false;
-                }
+                // A comma causes a flip from object mode to key mode. The
+                // mode on the top of the stack is replaced rather than
+                // popped and pushed, as this happens for every member.
+                jc.stack.top() = JSON_checker::Modes::KEY;
                 jc.state = KE;
                 break;
             case JSON_checker::Modes::ARRAY:
@@ -305,12 +303,13 @@ static bool JSON_checker_char(JSON_checker::Instance &jc, int next_char)
             break;
 
 /* : */ case -2:
-/*
-    A colon causes a flip from key mode to object mode.
-*/
-            if (!jc.pop(JSON_checker::Modes::KEY) || !jc.push(JSON_checker::Modes::OBJECT)) {
+            // A colon causes a flip from key mode to object mode (replacing
+            // the mode on the top of the stack, as for the comma)
+            if (jc.stack.empty() ||
+                jc.stack.top() != JSON_checker::Modes::KEY) {
                 return false;
             }
+            jc.stack.top() = JSON_checker::Modes::OBJECT;
             jc.state = VA;
             break;
 /*

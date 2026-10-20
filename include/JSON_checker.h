@@ -42,9 +42,11 @@ namespace JSON_checker {
     public:
         /**
          * Type to use for the state stack. We use ClearableStack for
-         * more efficient reset between validations.
+         * more efficient reset between validations, on top of a
+         * std::vector which is faster than the default std::deque for
+         * the (shallow) nesting of JSON documents.
          */
-        using StackType = ClearableStack<Modes>;
+        using StackType = ClearableStack<Modes, std::vector<Modes>>;
 
         Instance();
 
