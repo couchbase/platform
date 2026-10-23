@@ -18,7 +18,32 @@
 #include <limits>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <typeinfo>
+
+namespace cb::monotonic {
+/**
+ * Function called when a non-monotonic update is rejected. Receives the
+ * label of the Monotonic, its current value and the rejected new value.
+ */
+using Handler = void (*)(std::string_view label,
+                         std::string_view currentValue,
+                         std::string_view newValue);
+
+/**
+ * Install the handler to be called for non-monotonic updates. Thread-safe.
+ *
+ * @param handler the handler to install, or nullptr to remove it
+ */
+void setNonMonotonicHandler(Handler handler);
+
+/**
+ * Get the handler installed via setNonMonotonicHandler(). Thread-safe.
+ *
+ * @return the installed handler, or nullptr if none is set
+ */
+Handler getNonMonotonicHandler();
+} // namespace cb::monotonic
 
 /// Policy class for handling non-monotonic updates by simply ignoring them.
 template <class T>
@@ -43,6 +68,22 @@ struct ThrowExceptionPolicy {
     }
 };
 
+/**
+ * Policy class for handling non-monotonic updates by passing them to the
+ * handler installed via cb::monotonic::setNonMonotonicHandler().
+ */
+template <class T>
+struct HandlerPolicy {
+    void nonMonotonic(const T& curValue,
+                      const T& newValue,
+                      const std::string& label) {
+        auto handler = cb::monotonic::getNonMonotonicHandler();
+        if (handler) {
+            handler(label, std::to_string(curValue), std::to_string(newValue));
+        }
+    }
+};
+
 class BasicNameLabelPolicy {
 public:
     std::string getLabel(const char* name) const {
@@ -54,13 +95,13 @@ public:
 };
 
 // Default Monotonic OrderReversedPolicy (if user doesn't explicitly
-// specify otherwise) use IgnorePolicy for Release builds,
+// specify otherwise) use HandlerPolicy for Release builds,
 // and ThrowExceptionPolicy for Pre-Release builds.
 template <class T>
 #if CB_DEVELOPMENT_ASSERTS
 using DefaultOrderReversedPolicy = ThrowExceptionPolicy<T>;
 #else
-using DefaultOrderReversedPolicy = IgnorePolicy<T>;
+using DefaultOrderReversedPolicy = HandlerPolicy<T>;
 #endif
 
 // We want EBO to trigger for the Monotonic classes. On MSVC, this requires

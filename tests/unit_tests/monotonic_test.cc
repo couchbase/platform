@@ -12,6 +12,9 @@
 #include <platform/monotonic.h>
 
 #include <folly/portability/GTest.h>
+#include <string>
+#include <string_view>
+#include <vector>
 
 template <typename T>
 class MonotonicTest : public ::testing::Test {
@@ -28,9 +31,12 @@ public:
     T large;
 };
 
-// Test both the Monotonic and AtomicMonotonic templates (with IgnorePolicy).
+// Test both the Monotonic and AtomicMonotonic templates (with IgnorePolicy,
+// and with HandlerPolicy which ignores updates when no handler is installed).
 using MonotonicTypes = ::testing::Types<Monotonic<int, IgnorePolicy>,
-                                        AtomicMonotonic<int, IgnorePolicy>>;
+                                        AtomicMonotonic<int, IgnorePolicy>,
+                                        Monotonic<int, HandlerPolicy>,
+                                        AtomicMonotonic<int, HandlerPolicy>>;
 TYPED_TEST_SUITE(MonotonicTest, MonotonicTypes);
 
 TYPED_TEST(MonotonicTest, Increase) {
@@ -201,4 +207,53 @@ TEST_F(MonotonicTestMacro, AtomicWeaklyMonotonicArgMacrosThrow) {
     ATOMIC_WEAKLY_MONOTONIC4(
             uint64_t, awm4, TestLabeller, ThrowExceptionPolicy){1};
     EXPECT_THROW(awm4 = 0, std::logic_error);
+}
+
+/**
+ * Test fixture for HandlerPolicy which installs a handler recording each
+ * call, and removes it again after the test.
+ */
+class MonotonicHandlerTest : public ::testing::Test {
+protected:
+    struct Call {
+        std::string label;
+        std::string currentValue;
+        std::string newValue;
+    };
+
+    void SetUp() override {
+        calls.clear();
+        cb::monotonic::setNonMonotonicHandler(recordCall);
+    }
+
+    void TearDown() override {
+        cb::monotonic::setNonMonotonicHandler(nullptr);
+    }
+
+    static void recordCall(std::string_view label,
+                           std::string_view currentValue,
+                           std::string_view newValue) {
+        calls.push_back({std::string(label),
+                         std::string(currentValue),
+                         std::string(newValue)});
+    }
+
+    static inline std::vector<Call> calls;
+};
+
+TEST_F(MonotonicHandlerTest, NonMonotonicUpdateCallsHandler) {
+    MONOTONIC4(int, counter, TestLabeller, HandlerPolicy){5};
+    counter = 3;
+    EXPECT_EQ(5, counter);
+    ASSERT_EQ(1, calls.size());
+    EXPECT_EQ("TestLabeller:counter", calls[0].label);
+    EXPECT_EQ("5", calls[0].currentValue);
+    EXPECT_EQ("3", calls[0].newValue);
+}
+
+TEST_F(MonotonicHandlerTest, MonotonicUpdateDoesNotCallHandler) {
+    MONOTONIC4(int, counter, TestLabeller, HandlerPolicy){5};
+    counter = 6;
+    EXPECT_EQ(6, counter);
+    EXPECT_TRUE(calls.empty());
 }

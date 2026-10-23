@@ -238,6 +238,7 @@ target_sources(platform PRIVATE
   src/histogram.cc
   src/interrupt.cc
   src/io_hint.cc
+  src/monotonic.cc
   src/murmurhash3.cc
   src/processclock.cc
   src/process_monitor.cc
