@@ -12,6 +12,7 @@
 #include <folly/portability/GTest.h>
 #include <platform/cb_arena_malloc.h>
 #include <platform/cb_malloc.h>
+#include <cstdlib>
 #include <thread>
 #include <vector>
 
@@ -44,6 +45,22 @@ TEST_F(ArenaMalloc, cb_malloc_is_using_arenas) {
 TEST_F(ArenaMalloc, fragmentation) {
     cb::FragmentationStats stats{2, 200};
     EXPECT_EQ(0.99, stats.getFragmentationRatio());
+}
+
+// The arena debug checks are initially enabled from the environment (in builds
+// with assertions only), and can be changed with setDebugChecksEnabled(). The
+// test only disables them: that just skips the verification, so (unlike
+// enabling them while clients are registered) it's safe at any time.
+TEST_F(ArenaMalloc, SetDebugChecksEnabled) {
+    const bool initial = cb::ArenaMalloc::setDebugChecksEnabled(false);
+#ifndef NDEBUG
+    EXPECT_EQ(getenv("CB_ARENA_MALLOC_VERIFY_DEALLOC_CLIENT") != nullptr,
+              initial);
+#else
+    EXPECT_FALSE(initial);
+#endif
+    EXPECT_FALSE(cb::ArenaMalloc::setDebugChecksEnabled(initial));
+    EXPECT_EQ(initial, cb::ArenaMalloc::setDebugChecksEnabled(initial));
 }
 
 // Check that allocations made without an explicit client selected are accounted

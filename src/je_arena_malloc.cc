@@ -35,10 +35,25 @@ namespace cb {
 /// Overrides any client tcache wishes
 static bool tcacheEnabled{true};
 
+#ifndef NDEBUG
+/**
+ * The arena debug checks setting. Initially read from the environment
+ * (CB_ARENA_MALLOC_VERIFY_DEALLOC_CLIENT), only once as it's checked for
+ * every deallocation and client switch. A function local static so it's
+ * initialized on first use: the allocator is used during static
+ * initialization, possibly before this file's static variables would be.
+ */
+static RelaxedAtomic<bool>& debugChecksEnabledFlag() {
+    static RelaxedAtomic<bool> flag{
+            getenv("CB_ARENA_MALLOC_VERIFY_DEALLOC_CLIENT") != nullptr};
+    return flag;
+}
+#endif
+
 /// Are additional checks on arena allocations enabled?
 static bool arenaDebugChecksEnabled() {
 #ifndef NDEBUG
-    return getenv("CB_ARENA_MALLOC_VERIFY_DEALLOC_CLIENT") != nullptr;
+    return debugChecksEnabledFlag().load();
 #else
     return false;
 #endif
@@ -474,6 +489,19 @@ bool JEArenaMalloc::setTCacheEnabled(bool value) {
     bool oldValue = tcacheEnabled;
     tcacheEnabled = value;
     return oldValue;
+}
+
+template <>
+bool JEArenaMalloc::setDebugChecksEnabled(bool value) {
+#ifndef NDEBUG
+    auto& flag = debugChecksEnabledFlag();
+    const bool oldValue = flag.load();
+    flag.store(value);
+    return oldValue;
+#else
+    (void)value; // The checks only exist in builds with assertions
+    return false;
+#endif
 }
 
 template <>

@@ -200,6 +200,11 @@ bool SystemArenaMalloc::setTCacheEnabled(bool value) {
     return false;
 }
 
+bool SystemArenaMalloc::setDebugChecksEnabled(bool value) {
+    (void)value; // ignored
+    return false;
+}
+
 bool SystemArenaMalloc::getProperty(const char* name, unsigned& value) {
     return false;
 }

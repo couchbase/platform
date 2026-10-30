@@ -114,6 +114,7 @@ public:
         return true;
     }
     static bool setTCacheEnabled(bool value);
+    static bool setDebugChecksEnabled(bool value);
 
     static bool getProperty(const char* name, unsigned& value);
     static bool getProperty(const char* name, size_t& value);

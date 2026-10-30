@@ -309,6 +309,25 @@ public:
     }
 
     /**
+     * Enable or disable the additional checks on arena allocations, i.e.
+     * that memory is freed by the same client (and domain) which allocated
+     * it. Initially enabled if CB_ARENA_MALLOC_VERIFY_DEALLOC_CLIENT is set
+     * in the environment (read once, on first use of the allocator). Only
+     * builds with assertions (no NDEBUG) have the checks; other builds, and
+     * implementations other than JEMalloc, ignore the call.
+     *
+     * The checks change how a client is set up (its arenas and the use of a
+     * tcache) when it's registered, so this must be called before any client
+     * is registered (e.g. before creating any bucket) to be reliable.
+     *
+     * @param value true to enable the checks, false to disable them
+     * @return the old value
+     */
+    static bool setDebugChecksEnabled(bool value) {
+        return Impl::setDebugChecksEnabled(value);
+    }
+
+    /**
      * Get the value of an allocator unsigned property.
      *
      * This is a thin wrapper for invoking je_mallctl or do nothing on system
