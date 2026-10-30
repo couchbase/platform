@@ -79,7 +79,10 @@ struct HandlerPolicy {
                       const std::string& label) {
         auto handler = cb::monotonic::getNonMonotonicHandler();
         if (handler) {
-            handler(label, std::to_string(curValue), std::to_string(newValue));
+            // Unqualified to_string so that overloads declared alongside T
+            // (found via ADL) are used, as in ThrowExceptionPolicy.
+            using std::to_string;
+            handler(label, to_string(curValue), to_string(newValue));
         }
     }
 };
