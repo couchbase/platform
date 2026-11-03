@@ -64,7 +64,10 @@ void Couchbase::Thread::start() {
     std::unique_lock<std::mutex> lock(synchronization.mutex);
     state = ThreadState::Starting;
 
-    thread = std::thread{[this]() { task_thread_main(this); }};
+    // create_thread() refuses names longer than MaxThreadNameLength, so
+    // truncate the name rather than failing to start the thread
+    thread = create_thread([this]() { task_thread_main(this); },
+                           name.substr(0, MaxThreadNameLength));
 
     while (state != ThreadState::Running && state != ThreadState::Zombie) {
         synchronization.cond.wait(lock);

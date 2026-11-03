@@ -53,7 +53,8 @@ namespace Couchbase {
 
     /**
      * A Thread is a thread used to run a task. It has a mandatory name
-     * (will be used as the thread name if the underlying platform supports it)
+     * (will be used as the thread name if the underlying platform supports it,
+     * truncated to MaxThreadNameLength characters)
      */
     class Thread {
     public:

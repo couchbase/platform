@@ -12,6 +12,27 @@
 #include <platform/thread.h>
 #include <iostream>
 
+/**
+ * A Thread which records the OS thread name it ran with.
+ */
+class NameRecordingThread : public Couchbase::Thread {
+public:
+    explicit NameRecordingThread(std::string name)
+        : Couchbase::Thread(std::move(name)) {
+    }
+
+    std::optional<std::string> threadName;
+
+protected:
+    void run() override {
+        auto current = folly::getCurrentThreadName();
+        if (current.has_value()) {
+            threadName = *current;
+        }
+        setRunning();
+    }
+};
+
 TEST(ThreadnameTest, ThreadName) {
     EXPECT_TRUE(folly::canSetCurrentThreadName());
 #ifndef WIN32
@@ -43,3 +64,26 @@ TEST(ThreadnameTest, ThreadName) {
     EXPECT_EQ("test", getThreadName());
 #endif
 }
+
+#ifndef WIN32
+TEST(ThreadnameTest, ThreadClassSetsName) {
+    NameRecordingThread thread("thread_test");
+    thread.start();
+    EXPECT_EQ(Couchbase::ThreadState::Zombie,
+              thread.waitForState(Couchbase::ThreadState::Zombie));
+    ASSERT_TRUE(thread.threadName.has_value());
+    EXPECT_EQ("thread_test", *thread.threadName);
+}
+
+TEST(ThreadnameTest, ThreadClassTruncatesLongName) {
+    std::string name(MaxThreadNameLength + 10, 'a');
+    NameRecordingThread thread(name);
+    EXPECT_NO_THROW(thread.start());
+    EXPECT_EQ(Couchbase::ThreadState::Zombie,
+              thread.waitForState(Couchbase::ThreadState::Zombie));
+    ASSERT_TRUE(thread.threadName.has_value());
+    // The OS may truncate further (Linux allows 15 characters)
+    EXPECT_TRUE(name.starts_with(*thread.threadName));
+    EXPECT_FALSE(thread.threadName->empty());
+}
+#endif
