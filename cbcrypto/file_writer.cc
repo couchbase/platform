@@ -207,9 +207,40 @@ public:
         }
     }
 
+    /**
+     * Flush the data written so far through zlib (Z_SYNC_FLUSH) and on to
+     * the underlying writer so that a reader may read it. A sync flush
+     * keeps the compression dictionary, but adds a few bytes to the
+     * stream and ends the current deflate block, so flushing frequently
+     * reduces the compression ratio. Nothing is flushed if no data was
+     * written since the last flush.
+     */
     void flush() override {
-        // We don't want to flush the zlib stream here as it would
-        // reduce the compression ratio.
+        if (pending && !closed) {
+            check_not_failed("flush");
+            zstream.avail_in = 0;
+            zstream.next_in = nullptr;
+            try {
+                do {
+                    reset_output();
+                    const auto status = deflate(&zstream, Z_SYNC_FLUSH);
+                    if (status != Z_OK && status != Z_BUF_ERROR) {
+                        throw std::runtime_error(fmt::format(
+                                "ZLibStreamingWriter::flush(): Failed to "
+                                "deflate data (Z_SYNC_FLUSH): {}",
+                                status));
+                    }
+                    write_output();
+                } while (zstream.avail_out == 0);
+            } catch (const std::exception&) {
+                // Part of the compressed data never reached the underlying
+                // writer
+                failed = true;
+                throw;
+            }
+            pending = false;
+        }
+        underlying->flush();
     }
 
     void close() override {
@@ -306,6 +337,7 @@ protected:
     void do_write(std::string_view data) override {
         Expects(!closed);
         check_not_failed("do_write");
+        pending = true;
         zstream.avail_in = gsl::narrow_cast<uInt>(data.size());
         zstream.next_in =
                 reinterpret_cast<Bytef*>(const_cast<char*>(data.data()));
@@ -337,6 +369,8 @@ protected:
     bool closed = false;
     /** Set if an error caused data to be lost and the stream to be broken */
     bool failed = false;
+    /** Set when data is written, and cleared when it is flushed */
+    bool pending = false;
     z_stream zstream;
     std::vector<uint8_t> output = std::vector<uint8_t>(OutputBufferSize);
 };

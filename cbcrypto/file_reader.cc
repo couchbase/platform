@@ -452,8 +452,17 @@ public:
             do {
                 zstream.avail_out = gsl::narrow_cast<uInt>(buffer.size());
                 zstream.next_out = buffer.data();
+                // Z_BUF_ERROR is not an error; it is returned when the
+                // output buffer was filled exactly by the previous call and
+                // all of the input was consumed (for instance when the
+                // writer flushed the stream)
                 auto rc = inflate(&zstream, Z_NO_FLUSH);
-                Expects(rc == Z_OK || rc == Z_STREAM_END);
+                if (rc != Z_OK && rc != Z_STREAM_END && rc != Z_BUF_ERROR) {
+                    throw std::runtime_error(fmt::format(
+                            "ZlibInflateReader: Failed to inflate data: {} {}",
+                            rc,
+                            zstream.msg ? zstream.msg : ""));
+                }
                 auto nbytes = buffer.size() - zstream.avail_out;
                 ret.append(reinterpret_cast<const char*>(buffer.data()),
                            nbytes);

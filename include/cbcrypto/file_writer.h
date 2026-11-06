@@ -75,10 +75,25 @@ public:
      */
     virtual void write(std::string_view chunk) = 0;
 
-    /// Flush data to the file, and throw an exception if an error occurs
+    /**
+     * Pass all data written so far on to the file so that it may be read
+     * by a reader (compressed data is flushed through the compressor).
+     * The data is not synced to disk.
+     *
+     * @throws std::runtime_error if an error occurs
+     */
     virtual void flush() = 0;
 
-    /// Close the stream. No more data can be written after this call
+    /**
+     * Complete the file (for instance the compressed stream), sync it to
+     * disk and close it. No more data can be written after this call.
+     *
+     * close() must be called to know that the file is complete and
+     * durable. A writer destroyed without being closed tries to complete
+     * the file, but any errors are ignored.
+     *
+     * @throws std::runtime_error if an error occurs
+     */
     virtual void close() = 0;
 
     virtual ~FileWriter() = default;

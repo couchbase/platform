@@ -473,6 +473,37 @@ TEST_F(ZLibStreamingWriterTest, RepeatedFlush) {
     EXPECT_EQ("hello world", readBack());
 }
 
+// flush() must pass the data written so far through zlib so that a reader
+// sees it before the stream is closed
+TEST_F(ZLibStreamingWriterTest, FlushMakesDataReadable) {
+    auto writer = createWriter();
+    writer->write("hello");
+    EXPECT_EQ("", readBack()) << "zlib should buffer the data";
+    writer->flush();
+    EXPECT_EQ("hello", readBack());
+    const auto size = state->data.size();
+    writer->flush();
+    EXPECT_EQ(size, state->data.size())
+            << "Nothing should be written if no data was written since the "
+               "last flush";
+    writer->write(" world");
+    writer->close();
+    EXPECT_EQ("hello world", readBack());
+}
+
+// The reader must handle a chunk which inflates to exactly the size of
+// its output buffer (1 MiB) and zlib returning Z_BUF_ERROR on the next call
+// as there is neither more input nor more output
+TEST_F(ZLibStreamingWriterTest, FlushAtReaderBufferBoundary) {
+    const std::string content(1024 * 1024, 'a');
+    auto writer = createWriter();
+    writer->write(content);
+    writer->flush();
+    writer->write(content);
+    writer->close();
+    EXPECT_EQ(content + content, readBack());
+}
+
 // Closing a stream without writing any data produces a valid empty stream
 TEST_F(ZLibStreamingWriterTest, EmptyStream) {
     auto writer = createWriter();
