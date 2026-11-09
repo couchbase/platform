@@ -257,13 +257,14 @@ static void verifyMemDeallocatedByCorrectClient(
     if (allocatedFromArena != currentClientArena) {
         fmt::print(stderr,
                    "{}===ERROR===: JeArenaMalloc deallocation mismatch{}\n"
-                   "\tMemory freed by client:{} domain:{} which is assigned "
-                   "arena:{}, but memory was previously allocated from "
-                   "arena:{} ({}).\n"
+                   "\tMemory freed by client:{}{} domain:{} which is "
+                   "assigned arena:{}, but memory was previously allocated "
+                   "from arena:{} ({}).\n"
                    "\tAllocation address:{} size:{}\n",
                    cb::terminal::TerminalColor::Red,
                    cb::terminal::TerminalColor::Reset,
-                   client.index,
+                   clientIndexWithoutUntrackedFlag(client.index),
+                   isUntrackedClientIndex(client.index) ? " (untracked)" : "",
                    client.domain,
                    currentClientArena,
                    allocatedFromArena,
@@ -327,7 +328,14 @@ void JEArenaMalloc::unregisterClient(const ArenaMallocClient& client) {
 
 template <>
 uint8_t JEArenaMalloc::getCurrentClientIndex() {
-    return ThreadLocalData::get().getCurrentClient().index;
+    return clientIndexWithoutUntrackedFlag(
+            ThreadLocalData::get().getCurrentClient().index);
+}
+
+template <>
+bool JEArenaMalloc::isCurrentClientUntracked() {
+    return isUntrackedClientIndex(
+            ThreadLocalData::get().getCurrentClient().index);
 }
 
 template <>
@@ -384,9 +392,11 @@ MemoryDomain JEArenaMalloc::setDomain(MemoryDomain domain) {
     if (currentClient.index == NoClientIndex) {
         return ThreadLocalData::get().getCurrentClient().setDomain(domain, 0);
     }
+    // The client may be untracked, which setDomain keeps as it is.
     auto locked = Clients::get().rlock();
     const auto arenaForDomain =
-            locked->at(currentClient.index).arenas.at(size_t(domain));
+            locked->at(clientIndexWithoutUntrackedFlag(currentClient.index))
+                    .arenas.at(size_t(domain));
     return ThreadLocalData::get().getCurrentClient().setDomain(domain,
                                                                arenaForDomain);
 }
@@ -402,6 +412,17 @@ JEArenaMalloc::ClientHandle JEArenaMalloc::switchFromClient() {
                     DomainToArena{}, NoClientIndex, isTcacheEnabled(true)},
             cb::MemoryDomain::None,
             isTcacheEnabled(true));
+}
+
+template <>
+JEArenaMalloc::ClientHandle JEArenaMalloc::switchToUntrackedClient() {
+    auto& currentClient = ThreadLocalData::get().getCurrentClient();
+    const auto previous = currentClient;
+    if (currentClient.index != NoClientIndex) {
+        // Keep the arena, domain and tcache, only the tracking is disabled
+        currentClient.index |= UntrackedClientFlag;
+    }
+    return previous;
 }
 
 template <>

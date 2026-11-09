@@ -37,6 +37,32 @@ const int ArenaMallocMaxClients = 100;
 /// Define a special value to denote that no client is selected
 const uint8_t NoClientIndex = ArenaMallocMaxClients;
 
+/**
+ * Flag set in the current client's index while the client remains selected
+ * but its memory is not tracked (see ArenaMalloc::switchToUntrackedClient).
+ * The tracking code then sees an index which is not a valid client index (as
+ * for NoClientIndex) and skips the accounting.
+ */
+constexpr uint8_t UntrackedClientFlag = 0x80;
+static_assert(NoClientIndex < UntrackedClientFlag,
+              "UntrackedClientFlag must not overlap the client indexes");
+
+/**
+ * @param index A current client index
+ * @return true if the index has UntrackedClientFlag set
+ */
+constexpr bool isUntrackedClientIndex(uint8_t index) noexcept {
+    return (index & UntrackedClientFlag) == UntrackedClientFlag;
+}
+
+/**
+ * @param index A current client index, which may have UntrackedClientFlag set
+ * @return the index without UntrackedClientFlag
+ */
+constexpr uint8_t clientIndexWithoutUntrackedFlag(uint8_t index) {
+    return index & uint8_t(~UntrackedClientFlag);
+}
+
 enum class MemoryDomain : uint8_t { Primary, Secondary, Count, None = Count };
 
 std::ostream& operator<<(std::ostream& os, const MemoryDomain& md);

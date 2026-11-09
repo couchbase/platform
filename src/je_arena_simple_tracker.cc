@@ -81,6 +81,10 @@ void JEArenaSimpleTracker::memAllocated(uint8_t index,
                                         MemoryDomain domain,
                                         size_t size,
                                         std::align_val_t alignment) {
+    // Untracked client (see ArenaMalloc::switchToUntrackedClient)
+    if (isUntrackedClientIndex(index)) {
+        return;
+    }
     const int flags =
             (alignment > std::align_val_t{0}) ? MALLOCX_ALIGN(alignment) : 0;
     size = je_nallocx(size, flags);
@@ -92,6 +96,10 @@ void JEArenaSimpleTracker::memAllocated(uint8_t index,
 void JEArenaSimpleTracker::memDeallocated(uint8_t index,
                                           MemoryDomain domain,
                                           void* ptr) {
+    // Untracked client (see ArenaMalloc::switchToUntrackedClient)
+    if (isUntrackedClientIndex(index)) {
+        return;
+    }
     auto size = je_sallocx(ptr, 0 /* flags aren't read in this call*/);
     auto& clientData = allocated.at(index);
     auto& counter = clientData.at(uint8_t(domain));
@@ -101,6 +109,10 @@ void JEArenaSimpleTracker::memDeallocated(uint8_t index,
 void JEArenaSimpleTracker::memDeallocated(uint8_t index,
                                           MemoryDomain domain,
                                           size_t size) {
+    // Untracked client (see ArenaMalloc::switchToUntrackedClient)
+    if (isUntrackedClientIndex(index)) {
+        return;
+    }
     // Get "real" size of allocation in jemalloc, not necessarily the same as
     // what the application thinks it allocated (due to jemalloc size class
     // rounding up).

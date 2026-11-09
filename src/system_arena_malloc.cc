@@ -66,7 +66,11 @@ void SystemArenaMalloc::unregisterClient(const ArenaMallocClient& client) {
 }
 
 uint8_t SystemArenaMalloc::getCurrentClientIndex() {
-    return currentClient.client.index;
+    return clientIndexWithoutUntrackedFlag(currentClient.client.index);
+}
+
+bool SystemArenaMalloc::isCurrentClientUntracked() {
+    return isUntrackedClientIndex(currentClient.client.index);
 }
 
 uint16_t SystemArenaMalloc::getCurrentClientArena() {
@@ -105,6 +109,15 @@ SystemArenaMalloc::ClientHandle SystemArenaMalloc::switchFromClient() {
     return switchToClient({{}, NoClientIndex, false},
                           cb::MemoryDomain::None,
                           false /*tcache unused here*/);
+}
+
+SystemArenaMalloc::ClientHandle SystemArenaMalloc::switchToUntrackedClient() {
+    const auto previous = currentClient;
+    if (currentClient.client.index != NoClientIndex) {
+        // Keep the client and domain, only the tracking is disabled
+        currentClient.client.index |= UntrackedClientFlag;
+    }
+    return previous;
 }
 
 size_t SystemArenaMalloc::getPreciseAllocated(const ArenaMallocClient& client) {
@@ -257,7 +270,9 @@ cb::FragmentationStats SystemArenaMalloc::getGlobalFragmentationStats() {
 }
 
 void SystemArenaMalloc::addAllocation(void* ptr) {
-    if (canTrackAllocations()) {
+    // Skip untracked clients (see switchToUntrackedClient)
+    if (canTrackAllocations() &&
+        !isUntrackedClientIndex(currentClient.client.index)) {
         auto current = currentClient;
         allocated.at(current.client.index)
                 .at(size_t(current.domain))
@@ -266,7 +281,9 @@ void SystemArenaMalloc::addAllocation(void* ptr) {
 }
 
 void SystemArenaMalloc::removeAllocation(void* ptr) {
-    if (canTrackAllocations()) {
+    // Skip untracked clients (see switchToUntrackedClient)
+    if (canTrackAllocations() &&
+        !isUntrackedClientIndex(currentClient.client.index)) {
         auto current = currentClient;
         allocated.at(current.client.index)
                 .at(size_t(current.domain))

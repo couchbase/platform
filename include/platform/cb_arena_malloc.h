@@ -113,6 +113,16 @@ public:
     }
 
     /**
+     * Is the current client selected but with its memory not tracked (see
+     * switchToUntrackedClient)?
+     * @return true if the current client is untracked, false if it is tracked
+     *         or no client is selected.
+     */
+    static bool isCurrentClientUntracked() {
+        return Impl::isCurrentClientUntracked();
+    }
+
+    /**
      * Returns the arena of the current client. Primarily for diagnostics
      * and tests.
      */
@@ -189,6 +199,29 @@ public:
      */
     static ClientHandle switchFromClient() {
         return Impl::switchFromClient();
+    }
+
+    /**
+     * Stop tracking the memory of the current client, while keeping it
+     * selected: allocations are still made from (and frees still returned
+     * to) the client's arena via the client's thread cache, and the domain
+     * can still be changed, but none of them update the client's allocated
+     * (mem_used) counters. Unlike switchFromClient(), memory allocated by the
+     * client can be freed this way without the arena debug checks failing,
+     * and without passing the client's memory through the thread's
+     * automatic thread cache. Does nothing if no client is selected.
+     *
+     * Intended for releasing a client's memory when its accounting is no
+     * longer needed (e.g. as the client is being destroyed). Memory
+     * allocated while untracked and freed while tracked (or vice versa)
+     * makes the client's counters inaccurate.
+     *
+     * Tracking is restored by switching back to the returned client.
+     *
+     * @return the previous client
+     */
+    static ClientHandle switchToUntrackedClient() {
+        return Impl::switchToUntrackedClient();
     }
 
     /**
@@ -479,6 +512,29 @@ struct [[nodiscard]] NoArenaGuard {
     NoArenaGuard();
 
     ~NoArenaGuard();
+
+private:
+    ArenaMalloc::ClientHandle previous;
+};
+
+/**
+ * Guard object which on construction keeps the current client selected but
+ * stops tracking its memory (see ArenaMalloc::switchToUntrackedClient). When
+ * the guard goes out of scope, the original client (and tracking) is restored.
+ *
+ * Used instead of NoArenaGuard to free memory owned by the current client
+ * without the cost of accounting it, when that accounting is no longer needed
+ * (e.g. while destroying the client's objects at shutdown).
+ */
+struct [[nodiscard]] NoArenaTrackingGuard {
+    NoArenaTrackingGuard();
+
+    ~NoArenaTrackingGuard();
+
+    NoArenaTrackingGuard(const NoArenaTrackingGuard&) = delete;
+    NoArenaTrackingGuard& operator=(const NoArenaTrackingGuard&) = delete;
+    NoArenaTrackingGuard(NoArenaTrackingGuard&&) = delete;
+    NoArenaTrackingGuard& operator=(NoArenaTrackingGuard&&) = delete;
 
 private:
     ArenaMalloc::ClientHandle previous;

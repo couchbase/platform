@@ -45,7 +45,8 @@ public:
 
         /**
          * The index of the currently switched-to client, used for updating
-         * client stat counters (e.g. the mem_used counters)
+         * client stat counters (e.g. the mem_used counters). Has
+         * UntrackedClientFlag set while the client's memory is not tracked.
          */
         uint8_t index{NoClientIndex};
 
@@ -72,6 +73,7 @@ public:
     static ArenaMallocClient registerClient(bool threadCache);
     static void unregisterClient(const ArenaMallocClient& client);
     static uint8_t getCurrentClientIndex();
+    static bool isCurrentClientUntracked();
     static uint16_t getCurrentClientArena();
     static ClientHandle getCurrentClient();
     static ClientHandle switchToClient(const ArenaMallocClient& client,
@@ -81,6 +83,7 @@ public:
 
     static MemoryDomain setDomain(MemoryDomain domain);
     static ClientHandle switchFromClient();
+    static ClientHandle switchToUntrackedClient();
     static void setAllocatedThreshold(const ArenaMallocClient& client) {
         trackingImpl::setAllocatedThreshold(client);
     }

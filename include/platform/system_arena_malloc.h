@@ -57,6 +57,7 @@ public:
     static ArenaMallocClient registerClient(bool threadCache);
     static void unregisterClient(const ArenaMallocClient& client);
     static uint8_t getCurrentClientIndex();
+    static bool isCurrentClientUntracked();
     static uint16_t getCurrentClientArena();
     static ClientHandle getCurrentClient();
     static ClientHandle switchToClient(const ArenaMallocClient& client,
@@ -65,6 +66,7 @@ public:
     static ClientHandle switchToClient(const ClientHandle& client);
     static MemoryDomain setDomain(MemoryDomain domain);
     static ClientHandle switchFromClient();
+    static ClientHandle switchToUntrackedClient();
     static void setAllocatedThreshold(const ArenaMallocClient& client) {
         // Does nothing
     }

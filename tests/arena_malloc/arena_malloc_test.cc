@@ -153,6 +153,133 @@ TEST_F(ArenaMalloc, basicUsage) {
     cb::ArenaMalloc::unregisterClient(client);
 }
 
+// Memory allocated and freed under NoArenaTrackingGuard isn't accounted to the
+// client, which remains selected (same index, arena and domain).
+TEST_F(ArenaMalloc, NoArenaTrackingGuard) {
+    auto client = cb::ArenaMalloc::registerClient(false);
+    cb::ArenaMalloc::switchToClient(client);
+    auto* tracked = cb_malloc(4096);
+    const auto allocated = cb::ArenaMalloc::getPreciseAllocated(client);
+    EXPECT_LE(4096, allocated);
+    const auto arena = cb::ArenaMalloc::getCurrentClientArena();
+    EXPECT_FALSE(cb::ArenaMalloc::isCurrentClientUntracked());
+
+    {
+        cb::NoArenaTrackingGuard guard;
+        EXPECT_TRUE(cb::ArenaMalloc::isCurrentClientUntracked());
+        EXPECT_EQ(client.index, cb::ArenaMalloc::getCurrentClientIndex());
+        EXPECT_EQ(arena, cb::ArenaMalloc::getCurrentClientArena());
+        EXPECT_EQ(cb::MemoryDomain::Primary,
+                  cb::ArenaMalloc::getCurrentClient().domain);
+
+        // Freeing tracked memory isn't accounted (the client's counters
+        // can't then go back to zero, they're reset at registration)
+        cb_free(tracked);
+        EXPECT_EQ(allocated, cb::ArenaMalloc::getPreciseAllocated(client));
+
+        auto* untracked = cb_malloc(4096);
+        EXPECT_EQ(allocated, cb::ArenaMalloc::getPreciseAllocated(client));
+        cb_free(untracked);
+        EXPECT_EQ(allocated, cb::ArenaMalloc::getPreciseAllocated(client));
+    }
+
+    // Tracking resumes once the guard is destroyed
+    EXPECT_FALSE(cb::ArenaMalloc::isCurrentClientUntracked());
+    EXPECT_EQ(client.index, cb::ArenaMalloc::getCurrentClientIndex());
+    tracked = cb_malloc(4096);
+    EXPECT_LE(allocated + 4096, cb::ArenaMalloc::getPreciseAllocated(client));
+    cb_free(tracked);
+    EXPECT_EQ(allocated, cb::ArenaMalloc::getPreciseAllocated(client));
+
+    cb::ArenaMalloc::switchFromClient();
+    cb::ArenaMalloc::unregisterClient(client);
+}
+
+// The domain can be changed while the client is untracked: it uses the
+// domain's arena, and stays untracked.
+TEST_F(ArenaMalloc, NoArenaTrackingGuardSetDomain) {
+    auto client = cb::ArenaMalloc::registerClient(false);
+    cb::ArenaMalloc::switchToClient(client);
+
+    {
+        cb::NoArenaTrackingGuard guard;
+        {
+            cb::UseArenaMallocSecondaryDomain secondaryDomain;
+            EXPECT_EQ(cb::MemoryDomain::Secondary,
+                      cb::ArenaMalloc::getCurrentClient().domain);
+            EXPECT_EQ(client.arenas.at(size_t(cb::MemoryDomain::Secondary)),
+                      cb::ArenaMalloc::getCurrentClientArena());
+            EXPECT_EQ(client.index, cb::ArenaMalloc::getCurrentClientIndex());
+            EXPECT_TRUE(cb::ArenaMalloc::isCurrentClientUntracked());
+
+            auto* untracked = cb_malloc(4096);
+            EXPECT_EQ(0, cb::ArenaMalloc::getPreciseAllocated(client));
+            cb_free(untracked);
+        }
+        EXPECT_EQ(cb::MemoryDomain::Primary,
+                  cb::ArenaMalloc::getCurrentClient().domain);
+        EXPECT_EQ(client.arenas.at(size_t(cb::MemoryDomain::Primary)),
+                  cb::ArenaMalloc::getCurrentClientArena());
+
+        auto* untracked = cb_malloc(4096);
+        EXPECT_EQ(0, cb::ArenaMalloc::getPreciseAllocated(client));
+        cb_free(untracked);
+    }
+
+    auto* tracked = cb_malloc(4096);
+    EXPECT_LE(4096,
+              cb::ArenaMalloc::getPreciseAllocated(client,
+                                                   cb::MemoryDomain::Primary));
+    cb_free(tracked);
+    EXPECT_EQ(0, cb::ArenaMalloc::getPreciseAllocated(client));
+
+    cb::ArenaMalloc::switchFromClient();
+    cb::ArenaMalloc::unregisterClient(client);
+}
+
+// With no client selected NoArenaTrackingGuard does nothing.
+TEST_F(ArenaMalloc, NoArenaTrackingGuardNoClient) {
+    cb::NoArenaTrackingGuard guard;
+    EXPECT_FALSE(cb::ArenaMalloc::isCurrentClientUntracked());
+    EXPECT_EQ(cb::NoClientIndex, cb::ArenaMalloc::getCurrentClientIndex());
+    EXPECT_EQ(cb::MemoryDomain::None,
+              cb::ArenaMalloc::getCurrentClient().domain);
+}
+
+// Guards nested within NoArenaTrackingGuard restore the untracked client.
+TEST_F(ArenaMalloc, NoArenaTrackingGuardNested) {
+    auto client = cb::ArenaMalloc::registerClient(false);
+    cb::ArenaMalloc::switchToClient(client);
+
+    {
+        cb::NoArenaTrackingGuard guard;
+        {
+            cb::NoArenaGuard noArena;
+            EXPECT_EQ(cb::NoClientIndex,
+                      cb::ArenaMalloc::getCurrentClientIndex());
+            EXPECT_FALSE(cb::ArenaMalloc::isCurrentClientUntracked());
+        }
+        {
+            cb::NoArenaTrackingGuard inner;
+            EXPECT_EQ(client.index, cb::ArenaMalloc::getCurrentClientIndex());
+            EXPECT_TRUE(cb::ArenaMalloc::isCurrentClientUntracked());
+        }
+        EXPECT_EQ(client.index, cb::ArenaMalloc::getCurrentClientIndex());
+        EXPECT_TRUE(cb::ArenaMalloc::isCurrentClientUntracked());
+
+        auto* untracked = cb_malloc(4096);
+        EXPECT_EQ(0, cb::ArenaMalloc::getPreciseAllocated(client));
+        cb_free(untracked);
+    }
+
+    auto* tracked = cb_malloc(4096);
+    EXPECT_LE(4096, cb::ArenaMalloc::getPreciseAllocated(client));
+    cb_free(tracked);
+
+    cb::ArenaMalloc::switchFromClient();
+    cb::ArenaMalloc::unregisterClient(client);
+}
+
 TEST_F(ArenaMalloc, DomainGuard) {
     auto client = cb::ArenaMalloc::registerClient();
     auto domain = cb::ArenaMalloc::switchToClient(client).domain;

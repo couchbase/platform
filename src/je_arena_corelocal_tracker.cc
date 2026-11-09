@@ -65,11 +65,18 @@ void JEArenaCoreLocalTracker::setAllocatedThreshold(
             client.estimateUpdateThreshold);
 }
 
+// The memAllocated/memDeallocated functions only account valid client indexes
+// (< ArenaMallocMaxClients); both NoClientIndex and an index with
+// UntrackedClientFlag set are outside that range.
+static_assert(NoClientIndex >= ArenaMallocMaxClients);
+static_assert(UntrackedClientFlag >= ArenaMallocMaxClients);
+
 void JEArenaCoreLocalTracker::memAllocated(uint8_t index,
                                            MemoryDomain domain,
                                            size_t size,
                                            std::align_val_t alignment) {
-    if (index != NoClientIndex) {
+    // Skips NoClientIndex and untracked clients (UntrackedClientFlag set)
+    if (index < ArenaMallocMaxClients) {
         const int flags = (alignment > std::align_val_t{0})
                                   ? MALLOCX_ALIGN(alignment)
                                   : 0;
@@ -81,7 +88,8 @@ void JEArenaCoreLocalTracker::memAllocated(uint8_t index,
 void JEArenaCoreLocalTracker::memDeallocated(uint8_t index,
                                              MemoryDomain domain,
                                              void* ptr) {
-    if (index != NoClientIndex) {
+    // Skips NoClientIndex and untracked clients (UntrackedClientFlag set)
+    if (index < ArenaMallocMaxClients) {
         auto size = je_sallocx(ptr, 0 /* flags aren't read in this call*/);
         clientData[index]->allocated.sub(size, domain);
     }
@@ -90,7 +98,8 @@ void JEArenaCoreLocalTracker::memDeallocated(uint8_t index,
 void JEArenaCoreLocalTracker::memDeallocated(uint8_t index,
                                              MemoryDomain domain,
                                              size_t size) {
-    if (index != NoClientIndex) {
+    // Skips NoClientIndex and untracked clients (UntrackedClientFlag set)
+    if (index < ArenaMallocMaxClients) {
         size = je_nallocx(size, 0 /* flags aren't read in this call*/);
         clientData[index]->allocated.sub(size, domain);
     }
