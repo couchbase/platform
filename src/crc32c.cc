@@ -1,7 +1,7 @@
- /* crc32c.c -- compute CRC-32C using the Intel crc32 instruction
-  * Copyright (C) 2013 Mark Adler
-  * Version 1.1  1 Aug 2013  Mark Adler
-  */
+/* crc32c.c -- compute CRC-32C using the Intel crc32 instruction
+ * Copyright (C) 2013 Mark Adler
+ * Version 1.1  1 Aug 2013  Mark Adler
+ */
 
 /*
   This software is provided 'as-is', without any express or implied
@@ -59,6 +59,7 @@
 #include <limits>
 
 #include <folly/CpuId.h>
+#include <folly/lang/Bits.h>
 #if defined(__linux__)
 #include <sys/auxv.h>
 #endif
@@ -158,8 +159,10 @@ static void crc32c_zeros(uint32_t zeros[SHIFT_TABLE_X][SHIFT_TABLE_Y], size_t le
 }
 
 // single CRC in software
+// The lookup tables expect the 8 bytes in little endian order (first byte
+// in the least significant position) regardless of the host byte order.
 static inline uint64_t crc32c_sw_inner(uint64_t crc, const uint8_t* buffer) {
-    crc ^= *reinterpret_cast<const uint64_t*>(buffer);
+    crc ^= folly::Endian::little(folly::loadUnaligned<uint64_t>(buffer));
     crc = crc32c_sw_lookup_table[7][crc & 0xff] ^
         crc32c_sw_lookup_table[6][(crc >> 8) & 0xff] ^
         crc32c_sw_lookup_table[5][(crc >> 16) & 0xff] ^
