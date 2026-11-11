@@ -45,6 +45,7 @@ cb_add_test_executable(platform_unit_tests
                        static_clock_test.cc
                        string_utilities_test.cc
                        sysinfo_test.cc
+                       tagged_ptr_test.cc
                        thread_test.cc
                        timeutils_test.cc
                        unshared_test.cc
